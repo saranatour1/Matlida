@@ -24,3 +24,20 @@
 - Old test chats from before the team moved to the database aren't in the `threads` table, so they don't appear in the sidebar.
 - Port 3000 was taken by another server during testing, so `.claude/launch.json` runs Convex + Vite on 3001. `pnpm dev` is unchanged.
 - Open items are in `tasks.md`.
+
+## 2026-10-15
+
+### Built
+
+- Pushed the work so far to the `matilda-chat` branch (only the first commit was on GitHub).
+- **Projects** (`convex/projects.ts`, `/`): a project has a name and a brief. Its lead goes by the project's name and gets the brief in their instructions; the lead's behavior stays built-in. Employees, threads and artifacts now carry a required `projectId`.
+- Migrated existing data in two deploys: optional `projectId` plus a one-off mutation that created the "Matilda" project and assigned every row to it, then made `projectId` required and deleted the migration.
+- Routes moved under the project: `/p/$projectId` (chat), `/p/$projectId/team`, `/p/$projectId/threads/$threadId`, `/p/$projectId/artifacts/$artifactId`. `/` lists projects and creates or edits them.
+- Sidebar: a Projects section on top, then Bots (lead + employees), Chats, Threads and Artifacts for the current project. `useProject()` reads the project from the URL.
+
+### Verified (dev deployment, in the browser)
+
+- `pnpm typecheck` passes.
+- Created project "Oscar" (coffee roastery brief) and added Bea (Head Roaster) on its Team page; Matilda's employees didn't show there.
+- Chatted with Oscar: "Oscar is thinking…" showed, Oscar asked Bea, and the reply used the brief. The sidebar showed only Oscar's lead, bot, chat and thread.
+- Switched to the Matilda project: her five employees, chat, two threads and the "Q4 Sales Action Plan" artifact were all there, and the artifact preview opened at its new URL.

@@ -2,17 +2,20 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import schema from './schema'
 
-// ponytail: one shared team for everyone, scope it per user once there is auth.
 export const MAX_TEAM = 20
 const MAX_FIELDS = 10
 
 export const list = query({
-  args: {},
+  args: { projectId: v.id('projects') },
   returns: v.array(schema.doc('employees')),
-  handler: async (ctx) => await ctx.db.query('employees').take(MAX_TEAM),
+  handler: async (ctx, { projectId }) =>
+    await ctx.db
+      .query('employees')
+      .withIndex('by_project_and_name', (q) => q.eq('projectId', projectId))
+      .take(MAX_TEAM),
 })
 
-function clean(value: string, label: string, max: number) {
+export function clean(value: string, label: string, max: number) {
   const trimmed = value.trim()
   if (!trimmed || trimmed.length > max) {
     throw new ConvexError(`${label} must be 1 to ${max} characters.`)
@@ -23,6 +26,7 @@ function clean(value: string, label: string, max: number) {
 // Insert when id is missing, otherwise update.
 export const save = mutation({
   args: {
+    projectId: v.id('projects'),
     id: v.optional(v.id('employees')),
     name: v.string(),
     role: v.string(),
@@ -47,7 +51,9 @@ export const save = mutation({
     }
     const taken = await ctx.db
       .query('employees')
-      .withIndex('by_name', (q) => q.eq('name', employee.name))
+      .withIndex('by_project_and_name', (q) =>
+        q.eq('projectId', args.projectId).eq('name', employee.name),
+      )
       .first()
     if (taken && taken._id !== args.id) {
       throw new ConvexError(`${employee.name} is already on the team.`)
@@ -56,11 +62,19 @@ export const save = mutation({
       await ctx.db.patch('employees', args.id, employee)
       return args.id
     }
-    const team = await ctx.db.query('employees').take(MAX_TEAM)
+    const team = await ctx.db
+      .query('employees')
+      .withIndex('by_project_and_name', (q) =>
+        q.eq('projectId', args.projectId),
+      )
+      .take(MAX_TEAM)
     if (team.length >= MAX_TEAM) {
       throw new ConvexError(`The team is full (${MAX_TEAM} people).`)
     }
-    return await ctx.db.insert('employees', employee)
+    return await ctx.db.insert('employees', {
+      projectId: args.projectId,
+      ...employee,
+    })
   },
 })
 

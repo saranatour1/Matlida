@@ -4,12 +4,13 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { PlusIcon, XIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../convex/_generated/dataModel'
+import { useProject } from '~/hooks/use-project'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 
-export const Route = createFileRoute('/team')({
+export const Route = createFileRoute('/p/$projectId/team')({
   validateSearch: (search: Record<string, unknown>): { edit?: string } => ({
     edit: typeof search.edit === 'string' ? search.edit : undefined,
   }),
@@ -19,7 +20,11 @@ export const Route = createFileRoute('/team')({
 type Field = Doc<'employees'>['fields'][number]
 
 function Team() {
-  const team = useQuery(api.employees.list)
+  const project = useProject()
+  const team = useQuery(
+    api.employees.list,
+    project ? { projectId: project._id } : 'skip',
+  )
   const remove = useMutation(api.employees.remove)
   const { edit } = Route.useSearch()
   const editing = team?.find((e) => e._id === edit)
@@ -27,14 +32,19 @@ function Team() {
     ...new Set(team?.flatMap((e) => e.fields.map((f) => f.label))),
   ]
 
+  if (!project) {
+    return project === null ? (
+      <p className="p-6 text-sm text-muted-foreground">Project not found.</p>
+    ) : null
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
-          <h1 className="text-lg font-semibold">Team</h1>
+          <h1 className="text-lg font-semibold">{project.name}'s team</h1>
           <p className="text-sm text-muted-foreground">
-            Matilda can ask any of these people for help. Changes apply to her
-            next reply.
+            {project.name} can ask any of these people for help. Changes apply
+            to the next reply.
           </p>
         </div>
 
@@ -74,7 +84,13 @@ function Team() {
               <Button
                 variant="ghost"
                 size="sm"
-                render={<Link to="/team" search={{ edit: e._id }} />}
+                render={
+                  <Link
+                    to="/p/$projectId/team"
+                    params={{ projectId: project._id }}
+                    search={{ edit: e._id }}
+                  />
+                }
                 nativeButton={false}
               >
                 Edit
@@ -93,6 +109,7 @@ function Team() {
 
         <EmployeeForm
           key={editing?._id ?? 'new'}
+          projectId={project._id}
           employee={editing}
           labels={labels}
         />
@@ -102,9 +119,11 @@ function Team() {
 }
 
 function EmployeeForm({
+  projectId,
   employee,
   labels,
 }: {
+  projectId: Id<'projects'>
   employee?: Doc<'employees'>
   labels: string[]
 }) {
@@ -124,6 +143,7 @@ function EmployeeForm({
     setError(undefined)
     try {
       await save({
+        projectId,
         id: employee?._id,
         name: String(data.get('name')),
         role: String(data.get('role')),
@@ -131,7 +151,11 @@ function EmployeeForm({
         fields,
       })
       if (employee) {
-        void navigate({ to: '/team', search: {} })
+        void navigate({
+          to: '/p/$projectId/team',
+          params: { projectId },
+          search: {},
+        })
       } else {
         form.reset()
         setFields([])
@@ -239,7 +263,7 @@ function EmployeeForm({
         {employee && (
           <Button
             variant="ghost"
-            render={<Link to="/team" />}
+            render={<Link to="/p/$projectId/team" params={{ projectId }} />}
             nativeButton={false}
           >
             Cancel

@@ -1,6 +1,7 @@
 import { createThread } from '@convex-dev/agent'
 import { v } from 'convex/values'
 import { components } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import { internalMutation, query, type MutationCtx } from './_generated/server'
 import schema from './schema'
 
@@ -8,7 +9,12 @@ const vKind = schema.tables.threads.validator.fields.kind
 
 export async function startThread(
   ctx: MutationCtx,
-  args: { kind: 'chat' | 'employee'; title: string; parentThreadId?: string },
+  args: {
+    projectId: Id<'projects'>
+    kind: 'chat' | 'employee'
+    title: string
+    parentThreadId?: string
+  },
 ) {
   const threadId = await createThread(ctx, components.agent, {
     title: args.title,
@@ -19,6 +25,7 @@ export async function startThread(
 
 export const start = internalMutation({
   args: {
+    projectId: v.id('projects'),
     kind: vKind,
     title: v.string(),
     parentThreadId: v.optional(v.string()),
@@ -28,12 +35,14 @@ export const start = internalMutation({
 })
 
 export const list = query({
-  args: { kind: vKind },
+  args: { projectId: v.id('projects'), kind: vKind },
   returns: v.array(schema.doc('threads')),
-  handler: async (ctx, { kind }) =>
+  handler: async (ctx, { projectId, kind }) =>
     await ctx.db
       .query('threads')
-      .withIndex('by_kind', (q) => q.eq('kind', kind))
+      .withIndex('by_project_and_kind', (q) =>
+        q.eq('projectId', projectId).eq('kind', kind),
+      )
       .order('desc')
       .take(50),
 })

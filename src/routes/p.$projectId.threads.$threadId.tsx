@@ -4,13 +4,13 @@ import { useUIMessages } from '@convex-dev/agent/react'
 import { api } from '../../convex/_generated/api'
 import { ChatMessage, type ChatUIMessage } from '~/components/chat-message'
 
-export const Route = createFileRoute('/threads/$threadId')({
+export const Route = createFileRoute('/p/$projectId/threads/$threadId')({
   component: ThreadPreview,
 })
 
-// Read-only view of one of Matilda's conversations with an employee.
+// Read-only view of one of the lead's conversations with an employee.
 function ThreadPreview() {
-  const { threadId } = Route.useParams()
+  const { projectId, threadId } = Route.useParams()
   const thread = useQuery(api.threads.get, { threadId })
   const { results } = useUIMessages(
     api.matilda.listMessages,
@@ -25,7 +25,8 @@ function ThreadPreview() {
           <h1 className="text-lg font-semibold">{thread?.title ?? 'Thread'}</h1>
           {thread?.parentThreadId && (
             <Link
-              to="/"
+              to="/p/$projectId"
+              params={{ projectId }}
               search={{ thread: thread.parentThreadId }}
               className="text-sm text-muted-foreground underline hover:text-foreground"
             >

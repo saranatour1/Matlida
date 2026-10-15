@@ -11,6 +11,7 @@
 import type * as artifacts from "../artifacts.js";
 import type * as employees from "../employees.js";
 import type * as matilda from "../matilda.js";
+import type * as projects from "../projects.js";
 import type * as threads from "../threads.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   artifacts: typeof artifacts;
   employees: typeof employees;
   matilda: typeof matilda;
+  projects: typeof projects;
   threads: typeof threads;
 }>;
 

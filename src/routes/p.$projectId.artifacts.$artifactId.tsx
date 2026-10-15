@@ -4,12 +4,12 @@ import { api } from '../../convex/_generated/api'
 import { TextPart } from '~/components/parts/text-part'
 import { Button } from '~/components/ui/button'
 
-export const Route = createFileRoute('/artifacts/$artifactId')({
+export const Route = createFileRoute('/p/$projectId/artifacts/$artifactId')({
   component: ArtifactPreview,
 })
 
 function ArtifactPreview() {
-  const { artifactId } = Route.useParams()
+  const { projectId, artifactId } = Route.useParams()
   const artifact = useQuery(api.artifacts.get, { id: artifactId })
 
   if (artifact === undefined) return null
@@ -26,7 +26,13 @@ function ArtifactPreview() {
           <Button
             variant="outline"
             size="sm"
-            render={<Link to="/" search={{ thread: artifact.threadId }} />}
+            render={
+              <Link
+                to="/p/$projectId"
+                params={{ projectId }}
+                search={{ thread: artifact.threadId }}
+              />
+            }
             nativeButton={false}
           >
             Open chat

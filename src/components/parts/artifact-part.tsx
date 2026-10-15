@@ -1,9 +1,10 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useParams } from '@tanstack/react-router'
 import { FileTextIcon } from 'lucide-react'
 import type { SaveArtifactPart } from '~/components/chat-message'
 import { Spinner } from '~/components/ui/spinner'
 
 export function ArtifactPart({ part }: { part: SaveArtifactPart }) {
+  const { projectId = '' } = useParams({ strict: false })
   switch (part.state) {
     case 'input-streaming':
     case 'input-available':
@@ -16,8 +17,8 @@ export function ArtifactPart({ part }: { part: SaveArtifactPart }) {
     case 'output-available':
       return (
         <Link
-          to="/artifacts/$artifactId"
-          params={{ artifactId: part.output.id }}
+          to="/p/$projectId/artifacts/$artifactId"
+          params={{ projectId, artifactId: part.output.id }}
           className="flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-muted"
         >
           <FileTextIcon className="size-4" />

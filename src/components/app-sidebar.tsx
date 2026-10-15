@@ -5,12 +5,15 @@ import {
   BotIcon,
   CrownIcon,
   FileTextIcon,
+  FolderIcon,
   MessageSquareIcon,
   MessagesSquareIcon,
   PlusIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import type { Doc } from '../../convex/_generated/dataModel'
+import { useProject } from '~/hooks/use-project'
 import {
   Sidebar,
   SidebarContent,
@@ -33,81 +36,130 @@ type Item = {
 }
 
 export function AppSidebar() {
-  const team = useQuery(api.employees.list)
-  const chats = useQuery(api.threads.list, { kind: 'chat' })
-  const threads = useQuery(api.threads.list, { kind: 'employee' })
-  const artifacts = useQuery(api.artifacts.list)
-  const params = useParams({ strict: false })
-  const search = useSearch({ strict: false })
+  const projects = useQuery(api.projects.list)
+  const project = useProject()
 
   return (
     <Sidebar>
       <SidebarContent>
         <Section
-          label="Bots"
-          empty="No employees yet."
-          action={<NewLink to="/team" label="Add employee" />}
-          items={
-            team && [
-              {
-                key: 'matilda',
-                icon: CrownIcon,
-                title: <Named name="Matilda" role="Boss" />,
-                link: <Link to="/" />,
-              },
-              ...team.map((e) => ({
-                key: e._id,
-                icon: BotIcon,
-                title: <Named name={e.name} role={e.role} />,
-                link: <Link to="/team" search={{ edit: e._id }} />,
-                active: search.edit === e._id,
-              })),
-            ]
-          }
-        />
-        <Section
-          label="Chats"
-          empty="No chats yet."
-          action={<NewLink to="/" label="New chat" />}
-          items={chats?.map((c) => ({
-            key: c._id,
-            icon: MessageSquareIcon,
-            title: c.title,
-            link: <Link to="/" search={{ thread: c.threadId }} />,
-            active: search.thread === c.threadId,
+          label="Projects"
+          empty="No projects yet."
+          action={<NewLink label="New project" link={<Link to="/" />} />}
+          items={projects?.map((p) => ({
+            key: p._id,
+            icon: FolderIcon,
+            title: p.name,
+            link: <Link to="/p/$projectId" params={{ projectId: p._id }} />,
+            active: project?._id === p._id,
           }))}
         />
-        <Section
-          label="Threads"
-          empty="Matilda's talks with employees show up here."
-          items={threads?.map((t) => ({
-            key: t._id,
-            icon: MessagesSquareIcon,
-            title: t.title,
-            link: (
-              <Link to="/threads/$threadId" params={{ threadId: t.threadId }} />
-            ),
-            active: params.threadId === t.threadId,
-          }))}
-        />
-        <Section
-          label="Artifacts"
-          empty="Documents Matilda saves show up here."
-          items={artifacts?.map((a) => ({
-            key: a._id,
-            icon: FileTextIcon,
-            title: a.title,
-            link: (
-              <Link
-                to="/artifacts/$artifactId"
-                params={{ artifactId: a._id }}
-              />
-            ),
-            active: params.artifactId === a._id,
-          }))}
-        />
+        {project && <ProjectSections project={project} />}
       </SidebarContent>
     </Sidebar>
+  )
+}
+
+function ProjectSections({ project }: { project: Doc<'projects'> }) {
+  const projectId = project._id
+  const team = useQuery(api.employees.list, { projectId })
+  const chats = useQuery(api.threads.list, { projectId, kind: 'chat' })
+  const threads = useQuery(api.threads.list, { projectId, kind: 'employee' })
+  const artifacts = useQuery(api.artifacts.list, { projectId })
+  const params = useParams({ strict: false })
+  const search = useSearch({ strict: false })
+
+  return (
+    <>
+      <Section
+        label="Bots"
+        empty="No employees yet."
+        action={
+          <NewLink
+            label="Add employee"
+            link={<Link to="/p/$projectId/team" params={{ projectId }} />}
+          />
+        }
+        items={
+          team && [
+            {
+              key: 'lead',
+              icon: CrownIcon,
+              title: <Named name={project.name} role="Lead" />,
+              link: <Link to="/" search={{ edit: projectId }} />,
+            },
+            ...team.map((e) => ({
+              key: e._id,
+              icon: BotIcon,
+              title: <Named name={e.name} role={e.role} />,
+              link: (
+                <Link
+                  to="/p/$projectId/team"
+                  params={{ projectId }}
+                  search={{ edit: e._id }}
+                />
+              ),
+              active: search.edit === e._id,
+            })),
+          ]
+        }
+      />
+      <Section
+        label="Chats"
+        empty="No chats yet."
+        action={
+          <NewLink
+            label="New chat"
+            link={<Link to="/p/$projectId" params={{ projectId }} />}
+          />
+        }
+        items={chats?.map((c) => ({
+          key: c._id,
+          icon: MessageSquareIcon,
+          title: c.title,
+          link: (
+            <Link
+              to="/p/$projectId"
+              params={{ projectId }}
+              search={{ thread: c.threadId }}
+            />
+          ),
+          active: search.thread === c.threadId,
+        }))}
+      />
+      <Section
+        label="Threads"
+        empty={`${project.name}'s talks with employees show up here.`}
+        items={threads?.map((t) => ({
+          key: t._id,
+          icon: MessagesSquareIcon,
+          title: t.title,
+          link: (
+            <Link
+              to="/p/$projectId/threads/$threadId"
+              params={{ projectId, threadId: t.threadId }}
+            />
+          ),
+          active: params.threadId === t.threadId,
+        }))}
+      />
+      <Section
+        label="Artifacts"
+        empty={`Documents ${project.name} saves show up here.`}
+        items={artifacts?.map((a) => ({
+          key: a._id,
+          icon: FileTextIcon,
+          title: a.title,
+          link: (
+            <Link
+              to="/p/$projectId/artifacts/$artifactId"
+              params={{ projectId, artifactId: a._id }}
+            />
+          ),
+          active: params.artifactId === a._id,
+        }))}
+      />
+    </>
   )
 }
 
@@ -158,13 +210,9 @@ function Named({ name, role }: { name: string; role: string }) {
   )
 }
 
-function NewLink({ to, label }: { to: '/' | '/team'; label: string }) {
+function NewLink({ label, link }: { label: string; link: React.ReactElement }) {
   return (
-    <SidebarGroupAction
-      render={<Link to={to} />}
-      aria-label={label}
-      title={label}
-    >
+    <SidebarGroupAction render={link} aria-label={label} title={label}>
       <PlusIcon />
     </SidebarGroupAction>
   )

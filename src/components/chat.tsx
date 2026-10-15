@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { api } from '../../convex/_generated/api'
+import { useProject } from '~/hooks/use-project'
 import { ChatMessage, type ChatUIMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -27,7 +28,12 @@ import {
 export function Chat({ threadId }: { threadId?: string }) {
   const navigate = useNavigate()
   const send = useMutation(api.matilda.sendMessage)
-  const team = useQuery(api.employees.list)
+  const project = useProject()
+  const lead = project?.name ?? 'The lead'
+  const team = useQuery(
+    api.employees.list,
+    project ? { projectId: project._id } : 'skip',
+  )
   const [error, setError] = React.useState<string>()
 
   const { results } = useUIMessages(
@@ -42,7 +48,7 @@ export function Chat({ threadId }: { threadId?: string }) {
     lastMessage?.role === 'user' ||
     lastMessage?.status === 'pending' ||
     lastMessage?.status === 'streaming'
-  // Busy, but nothing of Matilda's reply is on screen yet.
+  // Busy, but nothing of the lead's reply is on screen yet.
   const isWaiting =
     isBusy &&
     !(
@@ -57,8 +63,15 @@ export function Chat({ threadId }: { threadId?: string }) {
   async function sendMessage(prompt: string) {
     setError(undefined)
     try {
-      const id = await send({ threadId, prompt })
-      if (!threadId) void navigate({ to: '/', search: { thread: id } })
+      if (!project) return
+      const id = await send({ projectId: project._id, threadId, prompt })
+      if (!threadId) {
+        void navigate({
+          to: '/p/$projectId',
+          params: { projectId: project._id },
+          search: { thread: id },
+        })
+      }
     } catch (e) {
       setError(
         e instanceof ConvexError
@@ -78,13 +91,19 @@ export function Chat({ threadId }: { threadId?: string }) {
               <EmptyDescription>
                 {team === undefined ? null : team.length ? (
                   <>
-                    Matilda brings in {team.map((e) => e.name).join(', ')} as
+                    {lead} brings in {team.map((e) => e.name).join(', ')} as
                     needed, then gives you one answer.
                   </>
                 ) : (
                   <>
-                    Matilda has no employees yet.{' '}
-                    <Link to="/team">Add some</Link> so she can delegate.
+                    {lead} has no employees yet.{' '}
+                    <Link
+                      to="/p/$projectId/team"
+                      params={{ projectId: project!._id }}
+                    >
+                      Add some
+                    </Link>{' '}
+                    so they can delegate.
                   </>
                 )}
               </EmptyDescription>
@@ -111,7 +130,7 @@ export function Chat({ threadId }: { threadId?: string }) {
                 {isWaiting && (
                   <MessageScrollerItem messageId="thinking">
                     <div className="flex shimmer items-center gap-2 px-3 text-sm text-muted-foreground">
-                      Matilda is thinking…
+                      {lead} is thinking…
                     </div>
                   </MessageScrollerItem>
                 )}
@@ -127,11 +146,15 @@ export function Chat({ threadId }: { threadId?: string }) {
           <Alert variant="destructive">
             <AlertTitle>Request failed</AlertTitle>
             <AlertDescription>
-              {error ?? 'Matilda could not finish that reply. Try again.'}
+              {error ?? `${lead} could not finish that reply. Try again.`}
             </AlertDescription>
           </Alert>
         )}
-        <PromptForm isBusy={isBusy} onSubmit={sendMessage} />
+        <PromptForm
+          placeholder={`Message ${lead}…`}
+          isBusy={isBusy}
+          onSubmit={sendMessage}
+        />
       </div>
     </div>
   )

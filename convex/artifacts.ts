@@ -3,10 +3,14 @@ import { internalMutation, query } from './_generated/server'
 import schema from './schema'
 
 export const list = query({
-  args: {},
+  args: { projectId: v.id('projects') },
   returns: v.array(schema.doc('artifacts')),
-  handler: async (ctx) =>
-    await ctx.db.query('artifacts').order('desc').take(50),
+  handler: async (ctx, { projectId }) =>
+    await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .order('desc')
+      .take(50),
 })
 
 export const get = query({
@@ -19,7 +23,12 @@ export const get = query({
 })
 
 export const save = internalMutation({
-  args: { threadId: v.string(), title: v.string(), content: v.string() },
+  args: {
+    projectId: v.id('projects'),
+    threadId: v.string(),
+    title: v.string(),
+    content: v.string(),
+  },
   returns: v.id('artifacts'),
   handler: async (ctx, args) => await ctx.db.insert('artifacts', args),
 })

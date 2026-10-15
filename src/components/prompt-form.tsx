@@ -9,9 +9,11 @@ import {
 } from '~/components/ui/input-group'
 
 export function PromptForm({
+  placeholder,
   isBusy,
   onSubmit,
 }: {
+  placeholder: string
   isBusy: boolean
   onSubmit: (text: string) => void
 }) {
@@ -29,7 +31,7 @@ export function PromptForm({
     <form onSubmit={handleSubmit}>
       <InputGroup>
         <InputGroupTextarea
-          placeholder="Message Matilda…"
+          placeholder={placeholder}
           className="p-3.5"
           value={input}
           onChange={(event) => setInput(event.target.value)}
