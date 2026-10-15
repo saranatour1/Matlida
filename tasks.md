@@ -14,12 +14,22 @@
 - [x] No default employees: teams start empty, and the Team page offers employee templates (Ivy, Sam, Rosa, Leo, Nora) to add with one click
 - [x] Project guidelines: rules the lead and every employee in a project always follow
 - [x] `GUIDELINES.md` for the codebase, linked from `CLAUDE.md` and `AGENTS.md`
+- [x] Guidelines refactor: API files re-export from `convex/models/<table>/`, shared code in `convex/lib/`, Zod input validation via convex-helpers, `returns` only on internal functions, form actions instead of `useEffect`/`useState`
+- [x] `docs/integrations.md`: goals and rules for each integration
+
+## Next (in order, see `docs/integrations.md`)
+
+- [ ] pstack as a Claude Code setup (`.claude/skills`, `.claude/agents`)
+- [ ] Auth with Convex Auth v2 (alpha, pinned)
+- [ ] BYOK AI connections + OpenRouter OAuth
+- [ ] Email, send-only: Resend platform email, user connectors (Resend, Postmark, Mailgun, Cloudflare, SMTP, Gmail, Outlook), approval before send, inbound replies
+- [ ] Photon: text the lead over iMessage/SMS
+- [ ] Calls with Cloudflare RealtimeKit, including the AI lead speaking in calls
 
 ## Open
 
-- [ ] Auth: everything is public and shared (projects, teams, chats, artifacts), and every message spends gateway credits
 - [ ] Delete a project (and its employees, threads, artifacts and agent messages)
-- [ ] Rate limiting on `matilda.sendMessage` (`@convex-dev/rate-limiter`)
+- [ ] Rate limiting on `chat.sendMessage` (`@convex-dev/rate-limiter`)
 - [ ] Stop button (abort the streaming reply)
 - [ ] Employee memory: each ask starts a fresh employee thread; reuse one per (chat, employee) if needed
 - [ ] Delete or rename chats and artifacts from the sidebar
@@ -28,3 +38,4 @@
 - [ ] Install `eslint` so `pnpm lint` works
 - [ ] Starter hydration warning in the console: `Error reading query stream ... 'mutations'` (`@tanstack/react-router-with-query`)
 - [ ] Decide the `allowBuilds` placeholders in `pnpm-workspace.yaml` (every install currently warns)
+- [ ] Later: reading mailboxes, outreach texting, AI vision on screen shares, usage tracking per AI connection

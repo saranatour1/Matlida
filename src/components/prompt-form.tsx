@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { ArrowUpIcon } from 'lucide-react'
 
 import {
@@ -15,26 +14,17 @@ export function PromptForm({
 }: {
   placeholder: string
   isBusy: boolean
-  onSubmit: (text: string) => void
+  onSubmit: (prompt: string) => void
 }) {
-  const [input, setInput] = React.useState('')
-
-  function handleSubmit(event?: React.FormEvent) {
-    event?.preventDefault()
-    const text = input.trim()
-    if (!text || isBusy) return
-    onSubmit(text)
-    setInput('')
-  }
-
   return (
-    <form onSubmit={handleSubmit}>
+    <form action={(data) => onSubmit(String(data.get('prompt')))}>
       <InputGroup>
         <InputGroupTextarea
+          name="prompt"
+          required
+          maxLength={4000}
           placeholder={placeholder}
           className="p-3.5"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {
             if (
               event.key === 'Enter' &&
@@ -42,7 +32,7 @@ export function PromptForm({
               !event.nativeEvent.isComposing
             ) {
               event.preventDefault()
-              handleSubmit()
+              if (!isBusy) event.currentTarget.form?.requestSubmit()
             }
           }}
         />
@@ -53,7 +43,7 @@ export function PromptForm({
             variant="default"
             aria-label="Send message"
             className="ml-auto"
-            disabled={!input.trim() || isBusy}
+            disabled={isBusy}
           >
             <ArrowUpIcon />
           </InputGroupButton>

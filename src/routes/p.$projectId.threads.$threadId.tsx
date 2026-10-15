@@ -8,12 +8,12 @@ export const Route = createFileRoute('/p/$projectId/threads/$threadId')({
   component: ThreadPreview,
 })
 
-// Read-only view of one of the lead's conversations with an employee.
+/** Read-only view of one of the lead's conversations with an employee. */
 function ThreadPreview() {
   const { projectId, threadId } = Route.useParams()
   const thread = useQuery(api.threads.get, { threadId })
   const { results } = useUIMessages(
-    api.matilda.listMessages,
+    api.chat.listMessages,
     { threadId },
     { initialNumItems: 50, stream: true },
   )

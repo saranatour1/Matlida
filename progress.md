@@ -53,3 +53,36 @@
 - **Project guidelines**: a new optional `guidelines` field on projects, edited on the Projects page. It's appended to the lead's instructions and to every employee's. Optional, so existing projects needed no migration.
 - Verified in the browser: set Oscar's guidelines to "Always reply in French", asked Oscar to consult Bea, and both Oscar's answer and Bea's reply came back in French. Then cleared the test rule.
 - **`GUIDELINES.md`** for the codebase: stack, commands, file map, how a reply flows, recipes (templates, lead tools, pages, shadcn components, schema changes) and conventions. Linked from `CLAUDE.md` and `AGENTS.md`, outside the Convex-managed block.
+
+## 2026-10-15 (later): guidelines refactor
+
+### Built
+
+- **Convex layout** follows ianmacartney/code-organization-pattern:
+  - API files `convex/{projects,employees,threads,artifacts,chat}.ts` only re-export.
+  - Definitions live in `convex/models/<table>/{table,functions}.ts`, and the lead agent in `models/threads/{lead,chat}.ts`.
+  - Table-agnostic code lives in `convex/lib/` (`zMutation`, the AI model).
+  - `api.matilda.*` is now `api.chat.*`.
+- **Validation:**
+  - Public mutations that take user text use `zMutation` (convex-helpers `zCustomMutation` + Zod 4), with messages meant for users.
+  - `threads.kind` uses `literals()`.
+  - `returns` validators remain on internal functions only.
+- **Updates:** convex-helpers 0.1.128 added. Convex 1.46 and agent 0.7.7 are already the latest. Convex AI files updated.
+- **Frontend:**
+  - Forms use `<form action>` + `useActionState`, and keep the submitted values on error.
+  - `useIsMobile` uses `useSyncExternalStore`.
+  - No `useEffect` is left in our code. Only two `useState` calls remain: the copy button and the field rows.
+  - Removed the template's "d" theme hotkey and an unused `safeHttpUrl`.
+- **Docs:**
+  - `GUIDELINES.md` rewritten around the owner's rules.
+  - `docs/integrations.md` sets the goals and rules for auth, BYOK, email, Photon and calls.
+
+### Verified
+
+- `pnpm typecheck`, `npx convex dev --once` and `pnpm build` pass.
+- In the browser (Oscar test project):
+  - Added Ivy from a template.
+  - A duplicate name ("Bea") showed "Bea is already on the team." and kept every input, including the custom field row.
+  - A name of only spaces showed the Zod message "Give the employee a name."
+  - A valid save cleared the form.
+  - A chat asked Bo and Ivy in parallel and saved "Weekend Tasting Event Plan" as an artifact.

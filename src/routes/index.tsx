@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
+import { errorMessage } from '~/lib/errors'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -72,41 +72,37 @@ function Projects() {
   )
 }
 
+type ProjectValues = Pick<Doc<'projects'>, 'name' | 'brief' | 'guidelines'>
+type FormState = { error?: string; values?: ProjectValues }
+
 function ProjectForm({ project }: { project?: Doc<'projects'> }) {
   const save = useMutation(api.projects.save)
   const navigate = useNavigate()
-  const [error, setError] = React.useState<string>()
-
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    setError(undefined)
-    try {
-      const id = await save({
-        id: project?._id,
+  const [state, submit, isPending] = React.useActionState(
+    async (_previous: FormState, data: FormData): Promise<FormState> => {
+      const values = {
         name: String(data.get('name')),
         brief: String(data.get('brief')),
         guidelines: String(data.get('guidelines')),
-      })
-      if (project) {
-        void navigate({ to: '/', search: {} })
-      } else {
-        void navigate({ to: '/p/$projectId', params: { projectId: id } })
       }
-    } catch (e) {
-      setError(
-        e instanceof ConvexError
-          ? String(e.data)
-          : 'Could not save. Try again.',
-      )
-    }
-  }
+      try {
+        const id = await save({ id: project?._id, ...values })
+        if (project) {
+          void navigate({ to: '/', search: {} })
+        } else {
+          void navigate({ to: '/p/$projectId', params: { projectId: id } })
+        }
+        return {}
+      } catch (e) {
+        return { error: errorMessage(e, 'Could not save. Try again.'), values }
+      }
+    },
+    {},
+  )
+  const values = state.values ?? project
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex flex-col gap-4 rounded-xl border p-4"
-    >
+    <form action={submit} className="flex flex-col gap-4 rounded-xl border p-4">
       <h2 className="font-medium">
         {project ? `Edit ${project.name}` : 'New project'}
       </h2>
@@ -114,7 +110,7 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         Name (the lead goes by this name too)
         <Input
           name="name"
-          defaultValue={project?.name}
+          defaultValue={values?.name}
           required
           maxLength={40}
           placeholder="Matilda"
@@ -124,7 +120,7 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         Brief
         <Textarea
           name="brief"
-          defaultValue={project?.brief}
+          defaultValue={values?.brief}
           maxLength={2000}
           placeholder="A small coffee roastery selling online. This quarter: launch subscriptions."
         />
@@ -133,19 +129,19 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         Guidelines (the lead and every employee always follow these)
         <Textarea
           name="guidelines"
-          defaultValue={project?.guidelines}
+          defaultValue={values?.guidelines}
           maxLength={2000}
           placeholder="Answer in British English. Never promise delivery dates. Keep budgets under $5k unless asked."
         />
       </label>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {project && (
           <Button variant="ghost" render={<Link to="/" />} nativeButton={false}>
             Cancel
           </Button>
         )}
-        <Button type="submit">
+        <Button type="submit" disabled={isPending}>
           {project ? 'Save changes' : 'Create project'}
         </Button>
       </div>

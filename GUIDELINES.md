@@ -1,122 +1,124 @@
 # Guidelines
 
-How this project is built, and the conventions to follow when changing it. For people and AI agents alike.
+How we build this project. These rules apply to people and AI agents alike. Integration-specific goals and rules live in [docs/integrations.md](docs/integrations.md).
 
-## What it is
+## Principles
 
-You create **projects**. Each project has a **lead**, who goes by the project's name (the first project is "Matilda"), plus a team of **employees** you add yourself. The lead answers your chats and delegates to employees, asking several in parallel when a topic spans their areas. When a reply is a deliverable, the lead saves it as an **artifact**.
+- **Don't over-code.** Write plain, straight code with no detours. Prefer deleting code to adding it. Choose the smallest change that solves the problem.
+- **Follow pstack.** Its principles ship as skills in `.claude/skills/principle-*`. Name the one you apply and the decision it changed. The ones we lean on most:
+  - Minimize Reader Load
+  - Boundary Discipline: validate at the edge, trust types inside
+  - Type System Discipline
+  - Model the Domain
+  - Subtract Before You Add
+  - Prove It Works: check the real app, not "it compiles"
+  - Fix Root Causes
+  - Migrate Callers Then Delete Legacy APIs
 
-Project settings that shape the bots:
-
-- **Brief**: what the project is about. Only the lead sees it.
-- **Guidelines**: rules the lead and every employee always follow.
-- **Employee description and custom fields**: what that one employee knows and how they work.
+  Use `/poteto-mode` for rigorous work.
+- **Pick the stack by the job.** Use TanStack Start for full-stack apps and Astro for frontend demos.
+- **Ask for approval in tl;dr form.** When you need a decision from the owner, give a few short lines with the options. No essays.
 
 ## Stack
 
-- **TanStack Start** on Vite (React 19, file-based routes in `src/routes/`)
-- **Convex** for the database, server functions and realtime updates
-- **`@convex-dev/agent`** for agents, threads, messages and streaming
-- **Convex AI Gateway** (`@convex-dev/ai-sdk-provider`) for model calls. Convex holds the provider keys; it needs a paid Convex plan
-- **shadcn/ui** (`base-rhea` style, built on Base UI) and **Tailwind CSS v4**. The chat UI comes from [shadcn-ui/chatbot-template](https://github.com/shadcn-ui/chatbot-template)
+| Layer | Choice |
+|---|---|
+| App framework | TanStack Start on Vite (React 19, file routes in `src/routes/`) |
+| Backend | Convex, kept current (`pnpm add convex@latest convex-helpers@latest`, then `npx convex ai-files update`) |
+| Agents | `@convex-dev/agent`, called through the Convex AI Gateway (`convex/lib/ai.ts`) |
+| UI | shadcn/ui (`base-rhea` on Base UI), with Tailwind CSS v4 |
 
 ## Running it
 
 ```bash
 pnpm install
-pnpm dev          # Convex dev (watches convex/) + Vite on http://localhost:3000
-pnpm typecheck    # run before every commit
-pnpm build        # typecheck + production build
-pnpm format       # prettier
+pnpm dev          # Convex dev + Vite on http://localhost:3000
+pnpm typecheck    # before every commit
+pnpm build
+pnpm format
 ```
 
-`pnpm lint` and `pnpm start` don't work yet (see `tasks.md`).
+## Convex
 
-## Where things live
+### Code organization
+
+We follow [ianmacartney/code-organization-pattern](https://github.com/ianmacartney/code-organization-pattern): define functions in a subfolder, and export the API from a top-level file.
 
 ```
 convex/
-  schema.ts          tables: projects, employees, threads, artifacts
-  matilda.ts         the lead: sendMessage → respond (streams the reply), lead tools, listMessages
-  projects.ts        list / get / save projects
-  employees.ts       list / save / remove employees, shared `clean()` validation helper
-  threads.ts         app-side index of agent threads (chats and lead→employee talks)
-  artifacts.ts       documents the lead saves
-  convex.config.ts   mounts the agent component
-src/
-  routes/
-    index.tsx                              /  projects: list, create, edit
-    p.$projectId.index.tsx                 /p/:id  chat (?thread=…)
-    p.$projectId.team.tsx                  /p/:id/team  employees and templates
-    p.$projectId.threads.$threadId.tsx     read-only lead→employee thread
-    p.$projectId.artifacts.$artifactId.tsx artifact preview
-  components/
-    ui/              shadcn components, generated: edit sparingly
-    parts/           one component per message part (text, ask_employee, save_artifact)
-    app-sidebar.tsx  projects, then the current project's bots, chats, threads, artifacts
-    chat.tsx, chat-message.tsx, prompt-form.tsx
-  hooks/use-project.ts      the project from the URL
-  lib/employee-templates.ts ready-made employees shown on the Team page
+  projects.ts, employees.ts, threads.ts, artifacts.ts, chat.ts
+                       the API: re-exports only, e.g. export const { list, get, save } = projectsApi
+  models/<table>/
+    table.ts           the table definition (imported by schema.ts)
+    functions.ts       queries, mutations and actions for that table, exported as one `<table>Api`
+                       object, plus helpers that only concern that table (e.g. getTeam, startThread)
+  models/threads/lead.ts, chat.ts
+                       the lead agent, and the chat functions that run it
+  lib/                 reusable, table-agnostic code (zMutation, the AI model, crypto, etc.)
+  schema.ts            assembles the tables from models/
 ```
 
-Messages themselves live in the agent component's tables, not ours. Our `threads` table only records which project a thread belongs to, what kind it is (`chat` or `employee`) and its parent chat, so the sidebar can list them.
+- **`models/<table>`:** add a folder for a table when it gets functions. Use common sense: don't create files that would hold one line.
+- **`lib`:** code that more than one model uses, or that has nothing to do with a specific table.
+- **Function definitions:** they aren't exported one by one from `models/`, so they only show up under the API file's name (`api.projects.list`). Jump-to-definition goes through the API file to the model.
 
-## How a reply happens
+### Functions
 
-1. `matilda.sendMessage` (mutation) checks the prompt, creates the chat thread on the first message, saves the user message, and schedules `respond`.
-2. `matilda.respond` (action) loads the project and its team, then builds the lead **for this reply**: name, instructions (brief, roster, guidelines) and tools. So edits to the team or project apply to the next reply without a deploy.
-3. The lead streams its answer with `saveStreamDeltas`. The UI reads it live through `useUIMessages(api.matilda.listMessages, …, { stream: true })`.
-4. `ask_employee` starts a new employee thread, runs that employee as their own agent, and returns `{ name, role, reply }`. `save_artifact` stores markdown and returns `{ id, title }`.
+- Every function has an `args` validator.
+- **`returns` validators go only on internal functions** (`internalQuery`, `internalMutation`, `internalAction`). Public functions don't declare them.
+- **User input is validated at the boundary.** Public mutations that take user text use `zMutation` from `convex/lib/functions.ts`, with Zod 4 schemas: `.trim().min(1, 'message').max(n, 'message')` and `zid('table')`. A failed parse reaches the UI as a `ConvexError`, and `errorMessage()` in `src/lib/errors.ts` shows its message.
+- **Use convex-helpers validators where they fit:**
+  - `literals('a', 'b')` instead of a hand-built `v.union(v.literal…)`
+  - `nullable`, `partial`
+  - `customQuery`/`customMutation` for builders that inject context, such as auth
+- **Derive validators from the table:** `threadsTable.validator.omit('threadId').fields` and `schema.doc('table')`.
+- **Queries** use an index and a limit (`.withIndex(...).take(n)`). Never `.collect()` unbounded.
+- **Merging streams** (`convex-helpers/server/stream`) is only for when one sorted, paginated list has to come from several indexes or tables. Don't reach for it otherwise.
+- **Throw `ConvexError('message for the user')`** for errors the user should see.
+- **Changing the schema on live data:** deploy the new field as optional, backfill it with a one-off internal mutation, then make it required and delete the migration.
+- **Read `convex/_generated/ai/guidelines.md`** before writing Convex code.
+
+## Frontend
+
+- **Hooks first, and no `useEffect`.**
+  - Subscribe to browser state with `useSyncExternalStore` (see `src/hooks/use-mobile.ts`).
+  - Start work in event handlers or form actions.
+  - Read data with `useQuery` and `useUIMessages`.
+- **Little `useState`.**
+  - Derive values instead of syncing them.
+  - Forms are uncontrolled: `<form action={submit}>` with `useActionState`.
+  - On error, return the submitted values and use them as `defaultValue`, so React's form reset doesn't wipe them.
+  - Keep state only for things the DOM can't hold, like a list of rows.
+- **Shared hooks** live in `src/hooks/`, for example `useProject()` for the project in the URL.
+- **Style:** shadcn components plus the tokens in `src/styles/app.css`.
+  - Use semantic classes (`bg-background`, `text-muted-foreground`, `border`, `rounded-xl`), and no raw colors.
+  - Add components with `pnpm exec shadcn add <name>`, answer **no** to overwrites, then run `pnpm format`.
+  - `src/components/ui/` is generated: don't restyle it to satisfy these rules.
+- **Accessibility:** every control has an accessible name, and layouts work down to phone width (the sidebar becomes a sheet below 768px).
+- **Imports:** `~/` for `src/`, and relative paths for `convex/_generated`.
+
+## Comments
+
+Use JSDoc on exports when it adds something: a contract, a constraint, or a non-obvious "why". Don't comment every line or narrate the code. If code needs a long comment to justify it, fix the code instead.
 
 ## Recipes
 
-**Add an employee template.** Add an entry to `src/lib/employee-templates.ts`. Nothing else is needed.
+**Add an employee template.** Add an entry to `src/lib/employee-templates.ts`.
+
+**Add a table.**
+1. Create `convex/models/<table>/table.ts` and add it to `schema.ts`.
+2. Put its functions in `functions.ts`, exported as `<table>Api`.
+3. Re-export them from `convex/<table>.ts`.
 
 **Add a lead tool.**
+1. Add it with `createTool` in `leadTools()` (`convex/models/threads/lead.ts`), and mention it in `leadInstructions()`.
+2. Add its types to `ChatUIMessage` (`src/components/chat-message.tsx`).
+3. Add a part component in `src/components/parts/` that handles every `part.state`.
 
-1. Create it with `createTool` inside `leadTools()` in `convex/matilda.ts`. Built there, it can use the project and team.
-2. Mention it in `leadInstructions()` if the lead needs to know when to use it.
-3. Add its input/output types to `ChatUIMessage` in `src/components/chat-message.tsx`.
-4. Add a part component in `src/components/parts/` and a `case 'tool-<name>'` in `ChatMessage`. Handle each `part.state`: `input-streaming`, `input-available`, `output-available` and `output-error`.
+**Add a page inside a project.** Create `src/routes/p.$projectId.<name>.tsx`, get the project with `useProject()`, and link to it with `params={{ projectId }}`.
 
-**Add a page inside a project.** Create `src/routes/p.$projectId.<name>.tsx`. Get the project with `useProject()`. Link with `<Link to="/p/$projectId/…" params={{ projectId }} />`. The route tree regenerates while `pnpm dev` runs.
+## Workflow
 
-**Add a shadcn component.** Run `pnpm exec shadcn add <name>`, answer **no** to overwriting existing files, then `pnpm format`. The aliases in `components.json` point at `~/`.
-
-**Change the schema when data already exists.**
-
-- A new field that may be empty: add it as `v.optional(...)` (like `projects.guidelines`).
-- A new required field: deploy it as optional first, run a one-off `internalMutation` to backfill, then make it required and delete the migration (this is how `projectId` was added).
-
-## Conventions
-
-**Convex**
-
-- Read `convex/_generated/ai/guidelines.md` before writing Convex code. It overrides older habits.
-- Every function has `args` and `returns` validators. Functions only our own code calls are `internal*`.
-- Queries use an index and a bound (`.withIndex(...)` plus `.take(n)`). No unbounded `.collect()`.
-- Public mutations are a trust boundary. Trim and length-check user input (see `clean()` in `employees.ts`), and throw `ConvexError` with a message the UI can show as-is.
-- Model calls run in actions, through `convexGateway(...)`. Never put a provider key in the client.
-
-**Frontend**
-
-- Imports use the `~/` alias for `src/`. Convex code is imported relatively (`../../convex/_generated/api`).
-- Prettier style: no semicolons, single quotes, trailing commas.
-- Reach for native elements before adding a library (`<details>`, `<datalist>`, `FormData`).
-- Every interactive element needs an accessible name, such as an `aria-label` on icon buttons.
-- Keep the layout working at phone width. The sidebar turns into a sheet below 768px.
-
-**Agents and prompts**
-
-- Instructions are assembled in `convex/matilda.ts`. Project-wide rules belong in the project's Guidelines field, not in code.
-- Employees can't see the chat, so the lead has to put all needed context in its question.
-
-**Security**
-
-- There's no auth yet. All projects, teams, chats and artifacts are visible to anyone with the URL, and every message spends gateway credits. Don't deploy publicly until auth and rate limiting land (see `tasks.md`).
-
-**Workflow**
-
-- Branch off `master` and open a pull request. Don't commit straight to `master`.
-- Run `pnpm typecheck` before committing, and check UI changes in the browser.
-- After each piece of work, tick or add items in `tasks.md` and add a dated entry to `progress.md`.
+- Branch off `master`, keep commits small, and open a pull request.
+- Before you call something done: run `pnpm typecheck`, deploy with `npx convex dev --once`, and use the change in the browser.
+- After each piece of work, tick off or add items in `tasks.md`, and add a dated entry to `progress.md`.

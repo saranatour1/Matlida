@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { api } from '../../convex/_generated/api'
 import { useProject } from '~/hooks/use-project'
+import { errorMessage } from '~/lib/errors'
 import { ChatMessage, type ChatUIMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -27,17 +27,16 @@ import {
 
 export function Chat({ threadId }: { threadId?: string }) {
   const navigate = useNavigate()
-  const send = useMutation(api.matilda.sendMessage)
+  const sendMessage = useMutation(api.chat.sendMessage)
   const project = useProject()
   const lead = project?.name ?? 'The lead'
   const team = useQuery(
     api.employees.list,
     project ? { projectId: project._id } : 'skip',
   )
-  const [error, setError] = React.useState<string>()
 
   const { results } = useUIMessages(
-    api.matilda.listMessages,
+    api.chat.listMessages,
     threadId ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
@@ -48,7 +47,6 @@ export function Chat({ threadId }: { threadId?: string }) {
     lastMessage?.role === 'user' ||
     lastMessage?.status === 'pending' ||
     lastMessage?.status === 'streaming'
-  // Busy, but nothing of the lead's reply is on screen yet.
   const isWaiting =
     isBusy &&
     !(
@@ -60,26 +58,29 @@ export function Chat({ threadId }: { threadId?: string }) {
       )
     )
 
-  async function sendMessage(prompt: string) {
-    setError(undefined)
-    try {
-      if (!project) return
-      const id = await send({ projectId: project._id, threadId, prompt })
-      if (!threadId) {
-        void navigate({
-          to: '/p/$projectId',
-          params: { projectId: project._id },
-          search: { thread: id },
+  const [error, send] = React.useActionState(
+    async (_previous: string | undefined, prompt: string) => {
+      if (!project) return undefined
+      try {
+        const id = await sendMessage({
+          projectId: project._id,
+          threadId,
+          prompt,
         })
+        if (!threadId) {
+          void navigate({
+            to: '/p/$projectId',
+            params: { projectId: project._id },
+            search: { thread: id },
+          })
+        }
+        return undefined
+      } catch (e) {
+        return errorMessage(e, 'Could not send your message. Try again.')
       }
-    } catch (e) {
-      setError(
-        e instanceof ConvexError
-          ? String(e.data)
-          : 'Could not send your message. Please try again.',
-      )
-    }
-  }
+    },
+    undefined,
+  )
 
   return (
     <div className="mx-auto flex min-h-0 w-full flex-1 flex-col">
@@ -89,7 +90,7 @@ export function Chat({ threadId }: { threadId?: string }) {
             <EmptyHeader>
               <EmptyTitle>What should the team work on?</EmptyTitle>
               <EmptyDescription>
-                {team === undefined ? null : team.length ? (
+                {!project || !team ? null : team.length ? (
                   <>
                     {lead} brings in {team.map((e) => e.name).join(', ')} as
                     needed, then gives you one answer.
@@ -99,7 +100,7 @@ export function Chat({ threadId }: { threadId?: string }) {
                     {lead} has no employees yet.{' '}
                     <Link
                       to="/p/$projectId/team"
-                      params={{ projectId: project!._id }}
+                      params={{ projectId: project._id }}
                     >
                       Add some
                     </Link>{' '}
@@ -109,7 +110,9 @@ export function Chat({ threadId }: { threadId?: string }) {
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Suggestions onSelect={sendMessage} />
+              <Suggestions
+                onSelect={(prompt) => React.startTransition(() => send(prompt))}
+              />
             </EmptyContent>
           </Empty>
         </div>
@@ -153,7 +156,7 @@ export function Chat({ threadId }: { threadId?: string }) {
         <PromptForm
           placeholder={`Message ${lead}…`}
           isBusy={isBusy}
-          onSubmit={sendMessage}
+          onSubmit={send}
         />
       </div>
     </div>

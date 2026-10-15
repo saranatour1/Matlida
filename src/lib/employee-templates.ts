@@ -1,4 +1,4 @@
-// Ready-made employees for the Team page. Adding one saves an independent copy.
+/** Ready-made employees for the Team page. Adding one saves an independent copy. */
 export const EMPLOYEE_TEMPLATES = [
   {
     name: 'Ivy',

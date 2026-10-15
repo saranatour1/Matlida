@@ -6,7 +6,7 @@ import { TextPart } from '~/components/parts/text-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
 
-// Mirrors the tools in convex/matilda.ts.
+/** Mirrors the lead's tools in `convex/models/threads/lead.ts`. */
 export type ChatUIMessage = UIMessage<
   unknown,
   UIDataTypes,

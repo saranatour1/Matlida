@@ -1,11 +1,11 @@
 import * as React from 'react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { PlusIcon, XIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { useProject } from '~/hooks/use-project'
+import { errorMessage } from '~/lib/errors'
 import { EMPLOYEE_TEMPLATES } from '~/lib/employee-templates'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -127,6 +127,8 @@ function Team() {
   )
 }
 
+type Template = (typeof EMPLOYEE_TEMPLATES)[number]
+
 function Templates({
   projectId,
   taken,
@@ -135,20 +137,19 @@ function Templates({
   taken: Set<string>
 }) {
   const save = useMutation(api.employees.save)
-  const [error, setError] = React.useState<string>()
+  const [error, add, isPending] = React.useActionState(
+    async (_previous: string | undefined, template: Template) => {
+      try {
+        await save({ projectId, ...template, fields: [] })
+        return undefined
+      } catch (e) {
+        return errorMessage(e, `Could not add ${template.name}.`)
+      }
+    },
+    undefined,
+  )
   const available = EMPLOYEE_TEMPLATES.filter((t) => !taken.has(t.name))
   if (available.length === 0) return null
-
-  function add(template: (typeof EMPLOYEE_TEMPLATES)[number]) {
-    setError(undefined)
-    save({ projectId, ...template, fields: [] }).catch((e: unknown) =>
-      setError(
-        e instanceof ConvexError
-          ? String(e.data)
-          : `Could not add ${template.name}.`,
-      ),
-    )
-  }
 
   return (
     <section className="flex flex-col gap-2">
@@ -177,7 +178,8 @@ function Templates({
               variant="outline"
               size="sm"
               aria-label={`Add ${t.name}`}
-              onClick={() => add(t)}
+              disabled={isPending}
+              onClick={() => React.startTransition(() => add(t))}
             >
               <PlusIcon data-icon="inline-start" />
               Add
@@ -188,6 +190,14 @@ function Templates({
       {error && <p className="text-sm text-destructive">{error}</p>}
     </section>
   )
+}
+
+type Row = Field & { key: string }
+type EmployeeValues = Pick<Doc<'employees'>, 'name' | 'role' | 'instructions'>
+type FormState = { error?: string; values?: EmployeeValues }
+
+function withKeys(fields: Field[]): Row[] {
+  return fields.map((f) => ({ ...f, key: crypto.randomUUID() }))
 }
 
 function EmployeeForm({
@@ -201,51 +211,42 @@ function EmployeeForm({
 }) {
   const save = useMutation(api.employees.save)
   const navigate = useNavigate()
-  const [fields, setFields] = React.useState<Field[]>(employee?.fields ?? [])
-  const [error, setError] = React.useState<string>()
-
-  function updateField(index: number, patch: Partial<Field>) {
-    setFields(fields.map((f, i) => (i === index ? { ...f, ...patch } : f)))
-  }
-
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    const data = new FormData(form)
-    setError(undefined)
-    try {
-      await save({
-        projectId,
-        id: employee?._id,
+  const [rows, setRows] = React.useState(() => withKeys(employee?.fields ?? []))
+  const [state, submit, isPending] = React.useActionState(
+    async (_previous: FormState, data: FormData): Promise<FormState> => {
+      const values = {
         name: String(data.get('name')),
         role: String(data.get('role')),
         instructions: String(data.get('instructions')),
-        fields,
-      })
-      if (employee) {
-        void navigate({
-          to: '/p/$projectId/team',
-          params: { projectId },
-          search: {},
-        })
-      } else {
-        form.reset()
-        setFields([])
       }
-    } catch (e) {
-      setError(
-        e instanceof ConvexError
-          ? String(e.data)
-          : 'Could not save. Try again.',
-      )
-    }
-  }
+      const fieldValues = data.getAll('fieldValue').map(String)
+      const fields = data
+        .getAll('fieldLabel')
+        .map((label, i) => ({ label: String(label), value: fieldValues[i] }))
+        .filter((f) => f.label.trim() || f.value.trim())
+      try {
+        await save({ projectId, id: employee?._id, ...values, fields })
+        if (employee) {
+          void navigate({
+            to: '/p/$projectId/team',
+            params: { projectId },
+            search: {},
+          })
+        } else {
+          setRows([])
+        }
+        return {}
+      } catch (e) {
+        setRows(withKeys(fields))
+        return { error: errorMessage(e, 'Could not save. Try again.'), values }
+      }
+    },
+    {},
+  )
+  const values = state.values ?? employee
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex flex-col gap-4 rounded-xl border p-4"
-    >
+    <form action={submit} className="flex flex-col gap-4 rounded-xl border p-4">
       <h2 className="font-medium">
         {employee ? `Edit ${employee.name}` : 'Add an employee'}
       </h2>
@@ -253,7 +254,7 @@ function EmployeeForm({
         Name
         <Input
           name="name"
-          defaultValue={employee?.name}
+          defaultValue={values?.name}
           required
           maxLength={40}
           placeholder="Nora"
@@ -263,7 +264,7 @@ function EmployeeForm({
         Role
         <Input
           name="role"
-          defaultValue={employee?.role}
+          defaultValue={values?.role}
           required
           maxLength={80}
           placeholder="Head of Sales"
@@ -273,7 +274,7 @@ function EmployeeForm({
         What they do and how they think
         <Textarea
           name="instructions"
-          defaultValue={employee?.instructions}
+          defaultValue={values?.instructions}
           required
           maxLength={2000}
           placeholder="You own the sales pipeline. You think about leads, conversion and deal size."
@@ -290,29 +291,29 @@ function EmployeeForm({
             <option key={label} value={label} />
           ))}
         </datalist>
-        {fields.map((field, index) => (
-          <div key={index} className="flex gap-2">
+        {rows.map((row) => (
+          <div key={row.key} className="flex gap-2">
             <Input
+              name="fieldLabel"
               aria-label="Field name"
               list="field-labels"
               placeholder="Tone"
               maxLength={40}
-              value={field.label}
-              onChange={(e) => updateField(index, { label: e.target.value })}
+              defaultValue={row.label}
             />
             <Input
+              name="fieldValue"
               aria-label="Field value"
               placeholder="Friendly and concise"
               maxLength={500}
-              value={field.value}
-              onChange={(e) => updateField(index, { value: e.target.value })}
+              defaultValue={row.value}
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
               aria-label="Remove field"
-              onClick={() => setFields(fields.filter((_, i) => i !== index))}
+              onClick={() => setRows(rows.filter((r) => r.key !== row.key))}
             >
               <XIcon />
             </Button>
@@ -323,14 +324,16 @@ function EmployeeForm({
           variant="outline"
           size="sm"
           className="self-start"
-          onClick={() => setFields([...fields, { label: '', value: '' }])}
+          onClick={() =>
+            setRows([...rows, ...withKeys([{ label: '', value: '' }])])
+          }
         >
           <PlusIcon data-icon="inline-start" />
           Add field
         </Button>
       </fieldset>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {employee && (
           <Button
@@ -341,7 +344,7 @@ function EmployeeForm({
             Cancel
           </Button>
         )}
-        <Button type="submit">
+        <Button type="submit" disabled={isPending}>
           {employee ? 'Save changes' : 'Add employee'}
         </Button>
       </div>
