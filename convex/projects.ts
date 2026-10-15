@@ -25,14 +25,18 @@ export const save = mutation({
     id: v.optional(v.id('projects')),
     name: v.string(),
     brief: v.string(),
+    guidelines: v.string(),
   },
   returns: v.id('projects'),
   handler: async (ctx, args) => {
     const brief = args.brief.trim()
-    if (brief.length > 2000) {
-      throw new ConvexError('The brief can be at most 2000 characters.')
+    const guidelines = args.guidelines.trim()
+    if (brief.length > 2000 || guidelines.length > 2000) {
+      throw new ConvexError(
+        'The brief and guidelines can be at most 2000 characters each.',
+      )
     }
-    const project = { name: clean(args.name, 'Name', 40), brief }
+    const project = { name: clean(args.name, 'Name', 40), brief, guidelines }
     if (args.id) {
       await ctx.db.patch('projects', args.id, project)
       return args.id

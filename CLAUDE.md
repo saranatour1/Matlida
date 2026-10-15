@@ -1,3 +1,5 @@
+Read [GUIDELINES.md](GUIDELINES.md) for how this project is built and the conventions to follow.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.

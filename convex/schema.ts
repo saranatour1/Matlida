@@ -6,6 +6,7 @@ export default defineSchema({
   projects: defineTable({
     name: v.string(), // the project's lead goes by this name too
     brief: v.string(), // what the project is about, given to the lead
+    guidelines: v.optional(v.string()), // rules the lead and every employee follow
   }),
 
   employees: defineTable({

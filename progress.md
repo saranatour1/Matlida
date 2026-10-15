@@ -47,3 +47,9 @@
 - Teams start empty. The Team page lists templates (`src/lib/employee-templates.ts`): Ivy (Marketing), Sam (Engineering), Rosa (Finance), Leo (Operations & People) and Nora (Sales). "Add" saves a copy into the project, which can then be edited; added templates drop out of the list.
 - Removed the five starter employees I had inserted into the Matilda project, so it starts empty too.
 - Verified in the browser: added Sam from a template, saw him join the team and leave the template list, then removed him.
+
+### Guidelines
+
+- **Project guidelines**: a new optional `guidelines` field on projects, edited on the Projects page. It's appended to the lead's instructions and to every employee's. Optional, so existing projects needed no migration.
+- Verified in the browser: set Oscar's guidelines to "Always reply in French", asked Oscar to consult Bea, and both Oscar's answer and Bea's reply came back in French. Then cleared the test rule.
+- **`GUIDELINES.md`** for the codebase: stack, commands, file map, how a reply flows, recipes (templates, lead tools, pages, shadcn components, schema changes) and conventions. Linked from `CLAUDE.md` and `AGENTS.md`, outside the Convex-managed block.

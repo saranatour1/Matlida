@@ -12,6 +12,8 @@
 - [x] Show "Matilda is thinking…" until her reply starts, without flashing the empty state
 - [x] Projects: each has a lead (named after the project), a brief, and its own team, chats, threads and artifacts. Existing data moved into the "Matilda" project
 - [x] No default employees: teams start empty, and the Team page offers employee templates (Ivy, Sam, Rosa, Leo, Nora) to add with one click
+- [x] Project guidelines: rules the lead and every employee in a project always follow
+- [x] `GUIDELINES.md` for the codebase, linked from `CLAUDE.md` and `AGENTS.md`
 
 ## Open
 

@@ -86,6 +86,7 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         id: project?._id,
         name: String(data.get('name')),
         brief: String(data.get('brief')),
+        guidelines: String(data.get('guidelines')),
       })
       if (project) {
         void navigate({ to: '/', search: {} })
@@ -126,6 +127,15 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           defaultValue={project?.brief}
           maxLength={2000}
           placeholder="A small coffee roastery selling online. This quarter: launch subscriptions."
+        />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm">
+        Guidelines (the lead and every employee always follow these)
+        <Textarea
+          name="guidelines"
+          defaultValue={project?.guidelines}
+          maxLength={2000}
+          placeholder="Answer in British English. Never promise delivery dates. Keep budgets under $5k unless asked."
         />
       </label>
       {error && <p className="text-sm text-destructive">{error}</p>}

@@ -30,6 +30,13 @@ const languageModel = convexGateway('anthropic/claude-sonnet-4.5')
 type Project = Doc<'projects'>
 type Employee = Doc<'employees'>
 
+// Appended to the lead's and every employee's instructions.
+function guidelines(project: Project) {
+  return project.guidelines
+    ? `\nProject guidelines, which always apply:\n${project.guidelines}`
+    : ''
+}
+
 // Built per reply, so the lead always works with the current project and team.
 function leadTools(project: Project, team: Employee[]): ToolSet {
   const saveArtifact = createTool({
@@ -78,11 +85,12 @@ function leadTools(project: Project, team: Employee[]): ToolSet {
       const agent = new Agent(components.agent, {
         name: e.name,
         languageModel,
-        instructions: [
-          `You are ${e.name}, ${e.role}, reporting to ${project.name}.`,
-          e.instructions,
-          ...e.fields.map((f) => `${f.label}: ${f.value}`),
-        ].join('\n'),
+        instructions:
+          [
+            `You are ${e.name}, ${e.role}, reporting to ${project.name}.`,
+            e.instructions,
+            ...e.fields.map((f) => `${f.label}: ${f.value}`),
+          ].join('\n') + guidelines(project),
       })
       const { text } = await agent.generateText(
         ctx,
@@ -105,7 +113,7 @@ For anything beyond small talk, consult the relevant employees with ask_employee
     : 'You have no employees yet. Answer yourself, and suggest the user adds people on the Team page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${delegation}
-When the result is a deliverable (plan, brief, spec, email draft, table), save it with save_artifact and reply with a short summary instead of repeating it. Keep replies concise and use markdown.`
+When the result is a deliverable (plan, brief, spec, email draft, table), save it with save_artifact and reply with a short summary instead of repeating it. Keep replies concise and use markdown.${guidelines(project)}`
 }
 
 // Public and unauthenticated, like the template's /api/chat: every call spends gateway credits.
