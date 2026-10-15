@@ -11,6 +11,8 @@ import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import type { Doc } from '../../_generated/dataModel'
 import { internalAction, internalQuery } from '../../_generated/server'
+import { isKeyRejected, resolveModel } from '../../lib/ai'
+import { PROVIDERS } from '../aiConnections/providers'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import schema from '../../schema'
 import { getTeam } from '../employees/functions'
@@ -65,6 +67,7 @@ const context = internalQuery({
   returns: v.object({
     project: schema.doc('projects'),
     team: v.array(schema.doc('employees')),
+    connection: v.union(schema.doc('aiConnections'), v.null()),
   }),
   handler: async (ctx, { threadId }) => {
     const thread = await ctx.db
@@ -73,11 +76,20 @@ const context = internalQuery({
       .unique()
     const project = thread && (await ctx.db.get('projects', thread.projectId))
     if (!project) throw new Error(`No project for thread ${threadId}`)
-    return { project, team: await getTeam(ctx, project._id) }
+    return {
+      project,
+      team: await getTeam(ctx, project._id),
+      connection: project.aiConnectionId
+        ? await ctx.db.get('aiConnections', project.aiConnectionId)
+        : null,
+    }
   },
 })
 
-/** Streams the lead's reply into the thread. */
+/**
+ * Streams the lead's reply into the thread. When the owner's provider rejects
+ * their key, the connection is marked invalid and the thread says so.
+ */
 const respond = internalAction({
   args: { threadId: v.string(), promptMessageId: v.string() },
   returns: v.null(),
@@ -85,16 +97,44 @@ const respond = internalAction({
     const {
       project,
       team,
-    }: { project: Doc<'projects'>; team: Doc<'employees'>[] } =
-      await ctx.runQuery(internal.chat.context, { threadId })
-    const lead = createLead(project, team)
+      connection,
+    }: {
+      project: Doc<'projects'>
+      team: Doc<'employees'>[]
+      connection: Doc<'aiConnections'> | null
+    } = await ctx.runQuery(internal.chat.context, { threadId })
+    const lead = createLead(
+      project,
+      team,
+      await resolveModel(project, connection),
+    )
+    let keyRejected = false
     const result = await lead.agent.streamText(
       ctx,
-      { threadId },
-      { promptMessageId, instructions: lead.instructions, tools: lead.tools },
+      { threadId, userId: project.ownerId },
+      {
+        promptMessageId,
+        instructions: lead.instructions,
+        tools: lead.tools,
+        onError: ({ error }) => {
+          keyRejected ||= isKeyRejected(error)
+        },
+      },
       { saveStreamDeltas: true },
     )
     await result.consumeStream()
+    if (keyRejected && connection) {
+      await ctx.runMutation(internal.aiConnections.markInvalid, {
+        id: connection._id,
+      })
+      await saveMessage(ctx, components.agent, {
+        threadId,
+        message: {
+          role: 'assistant',
+          content: `${PROVIDERS[connection.provider].name} rejected the API key in "${connection.label}". Update it in Settings, or switch this project to the Convex AI Gateway.`,
+        },
+      })
+    }
     return null
   },
 })

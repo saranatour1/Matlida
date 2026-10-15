@@ -11,6 +11,7 @@ import {
   MessagesSquareIcon,
   LogOutIcon,
   PlusIcon,
+  SettingsIcon,
   UserIcon,
   type LucideIcon,
 } from 'lucide-react'
@@ -177,6 +178,16 @@ function Account() {
       <div className="flex items-center gap-2 px-2 text-sm">
         <UserIcon className="size-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 truncate">{user?.username}</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Settings"
+          title="Settings"
+          render={<Link to="/settings" />}
+          nativeButton={false}
+        >
+          <SettingsIcon />
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"

@@ -3,7 +3,7 @@ import type { ToolSet } from 'ai'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import type { Doc } from '../../_generated/dataModel'
-import { languageModel } from '../../lib/ai'
+import type { ChatModel } from '../../lib/ai'
 
 type Project = Doc<'projects'>
 type Employee = Doc<'employees'>
@@ -12,7 +12,11 @@ type Employee = Doc<'employees'>
  * Builds a project's lead for one reply, so it always works with the current
  * project settings and team.
  */
-export function createLead(project: Project, team: Employee[]) {
+export function createLead(
+  project: Project,
+  team: Employee[],
+  languageModel: ChatModel,
+) {
   const agent = new Agent(components.agent, {
     name: project.name,
     languageModel,
@@ -21,7 +25,7 @@ export function createLead(project: Project, team: Employee[]) {
   return {
     agent,
     instructions: leadInstructions(project, team),
-    tools: leadTools(project, team),
+    tools: leadTools(project, team, languageModel),
   }
 }
 
@@ -53,7 +57,11 @@ function employeeInstructions(project: Project, employee: Employee) {
   )
 }
 
-function leadTools(project: Project, team: Employee[]): ToolSet {
+function leadTools(
+  project: Project,
+  team: Employee[],
+  languageModel: ChatModel,
+): ToolSet {
   const saveArtifact = createTool({
     description:
       'Save a deliverable (plan, brief, spec, email draft, table) as a document the user can open from the sidebar.',

@@ -17,11 +17,11 @@
 - [x] Guidelines refactor: API files re-export from `convex/models/<table>/`, shared code in `convex/lib/`, Zod input validation via convex-helpers, `returns` only on internal functions, form actions instead of `useEffect`/`useState`
 - [x] `docs/integrations.md`: goals and rules for each integration
 - [x] Auth with Convex Auth v2 (alpha, pinned): username + password, every public function requires a signed-in owner, existing projects claimed by the dev account
+- [x] BYOK AI connections: encrypted API keys for Anthropic, OpenAI, Google and OpenRouter, OpenRouter OAuth, per-project AI and model, rejected keys flagged in the thread
 - [x] pstack as a Claude Code setup: 51 skills in `.claude/skills/`, 2 agents in `.claude/agents/`, models per role in `.claude/skills/poteto-mode/models.md`, rerunnable via `scripts/port-pstack.mjs`
 
 ## Next (in order, see `docs/integrations.md`)
 
-- [ ] BYOK AI connections + OpenRouter OAuth
 - [ ] Email, send-only: Resend platform email, user connectors (Resend, Postmark, Mailgun, Cloudflare, SMTP, Gmail, Outlook), approval before send, inbound replies
 - [ ] Photon: text the lead over iMessage/SMS
 - [ ] Calls with Cloudflare RealtimeKit, including the AI lead speaking in calls
@@ -37,5 +37,5 @@
 - [ ] Fix `pnpm start`: it runs `.output/server/index.mjs`, but `pnpm build` writes `dist/server/server.js`
 - [ ] Install `eslint` so `pnpm lint` works
 - [ ] Starter hydration warning in the console: `Error reading query stream ... 'mutations'` (`@tanstack/react-router-with-query`)
-- [ ] Decide the `allowBuilds` placeholders in `pnpm-workspace.yaml` (every install currently warns)
+- [ ] Test BYOK with a real key and an OpenRouter account (needs the owner's credentials)
 - [ ] Later: reading mailboxes, outreach texting, AI vision on screen shares, usage tracking per AI connection

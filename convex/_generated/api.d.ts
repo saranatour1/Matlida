@@ -8,12 +8,17 @@
  * @module
  */
 
+import type * as aiConnections from "../aiConnections.js";
 import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as employees from "../employees.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as models_aiConnections_functions from "../models/aiConnections/functions.js";
+import type * as models_aiConnections_providers from "../models/aiConnections/providers.js";
+import type * as models_aiConnections_table from "../models/aiConnections/table.js";
 import type * as models_artifacts_functions from "../models/artifacts/functions.js";
 import type * as models_artifacts_table from "../models/artifacts/table.js";
 import type * as models_employees_functions from "../models/employees/functions.js";
@@ -37,12 +42,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiConnections: typeof aiConnections;
   artifacts: typeof artifacts;
   auth: typeof auth;
   chat: typeof chat;
   employees: typeof employees;
   "lib/ai": typeof lib_ai;
+  "lib/crypto": typeof lib_crypto;
   "lib/functions": typeof lib_functions;
+  "models/aiConnections/functions": typeof models_aiConnections_functions;
+  "models/aiConnections/providers": typeof models_aiConnections_providers;
+  "models/aiConnections/table": typeof models_aiConnections_table;
   "models/artifacts/functions": typeof models_artifacts_functions;
   "models/artifacts/table": typeof models_artifacts_table;
   "models/employees/functions": typeof models_employees_functions;

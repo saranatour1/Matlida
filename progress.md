@@ -139,3 +139,28 @@
 - `dev-other` sees no projects, and gets "Project not found" on Oscar's URL.
 - `npx convex run projects:list` and `employees:list` without a user both fail with "Sign in first."
 - Test account credentials are in `.env.local`, which git ignores.
+
+## 2026-10-15 (later): BYOK AI connections
+
+### Built
+
+- **`aiConnections` table** (`convex/models/aiConnections/`): an owner, a label, the kind (`apiKey` or `openrouterOAuth`), the provider, a default model, the encrypted secret, the last 4 characters of the key, and a status.
+- **Encryption** (`convex/lib/crypto.ts`): AES-256-GCM through WebCrypto. The key comes from `SECRETS_KEY`, which is declared in `convex.config.ts` and set on dev. The owner id is the additional data, so a ciphertext can't move to another account. It's decrypted only in actions, and clients only ever see the last 4 characters.
+- **Model resolution** (`convex/lib/ai.ts`): `resolveModel` picks the project's connection (Anthropic, OpenAI, Google or OpenRouter, with an optional per-project model) or falls back to the Convex AI Gateway. The lead and its employees share that model.
+- **Rejected keys:** `checkApiKey` makes one cheap call when a key is saved. If a provider later answers 401/403, the connection is marked `invalid` and a message saying so is added to the thread. There's no silent fallback to the gateway.
+- **OpenRouter OAuth (PKCE):** `src/lib/openrouter.ts` starts the sign-in. `/settings/openrouter` finishes it with a button, so no `useEffect` is needed.
+- **UI:** a Settings page (link in the sidebar footer), shadcn `native-select`, and an AI picker plus model field on the project form. The picker only renders once connections have loaded, so it can't clear a saved choice.
+- **Housekeeping:**
+  - `pnpm-workspace.yaml` overrides `@ai-sdk/provider` to 4.0.28 and `@ai-sdk/provider-utils` to 5.0.61. There were four copies, which split the model types.
+  - `allowBuilds` is decided: `esbuild: true`, `unrs-resolver: false`.
+
+### Verified (in the browser, as dev-other)
+
+- A fake Anthropic key was rejected by the real API with "Anthropic didn't accept that key." Nothing was stored, and the form kept everything except the key.
+- **Runtime path:** a fake key stored by a temporary helper (deleted after the test) was decrypted and sent to Anthropic. The thread said "Anthropic rejected the API key…", and Settings flagged the key.
+- **Project form:** it preselects the saved connection. Switching to the gateway cleared it, and the next chat answered through the gateway.
+- **Removing** the connection works.
+- **OpenRouter:**
+  - "Connect OpenRouter" reached OpenRouter's sign-in.
+  - The callback page reported a refused code, then "This sign-in expired", because the verifier is single-use.
+- **Not yet tested:** a successful chat with a real key or an OpenRouter account.

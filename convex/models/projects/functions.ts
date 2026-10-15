@@ -52,8 +52,27 @@ const save = zAuthedMutation({
       .string()
       .trim()
       .max(2000, 'Guidelines can be at most 2000 characters.'),
+    aiConnectionId: zid('aiConnections').optional(),
+    model: z
+      .string()
+      .trim()
+      .max(100, 'Model names can be at most 100 characters.'),
   },
-  handler: async (ctx, { id, ...project }) => {
+  handler: async (ctx, { id, model, ...fields }) => {
+    if (fields.aiConnectionId) {
+      const connection = await ctx.db.get(
+        'aiConnections',
+        fields.aiConnectionId,
+      )
+      if (connection?.ownerId !== ctx.userId) {
+        throw new ConvexError('AI connection not found.')
+      }
+    }
+    const project = {
+      ...fields,
+      aiConnectionId: fields.aiConnectionId,
+      model: model || undefined,
+    }
     if (id) {
       await getOwnedProject(ctx, ctx.userId, id)
       await ctx.db.patch('projects', id, project)

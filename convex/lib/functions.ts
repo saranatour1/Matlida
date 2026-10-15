@@ -5,7 +5,7 @@ import {
   customMutation,
   customQuery,
 } from 'convex-helpers/server/customFunctions'
-import { zCustomMutation } from 'convex-helpers/server/zod4'
+import { zCustomAction, zCustomMutation } from 'convex-helpers/server/zod4'
 import type { Auth } from 'convex/server'
 import { ConvexError } from 'convex/values'
 import { action, mutation, query } from '../_generated/server'
@@ -22,7 +22,8 @@ export const authedMutation = customMutation(mutation, withUser)
 export const authedAction = customAction(action, withUser)
 
 /**
- * An `authedMutation` whose args are Zod schemas, for validating user input at
- * the boundary. Failed args throw `ConvexError({ ZodError: issues })`.
+ * Authed mutations and actions whose args are Zod schemas, for validating user
+ * input at the boundary. Failed args throw `ConvexError({ ZodError: issues })`.
  */
 export const zAuthedMutation = zCustomMutation(mutation, withUser)
+export const zAuthedAction = zCustomAction(action, withUser)

@@ -9,6 +9,8 @@ const app = defineApp({
   env: {
     AUTH_PRIVATE_KEY: v.string(),
     AUTH_JWKS: v.string(),
+    /** Base64 AES-256 key that encrypts users' API keys and passwords (lib/crypto.ts). */
+    SECRETS_KEY: v.string(),
   },
 })
 

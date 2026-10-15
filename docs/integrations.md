@@ -5,7 +5,7 @@ The goal, rules and setup for each external service. Status shows what's live. T
 | Setup | Status |
 |---|---|
 | [Auth](#auth) | live (username + password) |
-| [AI models (BYOK)](#ai-models-byok) | gateway live, BYOK planned |
+| [AI models (BYOK)](#ai-models-byok) | live, waiting on a real key to test the happy path |
 | [Email](#email) | planned |
 | [Texting (Photon)](#texting-photon) | planned |
 | [Calls (Cloudflare RealtimeKit)](#calls-cloudflare-realtimekit) | planned |
@@ -33,7 +33,13 @@ The goal, rules and setup for each external service. Status shows what's live. T
   - Every key is checked with one cheap API call when it's saved.
 - **Bad keys:** an invalid key marks the connection `invalid` and shows the error in the thread. We never silently fall back to the gateway, because the team would pay for it.
 - **"Your own subscription"** means OpenRouter OAuth (PKCE). Claude Pro/Max and ChatGPT plans can't power third-party apps, so we don't offer them.
-- **Providers:** `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google` and `@openrouter/ai-sdk-provider`, all running in the default Convex runtime.
+- **Providers:** `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google` and `@openrouter/ai-sdk-provider`, all running in the default Convex runtime. A pnpm override in `pnpm-workspace.yaml` pins `@ai-sdk/provider`, so every model shares one type.
+- **Where it lives:**
+  - `convex/models/aiConnections/` holds the table, the functions and the provider list shared with the UI.
+  - `convex/lib/crypto.ts` does the encryption.
+  - `convex/lib/ai.ts` holds `resolveModel`, `checkApiKey` and `isKeyRejected`.
+  - In the UI: `/settings`, `/settings/openrouter`, and the AI picker on the project form.
+- **Env:** `SECRETS_KEY` (base64, 32 bytes), declared in `convex/convex.config.ts`.
 
 ## Email
 
