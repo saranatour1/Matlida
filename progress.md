@@ -41,3 +41,9 @@
 - Created project "Oscar" (coffee roastery brief) and added Bea (Head Roaster) on its Team page; Matilda's employees didn't show there.
 - Chatted with Oscar: "Oscar is thinking…" showed, Oscar asked Bea, and the reply used the brief. The sidebar showed only Oscar's lead, bot, chat and thread.
 - Switched to the Matilda project: her five employees, chat, two threads and the "Q4 Sales Action Plan" artifact were all there, and the artifact preview opened at its new URL.
+
+### Employee templates
+
+- Teams start empty. The Team page lists templates (`src/lib/employee-templates.ts`): Ivy (Marketing), Sam (Engineering), Rosa (Finance), Leo (Operations & People) and Nora (Sales). "Add" saves a copy into the project, which can then be edited; added templates drop out of the list.
+- Removed the five starter employees I had inserted into the Matilda project, so it starts empty too.
+- Verified in the browser: added Sam from a template, saw him join the team and leave the template list, then removed him.

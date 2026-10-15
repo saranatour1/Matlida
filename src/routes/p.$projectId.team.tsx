@@ -6,6 +6,7 @@ import { PlusIcon, XIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { useProject } from '~/hooks/use-project'
+import { EMPLOYEE_TEMPLATES } from '~/lib/employee-templates'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -51,7 +52,8 @@ function Team() {
         <ul className="flex flex-col gap-2">
           {team?.length === 0 && (
             <li className="text-sm text-muted-foreground">
-              No employees yet. Add the first one below.
+              No employees yet. Add one from a template, or create your own
+              below.
             </li>
           )}
           {team?.map((e) => (
@@ -107,6 +109,13 @@ function Team() {
           ))}
         </ul>
 
+        {team && !editing && (
+          <Templates
+            projectId={project._id}
+            taken={new Set(team.map((e) => e.name))}
+          />
+        )}
+
         <EmployeeForm
           key={editing?._id ?? 'new'}
           projectId={project._id}
@@ -115,6 +124,69 @@ function Team() {
         />
       </div>
     </div>
+  )
+}
+
+function Templates({
+  projectId,
+  taken,
+}: {
+  projectId: Id<'projects'>
+  taken: Set<string>
+}) {
+  const save = useMutation(api.employees.save)
+  const [error, setError] = React.useState<string>()
+  const available = EMPLOYEE_TEMPLATES.filter((t) => !taken.has(t.name))
+  if (available.length === 0) return null
+
+  function add(template: (typeof EMPLOYEE_TEMPLATES)[number]) {
+    setError(undefined)
+    save({ projectId, ...template, fields: [] }).catch((e: unknown) =>
+      setError(
+        e instanceof ConvexError
+          ? String(e.data)
+          : `Could not add ${template.name}.`,
+      ),
+    )
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div>
+        <h2 className="font-medium">Templates</h2>
+        <p className="text-xs text-muted-foreground">
+          Add a ready-made employee, then edit them to fit.
+        </p>
+      </div>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {available.map((t) => (
+          <li
+            key={t.name}
+            className="flex items-start gap-3 rounded-xl border p-3 text-sm"
+          >
+            <div className="min-w-0 flex-1">
+              <p>
+                <span className="font-medium">{t.name}</span>{' '}
+                <span className="text-muted-foreground">· {t.role}</span>
+              </p>
+              <p className="mt-1 line-clamp-2 text-muted-foreground">
+                {t.instructions}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={`Add ${t.name}`}
+              onClick={() => add(t)}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Add
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </section>
   )
 }
 
