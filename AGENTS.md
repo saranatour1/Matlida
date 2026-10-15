@@ -1,5 +1,7 @@
 Read [GUIDELINES.md](GUIDELINES.md) for how this project is built and the conventions to follow.
 
+For rigorous work, use `/poteto-mode` (pstack, in `.claude/skills/`). Its principles live in `.claude/skills/principle-*`.
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.

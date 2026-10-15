@@ -86,3 +86,25 @@
   - A name of only spaces showed the Zod message "Give the employee a name."
   - A valid save cleared the form.
   - A chat asked Bo and Ivy in parallel and saved "Weekend Tasting Event Plan" as an artifact.
+
+## 2026-10-15 (later): pstack for Claude Code
+
+### Built
+
+- `scripts/port-pstack.mjs` copies pstack (MIT, cursor/plugins) into `.claude/skills/` and `.claude/agents/` and rewrites the Cursor-specific parts:
+  - `Task` → `Agent`, and `generalPurpose`/`readonly` → `general-purpose`/`Explore`.
+  - `environment: "cloud"` → `isolation: "worktree"`.
+  - Model slugs → `<model>/<effort>` (Grok → `sonnet`).
+  - `cursor-team-kit` skills → `/simplify` and `run`; `create-skill` → `skill-creator`.
+  - `.cursor/` paths → `.claude/`.
+  - Guide links → GitHub.
+- The script fails if any Cursor reference is left, or if a `SKILL.md` lacks a kebab-case name and a description. It's rerunnable, to pull upstream updates.
+- Model routing per role lives in `.claude/skills/poteto-mode/models.md` and replaces `setup-pstack`.
+- **Left out:** `setup-pstack`, `make-bot-ui` (Grok Bot), `automations/benny` (Cursor Automations), and pstack's `unslop`, because a personal `unslop` skill already exists and would win.
+- `.claude/` is excluded from `tsc` and prettier. `CLAUDE.md` and `AGENTS.md` point to `/poteto-mode`.
+
+### Verified
+
+- The script's own checks pass, and `pnpm typecheck` passes.
+- A fresh `claude -p` session sees the `comment-sicko` agent.
+- `/poteto-help` loads and answers from the ported text. Most skills are `disable-model-invocation`, so they load when typed rather than appearing in Claude's own list. That's how pstack is designed.

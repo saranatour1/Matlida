@@ -13,3 +13,4 @@ pnpm-lock.yaml
 routeTree.gen.ts
 .agents/skills/
 .claude/skills/
+.claude/
