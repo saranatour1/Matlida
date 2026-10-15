@@ -132,7 +132,7 @@ export function Chat({ threadId }: { threadId?: string }) {
                     messageId={message.key}
                     scrollAnchor={message.role === 'user'}
                   >
-                    <ChatMessage message={message} />
+                    <ChatMessage message={message} threadId={threadId} />
                   </MessageScrollerItem>
                 ))}
                 {isWaiting && (

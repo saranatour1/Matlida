@@ -1,6 +1,7 @@
 import type { UIDataTypes } from 'ai'
 import type { UIMessage } from '@convex-dev/agent/react'
 import { ArtifactPart } from '~/components/parts/artifact-part'
+import { EmailPart } from '~/components/parts/email-part'
 import { EmployeePart } from '~/components/parts/employee-part'
 import { TextPart } from '~/components/parts/text-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
@@ -19,6 +20,12 @@ export type ChatUIMessage = UIMessage<
       input: { title: string; content: string }
       output: { id: string; title: string }
     }
+    send_email: {
+      input: { from: string; to: string; subject: string; body: string }
+      output:
+        | { sent: true; from: string; to: string; subject: string }
+        | { sent: false; to: string; subject: string; error: string }
+    }
   }
 >
 
@@ -32,7 +39,19 @@ export type SaveArtifactPart = Extract<
   { type: 'tool-save_artifact' }
 >
 
-export function ChatMessage({ message }: { message: ChatUIMessage }) {
+export type SendEmailPart = Extract<
+  ChatUIMessage['parts'][number],
+  { type: 'tool-send_email' }
+>
+
+/** One message. `threadId` lets parts that need an answer, like emails, reply to it. */
+export function ChatMessage({
+  message,
+  threadId,
+}: {
+  message: ChatUIMessage
+  threadId?: string
+}) {
   if (message.role === 'user') {
     return (
       <Message align="end">
@@ -56,6 +75,14 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <EmployeePart key={part.toolCallId} part={part} />
             case 'tool-save_artifact':
               return <ArtifactPart key={part.toolCallId} part={part} />
+            case 'tool-send_email':
+              return (
+                <EmailPart
+                  key={part.toolCallId}
+                  part={part}
+                  threadId={threadId}
+                />
+              )
             default:
               return null
           }

@@ -6,7 +6,7 @@ The goal, rules and setup for each external service. Status shows what's live. T
 |---|---|
 | [Auth](#auth) | live (username + password) |
 | [AI models (BYOK)](#ai-models-byok) | live, waiting on a real key to test the happy path |
-| [Email](#email) | planned |
+| [Email](#email) | live for API providers and SMTP; Gmail, Outlook, platform email and inbound wait on accounts |
 | [Texting (Photon)](#texting-photon) | planned |
 | [Calls (Cloudflare RealtimeKit)](#calls-cloudflare-realtimekit) | planned |
 
@@ -53,7 +53,12 @@ The goal, rules and setup for each external service. Status shows what's live. T
   - Resend, Postmark, Mailgun and Cloudflare are called with `fetch` from the default runtime.
   - Your own SMTP server goes through nodemailer, only in a `"use node"` file. Port 465 uses TLS; port 587 uses STARTTLS. Set explicit timeouts.
   - Gmail (`gmail.send`) and Outlook (`Mail.Send`) use OAuth, with encrypted refresh tokens.
-- **Inbound:** Resend inbound posts to `/email/inbound`. The reply-to address `reply+<threadId>@…` routes each reply to its chat.
+- **Inbound:** Resend inbound posts to `/email/inbound`. The reply-to address `reply+<threadId>@…` routes each reply to its chat. Not built yet: it needs a Resend domain with inbound.
+- **Where it lives:**
+  - `convex/models/emailConnections/` holds the table (`config` is a union by kind), `api.ts` (the `fetch` senders and credential checks) and `smtp.ts` (`"use node"`, nodemailer). `convex/smtp.ts` is its API file.
+  - The lead's `send_email` tool has `needsApproval: true`. `chat.decide` saves the answer and resumes the lead.
+  - `EmailPart` renders the approval card.
+- **Known workaround:** `keepCurrentApprovals` in `lead.ts` works around an @convex-dev/agent 0.7.7 bug, where a thread with an older approval rejects new ones. Remove it once the agent is fixed.
 
 ## Texting (Photon)
 

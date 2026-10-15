@@ -1,6 +1,7 @@
 import { literals } from 'convex-helpers/validators'
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
+import { vEncryptedSecret } from '../../lib/crypto'
 
 /** A user's own AI provider account: a pasted API key or an OpenRouter sign-in. */
 export const aiConnectionsTable = defineTable({
@@ -10,11 +11,7 @@ export const aiConnectionsTable = defineTable({
   provider: literals('anthropic', 'openai', 'google', 'openrouter'),
   defaultModel: v.string(),
   /** The API key, encrypted with lib/crypto.ts. Never returned to clients. */
-  secret: v.object({
-    ciphertext: v.bytes(),
-    iv: v.bytes(),
-    keyVersion: v.number(),
-  }),
+  secret: vEncryptedSecret,
   last4: v.string(),
   status: literals('valid', 'invalid'),
 }).index('by_owner', ['ownerId'])

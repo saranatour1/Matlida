@@ -1,12 +1,16 @@
+import { v } from 'convex/values'
 import { env } from '../_generated/server'
 
 const KEY_VERSION = 1
 
-export type EncryptedSecret = {
-  ciphertext: ArrayBuffer
-  iv: ArrayBuffer
-  keyVersion: number
-}
+/** How an encrypted secret is stored. Never return it to clients. */
+export const vEncryptedSecret = v.object({
+  ciphertext: v.bytes(),
+  iv: v.bytes(),
+  keyVersion: v.number(),
+})
+
+export type EncryptedSecret = typeof vEncryptedSecret.type
 
 async function secretsKey() {
   const raw = Uint8Array.from(atob(env.SECRETS_KEY), (c) => c.charCodeAt(0))

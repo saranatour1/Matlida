@@ -164,3 +164,27 @@
   - "Connect OpenRouter" reached OpenRouter's sign-in.
   - The callback page reported a refused code, then "This sign-in expired", because the verifier is single-use.
 - **Not yet tested:** a successful chat with a real key or an OpenRouter account.
+
+## 2026-10-15 (later): email, send-only
+
+### Built
+
+- **`emailConnections` table:** `config` is a union by kind (resend, postmark, mailgun with domain and region, cloudflare with account ID, smtp with host, port and username). The secret is encrypted with the shared `vEncryptedSecret`, which `aiConnections` now uses too.
+- **Sending:**
+  - The HTTP providers are called with `fetch` from `models/emailConnections/api.ts`, which also checks credentials when a connection is saved.
+  - SMTP runs in a `"use node"` action with nodemailer. Port 465 uses TLS and 587 uses STARTTLS, with timeouts. The action decrypts the password itself, so plaintext never appears in function arguments.
+- **The lead's `send_email` tool** (`needsApproval: true`) is offered only when the owner has a working connection. It returns `{ sent, … }` or `{ sent: false, error }`. A 401/403 from the provider marks the connection invalid.
+- **Approvals:**
+  - `chat.decide` saves the answer with `approveToolCall` or `denyToolCall`, then schedules the lead to continue.
+  - `EmailPart` shows the draft with Send and Don't send buttons, then its outcome.
+- **Bug found:** @convex-dev/agent 0.7.7 rejects approval continuations once a thread holds an older approval. `keepCurrentApprovals` (the lead's `contextHandler`) keeps only the current approval's parts and drops older unanswered tool calls. A suggested task drafts the upstream issue.
+- **Settings:** an Email section with the connection list and an add form. The fields change with the provider, and the provider picker is the only state.
+
+### Verified (in the browser, as dev-other)
+
+- A fake Resend key was rejected by the real API, and the form kept its values.
+- **SMTP** with bad credentials against smtp.gmail.com:587 returned Gmail's real "535 Username and Password not accepted". So the Node action, STARTTLS and outbound networking all work.
+- **Approvals**, using fake connections stored by a temporary helper (deleted after the test):
+  - Don't send: nothing was sent, and the lead acknowledged it.
+  - Send after an earlier approval in the same thread first hit the agent bug. After the workaround, the tool ran, Resend rejected the fake key, the connection was marked invalid, and the card showed "wasn't sent: Resend rejected the saved credentials."
+- **Not yet tested:** real delivery, which needs a working key or SMTP account.
