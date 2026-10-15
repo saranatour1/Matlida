@@ -94,6 +94,7 @@ function leadTools(project: Project, team: Employee[]): ToolSet {
         kind: 'employee',
         title: `${project.name} → ${e.name}`,
         parentThreadId: ctx.threadId,
+        userId: project.ownerId,
       })
       const agent = new Agent(components.agent, {
         name: e.name,

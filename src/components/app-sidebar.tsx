@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
+import { useAuthActions } from '@convex-dev/auth/react'
 import {
   BotIcon,
   CrownIcon,
@@ -8,15 +9,19 @@ import {
   FolderIcon,
   MessageSquareIcon,
   MessagesSquareIcon,
+  LogOutIcon,
   PlusIcon,
+  UserIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { useProject } from '~/hooks/use-project'
+import { Button } from '~/components/ui/button'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
@@ -56,6 +61,7 @@ export function AppSidebar() {
         />
         {project && <ProjectSections project={project} />}
       </SidebarContent>
+      <Account />
     </Sidebar>
   )
 }
@@ -160,6 +166,28 @@ function ProjectSections({ project }: { project: Doc<'projects'> }) {
         }))}
       />
     </>
+  )
+}
+
+function Account() {
+  const user = useQuery(api.users.current)
+  const { signOut } = useAuthActions()
+  return (
+    <SidebarFooter>
+      <div className="flex items-center gap-2 px-2 text-sm">
+        <UserIcon className="size-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 truncate">{user?.username}</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Sign out"
+          title="Sign out"
+          onClick={() => void signOut()}
+        >
+          <LogOutIcon />
+        </Button>
+      </div>
+    </SidebarFooter>
   )
 }
 

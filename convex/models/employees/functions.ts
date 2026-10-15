@@ -2,8 +2,13 @@ import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
 import type { Id } from '../../_generated/dataModel'
-import { mutation, query, type QueryCtx } from '../../_generated/server'
-import { zMutation } from '../../lib/functions'
+import type { QueryCtx } from '../../_generated/server'
+import {
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
+import { getOwnedProject } from '../projects/functions'
 
 export const MAX_TEAM = 20
 
@@ -18,13 +23,16 @@ export async function getTeam(
     .take(MAX_TEAM)
 }
 
-const list = query({
+const list = authedQuery({
   args: { projectId: v.id('projects') },
-  handler: async (ctx, { projectId }) => await getTeam(ctx, projectId),
+  handler: async (ctx, { projectId }) => {
+    await getOwnedProject(ctx, ctx.userId, projectId)
+    return await getTeam(ctx, projectId)
+  },
 })
 
 /** Adds an employee to a project, or updates one when `id` is given. */
-const save = zMutation({
+const save = zAuthedMutation({
   args: {
     projectId: zid('projects'),
     id: zid('employees').optional(),
@@ -61,7 +69,11 @@ const save = zMutation({
       .max(10, 'At most 10 custom fields.'),
   },
   handler: async (ctx, { projectId, id, ...employee }) => {
+    await getOwnedProject(ctx, ctx.userId, projectId)
     const team = await getTeam(ctx, projectId)
+    if (id && !team.some((e) => e._id === id)) {
+      throw new ConvexError('Employee not found.')
+    }
     if (team.some((e) => e.name === employee.name && e._id !== id)) {
       throw new ConvexError(`${employee.name} is already on the team.`)
     }
@@ -76,9 +88,14 @@ const save = zMutation({
   },
 })
 
-const remove = mutation({
+const remove = authedMutation({
   args: { id: v.id('employees') },
-  handler: async (ctx, { id }) => await ctx.db.delete('employees', id),
+  handler: async (ctx, { id }) => {
+    const employee = await ctx.db.get('employees', id)
+    if (!employee) throw new ConvexError('Employee not found.')
+    await getOwnedProject(ctx, ctx.userId, employee.projectId)
+    await ctx.db.delete('employees', id)
+  },
 })
 
 export const employeesApi = { list, save, remove }

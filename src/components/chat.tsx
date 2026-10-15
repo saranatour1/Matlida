@@ -37,7 +37,7 @@ export function Chat({ threadId }: { threadId?: string }) {
 
   const { results } = useUIMessages(
     api.chat.listMessages,
-    threadId ? { threadId } : 'skip',
+    threadId && project ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
   const messages = results as ChatUIMessage[]
@@ -82,6 +82,11 @@ export function Chat({ threadId }: { threadId?: string }) {
     undefined,
   )
 
+  if (project === null) {
+    return (
+      <p className="p-6 text-sm text-muted-foreground">Project not found.</p>
+    )
+  }
   return (
     <div className="mx-auto flex min-h-0 w-full flex-1 flex-col">
       {!threadId ? (

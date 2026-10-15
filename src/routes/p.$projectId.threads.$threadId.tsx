@@ -14,10 +14,15 @@ function ThreadPreview() {
   const thread = useQuery(api.threads.get, { threadId })
   const { results } = useUIMessages(
     api.chat.listMessages,
-    { threadId },
+    thread ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
 
+  if (thread === null) {
+    return (
+      <p className="p-6 text-sm text-muted-foreground">Thread not found.</p>
+    )
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">

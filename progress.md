@@ -108,3 +108,34 @@
 - The script's own checks pass, and `pnpm typecheck` passes.
 - A fresh `claude -p` session sees the `comment-sicko` agent.
 - `/poteto-help` loads and answers from the ported text. Most skills are `disable-model-invocation`, so they load when typed rather than appearing in Claude's own list. That's how pstack is designed.
+
+## 2026-10-15 (later): auth
+
+### Built
+
+- **Convex Auth v2** (`@convex-dev/auth@2.0.0-alpha.2`, pinned):
+  - The core, password and username components are mounted.
+  - `convex/auth.ts` sets up the password provider.
+  - `convex/auth.config.ts` points to the component's JWKS.
+  - `npx @convex-dev/auth` put the signing keys on the dev deployment.
+- **Signed-in only:** `convex/lib/functions.ts` now has `authedQuery`, `authedMutation`, `authedAction` and `zAuthedMutation`, built with convex-helpers `customCtx`. Every public function uses them, and `zMutation` is gone.
+- **Ownership:**
+  - `projects.ownerId` is required, with an index on it.
+  - `getOwnedProject` and `getOwnedThread` guard employees, threads, artifacts and chat.
+  - Agent threads carry the owner's `userId`.
+- **Migration:** `ownerId` was added as optional, a one-off `claimProjects` gave the existing Matilda and Oscar projects to the `dev-owner` test account, then it was made required and the migration deleted.
+- **UI:**
+  - `AuthScreen` is one form with Sign in and Create account buttons, using `useActionState`. The submitter's `intent` picks the flow, and every error code maps to a message.
+  - The root layout is gated with `<Authenticated>` and `<Unauthenticated>`.
+  - The sidebar footer shows the username and a sign-out button.
+  - Projects and threads you don't own show "not found".
+
+### Verified (in the browser)
+
+- Signing in to an account that doesn't exist showed "No account with that username…" and kept the username.
+- Created `dev-owner`, claimed the old projects, and the session survived a reload.
+- An Oscar chat asked Bea and got an answer.
+- Signing out returned to the sign-in screen with no console errors.
+- `dev-other` sees no projects, and gets "Project not found" on Oscar's URL.
+- `npx convex run projects:list` and `employees:list` without a user both fail with "Sign in first."
+- Test account credentials are in `.env.local`, which git ignores.

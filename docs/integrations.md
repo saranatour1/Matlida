@@ -4,7 +4,7 @@ The goal, rules and setup for each external service. Status shows what's live. T
 
 | Setup | Status |
 |---|---|
-| [Auth](#auth) | planned |
+| [Auth](#auth) | live (username + password) |
 | [AI models (BYOK)](#ai-models-byok) | gateway live, BYOK planned |
 | [Email](#email) | planned |
 | [Texting (Photon)](#texting-photon) | planned |
@@ -15,7 +15,9 @@ The goal, rules and setup for each external service. Status shows what's live. T
 **Goal:** every project, connection, call and secret belongs to a signed-in user, and nothing is public.
 
 **Rules**
-- Use Convex Auth v2 (`@convex-dev/auth@2.0.0-alpha.2`, pinned because it's alpha). Start with passwords, then switch to email + password with verification once platform email exists.
+- Use Convex Auth v2 (`@convex-dev/auth@2.0.0-alpha.2`, pinned because it's alpha). The core, password and username components are mounted in `convex/convex.config.ts`, and `convex/auth.ts` exports the sign-in functions. Sign-in uses a username and password for now, and switches to email + password with verification once platform email exists.
+- **Setup:** `npx @convex-dev/auth` puts `AUTH_PRIVATE_KEY` and `AUTH_JWKS` on the deployment. `convex/auth.config.ts` trusts the JWTs from `<site>/auth/.well-known/jwks.json`.
+- **The app is gated on the client:** `<Unauthenticated>` shows `AuthScreen`, and `<Authenticated>` shows the app.
 - Public functions use the `authed*` builders in `convex/lib/functions.ts`, which inject `ctx.user`. Never take a user id as an argument.
 - Check access through the owning project (`getOwnedProject`). If the user doesn't own it, the record doesn't exist as far as they're concerned.
 - **Fallback:** Convex Auth v1 (`0.0.96`) if v2 blocks us. Switching only touches `lib/functions.ts` and `src/router.tsx`.

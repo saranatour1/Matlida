@@ -54,7 +54,7 @@ convex/
                        object, plus helpers that only concern that table (e.g. getTeam, startThread)
   models/threads/lead.ts, chat.ts
                        the lead agent, and the chat functions that run it
-  lib/                 reusable, table-agnostic code (zMutation, the AI model, crypto, etc.)
+  lib/                 reusable, table-agnostic code (the authed function builders, the AI model, crypto, etc.)
   schema.ts            assembles the tables from models/
 ```
 
@@ -66,7 +66,8 @@ convex/
 
 - Every function has an `args` validator.
 - **`returns` validators go only on internal functions** (`internalQuery`, `internalMutation`, `internalAction`). Public functions don't declare them.
-- **User input is validated at the boundary.** Public mutations that take user text use `zMutation` from `convex/lib/functions.ts`, with Zod 4 schemas: `.trim().min(1, 'message').max(n, 'message')` and `zid('table')`. A failed parse reaches the UI as a `ConvexError`, and `errorMessage()` in `src/lib/errors.ts` shows its message.
+- **Public functions are for signed-in users.** Build them with `authedQuery`, `authedMutation`, `authedAction` or `zAuthedMutation` from `convex/lib/functions.ts`. These add `ctx.userId`. Check access through the owning project with `getOwnedProject` or `getOwnedThread`, and never take a user id as an argument.
+- **User input is validated at the boundary.** Public mutations that take user text use `zAuthedMutation`, with Zod 4 schemas: `.trim().min(1, 'message').max(n, 'message')` and `zid('table')`. A failed parse reaches the UI as a `ConvexError`, and `errorMessage()` in `src/lib/errors.ts` shows its message.
 - **Use convex-helpers validators where they fit:**
   - `literals('a', 'b')` instead of a hand-built `v.union(v.literal…)`
   - `nullable`, `partial`

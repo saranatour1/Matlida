@@ -6,22 +6,23 @@ import {
 } from '@convex-dev/agent'
 import { zid } from 'convex-helpers/server/zod4'
 import { paginationOptsValidator } from 'convex/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import type { Doc } from '../../_generated/dataModel'
-import { internalAction, internalQuery, query } from '../../_generated/server'
-import { zMutation } from '../../lib/functions'
+import { internalAction, internalQuery } from '../../_generated/server'
+import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import schema from '../../schema'
 import { getTeam } from '../employees/functions'
-import { startThread } from './functions'
+import { getOwnedProject } from '../projects/functions'
+import { getOwnedThread, startThread } from './functions'
 import { createLead } from './lead'
 
 /**
  * Saves the user's message, starting a chat on the first one, and schedules the
  * lead's reply. Public and unauthenticated: every call spends gateway credits.
  */
-const sendMessage = zMutation({
+const sendMessage = zAuthedMutation({
   args: {
     projectId: zid('projects'),
     threadId: z.string().optional(),
@@ -32,12 +33,20 @@ const sendMessage = zMutation({
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
   handler: async (ctx, { projectId, prompt, ...args }) => {
+    await getOwnedProject(ctx, ctx.userId, projectId)
+    if (args.threadId) {
+      const thread = await getOwnedThread(ctx, ctx.userId, args.threadId)
+      if (thread?.projectId !== projectId) {
+        throw new ConvexError('Chat not found.')
+      }
+    }
     const threadId =
       args.threadId ??
       (await startThread(ctx, {
         projectId,
         kind: 'chat',
         title: prompt.slice(0, 60),
+        userId: ctx.userId,
       }))
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId,
@@ -91,13 +100,16 @@ const respond = internalAction({
 })
 
 /** A thread's messages plus in-progress stream deltas, for `useUIMessages`. */
-const listMessages = query({
+const listMessages = authedQuery({
   args: {
     threadId: v.string(),
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
+    if (!(await getOwnedThread(ctx, ctx.userId, args.threadId))) {
+      throw new ConvexError('Chat not found.')
+    }
     const paginated = await listUIMessages(ctx, components.agent, args)
     const streams = await syncStreams(ctx, components.agent, args)
     return { ...paginated, streams }

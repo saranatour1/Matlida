@@ -16,11 +16,11 @@
 - [x] `GUIDELINES.md` for the codebase, linked from `CLAUDE.md` and `AGENTS.md`
 - [x] Guidelines refactor: API files re-export from `convex/models/<table>/`, shared code in `convex/lib/`, Zod input validation via convex-helpers, `returns` only on internal functions, form actions instead of `useEffect`/`useState`
 - [x] `docs/integrations.md`: goals and rules for each integration
+- [x] Auth with Convex Auth v2 (alpha, pinned): username + password, every public function requires a signed-in owner, existing projects claimed by the dev account
 - [x] pstack as a Claude Code setup: 51 skills in `.claude/skills/`, 2 agents in `.claude/agents/`, models per role in `.claude/skills/poteto-mode/models.md`, rerunnable via `scripts/port-pstack.mjs`
 
 ## Next (in order, see `docs/integrations.md`)
 
-- [ ] Auth with Convex Auth v2 (alpha, pinned)
 - [ ] BYOK AI connections + OpenRouter OAuth
 - [ ] Email, send-only: Resend platform email, user connectors (Resend, Postmark, Mailgun, Cloudflare, SMTP, Gmail, Outlook), approval before send, inbound replies
 - [ ] Photon: text the lead over iMessage/SMS

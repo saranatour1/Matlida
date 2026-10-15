@@ -7,7 +7,9 @@ import {
 import * as React from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import appCss from '~/styles/app.css?url'
+import { Authenticated, Unauthenticated } from 'convex/react'
 import { AppSidebar } from '~/components/app-sidebar'
+import { AuthScreen } from '~/components/auth-screen'
 import { SiteHeader } from '~/components/site-header'
 import { ThemeProvider } from '~/components/theme-provider'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
@@ -78,13 +80,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <ThemeProvider>
           <TooltipProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset className="h-svh min-h-0">
-                <SiteHeader />
-                {children}
-              </SidebarInset>
-            </SidebarProvider>
+            <Unauthenticated>
+              <AuthScreen />
+            </Unauthenticated>
+            <Authenticated>
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset className="h-svh min-h-0">
+                  <SiteHeader />
+                  {children}
+                </SidebarInset>
+              </SidebarProvider>
+            </Authenticated>
           </TooltipProvider>
         </ThemeProvider>
         <Scripts />

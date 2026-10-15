@@ -9,6 +9,7 @@
  */
 
 import type * as artifacts from "../artifacts.js";
+import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as employees from "../employees.js";
 import type * as lib_ai from "../lib/ai.js";
@@ -23,8 +24,11 @@ import type * as models_threads_chat from "../models/threads/chat.js";
 import type * as models_threads_functions from "../models/threads/functions.js";
 import type * as models_threads_lead from "../models/threads/lead.js";
 import type * as models_threads_table from "../models/threads/table.js";
+import type * as models_users_functions from "../models/users/functions.js";
+import type * as models_users_table from "../models/users/table.js";
 import type * as projects from "../projects.js";
 import type * as threads from "../threads.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -34,6 +38,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   artifacts: typeof artifacts;
+  auth: typeof auth;
   chat: typeof chat;
   employees: typeof employees;
   "lib/ai": typeof lib_ai;
@@ -48,8 +53,11 @@ declare const fullApi: ApiFromModules<{
   "models/threads/functions": typeof models_threads_functions;
   "models/threads/lead": typeof models_threads_lead;
   "models/threads/table": typeof models_threads_table;
+  "models/users/functions": typeof models_users_functions;
+  "models/users/table": typeof models_users_table;
   projects: typeof projects;
   threads: typeof threads;
+  users: typeof users;
 }>;
 
 /**
@@ -80,4 +88,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  auth: import("@convex-dev/auth/core/_generated/component.js").ComponentApi<"auth">;
+  authPasswordProvider: import("@convex-dev/auth/providers/password/_generated/component.js").ComponentApi<"authPasswordProvider">;
+  authUsername: import("@convex-dev/auth/username/_generated/component.js").ComponentApi<"authUsername">;
 };
