@@ -10,43 +10,64 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnotherPageRouteImport } from './routes/anotherPage'
+import { Route as TeamRouteImport } from './routes/team'
+import { Route as ArtifactsArtifactIdRouteImport } from './routes/artifacts.$artifactId'
+import { Route as ThreadsThreadIdRouteImport } from './routes/threads.$threadId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnotherPageRoute = AnotherPageRouteImport.update({
-  id: '/anotherPage',
-  path: '/anotherPage',
+const TeamRoute = TeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtifactsArtifactIdRoute = ArtifactsArtifactIdRouteImport.update({
+  id: '/artifacts/$artifactId',
+  path: '/artifacts/$artifactId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThreadsThreadIdRoute = ThreadsThreadIdRouteImport.update({
+  id: '/threads/$threadId',
+  path: '/threads/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/team': typeof TeamRoute
+  '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
+  '/threads/$threadId': typeof ThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/team': typeof TeamRoute
+  '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
+  '/threads/$threadId': typeof ThreadsThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/team': typeof TeamRoute
+  '/artifacts/$artifactId': typeof ArtifactsArtifactIdRoute
+  '/threads/$threadId': typeof ThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/anotherPage'
+  fullPaths: '/' | '/team' | '/artifacts/$artifactId' | '/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/anotherPage'
-  id: '__root__' | '/' | '/anotherPage'
+  to: '/' | '/team' | '/artifacts/$artifactId' | '/threads/$threadId'
+  id:
+    '__root__' | '/' | '/team' | '/artifacts/$artifactId' | '/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AnotherPageRoute: typeof AnotherPageRoute
+  TeamRoute: typeof TeamRoute
+  ArtifactsArtifactIdRoute: typeof ArtifactsArtifactIdRoute
+  ThreadsThreadIdRoute: typeof ThreadsThreadIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,11 +79,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/anotherPage': {
-      id: '/anotherPage'
-      path: '/anotherPage'
-      fullPath: '/anotherPage'
-      preLoaderRoute: typeof AnotherPageRouteImport
+    '/team': {
+      id: '/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof TeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artifacts/$artifactId': {
+      id: '/artifacts/$artifactId'
+      path: '/artifacts/$artifactId'
+      fullPath: '/artifacts/$artifactId'
+      preLoaderRoute: typeof ArtifactsArtifactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/threads/$threadId': {
+      id: '/threads/$threadId'
+      path: '/threads/$threadId'
+      fullPath: '/threads/$threadId'
+      preLoaderRoute: typeof ThreadsThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -70,7 +105,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AnotherPageRoute: AnotherPageRoute,
+  TeamRoute: TeamRoute,
+  ArtifactsArtifactIdRoute: ArtifactsArtifactIdRoute,
+  ThreadsThreadIdRoute: ThreadsThreadIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

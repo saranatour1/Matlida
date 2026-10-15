@@ -7,6 +7,11 @@ import {
 import * as React from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import appCss from '~/styles/app.css?url'
+import { AppSidebar } from '~/components/app-sidebar'
+import { SiteHeader } from '~/components/site-header'
+import { ThemeProvider } from '~/components/theme-provider'
+import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
+import { TooltipProvider } from '~/components/ui/tooltip'
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -21,11 +26,16 @@ export const Route = createRootRouteWithContext<{
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Matilda',
       },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap',
+      },
       {
         rel: 'apple-touch-icon',
         sizes: '180x180',
@@ -61,12 +71,22 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html lang="en" suppressHydrationWarning className="antialiased">
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ThemeProvider>
+          <TooltipProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset className="h-svh min-h-0">
+                <SiteHeader />
+                {children}
+              </SidebarInset>
+            </SidebarProvider>
+          </TooltipProvider>
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>

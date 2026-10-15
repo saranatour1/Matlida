@@ -8,7 +8,10 @@
  * @module
  */
 
-import type * as myFunctions from "../myFunctions.js";
+import type * as artifacts from "../artifacts.js";
+import type * as employees from "../employees.js";
+import type * as matilda from "../matilda.js";
+import type * as threads from "../threads.js";
 
 import type {
   ApiFromModules,
@@ -17,7 +20,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  myFunctions: typeof myFunctions;
+  artifacts: typeof artifacts;
+  employees: typeof employees;
+  matilda: typeof matilda;
+  threads: typeof threads;
 }>;
 
 /**
@@ -46,4 +52,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+};
