@@ -1,120 +1,189 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { useMutation } from 'convex/react'
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
+import * as React from 'react'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import type { Doc } from '../../convex/_generated/dataModel'
+import { PROVIDERS } from '../../convex/models/aiConnections/providers'
+import { errorMessage } from '~/lib/errors'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '~/components/ui/native-select'
+import { Textarea } from '~/components/ui/textarea'
 
 export const Route = createFileRoute('/')({
-  component: Home,
+  validateSearch: (search: Record<string, unknown>): { edit?: string } => ({
+    edit: typeof search.edit === 'string' ? search.edit : undefined,
+  }),
+  component: Projects,
 })
 
-function Home() {
-  const {
-    data: { viewer, numbers },
-  } = useSuspenseQuery(convexQuery(api.myFunctions.listNumbers, { count: 10 }))
-
-  const addNumber = useMutation(api.myFunctions.addNumber)
+function Projects() {
+  const projects = useQuery(api.projects.list)
+  const { edit } = Route.useSearch()
+  const editing = projects?.find((p) => p._id === edit)
 
   return (
-    <main className="p-8 flex flex-col gap-16">
-      <h1 className="text-4xl font-bold text-center">
-        Convex + Tanstack Start
-      </h1>
-      <div className="flex flex-col gap-8 max-w-lg mx-auto">
-        <p>Welcome {viewer ?? 'Anonymous'}!</p>
-        <p>
-          Click the button below and open this page in another window - this
-          data is persisted in the Convex cloud database!
-        </p>
-        <p>
-          <button
-            className="bg-dark dark:bg-light text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            onClick={() => {
-              void addNumber({ value: Math.floor(Math.random() * 10) })
-            }}
-          >
-            Add a random number
-          </button>
-        </p>
-        <p>
-          Numbers:{' '}
-          {numbers.length === 0 ? 'Click the button!' : numbers.join(', ')}
-        </p>
-        <p>
-          Edit{' '}
-          <code className="text-sm font-bold font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded-md">
-            convex/myFunctions.ts
-          </code>{' '}
-          to change your backend
-        </p>
-        <p>
-          Edit{' '}
-          <code className="text-sm font-bold font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded-md">
-            src/routes/index.tsx
-          </code>{' '}
-          to change your frontend
-        </p>
-        <p>
-          Open{' '}
-          <Link
-            to="/anotherPage"
-            className="text-blue-600 underline hover:no-underline"
-          >
-            another page
-          </Link>{' '}
-          to send an action.
-        </p>
-        <div className="flex flex-col">
-          <p className="text-lg font-bold">Useful resources:</p>
-          <div className="flex gap-2">
-            <div className="flex flex-col gap-2 w-1/2">
-              <ResourceCard
-                title="Convex docs"
-                description="Read comprehensive documentation for all Convex features."
-                href="https://docs.convex.dev/home"
-              />
-              <ResourceCard
-                title="Stack articles"
-                description="Learn about best practices, use cases, and more from a growing
-            collection of articles, videos, and walkthroughs."
-                href="https://www.typescriptlang.org/docs/handbook/2/basic-types.html"
-              />
-            </div>
-            <div className="flex flex-col gap-2 w-1/2">
-              <ResourceCard
-                title="Templates"
-                description="Browse our collection of templates to get started quickly."
-                href="https://www.convex.dev/templates"
-              />
-              <ResourceCard
-                title="Discord"
-                description="Join our developer community to ask questions, trade tips & tricks,
-            and show off your projects."
-                href="https://www.convex.dev/community"
-              />
-            </div>
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
+        <div>
+          <h1 className="text-lg font-semibold">Projects</h1>
+          <p className="text-sm text-muted-foreground">
+            Each project has a lead who goes by the project's name, with their
+            own team, chats and artifacts.
+          </p>
         </div>
+
+        <ul className="flex flex-col gap-2">
+          {projects?.length === 0 && (
+            <li className="text-sm text-muted-foreground">
+              No projects yet. Create the first one below.
+            </li>
+          )}
+          {projects?.map((p) => (
+            <li
+              key={p._id}
+              className="flex items-start gap-3 rounded-xl border p-3 text-sm"
+            >
+              <Link
+                to="/p/$projectId"
+                params={{ projectId: p._id }}
+                className="min-w-0 flex-1"
+              >
+                <p className="font-medium">{p.name}</p>
+                {p.brief && (
+                  <p className="mt-1 line-clamp-2 text-muted-foreground">
+                    {p.brief}
+                  </p>
+                )}
+              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link to="/" search={{ edit: p._id }} />}
+                nativeButton={false}
+              >
+                Edit
+              </Button>
+            </li>
+          ))}
+        </ul>
+
+        <ProjectForm key={editing?._id ?? 'new'} project={editing} />
       </div>
-    </main>
+    </div>
   )
 }
 
-function ResourceCard({
-  title,
-  description,
-  href,
-}: {
-  title: string
-  description: string
-  href: string
-}) {
+type ProjectValues = Pick<
+  Doc<'projects'>,
+  'name' | 'brief' | 'guidelines' | 'aiConnectionId' | 'model'
+>
+type FormState = { error?: string; values?: ProjectValues }
+
+function ProjectForm({ project }: { project?: Doc<'projects'> }) {
+  const save = useMutation(api.projects.save)
+  const connections = useQuery(api.aiConnections.list)
+  const navigate = useNavigate()
+  const [state, submit, isPending] = React.useActionState(
+    async (_previous: FormState, data: FormData): Promise<FormState> => {
+      const values = {
+        name: String(data.get('name')),
+        brief: String(data.get('brief')),
+        guidelines: String(data.get('guidelines')),
+        aiConnectionId: connections?.find(
+          (c) => c._id === data.get('aiConnectionId'),
+        )?._id,
+        model: String(data.get('model') ?? ''),
+      }
+      try {
+        const id = await save({ id: project?._id, ...values })
+        if (project) {
+          void navigate({ to: '/', search: {} })
+        } else {
+          void navigate({ to: '/p/$projectId', params: { projectId: id } })
+        }
+        return {}
+      } catch (e) {
+        return { error: errorMessage(e, 'Could not save. Try again.'), values }
+      }
+    },
+    {},
+  )
+  const values = state.values ?? project
+
   return (
-    <div className="flex flex-col gap-2 bg-slate-200 dark:bg-slate-800 p-4 rounded-md h-28 overflow-auto">
-      <a href={href} className="text-sm underline hover:no-underline">
-        {title}
-      </a>
-      <p className="text-xs">{description}</p>
-    </div>
+    <form action={submit} className="flex flex-col gap-4 rounded-xl border p-4">
+      <h2 className="font-medium">
+        {project ? `Edit ${project.name}` : 'New project'}
+      </h2>
+      <label className="flex flex-col gap-1.5 text-sm">
+        Name (the lead goes by this name too)
+        <Input
+          name="name"
+          defaultValue={values?.name}
+          required
+          maxLength={40}
+          placeholder="Matilda"
+        />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm">
+        Brief
+        <Textarea
+          name="brief"
+          defaultValue={values?.brief}
+          maxLength={2000}
+          placeholder="A small coffee roastery selling online. This quarter: launch subscriptions."
+        />
+      </label>
+      <label className="flex flex-col gap-1.5 text-sm">
+        Guidelines (the lead and every employee always follow these)
+        <Textarea
+          name="guidelines"
+          defaultValue={values?.guidelines}
+          maxLength={2000}
+          placeholder="Answer in British English. Never promise delivery dates. Keep budgets under $5k unless asked."
+        />
+      </label>
+      {connections && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5 text-sm">
+            AI
+            <NativeSelect
+              name="aiConnectionId"
+              defaultValue={values?.aiConnectionId ?? ''}
+            >
+              <NativeSelectOption value="">
+                Convex AI Gateway
+              </NativeSelectOption>
+              {connections.map((c) => (
+                <NativeSelectOption key={c._id} value={c._id}>
+                  {c.label} · {PROVIDERS[c.provider].name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm">
+            Model (optional)
+            <Input
+              name="model"
+              defaultValue={values?.model}
+              maxLength={100}
+              placeholder="The connection's default"
+            />
+          </label>
+        </div>
+      )}
+      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <div className="flex justify-end gap-2">
+        {project && (
+          <Button variant="ghost" render={<Link to="/" />} nativeButton={false}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" disabled={isPending || !connections}>
+          {project ? 'Save changes' : 'Create project'}
+        </Button>
+      </div>
+    </form>
   )
 }

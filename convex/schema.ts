@@ -1,12 +1,18 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema } from 'convex/server'
+import { aiConnectionsTable } from './models/aiConnections/table'
+import { artifactsTable } from './models/artifacts/table'
+import { emailConnectionsTable } from './models/emailConnections/table'
+import { employeesTable } from './models/employees/table'
+import { projectsTable } from './models/projects/table'
+import { threadsTable } from './models/threads/table'
+import { usersTable } from './models/users/table'
 
-// The schema is entirely optional.
-// You can delete this file (schema.ts) and the
-// app will continue to work.
-// The schema provides more precise TypeScript types.
 export default defineSchema({
-  numbers: defineTable({
-    value: v.number(),
-  }),
-});
+  users: usersTable,
+  projects: projectsTable,
+  employees: employeesTable,
+  threads: threadsTable,
+  artifacts: artifactsTable,
+  aiConnections: aiConnectionsTable,
+  emailConnections: emailConnectionsTable,
+})

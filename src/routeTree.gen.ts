@@ -10,43 +10,117 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnotherPageRouteImport } from './routes/anotherPage'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsOpenrouterRouteImport } from './routes/settings.openrouter'
+import { Route as PProjectIdIndexRouteImport } from './routes/p.$projectId.index'
+import { Route as PProjectIdTeamRouteImport } from './routes/p.$projectId.team'
+import { Route as PProjectIdArtifactsArtifactIdRouteImport } from './routes/p.$projectId.artifacts.$artifactId'
+import { Route as PProjectIdThreadsThreadIdRouteImport } from './routes/p.$projectId.threads.$threadId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnotherPageRoute = AnotherPageRouteImport.update({
-  id: '/anotherPage',
-  path: '/anotherPage',
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsOpenrouterRoute = SettingsOpenrouterRouteImport.update({
+  id: '/settings/openrouter',
+  path: '/settings/openrouter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PProjectIdIndexRoute = PProjectIdIndexRouteImport.update({
+  id: '/p/$projectId/',
+  path: '/p/$projectId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PProjectIdTeamRoute = PProjectIdTeamRouteImport.update({
+  id: '/p/$projectId/team',
+  path: '/p/$projectId/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PProjectIdArtifactsArtifactIdRoute =
+  PProjectIdArtifactsArtifactIdRouteImport.update({
+    id: '/p/$projectId/artifacts/$artifactId',
+    path: '/p/$projectId/artifacts/$artifactId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PProjectIdThreadsThreadIdRoute =
+  PProjectIdThreadsThreadIdRouteImport.update({
+    id: '/p/$projectId/threads/$threadId',
+    path: '/p/$projectId/threads/$threadId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/settings/openrouter': typeof SettingsOpenrouterRoute
+  '/settings/': typeof SettingsIndexRoute
+  '/p/$projectId/team': typeof PProjectIdTeamRoute
+  '/p/$projectId/': typeof PProjectIdIndexRoute
+  '/p/$projectId/artifacts/$artifactId': typeof PProjectIdArtifactsArtifactIdRoute
+  '/p/$projectId/threads/$threadId': typeof PProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/settings/openrouter': typeof SettingsOpenrouterRoute
+  '/settings': typeof SettingsIndexRoute
+  '/p/$projectId/team': typeof PProjectIdTeamRoute
+  '/p/$projectId': typeof PProjectIdIndexRoute
+  '/p/$projectId/artifacts/$artifactId': typeof PProjectIdArtifactsArtifactIdRoute
+  '/p/$projectId/threads/$threadId': typeof PProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/anotherPage': typeof AnotherPageRoute
+  '/settings/openrouter': typeof SettingsOpenrouterRoute
+  '/settings/': typeof SettingsIndexRoute
+  '/p/$projectId/team': typeof PProjectIdTeamRoute
+  '/p/$projectId/': typeof PProjectIdIndexRoute
+  '/p/$projectId/artifacts/$artifactId': typeof PProjectIdArtifactsArtifactIdRoute
+  '/p/$projectId/threads/$threadId': typeof PProjectIdThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/anotherPage'
+  fullPaths:
+    | '/'
+    | '/settings/openrouter'
+    | '/settings/'
+    | '/p/$projectId/team'
+    | '/p/$projectId/'
+    | '/p/$projectId/artifacts/$artifactId'
+    | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/anotherPage'
-  id: '__root__' | '/' | '/anotherPage'
+  to:
+    | '/'
+    | '/settings/openrouter'
+    | '/settings'
+    | '/p/$projectId/team'
+    | '/p/$projectId'
+    | '/p/$projectId/artifacts/$artifactId'
+    | '/p/$projectId/threads/$threadId'
+  id:
+    | '__root__'
+    | '/'
+    | '/settings/openrouter'
+    | '/settings/'
+    | '/p/$projectId/team'
+    | '/p/$projectId/'
+    | '/p/$projectId/artifacts/$artifactId'
+    | '/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AnotherPageRoute: typeof AnotherPageRoute
+  SettingsOpenrouterRoute: typeof SettingsOpenrouterRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+  PProjectIdTeamRoute: typeof PProjectIdTeamRoute
+  PProjectIdIndexRoute: typeof PProjectIdIndexRoute
+  PProjectIdArtifactsArtifactIdRoute: typeof PProjectIdArtifactsArtifactIdRoute
+  PProjectIdThreadsThreadIdRoute: typeof PProjectIdThreadsThreadIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,11 +132,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/anotherPage': {
-      id: '/anotherPage'
-      path: '/anotherPage'
-      fullPath: '/anotherPage'
-      preLoaderRoute: typeof AnotherPageRouteImport
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/openrouter': {
+      id: '/settings/openrouter'
+      path: '/settings/openrouter'
+      fullPath: '/settings/openrouter'
+      preLoaderRoute: typeof SettingsOpenrouterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId/': {
+      id: '/p/$projectId/'
+      path: '/p/$projectId'
+      fullPath: '/p/$projectId/'
+      preLoaderRoute: typeof PProjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId/team': {
+      id: '/p/$projectId/team'
+      path: '/p/$projectId/team'
+      fullPath: '/p/$projectId/team'
+      preLoaderRoute: typeof PProjectIdTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId/artifacts/$artifactId': {
+      id: '/p/$projectId/artifacts/$artifactId'
+      path: '/p/$projectId/artifacts/$artifactId'
+      fullPath: '/p/$projectId/artifacts/$artifactId'
+      preLoaderRoute: typeof PProjectIdArtifactsArtifactIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$projectId/threads/$threadId': {
+      id: '/p/$projectId/threads/$threadId'
+      path: '/p/$projectId/threads/$threadId'
+      fullPath: '/p/$projectId/threads/$threadId'
+      preLoaderRoute: typeof PProjectIdThreadsThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -70,7 +179,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AnotherPageRoute: AnotherPageRoute,
+  SettingsOpenrouterRoute: SettingsOpenrouterRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+  PProjectIdTeamRoute: PProjectIdTeamRoute,
+  PProjectIdIndexRoute: PProjectIdIndexRoute,
+  PProjectIdArtifactsArtifactIdRoute: PProjectIdArtifactsArtifactIdRoute,
+  PProjectIdThreadsThreadIdRoute: PProjectIdThreadsThreadIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
