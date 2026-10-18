@@ -2,13 +2,15 @@ import { useAuthActions } from '@convex-dev/auth/react'
 import { Link, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
+  BotIcon,
+  CrownIcon,
   FolderIcon,
   LogOutIcon,
   MessageSquareIcon,
   PlusIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -67,10 +69,67 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {project && <Bots project={project} />}
         {project && <Chats projectId={project._id} />}
       </SidebarContent>
       <Account />
     </Sidebar>
+  )
+}
+
+function Bots({ project }: { project: Doc<'projects'> }) {
+  const projectId = project._id
+  const bots = useQuery(api.api.bots.list, { projectId })
+  const { edit } = useSearch({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Bots</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId/bots" params={{ projectId }} />}
+        aria-label="Add a bot"
+        title="Add a bot"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={<Link to="/" search={{ edit: projectId }} />}
+              onClick={() => setOpenMobile(false)}
+            >
+              <CrownIcon />
+              <span className="truncate">
+                {project.name}{' '}
+                <span className="text-muted-foreground">· Lead</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {bots?.map((b) => (
+            <SidebarMenuItem key={b._id}>
+              <SidebarMenuButton
+                isActive={edit === b._id}
+                render={
+                  <Link
+                    to="/p/$projectId/bots"
+                    params={{ projectId }}
+                    search={{ edit: b._id }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <BotIcon />
+                <span className="truncate">
+                  {b.name}{' '}
+                  <span className="text-muted-foreground">· {b.role}</span>
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
 
