@@ -106,11 +106,10 @@ const respond = internalAction({
     } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
     const markdown =
       command && (await (await ctx.storage.get(command.storageId))?.text())
-    const lead = createLead(
-      project,
-      bots,
-      command && markdown ? { name: command.name, markdown } : undefined,
-    )
+    const lead = createLead(project, bots, {
+      command:
+        command && markdown ? { name: command.name, markdown } : undefined,
+    })
     const result = await lead.agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
