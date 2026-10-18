@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_auth/verify-email')({
 
 function VerifyEmail() {
   const { code } = Route.useSearch()
-  const state = useCompleteSignUp(api.auth, { emailCode: code })
+  const state = useCompleteSignUp(api.api.auth, { emailCode: code })
 
   if (state.status === 'error') {
     return (

@@ -19,7 +19,7 @@ export const Route = createFileRoute('/_auth/sign-in')({
 })
 
 function SignIn() {
-  const { signIn } = useSignInWithEmailPassword(api.auth)
+  const { signIn } = useSignInWithEmailPassword(api.api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const parsed = signInSchema.safeParse(Object.fromEntries(data))

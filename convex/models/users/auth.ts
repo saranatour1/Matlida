@@ -12,8 +12,8 @@ const core = setupConvexAuth({ component: components.auth })
 const { signOut, refreshSession, isAuthenticated } = core
 
 const callbacks = {
-  createUser: internal.users.createUser,
-  onSignIn: internal.users.syncProfile,
+  createUser: internal.api.users.createUser,
+  onSignIn: internal.api.users.syncProfile,
 }
 
 const {

@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_app/')({
 })
 
 function Home() {
-  const user = useQuery(api.users.current)
+  const user = useQuery(api.api.users.current)
   const { signOut } = useAuthActions()
   const name = user?.name ?? user?.email
 

@@ -8,12 +8,12 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
+import type * as api_auth from "../api/auth.js";
+import type * as api_users from "../api/users.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as models_users_auth from "../models/users/auth.js";
 import type * as models_users_functions from "../models/users/functions.js";
 import type * as models_users_table from "../models/users/table.js";
-import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -22,12 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
+  "api/auth": typeof api_auth;
+  "api/users": typeof api_users;
   "lib/functions": typeof lib_functions;
   "models/users/auth": typeof models_users_auth;
   "models/users/functions": typeof models_users_functions;
   "models/users/table": typeof models_users_table;
-  users: typeof users;
 }>;
 
 /**

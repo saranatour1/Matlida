@@ -22,7 +22,7 @@ export const Route = createFileRoute('/_auth/reset-password')({
 
 function ResetPassword() {
   const { code } = Route.useSearch()
-  const recovery = useCompletePasswordRecovery(api.auth, { emailCode: code })
+  const recovery = useCompletePasswordRecovery(api.api.auth, { emailCode: code })
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       if (recovery.status !== 'ready') return {}

@@ -1,4 +1,4 @@
-import { authApi } from './models/users/auth'
+import { authApi } from '../models/users/auth'
 
 export const {
   signOut,

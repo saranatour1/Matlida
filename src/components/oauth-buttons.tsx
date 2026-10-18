@@ -27,8 +27,8 @@ function oauthErrorMessage({ error }: OauthFlowError): string {
  * pressing Enter in an email field never starts OAuth.
  */
 export function OAuthButtons() {
-  const google = useSignInWithGoogle(api.auth)
-  const github = useSignInWithGithub(api.auth)
+  const google = useSignInWithGoogle(api.api.auth)
+  const github = useSignInWithGithub(api.api.auth)
   const { flowError } = useOauth()
   const [error, signIn, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {

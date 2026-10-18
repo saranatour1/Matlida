@@ -39,8 +39,8 @@ export function getRouter() {
         <ConvexAuthProvider
           client={convexQueryClient.convexClient}
           api={{
-            refreshSession: api.auth.refreshSession,
-            signOut: api.auth.signOut,
+            refreshSession: api.api.auth.refreshSession,
+            signOut: api.api.auth.signOut,
           }}
         >
           {children}
