@@ -183,20 +183,25 @@ const respond = internalAction({
       .map(textOf)
       .filter(Boolean)
       .join('\n')
-    if (text) {
-      const reply: string = await ctx.runAction(internal.api.texts.answer, {
-        spaceId: args.spaceId,
-        text,
-      })
-      // A newer text may have superseded this turn while the lead was thinking.
-      if (await spectrum.isCancelled(ctx, args)) return null
-      await spectrum.send(ctx, {
-        spaceId: args.spaceId,
-        chainId: args.chainId,
-        content: { type: 'text', text: reply },
-      })
+    try {
+      if (text) {
+        const reply: string = await ctx
+          .runAction(internal.api.texts.answer, { spaceId: args.spaceId, text })
+          .catch((error: unknown) => {
+            console.error(error)
+            return 'Sorry, something went wrong. Try again in a minute.'
+          })
+        // A newer text may have superseded this turn while the lead was thinking.
+        if (await spectrum.isCancelled(ctx, args)) return null
+        await spectrum.send(ctx, {
+          spaceId: args.spaceId,
+          chainId: args.chainId,
+          content: { type: 'text', text: reply },
+        })
+      }
+    } finally {
+      await spectrum.completeChain(ctx, args)
     }
-    await spectrum.completeChain(ctx, args)
     return null
   },
 })
