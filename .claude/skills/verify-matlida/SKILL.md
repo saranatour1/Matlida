@@ -39,7 +39,16 @@ Run `verify.sh doctor` first, and again whenever something looks off. It changes
 
 ## Drive
 
-Use the in-app browser pane tools (`mcp__Claude_Browser__*`). Without them, follow the same steps with the `anthropic-skills:chrome-browser` skill.
+Pick the driver by where the session runs:
+
+| Session | Driver |
+| --- | --- |
+| Desktop app, with the browser pane | The pane tools (`mcp__Claude_Browser__*`), so the user can watch. Without them, the same steps work with the `anthropic-skills:chrome-browser` skill. |
+| Cloud session (Linux VM), terminal CLI, or anywhere else without a browser pane | `verify.sh drive`, a headless Chromium run through Playwright. |
+
+The recipes in `features/` name the pane tools. The headless table below maps each one.
+
+### Browser pane
 
 - Go to a page: `navigate` with `http://localhost:3100/<route>`.
 - Find a control: `find` with its accessible name (`Email`, `Password`, `Create account`), then act on the returned `ref`.
@@ -48,6 +57,39 @@ Use the in-app browser pane tools (`mcp__Claude_Browser__*`). Without them, foll
 - Credentials: `verify.sh account` prints `email=` and `password=` for this run, saved in `<run>/account.env`. They are local test values. Type them into forms, but never paste them into replies.
 - Email links: `verify.sh email-link <email>` prints the newest link the app emailed to that address, read from the local database. Open it with `navigate` in the same browser pane, because a link only works in the browser that asked for it.
 - Backend state: `verify.sh convex data users --format jsonl`, or `verify.sh convex data --component resend emails --format jsonl`.
+
+### Headless
+
+Set up once per machine: `pnpm exec playwright install --only-shell chromium`. On Linux, add `--with-deps`, which installs Chromium's system libraries with apt and needs root (a cloud session runs as root).
+
+A cloud session on the default **Trusted** network can't reach the Playwright CDN (`cdn.playwright.dev`), so that download fails. Either add `cdn.playwright.dev` to the environment's allowed domains, or get Chrome for Testing from `storage.googleapis.com`, which is allowed:
+
+```bash
+pnpm exec playwright install-deps chromium
+npx @puppeteer/browsers install chrome-headless-shell@stable --path ~/.cache/chrome
+```
+
+The second command prints the binary's path. Run each `drive` call as `CHROME=<that path> verify.sh drive …`.
+
+`verify.sh drive <feature> <verb> <arg> [<verb> <arg> ...]` runs the steps in order in one browser. It then prints the URL and the ARIA tree, which stands in for `read_page` and `get_page_text`. It exits 1 at the first failed step and prints Playwright's error. Each action or wait times out after 30 seconds.
+
+| Verb | Does | Pane equivalent |
+| --- | --- | --- |
+| `goto <route or URL>` | Opens it. A route resolves against `http://localhost:3100`. | `navigate` |
+| `fill <label>=<value>` | Fills the field whose label is exactly `<label>`. | `find`, then `form_input` |
+| `click <name>` | Clicks the button or link named exactly `<name>`. | `find`, then `left_click` |
+| `wait <text>` | Waits until the text shows. | the `javascript_tool` wait |
+| `url <path>` | Waits until the URL's path is `<path>`. | waiting on `location.pathname` |
+| `snap <step>` | Saves `<step>.aria.txt` and `<step>.png` to `$RUN/<feature>/`. | `read_page` plus `screenshot` |
+
+- Each call starts a new browser on this run's profile, `<run>/browser`. Cookies and localStorage carry over, so an emailed link opened in a later call still counts as the same browser. The page doesn't carry over, so start every call with `goto`, and fill and submit a form in the same call.
+- Credentials: `eval "$(verify.sh account)"` sets `$email` and `$password` in that shell, so the command shows the variable names and not the values.
+
+The sign-up recipe's Submit step, for example:
+
+```bash
+eval "$(verify.sh account)"; verify.sh drive sign-up goto /sign-up fill "Email=$email" fill "Password=$password" fill "Confirm password=$password" click "Create account" wait "Check your email" snap submitted
+```
 
 The recipes for each feature are in [features/README.md](features/README.md).
 
@@ -59,6 +101,7 @@ For each proof, capture:
 
 - the ARIA tree from `read_page`, saved as `<step>.aria.txt`, with a first line naming the feature ID and URL;
 - a screenshot: the `computer` `screenshot` result names its source `.jpg`, so copy that file in;
+- with the headless driver, `snap <step>` writes both of those, with the screenshot as `<step>.png`;
 - the side effect from a second view, such as the `users` row (`verify.sh convex data users --format jsonl > users.jsonl`) or the stored email;
 - `dev.log` from the run dir, if the step failed.
 
@@ -72,7 +115,7 @@ Proof standards:
 ## Cleanup
 
 1. Sign out in the browser pane if a journey left you signed in.
-2. Run `verify.sh cleanup`. It kills the process tree that `launch` started (its PID is in `<run>/dev.pid`), deletes `.convex/local` and `.env.local` (only when they're the local deployment), and prints where the evidence was kept. The next `launch` starts from an empty database.
+2. Run `verify.sh cleanup`. It kills the process tree that `launch` started (its PID is in `<run>/dev.pid`), deletes `.convex/local` and `.env.local` (only when they're the local deployment) and the headless profile `<run>/browser`, and prints where the evidence was kept. The next `launch` starts from an empty database.
 
 Never kill the dev server on port 3000, or anything this run didn't start.
 
@@ -85,6 +128,7 @@ Never kill the dev server on port 3000, or anything this run didn't start.
 | `verify.sh account` | Prints this run's test email and password, creating them on first use. |
 | `verify.sh email-link <to>` | Prints the newest link emailed to `<to>`. Exit 1 if there is none. |
 | `verify.sh convex <args>` | Runs the Convex CLI against the local deployment, for example `convex data users`. |
+| `verify.sh drive <feature> <steps>` | Drives a headless browser. See [Headless](#headless). |
 | `verify.sh cleanup` | Stops the run's processes and wipes the local deployment. Evidence stays. |
 
 ## Gotchas

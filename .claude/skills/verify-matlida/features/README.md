@@ -6,13 +6,14 @@ This directory is the maintained source for verifying what a Matilda user can do
 
 - `verify.sh launch` printed `ready: http://localhost:3100`, and `verify.sh doctor` exits 0.
 - The database starts empty. Each run creates its own account with `verify.sh account`.
-- The browser pane is signed out: `/` lands on `/sign-in` with the heading `Welcome back`.
+- The browser is signed out: `/` lands on `/sign-in` with the heading `Welcome back`.
 - Never drive an instance this run didn't start. In particular, never drive the user's dev server on port 3000.
 
 ## Driving conventions
 
 - Start every recipe from the baseline unless its preconditions say otherwise. A recipe that needs an account runs [Sign up](./sign-up.md) first in the same run.
 - Find controls by accessible name with `find`, then act on the `ref`. Never use coordinates.
+- The steps name the browser pane tools. Without the pane, run them with `verify.sh drive`, using the verb table in [SKILL.md](../SKILL.md#headless). `fill` and `click` take the same names, and `snap` saves the screenshot as `.png` instead of `.jpg`.
 - Take every quoted name, message and route literally.
 - `$EMAIL` and `$PASSWORD` stand for the values `verify.sh account` printed. `$RUN` is `test-results/verify/latest`.
 - Sign out at the end of a journey, so the next one starts signed out.
@@ -20,7 +21,7 @@ This directory is the maintained source for verifying what a Matilda user can do
 ## Proof and skip reporting
 
 - Capture the user action and the resulting state, not only the final screen.
-- UI proof is an ARIA tree from `read_page` plus a screenshot, saved under `$RUN/<feature-id>/`.
+- UI proof is an ARIA tree from `read_page` plus a screenshot, or a headless `snap`, saved under `$RUN/<feature-id>/`.
 - Mutation proof includes a second view of the stored value, such as a `users` row or a stored email.
 - Record the feature ID and entry point with every artifact.
 - Report an unreachable path with the attempted step and the unmet precondition.
@@ -37,7 +38,7 @@ Each feature file starts with an H1 title and one paragraph describing the behav
 
 ## Features
 
-- [Sign up](./sign-up.md): email and password sign-up, validation, and the emailed verification link. Every sub-feature proven end to end on 2026-10-19.
+- [Sign up](./sign-up.md): email and password sign-up, validation, and the emailed verification link. Every sub-feature proven end to end on 2026-10-19 with the browser pane, and with the headless driver on macOS and in an Ubuntu 24.04 container.
 - [Sign in and sign out](./sign-in.md): the sign-in form, wrong credentials, route guards and sign-out. Not yet proven end to end; the route guards and sign-out were seen on 2026-10-19.
 - [Password reset](./password-reset.md): the forgot-password email, the reset link, and signing in with the new password. Not yet proven.
 - [Google and GitHub sign-in](./oauth.md): the provider buttons. Only the start of the flow can be driven locally. Not yet proven.
