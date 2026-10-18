@@ -14,16 +14,18 @@ import type { MutationCtx, QueryCtx } from '../../_generated/server'
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
-/** How long a link code works, so a texted guess can't land on an old code. */
+const UNBIASED_BYTES = 256 - (256 % CODE_ALPHABET.length)
+
 const CODE_TTL_MS = 10 * 60_000
 
 function newCode() {
-  // 32-bit values, since bytes % 31 favor the first 8 letters.
-  const values = crypto.getRandomValues(new Uint32Array(6))
-  return Array.from(
-    values,
-    (n) => CODE_ALPHABET[n % CODE_ALPHABET.length],
-  ).join('')
+  let code = ''
+  while (code.length < 6) {
+    const [byte] = crypto.getRandomValues(new Uint8Array(1))
+    if (byte < UNBIASED_BYTES)
+      code += CODE_ALPHABET[byte % CODE_ALPHABET.length]
+  }
+  return code
 }
 
 async function getLink(ctx: Pick<QueryCtx, 'db'>, projectId: Id<'projects'>) {

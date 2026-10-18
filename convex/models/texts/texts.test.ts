@@ -17,7 +17,6 @@ vi.mock('../../lib/ai', async () => {
   }
 })
 
-/** What Photon's transport was asked to text, in place of the real gRPC sender. */
 const delivered = vi.hoisted(
   () => [] as Array<{ spaceId: string; content?: unknown }>,
 )
