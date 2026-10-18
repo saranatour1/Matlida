@@ -18,10 +18,12 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const CODE_TTL_MS = 10 * 60_000
 
 function newCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join(
-    '',
-  )
+  // 32-bit values, since bytes % 31 favor the first 8 letters.
+  const values = crypto.getRandomValues(new Uint32Array(6))
+  return Array.from(
+    values,
+    (n) => CODE_ALPHABET[n % CODE_ALPHABET.length],
+  ).join('')
 }
 
 async function getLink(ctx: Pick<QueryCtx, 'db'>, projectId: Id<'projects'>) {
