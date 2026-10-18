@@ -21,11 +21,16 @@ export const Route = createRootRouteWithContext<{
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Matilda',
       },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
+      { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap',
+      },
       {
         rel: 'apple-touch-icon',
         sizes: '180x180',
@@ -61,7 +66,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html>
+    <html lang="en" className="antialiased">
       <head>
         <HeadContent />
       </head>
