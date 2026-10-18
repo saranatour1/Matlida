@@ -6,7 +6,6 @@ on:
 
 jobs:
   size:
-    # A human adds the large-pr label to approve an exception.
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'large-pr') }}
     runs-on: ubuntu-latest
     steps:

@@ -1,11 +1,8 @@
 #!/bin/sh
-# Fails when a branch changes more lines than one review can track.
-# Usage: scripts/pr-size.sh [base] [head]. base defaults to the PR's base branch, else origin/master.
 set -eu
 LIMIT=2000
 base=${1:-origin/$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null || echo master)}
 head=${2:-HEAD}
-# Lockfiles, generated code and shadcn's vendored components don't count.
 changed=$(git diff --numstat "$base...$head" -- . ':!pnpm-lock.yaml' ':!convex/_generated' ':!src/routeTree.gen.ts' ':!src/components/ui' |
   awk '{ n += $1 + $2 } END { print n + 0 }')
 echo "$changed lines changed against $base (limit $LIMIT)"

@@ -12,7 +12,6 @@ export default defineConfig([
       '@convex-dev/require-access-control': 'error',
     },
   },
-  // Every file in convex/ becomes an API path, so only Convex's own config files sit at the top.
   {
     files: ['convex/*.ts'],
     ignores: [
