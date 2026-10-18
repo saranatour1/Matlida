@@ -12,6 +12,7 @@ import { components, internal } from '../../_generated/api'
 import { internalAction, internalQuery } from '../../_generated/server'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import schema from '../../schema'
+import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getOwnedThread, startThread } from './functions'
 import { createLead } from './lead'
@@ -61,7 +62,10 @@ const sendMessage = zAuthedMutation({
 
 const context = internalQuery({
   args: { threadId: v.string() },
-  returns: schema.doc('projects'),
+  returns: v.object({
+    project: schema.doc('projects'),
+    bots: v.array(schema.doc('bots')),
+  }),
   handler: async (ctx, { threadId }) => {
     const thread = await ctx.db
       .query('threads')
@@ -69,7 +73,7 @@ const context = internalQuery({
       .unique()
     const project = thread && (await ctx.db.get('projects', thread.projectId))
     if (!project) throw new Error(`No project for thread ${threadId}`)
-    return project
+    return { project, bots: await getBots(ctx, project._id) }
   },
 })
 
@@ -78,14 +82,16 @@ const respond = internalAction({
   args: { threadId: v.string(), promptMessageId: v.string() },
   returns: v.null(),
   handler: async (ctx, { threadId, promptMessageId }) => {
-    const project: Doc<'projects'> = await ctx.runQuery(
-      internal.api.chat.context,
-      { threadId },
-    )
-    const result = await createLead(project).streamText(
+    const {
+      project,
+      bots,
+    }: { project: Doc<'projects'>; bots: Array<Doc<'bots'>> } =
+      await ctx.runQuery(internal.api.chat.context, { threadId })
+    const lead = createLead(project, bots)
+    const result = await lead.agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
-      { promptMessageId },
+      { promptMessageId, tools: lead.tools },
       { saveStreamDeltas: true },
     )
     await result.consumeStream()
