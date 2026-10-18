@@ -5,7 +5,6 @@ import {
   syncStreams,
   vStreamArgs,
 } from '@convex-dev/agent'
-import { convexGateway } from '@convex-dev/ai-sdk-provider'
 import { zid } from 'convex-helpers/server/zod4'
 import { paginationOptsValidator } from 'convex/server'
 import { ConvexError, v } from 'convex/values'
@@ -13,8 +12,7 @@ import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import type { Doc } from '../../_generated/dataModel'
 import { internalAction, internalQuery } from '../../_generated/server'
-import { GATEWAY_MODEL, isKeyRejected, resolveModel } from '../../lib/ai'
-import { PROVIDERS } from '../aiConnections/providers'
+import { languageModel } from '../../lib/ai'
 import {
   authedMutation,
   authedQuery,
@@ -73,7 +71,6 @@ const context = internalQuery({
   returns: v.object({
     project: schema.doc('projects'),
     team: v.array(schema.doc('employees')),
-    connection: v.union(schema.doc('aiConnections'), v.null()),
     emails: v.array(schema.doc('emailConnections')),
   }),
   handler: async (ctx, { threadId }) => {
@@ -86,9 +83,6 @@ const context = internalQuery({
     return {
       project,
       team: await getTeam(ctx, project._id),
-      connection: project.aiConnectionId
-        ? await ctx.db.get('aiConnections', project.aiConnectionId)
-        : null,
       emails: (
         await ctx.db
           .query('emailConnections')
@@ -99,10 +93,7 @@ const context = internalQuery({
   },
 })
 
-/**
- * Streams the lead's reply into the thread. When the owner's provider rejects
- * their key, the connection is marked invalid and the thread says so.
- */
+/** Streams the lead's reply into the thread. */
 const respond = internalAction({
   args: { threadId: v.string(), promptMessageId: v.string() },
   returns: v.null(),
@@ -110,21 +101,13 @@ const respond = internalAction({
     const {
       project,
       team,
-      connection,
       emails,
     }: {
       project: Doc<'projects'>
       team: Doc<'employees'>[]
-      connection: Doc<'aiConnections'> | null
       emails: Doc<'emailConnections'>[]
     } = await ctx.runQuery(internal.chat.context, { threadId })
-    const lead = createLead({
-      project,
-      team,
-      model: await resolveModel(project, connection),
-      emails,
-    })
-    let keyRejected = false
+    const lead = createLead({ project, team, emails })
     const result = await lead.agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
@@ -132,25 +115,10 @@ const respond = internalAction({
         promptMessageId,
         instructions: lead.instructions,
         tools: lead.tools,
-        onError: ({ error }) => {
-          keyRejected ||= isKeyRejected(error)
-        },
       },
       { saveStreamDeltas: true },
     )
     await result.consumeStream()
-    if (keyRejected && connection) {
-      await ctx.runMutation(internal.aiConnections.markInvalid, {
-        id: connection._id,
-      })
-      await saveMessage(ctx, components.agent, {
-        threadId,
-        message: {
-          role: 'assistant',
-          content: `${PROVIDERS[connection.provider].name} rejected the API key in "${connection.label}". Update it in Settings, or switch this project to the Convex AI Gateway.`,
-        },
-      })
-    }
     return null
   },
 })
@@ -184,7 +152,7 @@ const decide = authedMutation({
     }
     const recorder = new Agent(components.agent, {
       name: 'approvals',
-      languageModel: convexGateway(GATEWAY_MODEL),
+      languageModel,
     })
     const { messageId } = approved
       ? await recorder.approveToolCall(ctx, { threadId, approvalId })

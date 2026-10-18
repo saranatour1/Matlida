@@ -3,11 +3,9 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
-import { PROVIDERS } from '../../convex/models/aiConnections/providers'
 import { errorMessage } from '~/lib/errors'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import { NativeSelect, NativeSelectOption } from '~/components/ui/native-select'
 import { Textarea } from '~/components/ui/textarea'
 
 export const Route = createFileRoute('/')({
@@ -74,15 +72,11 @@ function Projects() {
   )
 }
 
-type ProjectValues = Pick<
-  Doc<'projects'>,
-  'name' | 'brief' | 'guidelines' | 'aiConnectionId' | 'model'
->
+type ProjectValues = Pick<Doc<'projects'>, 'name' | 'brief' | 'guidelines'>
 type FormState = { error?: string; values?: ProjectValues }
 
 function ProjectForm({ project }: { project?: Doc<'projects'> }) {
   const save = useMutation(api.projects.save)
-  const connections = useQuery(api.aiConnections.list)
   const navigate = useNavigate()
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
@@ -90,10 +84,6 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         name: String(data.get('name')),
         brief: String(data.get('brief')),
         guidelines: String(data.get('guidelines')),
-        aiConnectionId: connections?.find(
-          (c) => c._id === data.get('aiConnectionId'),
-        )?._id,
-        model: String(data.get('model') ?? ''),
       }
       try {
         const id = await save({ id: project?._id, ...values })
@@ -144,35 +134,6 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           placeholder="Answer in British English. Never promise delivery dates. Keep budgets under $5k unless asked."
         />
       </label>
-      {connections && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-sm">
-            AI
-            <NativeSelect
-              name="aiConnectionId"
-              defaultValue={values?.aiConnectionId ?? ''}
-            >
-              <NativeSelectOption value="">
-                Convex AI Gateway
-              </NativeSelectOption>
-              {connections.map((c) => (
-                <NativeSelectOption key={c._id} value={c._id}>
-                  {c.label} · {PROVIDERS[c.provider].name}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm">
-            Model (optional)
-            <Input
-              name="model"
-              defaultValue={values?.model}
-              maxLength={100}
-              placeholder="The connection's default"
-            />
-          </label>
-        </div>
-      )}
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {project && (
@@ -180,7 +141,7 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isPending || !connections}>
+        <Button type="submit" disabled={isPending}>
           {project ? 'Save changes' : 'Create project'}
         </Button>
       </div>

@@ -1,16 +1,16 @@
 import * as React from 'react'
 import {
-  useSignInWithPassword,
-  useSignUpWithPassword,
-  type SignInWithPasswordResult,
-  type SignUpWithPasswordResult,
-} from '@convex-dev/auth/providers/password/react'
+  useSignInWithUsernamePassword,
+  useSignUpWithUsernamePassword,
+  type SignInWithUsernamePasswordResult,
+  type SignUpWithUsernamePasswordResult,
+} from '@convex-dev/auth/methods/username-password/react'
 import { api } from '../../convex/_generated/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 
 type Failure = Exclude<
-  SignInWithPasswordResult | SignUpWithPasswordResult,
+  SignInWithUsernamePasswordResult | SignUpWithUsernamePasswordResult,
   { status: 'complete' }
 >
 
@@ -45,8 +45,8 @@ function failureMessage({ userError }: Failure): string {
 
 /** Sign in, or create an account with the same two fields. */
 export function AuthScreen() {
-  const { signIn } = useSignInWithPassword(api.auth.signInWithPassword)
-  const { signUp } = useSignUpWithPassword(api.auth.signUpWithPassword)
+  const { signIn } = useSignInWithUsernamePassword(api.auth)
+  const { signUp } = useSignUpWithUsernamePassword(api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (
       _previous: { error?: string; username?: string },

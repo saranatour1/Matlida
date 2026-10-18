@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
-import { Route as SettingsOpenrouterRouteImport } from './routes/settings.openrouter'
 import { Route as PProjectIdIndexRouteImport } from './routes/p.$projectId.index'
 import { Route as PProjectIdTeamRouteImport } from './routes/p.$projectId.team'
 import { Route as PProjectIdArtifactsArtifactIdRouteImport } from './routes/p.$projectId.artifacts.$artifactId'
@@ -25,11 +24,6 @@ const IndexRoute = IndexRouteImport.update({
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsOpenrouterRoute = SettingsOpenrouterRouteImport.update({
-  id: '/settings/openrouter',
-  path: '/settings/openrouter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PProjectIdIndexRoute = PProjectIdIndexRouteImport.update({
@@ -57,7 +51,6 @@ const PProjectIdThreadsThreadIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/settings/openrouter': typeof SettingsOpenrouterRoute
   '/settings/': typeof SettingsIndexRoute
   '/p/$projectId/team': typeof PProjectIdTeamRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
@@ -66,7 +59,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/settings/openrouter': typeof SettingsOpenrouterRoute
   '/settings': typeof SettingsIndexRoute
   '/p/$projectId/team': typeof PProjectIdTeamRoute
   '/p/$projectId': typeof PProjectIdIndexRoute
@@ -76,7 +68,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/settings/openrouter': typeof SettingsOpenrouterRoute
   '/settings/': typeof SettingsIndexRoute
   '/p/$projectId/team': typeof PProjectIdTeamRoute
   '/p/$projectId/': typeof PProjectIdIndexRoute
@@ -87,7 +78,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/settings/openrouter'
     | '/settings/'
     | '/p/$projectId/team'
     | '/p/$projectId/'
@@ -96,7 +86,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/settings/openrouter'
     | '/settings'
     | '/p/$projectId/team'
     | '/p/$projectId'
@@ -105,7 +94,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/settings/openrouter'
     | '/settings/'
     | '/p/$projectId/team'
     | '/p/$projectId/'
@@ -115,7 +103,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SettingsOpenrouterRoute: typeof SettingsOpenrouterRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   PProjectIdTeamRoute: typeof PProjectIdTeamRoute
   PProjectIdIndexRoute: typeof PProjectIdIndexRoute
@@ -137,13 +124,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/openrouter': {
-      id: '/settings/openrouter'
-      path: '/settings/openrouter'
-      fullPath: '/settings/openrouter'
-      preLoaderRoute: typeof SettingsOpenrouterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$projectId/': {
@@ -179,7 +159,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SettingsOpenrouterRoute: SettingsOpenrouterRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   PProjectIdTeamRoute: PProjectIdTeamRoute,
   PProjectIdIndexRoute: PProjectIdIndexRoute,

@@ -16,8 +16,8 @@
 - [x] `GUIDELINES.md` for the codebase, linked from `CLAUDE.md` and `AGENTS.md`
 - [x] Guidelines refactor: API files re-export from `convex/models/<table>/`, shared code in `convex/lib/`, Zod input validation via convex-helpers, `returns` only on internal functions, form actions instead of `useEffect`/`useState`
 - [x] `docs/integrations.md`: goals and rules for each integration
-- [x] Auth with Convex Auth v2 (alpha, pinned): username + password, every public function requires a signed-in owner, existing projects claimed by the dev account
-- [x] BYOK AI connections: encrypted API keys for Anthropic, OpenAI, Google and OpenRouter, OpenRouter OAuth, per-project AI and model, rejected keys flagged in the thread
+- [x] Auth with Convex Auth v2 (beta, pinned): username + password, every public function requires a signed-in owner, existing projects claimed by the dev account
+- [x] AI runs on the Convex AI Gateway only. BYOK (own keys, OpenRouter) was built, then removed to keep v1 small (commit `7059af9`)
 - [x] Email, send-only: Resend, Postmark, Mailgun, Cloudflare Email and your own SMTP server. Credentials are checked and encrypted, and the lead's `send_email` waits for your approval in the chat
 - [x] pstack as a Claude Code setup: 51 skills in `.claude/skills/`, 2 agents in `.claude/agents/`, models per role in `.claude/skills/poteto-mode/models.md`, rerunnable via `scripts/port-pstack.mjs`
 
@@ -39,5 +39,4 @@
 - [ ] Install `eslint` so `pnpm lint` works
 - [ ] Starter hydration warning in the console: `Error reading query stream ... 'mutations'` (`@tanstack/react-router-with-query`)
 - [ ] Remove `keepCurrentApprovals` once @convex-dev/agent fixes approval continuations in threads with older approvals
-- [ ] Test BYOK with a real key and an OpenRouter account (needs the owner's credentials)
-- [ ] Later: reading mailboxes, outreach texting, AI vision on screen shares, usage tracking per AI connection
+- [ ] Later: reading mailboxes, outreach texting, AI vision on screen shares

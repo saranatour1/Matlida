@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as aiConnections from "../aiConnections.js";
 import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
@@ -17,9 +16,6 @@ import type * as employees from "../employees.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_functions from "../lib/functions.js";
-import type * as models_aiConnections_functions from "../models/aiConnections/functions.js";
-import type * as models_aiConnections_providers from "../models/aiConnections/providers.js";
-import type * as models_aiConnections_table from "../models/aiConnections/table.js";
 import type * as models_artifacts_functions from "../models/artifacts/functions.js";
 import type * as models_artifacts_table from "../models/artifacts/table.js";
 import type * as models_emailConnections_api from "../models/emailConnections/api.js";
@@ -49,7 +45,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  aiConnections: typeof aiConnections;
   artifacts: typeof artifacts;
   auth: typeof auth;
   chat: typeof chat;
@@ -58,9 +53,6 @@ declare const fullApi: ApiFromModules<{
   "lib/ai": typeof lib_ai;
   "lib/crypto": typeof lib_crypto;
   "lib/functions": typeof lib_functions;
-  "models/aiConnections/functions": typeof models_aiConnections_functions;
-  "models/aiConnections/providers": typeof models_aiConnections_providers;
-  "models/aiConnections/table": typeof models_aiConnections_table;
   "models/artifacts/functions": typeof models_artifacts_functions;
   "models/artifacts/table": typeof models_artifacts_table;
   "models/emailConnections/api": typeof models_emailConnections_api;
@@ -112,7 +104,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
-  auth: import("@convex-dev/auth/core/_generated/component.js").ComponentApi<"auth">;
-  authPasswordProvider: import("@convex-dev/auth/providers/password/_generated/component.js").ComponentApi<"authPasswordProvider">;
-  authUsername: import("@convex-dev/auth/username/_generated/component.js").ComponentApi<"authUsername">;
+  auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
+  authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;
+  authUsername: import("@convex-dev/auth/components/username/_generated/component.js").ComponentApi<"authUsername">;
 };

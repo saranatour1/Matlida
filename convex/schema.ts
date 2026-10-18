@@ -1,5 +1,4 @@
 import { defineSchema } from 'convex/server'
-import { aiConnectionsTable } from './models/aiConnections/table'
 import { artifactsTable } from './models/artifacts/table'
 import { emailConnectionsTable } from './models/emailConnections/table'
 import { employeesTable } from './models/employees/table'
@@ -13,6 +12,5 @@ export default defineSchema({
   employees: employeesTable,
   threads: threadsTable,
   artifacts: artifactsTable,
-  aiConnections: aiConnectionsTable,
   emailConnections: emailConnectionsTable,
 })

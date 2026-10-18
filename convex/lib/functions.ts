@@ -1,4 +1,4 @@
-import { getAuthUserId } from '@convex-dev/auth/core/index'
+import { getAuthUserId } from '@convex-dev/auth/server'
 import {
   customAction,
   customCtx,

@@ -188,3 +188,22 @@
   - Don't send: nothing was sent, and the lead acknowledged it.
   - Send after an earlier approval in the same thread first hit the agent bug. After the workaround, the tool ran, Resend rejected the fake key, the connection was marked invalid, and the card showed "wasn't sent: Resend rejected the saved credentials."
 - **Not yet tested:** real delivery, which needs a working key or SMTP account.
+
+## 2026-10-18: Auth beta, gateway-only AI
+
+### Changed
+
+- **Auth:** upgraded `@convex-dev/auth` from `2.0.0-alpha.2` to `2.0.0-beta.0`.
+  - New import paths: `@convex-dev/auth/server`, `methods/username-password/*`, `components/*/convex.config.js`.
+  - `setupCore` became `setupConvexAuth`. The sign-in functions became `signInWithUsernamePassword` and `signUpWithUsernamePassword`, and the hooks take `api.auth`.
+  - The password component is now mounted as `authPassword`.
+  - The core's `sessions` schema changed, so the dev sessions were cleared to deploy. The old test accounts (`dev-owner`, `dev-other`) lost their passwords with the component rename; `dev-beta` replaces them.
+- **AI:** BYOK is removed. Leads and employees run on the Convex AI Gateway only (`lib/ai.ts`).
+  - Gone: `aiConnections`, OpenRouter sign-in, the AI picker and the `@ai-sdk/*` providers.
+  - Gone too: the pnpm override for `@ai-sdk/provider`, which no longer has conflicting types to unify.
+  - Email credentials still use `lib/crypto.ts` and `SECRETS_KEY`.
+
+### Verified
+
+- `pnpm typecheck`, `pnpm build` and `npx convex dev --once` pass.
+- In the browser: a new account signed up on the beta, created a project, and the lead answered through the gateway.

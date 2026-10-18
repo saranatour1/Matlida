@@ -1,13 +1,17 @@
-import { setupCore } from '@convex-dev/auth/core/setup'
-import { setupUsernamePassword } from '@convex-dev/auth/providers/password/setup'
+import { setupConvexAuth } from '@convex-dev/auth/server'
+import { setupUsernamePassword } from '@convex-dev/auth/methods/username-password/server'
 import { components, internal } from './_generated/api'
 
-const core = setupCore({ component: components.auth })
+const core = setupConvexAuth({ component: components.auth })
 
 export const { signOut, refreshSession, isAuthenticated } = core
 
-export const { signUpWithPassword, signInWithPassword, changePassword } =
+export const {
+  signUpWithUsernamePassword,
+  signInWithUsernamePassword,
+  changePassword,
+} =
   setupUsernamePassword(core, {
-    component: components.authPasswordProvider,
+    component: components.authPassword,
     usernameComponent: components.authUsername,
   }).attachUserCallbacks({ createUser: internal.users.createUser })

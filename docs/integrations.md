@@ -5,7 +5,7 @@ The goal, rules and setup for each external service. Status shows what's live. T
 | Setup | Status |
 |---|---|
 | [Auth](#auth) | live (username + password) |
-| [AI models (BYOK)](#ai-models-byok) | live, waiting on a real key to test the happy path |
+| [AI models](#ai-models) | live (Convex AI Gateway) |
 | [Email](#email) | live for API providers and SMTP; Gmail, Outlook, platform email and inbound wait on accounts |
 | [Texting (Photon)](#texting-photon) | planned |
 | [Calls (Cloudflare RealtimeKit)](#calls-cloudflare-realtimekit) | planned |
@@ -15,31 +15,20 @@ The goal, rules and setup for each external service. Status shows what's live. T
 **Goal:** every project, connection, call and secret belongs to a signed-in user, and nothing is public.
 
 **Rules**
-- Use Convex Auth v2 (`@convex-dev/auth@2.0.0-alpha.2`, pinned because it's alpha). The core, password and username components are mounted in `convex/convex.config.ts`, and `convex/auth.ts` exports the sign-in functions. Sign-in uses a username and password for now, and switches to email + password with verification once platform email exists.
+- Use Convex Auth v2 (`@convex-dev/auth@2.0.0-beta.0`, pinned because it's a beta). The core, password and username components are mounted in `convex/convex.config.ts`, and `convex/auth.ts` exports the sign-in functions. Sign-in uses a username and password for now, and switches to email + password with verification once platform email exists.
 - **Setup:** `npx @convex-dev/auth` puts `AUTH_PRIVATE_KEY` and `AUTH_JWKS` on the deployment. `convex/auth.config.ts` trusts the JWTs from `<site>/auth/.well-known/jwks.json`.
 - **The app is gated on the client:** `<Unauthenticated>` shows `AuthScreen`, and `<Authenticated>` shows the app.
 - Public functions use the `authed*` builders in `convex/lib/functions.ts`, which inject `ctx.user`. Never take a user id as an argument.
 - Check access through the owning project (`getOwnedProject`). If the user doesn't own it, the record doesn't exist as far as they're concerned.
 - **Fallback:** Convex Auth v1 (`0.0.96`) if v2 blocks us. Switching only touches `lib/functions.ts` and `src/router.tsx`.
 
-## AI models (BYOK)
+## AI models
 
-**Goal:** each project runs on the model its owner picks: the Convex AI Gateway by default, the owner's own API key, or their OpenRouter account.
+**Goal:** every lead and employee runs on the Convex AI Gateway, billed to the team.
 
 **Rules**
-- **Keys:**
-  - Keys are encrypted at rest with AES-256-GCM (`convex/lib/crypto.ts`, env `SECRETS_KEY`).
-  - They're decrypted only inside actions and never returned to the client. The UI shows the last 4 characters.
-  - Every key is checked with one cheap API call when it's saved.
-- **Bad keys:** an invalid key marks the connection `invalid` and shows the error in the thread. We never silently fall back to the gateway, because the team would pay for it.
-- **"Your own subscription"** means OpenRouter OAuth (PKCE). Claude Pro/Max and ChatGPT plans can't power third-party apps, so we don't offer them.
-- **Providers:** `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google` and `@openrouter/ai-sdk-provider`, all running in the default Convex runtime. A pnpm override in `pnpm-workspace.yaml` pins `@ai-sdk/provider`, so every model shares one type.
-- **Where it lives:**
-  - `convex/models/aiConnections/` holds the table, the functions and the provider list shared with the UI.
-  - `convex/lib/crypto.ts` does the encryption.
-  - `convex/lib/ai.ts` holds `resolveModel`, `checkApiKey` and `isKeyRejected`.
-  - In the UI: `/settings`, `/settings/openrouter`, and the AI picker on the project form.
-- **Env:** `SECRETS_KEY` (base64, 32 bytes), declared in `convex/convex.config.ts`.
+- One model for now: `anthropic/claude-sonnet-4.5`, set in `convex/lib/ai.ts` as `languageModel`.
+- No user keys (BYOK). The gateway can't take a user's key, so supporting it means a second model path. It was built and removed to keep v1 small; it's in git history (commit `7059af9`).
 
 ## Email
 

@@ -9,7 +9,7 @@ import { ConvexError } from 'convex/values'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import type { Doc } from '../../_generated/dataModel'
-import type { ChatModel } from '../../lib/ai'
+import { languageModel } from '../../lib/ai'
 
 type Project = Doc<'projects'>
 type Employee = Doc<'employees'>
@@ -18,7 +18,6 @@ type Employee = Doc<'employees'>
 export type LeadSetup = {
   project: Project
   team: Employee[]
-  model: ChatModel
   /** The owner's working email connections. Empty means no email tool. */
   emails: Doc<'emailConnections'>[]
 }
@@ -30,7 +29,7 @@ export type LeadSetup = {
 export function createLead(setup: LeadSetup) {
   const agent = new Agent(components.agent, {
     name: setup.project.name,
-    languageModel: setup.model,
+    languageModel,
     stopWhen: stepCountIs(6),
     contextHandler: keepCurrentApprovals,
   })
@@ -139,7 +138,7 @@ function employeeInstructions(project: Project, employee: Employee) {
   )
 }
 
-function leadTools({ project, team, model, emails }: LeadSetup): ToolSet {
+function leadTools({ project, team, emails }: LeadSetup): ToolSet {
   const tools: ToolSet = {
     save_artifact: createTool({
       description:
@@ -189,7 +188,7 @@ function leadTools({ project, team, model, emails }: LeadSetup): ToolSet {
         })
         const agent = new Agent(components.agent, {
           name: e.name,
-          languageModel: model,
+          languageModel,
           instructions: employeeInstructions(project, e),
         })
         const { text } = await agent.generateText(
