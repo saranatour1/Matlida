@@ -11,7 +11,7 @@ const app = defineApp({
   env: {
     AUTH_PRIVATE_KEY: v.string(),
     AUTH_JWKS: v.string(),
-    /** The app's origin, e.g. http://localhost:3001. Email links and OAuth redirects point here. */
+    /** The app's origin, e.g. http://localhost:3000. Email links and OAuth redirects point here. */
     SITE_URL: v.string(),
     RESEND_API_KEY: v.string(),
     /** e.g. "Matilda <auth@example.com>", on a domain verified with Resend. */
