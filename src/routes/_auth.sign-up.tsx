@@ -2,17 +2,13 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useSignUpWithEmailPassword } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
+import type { FormState } from '~/lib/auth'
 import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { OAuthButtons } from '~/components/oauth-buttons'
 import { Button } from '~/components/ui/button'
 import { FieldError, FieldGroup, FieldSeparator } from '~/components/ui/field'
-import {
-  authErrorMessage,
-  invalid,
-  signUpSchema,
-  type FormState,
-} from '~/lib/auth'
+import { authErrorMessage, invalid, signUpSchema } from '~/lib/auth'
 
 export const Route = createFileRoute('/_auth/sign-up')({
   component: SignUp,

@@ -13,7 +13,7 @@ export function FormField({
   label: string
   /** Shown at the end of the label row, like a "Forgot your password?" link. */
   labelAction?: React.ReactNode
-  errors?: string[]
+  errors?: Array<string>
 }) {
   const invalid = errors?.length ? true : undefined
   return (

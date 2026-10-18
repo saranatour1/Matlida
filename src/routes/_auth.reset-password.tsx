@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompletePasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
+import type { FormState } from '~/lib/auth'
 import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
@@ -11,7 +12,6 @@ import {
   emailLinkSearch,
   invalid,
   resetPasswordSchema,
-  type FormState,
 } from '~/lib/auth'
 
 /** Where the reset email's link lands. */
@@ -22,7 +22,9 @@ export const Route = createFileRoute('/_auth/reset-password')({
 
 function ResetPassword() {
   const { code } = Route.useSearch()
-  const recovery = useCompletePasswordRecovery(api.api.auth, { emailCode: code })
+  const recovery = useCompletePasswordRecovery(api.api.auth, {
+    emailCode: code,
+  })
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       if (recovery.status !== 'ready') return {}

@@ -1,10 +1,12 @@
 import { vGithubProfile } from '@convex-dev/auth/methods/github/server'
 import { vGoogleProfile } from '@convex-dev/auth/methods/google/server'
-import { v, type Infer } from 'convex/values'
+import { v } from 'convex/values'
 import { components } from '../../_generated/api'
-import type { Id } from '../../_generated/dataModel'
-import { internalMutation, type MutationCtx } from '../../_generated/server'
+import { internalMutation } from '../../_generated/server'
 import { authedQuery } from '../../lib/functions'
+import type { MutationCtx } from '../../_generated/server'
+import type { Infer } from 'convex/values'
+import type { Id } from '../../_generated/dataModel'
 
 /** What Convex Auth passes to the user callbacks, for each sign-in method. */
 const vProvider = v.union(

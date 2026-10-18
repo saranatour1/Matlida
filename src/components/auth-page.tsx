@@ -1,6 +1,6 @@
-import type * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { GalleryVerticalEndIcon } from 'lucide-react'
+import type * as React from 'react'
 import { FieldDescription, FieldGroup } from '~/components/ui/field'
 
 /** The layout every auth page shares, from shadcn's signup-05 block. */

@@ -2,16 +2,12 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useStartPasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
+import type { FormState } from '~/lib/auth'
 import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
 import { FieldError, FieldGroup } from '~/components/ui/field'
-import {
-  authErrorMessage,
-  forgotPasswordSchema,
-  invalid,
-  type FormState,
-} from '~/lib/auth'
+import { authErrorMessage, forgotPasswordSchema, invalid } from '~/lib/auth'
 
 export const Route = createFileRoute('/_auth/forgot-password')({
   component: ForgotPassword,

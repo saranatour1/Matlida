@@ -1,4 +1,5 @@
 import { DEFAULT_MIN_PASSWORD_LENGTH } from '@convex-dev/auth/methods/email-password'
+import { z } from 'zod'
 import type {
   CompletePasswordRecoveryResult,
   CompletePasswordRecoveryState,
@@ -7,7 +8,6 @@ import type {
   SignUpResult,
   StartPasswordRecoveryResult,
 } from '@convex-dev/auth/methods/email-password/react'
-import { z } from 'zod'
 
 const email = z.email('Enter a valid email address.')
 const newPassword = z
@@ -46,7 +46,7 @@ export const emailLinkSearch = z.object({ code: z.string().catch('') })
  */
 export type FormState = {
   error?: string
-  fieldErrors?: Partial<Record<string, string[]>>
+  fieldErrors?: Partial<Record<string, Array<string>>>
   email?: string
   /** Where a link was emailed. */
   sentTo?: string
