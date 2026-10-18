@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import spectrumTest from '@spectrum-ts/convex/test'
 import { convexTest } from 'convex-test'
-import { beforeEach, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
 import schema from '../../schema'
@@ -21,6 +21,10 @@ const calls = (languageModel as unknown as { doGenerateCalls: Array<unknown> })
 
 beforeEach(() => {
   calls.length = 0
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 async function setup() {
@@ -60,6 +64,26 @@ test('texting the code links the phone, once', async () => {
   })
   expect(await text('space-2', `link ${code}`)).toBe(
     "That code didn't match. Get a new one on the Texting page in Matilda.",
+  )
+})
+
+test('a code works for 10 minutes', async () => {
+  const { asAda, projectId, text } = await setup()
+  vi.useFakeTimers()
+  const stale = await asAda.mutation(api.api.texts.startLink, { projectId })
+  vi.advanceTimersByTime(11 * 60_000)
+  expect(await text('space-1', `link ${stale}`)).toBe(
+    "That code didn't match. Get a new one on the Texting page in Matilda.",
+  )
+  expect(await asAda.query(api.api.texts.link, { projectId })).toMatchObject({
+    status: 'pending',
+    code: stale,
+  })
+
+  const fresh = await asAda.mutation(api.api.texts.startLink, { projectId })
+  vi.advanceTimersByTime(9 * 60_000)
+  expect(await text('space-1', `link ${fresh}`)).toBe(
+    'Linked to Matilda. Text me anytime.',
   )
 })
 

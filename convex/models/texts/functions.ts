@@ -14,6 +14,9 @@ import type { MutationCtx, QueryCtx } from '../../_generated/server'
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
+/** How long a link code works, so a texted guess can't land on an old code. */
+const CODE_TTL_MS = 10 * 60_000
+
 function newCode() {
   const bytes = crypto.getRandomValues(new Uint8Array(6))
   return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join(
@@ -75,6 +78,7 @@ const claim = internalMutation({
       .withIndex('by_code', (q) => q.eq('code', code.toUpperCase()))
       .unique()
     if (pending?.status !== 'pending') return null
+    if (Date.now() - pending._creationTime > CODE_TTL_MS) return null
     const previous = await ctx.db
       .query('phoneLinks')
       .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
