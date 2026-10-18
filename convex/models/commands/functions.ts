@@ -21,6 +21,27 @@ export async function getCommands(
     .take(MAX_COMMANDS)
 }
 
+/**
+ * The command a message runs when it starts with `/name`, or null for a plain
+ * message. Throws a user-facing error when the project has no such command.
+ */
+export async function findCommand(
+  ctx: Pick<QueryCtx, 'db'>,
+  projectId: Id<'projects'>,
+  prompt: string,
+) {
+  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i.exec(prompt)?.[1]
+  if (!name) return null
+  const command = await ctx.db
+    .query('commands')
+    .withIndex('by_project_and_name', (q) =>
+      q.eq('projectId', projectId).eq('name', name.toLowerCase()),
+    )
+    .unique()
+  if (!command) throw new ConvexError(`There's no /${name} command.`)
+  return command
+}
+
 const list = authedQuery({
   args: { projectId: v.id('projects') },
   handler: async (ctx, { projectId }) => {

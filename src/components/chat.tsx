@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
@@ -9,6 +9,7 @@ import { ChatMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
+import { Button } from '~/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -36,6 +37,7 @@ export function Chat({
 }) {
   const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
+  const commands = useQuery(api.api.commands.list, { projectId: project._id })
   const lead = project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
@@ -100,6 +102,23 @@ export function Chat({
               <Suggestions
                 onSelect={(prompt) => React.startTransition(() => send(prompt))}
               />
+              {commands && commands.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {commands.map((c) => (
+                    <Button
+                      key={c._id}
+                      variant="secondary"
+                      size="sm"
+                      title={c.description}
+                      onClick={() =>
+                        React.startTransition(() => send(`/${c.name}`))
+                      }
+                    >
+                      /{c.name}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </EmptyContent>
           </Empty>
         </div>
