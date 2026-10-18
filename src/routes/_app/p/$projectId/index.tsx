@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { Chat } from '~/components/chat'
 import { useProject } from '~/hooks/use-project'
 
-export const Route = createFileRoute('/_app/p/$projectId')({
+export const Route = createFileRoute('/_app/p/$projectId/')({
   validateSearch: z.object({ thread: z.string().optional() }),
   component: ProjectPage,
 })
