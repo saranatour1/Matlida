@@ -53,14 +53,17 @@ function botInstructions(project: Project, bot: Bot) {
 ${bot.instructions}${guidelines(project)}`
 }
 
+/** Each `ask_bot` call is a paid bot generation, and the lead can make many per step. */
+const BOT_CALLS_PER_REPLY = 6
+
 /** The tools the lead gets. `ask_bot` exists only when the project has bots. */
 function leadTools(project: Project, bots: Array<Bot>): ToolSet {
   if (bots.length === 0) return {}
   const [first, ...rest] = bots
+  let botCalls = 0
   return {
     ask_bot: createTool({
-      description:
-        'Hand one of your bots a task or question and get its reply. Call it several times in the same step to ask several bots in parallel.',
+      description: `Hand one of your bots a task or question and get its reply. Call it several times in the same step to ask several bots in parallel. You can call it at most ${BOT_CALLS_PER_REPLY} times per reply.`,
       inputSchema: z.object({
         bot: z.enum([first.name, ...rest.map((b) => b.name)]),
         task: z
@@ -70,6 +73,12 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
           ),
       }),
       execute: async (ctx, { bot, task }, { abortSignal }) => {
+        botCalls++
+        if (botCalls > BOT_CALLS_PER_REPLY) {
+          throw new Error(
+            'Bot budget for this reply is used up; answer with what you have.',
+          )
+        }
         const b = bots.find((candidate) => candidate.name === bot) ?? first
         const threadId: string = await ctx.runMutation(
           internal.api.threads.start,
