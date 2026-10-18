@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useSignUpWithEmailPassword } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
-import { AuthCard } from '~/components/auth-card'
+import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { OAuthButtons } from '~/components/oauth-buttons'
 import { Button } from '~/components/ui/button'
@@ -17,12 +17,6 @@ import {
 export const Route = createFileRoute('/_auth/sign-up')({
   component: SignUp,
 })
-
-const signInLink = (
-  <Link to="/sign-in" className="text-foreground underline">
-    Sign in
-  </Link>
-)
 
 function SignUp() {
   const { signUp } = useSignUpWithEmailPassword(api.auth)
@@ -41,27 +35,26 @@ function SignUp() {
 
   if (state.sentTo) {
     return (
-      <AuthCard
+      <AuthPage
         title="Check your email"
         description={`We sent a link to ${state.sentTo}. Open it in this browser to finish creating your account.`}
         footer={
           // A full load resets the form.
-          <a href="/sign-up" className="text-foreground underline">
-            Use a different email
-          </a>
+          <a href="/sign-up">Use a different email</a>
         }
       />
     )
   }
 
   return (
-    <AuthCard
-      title="Create an account"
-      description="Start using Matilda."
-      footer={<p>Have an account? {signInLink}</p>}
+    <AuthPage
+      title="Welcome to Matilda"
+      description={
+        <>
+          Already have an account? <Link to="/sign-in">Sign in</Link>
+        </>
+      }
     >
-      <OAuthButtons />
-      <FieldSeparator>or</FieldSeparator>
       <form action={submit} noValidate>
         <FieldGroup>
           <FormField
@@ -95,6 +88,8 @@ function SignUp() {
           </Button>
         </FieldGroup>
       </form>
-    </AuthCard>
+      <FieldSeparator>Or</FieldSeparator>
+      <OAuthButtons />
+    </AuthPage>
   )
 }

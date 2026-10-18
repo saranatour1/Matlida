@@ -13,7 +13,7 @@ function AuthLayout() {
   const { isAuthenticated } = useConvexAuth()
   if (isAuthenticated) return <Navigate to="/" />
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
       <div className="w-full max-w-sm">
         <Outlet />
       </div>

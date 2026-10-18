@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useSignInWithEmailPassword } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
-import { AuthCard } from '~/components/auth-card'
+import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { OAuthButtons } from '~/components/oauth-buttons'
 import { Button } from '~/components/ui/button'
@@ -36,20 +36,14 @@ function SignIn() {
   )
 
   return (
-    <AuthCard
-      title="Sign in"
-      description="Welcome back to Matilda."
-      footer={
-        <p>
-          No account?{' '}
-          <Link to="/sign-up" className="text-foreground underline">
-            Create one
-          </Link>
-        </p>
+    <AuthPage
+      title="Welcome back"
+      description={
+        <>
+          Don't have an account? <Link to="/sign-up">Sign up</Link>
+        </>
       }
     >
-      <OAuthButtons />
-      <FieldSeparator>or</FieldSeparator>
       <form action={submit} noValidate>
         <FieldGroup>
           <FormField
@@ -67,20 +61,24 @@ function SignIn() {
             type="password"
             autoComplete="current-password"
             errors={state.fieldErrors?.password}
+            labelAction={
+              <Link
+                to="/forgot-password"
+                className="underline-offset-4 hover:underline"
+              >
+                Forgot your password?
+              </Link>
+            }
             required
           />
-          <Link
-            to="/forgot-password"
-            className="-mt-3 self-end text-sm text-muted-foreground underline"
-          >
-            Forgot password?
-          </Link>
           {state.error && <FieldError>{state.error}</FieldError>}
           <Button type="submit" disabled={isPending}>
             Sign in
           </Button>
         </FieldGroup>
       </form>
-    </AuthCard>
+      <FieldSeparator>Or</FieldSeparator>
+      <OAuthButtons />
+    </AuthPage>
   )
 }

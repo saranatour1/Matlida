@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useStartPasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
-import { AuthCard } from '~/components/auth-card'
+import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
 import { FieldError, FieldGroup } from '~/components/ui/field'
@@ -17,11 +17,7 @@ export const Route = createFileRoute('/_auth/forgot-password')({
   component: ForgotPassword,
 })
 
-const backToSignIn = (
-  <Link to="/sign-in" className="text-foreground underline">
-    Back to sign in
-  </Link>
-)
+const backToSignIn = <Link to="/sign-in">Back to sign in</Link>
 
 function ForgotPassword() {
   const { startPasswordRecovery } = useStartPasswordRecovery(api.auth)
@@ -42,7 +38,7 @@ function ForgotPassword() {
 
   if (state.sentTo) {
     return (
-      <AuthCard
+      <AuthPage
         title="Check your email"
         description={`We sent a reset link to ${state.sentTo}. It works for 10 minutes, in this browser.`}
         footer={backToSignIn}
@@ -51,7 +47,7 @@ function ForgotPassword() {
   }
 
   return (
-    <AuthCard
+    <AuthPage
       title="Forgot your password?"
       description="Enter your email and we'll send you a link to reset it. Google and GitHub accounts don't have a password here."
       footer={backToSignIn}
@@ -73,6 +69,6 @@ function ForgotPassword() {
           </Button>
         </FieldGroup>
       </form>
-    </AuthCard>
+    </AuthPage>
   )
 }

@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompletePasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
-import { AuthCard } from '~/components/auth-card'
+import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
 import { FieldError, FieldGroup } from '~/components/ui/field'
@@ -41,29 +41,25 @@ function ResetPassword() {
   switch (recovery.status) {
     case 'loading':
       return (
-        <AuthCard
+        <AuthPage
           title="Reset your password"
           description="Checking your link…"
         />
       )
     case 'complete':
-      return <AuthCard title="Password changed" description="Signing you in…" />
+      return <AuthPage title="Password changed" description="Signing you in…" />
     case 'error':
       return (
-        <AuthCard
+        <AuthPage
           title="This link can't be used"
           description={authErrorMessage(recovery.userError)}
-          footer={
-            <Link to="/forgot-password" className="text-foreground underline">
-              Send a new link
-            </Link>
-          }
+          footer={<Link to="/forgot-password">Send a new link</Link>}
         />
       )
   }
 
   return (
-    <AuthCard title="Reset your password" description="Choose a new password.">
+    <AuthPage title="Reset your password" description="Choose a new password.">
       <form action={submit} noValidate>
         <FieldGroup>
           <FormField
@@ -88,6 +84,6 @@ function ResetPassword() {
           </Button>
         </FieldGroup>
       </form>
-    </AuthCard>
+    </AuthPage>
   )
 }

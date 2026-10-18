@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompleteSignUp } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '../../convex/_generated/api'
-import { AuthCard } from '~/components/auth-card'
+import { AuthPage } from '~/components/auth-page'
 import { authErrorMessage, emailLinkSearch } from '~/lib/auth'
 
 /** Where the sign-up email's link lands. Success signs the user in. */
@@ -16,16 +16,12 @@ function VerifyEmail() {
 
   if (state.status === 'error') {
     return (
-      <AuthCard
+      <AuthPage
         title="This link can't be used"
         description={authErrorMessage(state.userError)}
-        footer={
-          <Link to="/sign-up" className="text-foreground underline">
-            Sign up again
-          </Link>
-        }
+        footer={<Link to="/sign-up">Sign up again</Link>}
       />
     )
   }
-  return <AuthCard title="Verifying your email" description="One moment…" />
+  return <AuthPage title="Verifying your email" description="One moment…" />
 }
