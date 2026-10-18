@@ -1,6 +1,7 @@
 allowBuilds:
   esbuild: true
   unrs-resolver: false
+  protobufjs: false
 
 # One copy of the AI SDK provider spec, so the Convex AI gateway model and the
 # Agent component share the same LanguageModel type.
