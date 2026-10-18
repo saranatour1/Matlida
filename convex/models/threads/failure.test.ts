@@ -10,7 +10,6 @@ vi.mock('../../lib/ai', async () => {
   const reply = mockModel({ content: [{ type: 'text', text: 'Back again.' }] })
   let calls = 0
   return {
-    // The first reply's model call throws, later ones answer.
     languageModel: mockModel({
       doStream: (options) => {
         calls++

@@ -53,7 +53,6 @@ function botInstructions(project: Project, bot: Bot) {
 ${bot.instructions}${guidelines(project)}`
 }
 
-/** Each `ask_bot` call is a paid bot generation, and the lead can make many per step. */
 const BOT_CALLS_PER_REPLY = 6
 
 /** The tools the lead gets. `ask_bot` exists only when the project has bots. */

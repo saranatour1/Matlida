@@ -22,7 +22,6 @@ vi.mock('../../lib/ai', async () => {
   const leadSteps = [askFour(1), askFour(2)]
   const answer = mockModel({ content: [{ type: 'text', text: 'Done.' }] })
   return {
-    // The lead asks Ivy four times in each of two steps, then answers.
     languageModel: mockModel({
       doStream: (options) => {
         const step = leadSteps[leadPrompts.length] ?? answer
