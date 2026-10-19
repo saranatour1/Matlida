@@ -87,7 +87,7 @@ export function AssistantPanel({
   const name = bot?.name ?? project.name
 
   return (
-    <aside className="relative flex w-80 shrink-0 flex-col overflow-y-auto border-l text-sm">
+    <aside className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-background text-sm md:relative md:z-auto md:w-80 md:shrink-0 md:border-l md:bg-transparent">
       <div className="absolute top-2 right-2 flex gap-1">
         {bot && <ShareMenu bot={bot} />}
         <Button
