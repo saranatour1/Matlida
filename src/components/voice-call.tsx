@@ -255,7 +255,11 @@ export function VoiceCallScreen({
             {line.text}
           </p>
         ))}
-        {call.error && <p className="text-destructive">{call.error}</p>}
+        {call.error && (
+          <p role="alert" className="text-destructive">
+            {call.error}
+          </p>
+        )}
       </div>
       <div className="flex gap-4">
         <Button
