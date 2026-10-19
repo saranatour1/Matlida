@@ -114,7 +114,8 @@
 ### Call history and a docked call (2026-10-19)
 
 - A call now docks at the side of the app instead of covering it: the assistant, its status, the whole transcript (scrolling, newest in view, nothing cut to the last two lines), and Mute and Hang up. The chat stays usable next to it. On phones it's full screen.
-- Calls are saved: `calls` (who, chat, when it ended) and `callLines` (each thing said). `calls.begin` runs once the mic is on, with the opening line when the assistant called you; each turn adds its lines; Hang up sets the end.
-- The details panel has a Calls tab: an assistant's last 20 calls with time, length and first line, each opening to its transcript and a link to the chat.
+- Calls are saved so none is lost: `calls` (who, chat, when it ended) and `callLines` (each thing said, and for replies how long they took). The server starts the record with the first line, from a turn or an answered ring's opening, so no client step can fail first. Each turn saves your line as soon as it's heard, and the reply's line even if speaking fails. A call that never hung up (a closed tab) ends at its last line.
+- Readable output: `npx convex run api/calls:dump` prints the latest call (or `'{"id":"<callId>"}'`) as text with timings, like `[0:03] Matilda, replied in 4.3 s: …`. The Calls tab copies the same text.
+- The details panel has a Calls tab: an assistant's last 20 calls with time, length and first line, each opening to its transcript, Copy transcript, and a link to the chat.
 - A call's first turn keeps the URL's other params, so the details panel stays open. A stale call error clears once a turn succeeds.
-- Verified on a local deployment: a two-turn call to Matilda docked at desktop width with both turns in the transcript, then showed in the Calls tab with "2 min" and its four lines.
+- Verified with unit tests (a call's lines across two turns, reply timings, a never-hung-up call ending at its last line, the answered ring's opening line, another user refused, the dump text) and on a local deployment with a seeded call: the Calls tab listed it and Copy transcript produced the dump's text. No live calls were placed.
