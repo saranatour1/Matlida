@@ -35,7 +35,8 @@ export function ThreadMembers({
   const members = others.filter((b) => memberIds.includes(b._id))
 
   return (
-    <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+    // On phones only the avatars and button show, so the chat's name keeps the room.
+    <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground sm:min-w-0 sm:shrink">
       {members.length > 0 && (
         <>
           <span className="flex -space-x-1">
@@ -47,7 +48,7 @@ export function ThreadMembers({
               />
             ))}
           </span>
-          <span className="truncate">
+          <span className="hidden truncate sm:inline">
             with {members.map((m) => m.name).join(', ')}
           </span>
         </>
