@@ -58,7 +58,7 @@ async function setup() {
     guidelines: '',
   })
   const text = (spaceId: string, message: string) =>
-    t.action(internal.api.texts.answer, { spaceId, text: message })
+    t.action(internal.api.reply.answer, { spaceId, text: message })
   return { t, asAda, asBob: t.withIdentity({ subject: bob }), projectId, text }
 }
 

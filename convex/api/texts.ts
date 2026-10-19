@@ -6,6 +6,5 @@ export const {
   unlink,
   claim,
   forSpace,
-  answer,
   respond,
 } = textsApi

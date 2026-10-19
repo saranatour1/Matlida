@@ -1,4 +1,3 @@
-import { createThread } from '@convex-dev/agent'
 import { v } from 'convex/values'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
@@ -15,10 +14,11 @@ export async function startThread(
   ctx: MutationCtx,
   { userId, ...thread }: NewThread & { userId: Id<'users'> },
 ) {
-  const threadId = await createThread(ctx, components.agent, {
-    title: thread.title,
-    userId,
-  })
+  // What `createThread` from @convex-dev/agent does, minus its import, which loads the AI SDK.
+  const { _id: threadId } = await ctx.runMutation(
+    components.agent.threads.createThread,
+    { title: thread.title, userId },
+  )
   await ctx.db.insert('threads', { threadId, ...thread })
   return threadId
 }

@@ -6,7 +6,6 @@ import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { startThread } from '../threads/functions'
-import { createLead } from '../threads/lead'
 import { spectrum } from './spectrum'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../../_generated/server'
@@ -137,40 +136,6 @@ async function startTextsThread(
   return threadId
 }
 
-/** What to text back to a message from `spaceId`. Links the phone or runs the lead. */
-const answer = internalAction({
-  args: { spaceId: v.string(), text: v.string() },
-  returns: v.string(),
-  handler: async (ctx, { spaceId, text }): Promise<string> => {
-    const code = /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
-    if (code) {
-      const name: string | null = await ctx.runMutation(
-        internal.api.texts.claim,
-        { code, spaceId },
-      )
-      return name
-        ? `Linked to ${name}. Text me anytime.`
-        : "That code didn't match. Get a new one on the Texting page in Matilda."
-    }
-    const linked: {
-      project: Doc<'projects'>
-      bots: Array<Doc<'bots'>>
-      threadId: string
-    } | null = await ctx.runMutation(internal.api.texts.forSpace, { spaceId })
-    if (!linked) {
-      return "This number isn't linked yet. Open Texting in Matilda and text me the code it shows."
-    }
-    const { project, bots, threadId } = linked
-    const lead = createLead(project, bots, { viaText: true })
-    const reply = await lead.agent.generateText(
-      ctx,
-      { threadId, userId: project.ownerId },
-      { prompt: text, tools: lead.tools },
-    )
-    return reply.text
-  },
-})
-
 /** Photon's batch handler: one turn per burst of texts from a phone. */
 const respond = internalAction({
   args: {
@@ -188,7 +153,7 @@ const respond = internalAction({
     try {
       if (text) {
         const reply: string = await ctx
-          .runAction(internal.api.texts.answer, { spaceId: args.spaceId, text })
+          .runAction(internal.api.reply.answer, { spaceId: args.spaceId, text })
           .catch((error: unknown) => {
             console.error(error)
             return 'Sorry, something went wrong. Try again in a minute.'
@@ -223,6 +188,5 @@ export const textsApi = {
   unlink,
   claim,
   forSpace,
-  answer,
   respond,
 }
