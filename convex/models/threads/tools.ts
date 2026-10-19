@@ -14,8 +14,8 @@ const vSteps = z
   .max(30)
   .describe('Each step as a short instruction, in order.')
 
-/** Tools every assistant gets: the web, and plans saved to the Library. */
-export function assistantTools(project: Doc<'projects'>) {
+/** Tools every assistant (`from`) gets: the web, plans saved to the Library, and reminders. */
+export function assistantTools(project: Doc<'projects'>, from: string) {
   const record = async (
     ctx: ToolCtx,
     kind: 'search' | 'research',
@@ -84,6 +84,40 @@ export function assistantTools(project: Doc<'projects'>) {
           steps: steps.map((text) => ({ text, done: false })),
         })
         return { planId: id, saved: true }
+      },
+    }),
+    set_reminder: createTool({
+      description:
+        'Remind the user about something later. It posts in this chat when due, and also texts or calls them if they ask for that.',
+      inputSchema: z.object({
+        message: z
+          .string()
+          .min(1)
+          .max(500)
+          .describe('What to remind them of, written to them.'),
+        at: z
+          .string()
+          .describe(
+            "When, as ISO 8601 with the UTC offset of the user's time zone, like 2026-10-20T17:00:00+03:00.",
+          ),
+        via: z
+          .enum(['chat', 'text', 'call'])
+          .describe('chat unless they asked to be texted or called.'),
+      }),
+      execute: async (ctx, { message, at, via }) => {
+        const dueAt = Date.parse(at)
+        if (Number.isNaN(dueAt))
+          throw new Error(`Couldn't read the time "${at}".`)
+        if (!ctx.threadId) throw new Error('Reminders need a chat.')
+        await ctx.runMutation(internal.api.reminders.schedule, {
+          projectId: project._id,
+          threadId: ctx.threadId,
+          from,
+          message,
+          dueAt,
+          via,
+        })
+        return { scheduled: true, at: new Date(dueAt).toISOString(), via }
       },
     }),
   }

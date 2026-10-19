@@ -42,6 +42,8 @@ type Env = {
   readonly SPECTRUM_PROJECT_ID: string | undefined;
   readonly SPECTRUM_PROJECT_SECRET: string | undefined;
   readonly SPECTRUM_WEBHOOK_SECRET: string | undefined;
+  readonly VAPI_API_KEY: string | undefined;
+  readonly VAPI_PHONE_NUMBER_ID: string | undefined;
 };
 
 /**

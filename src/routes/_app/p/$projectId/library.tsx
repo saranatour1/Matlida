@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_app/p/$projectId/library')({
 
 type Editing = Doc<'commands'> & { markdown: string }
 
-/** What the assistants made and use: plans and commands. */
+/** What the assistants made and use: reminders, plans and commands. */
 function Library() {
   const project = useProject()
   const commands = useQuery(
@@ -48,6 +48,7 @@ function Library() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
           <h1 className="text-lg font-semibold">Library</h1>
+          <Reminders projectId={project._id} />
           <Plans projectId={project._id} />
           <h2 className="mt-6 font-medium">Commands</h2>
           <p className="text-sm text-muted-foreground">
@@ -242,6 +243,44 @@ function Plans({ projectId }: { projectId: Id<'projects'> }) {
           </ul>
         </div>
       ))}
+    </section>
+  )
+}
+
+/** Reminders waiting to go out. */
+function Reminders({ projectId }: { projectId: Id<'projects'> }) {
+  const reminders = useQuery(api.api.reminders.list, { projectId })
+  const cancel = useMutation(api.api.reminders.cancel)
+  if (!reminders?.length) return null
+  return (
+    <section className="mt-4 flex flex-col gap-2">
+      <h2 className="font-medium">Reminders</h2>
+      <ul className="flex flex-col gap-2">
+        {reminders.map((r) => (
+          <li
+            key={r._id}
+            className="flex items-center gap-3 rounded-xl border p-3 text-sm"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate">{r.message}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(r.dueAt).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}{' '}
+                · {r.via} · from {r.from}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void cancel({ id: r._id })}
+            >
+              Cancel
+            </Button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

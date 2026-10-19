@@ -11,10 +11,13 @@
 
 ## Open
 
+- [ ] Set up Vapi (BYO SIP trunk to Photon) and test a real reminder call
+- [ ] Inbound calls: route Photon's line to a Vapi assistant so you can call Matilda
+
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
 - [x] Orb avatars, settings, library and thread members
 - [x] Web search and research, plans, voice input
 - [x] Right panel: environment, context, connectors, changes, costs
-- [ ] Reminders and phone calls through Photon
+- [x] Reminders, with calls through Vapi over Photon (needs Vapi keys)
 
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL

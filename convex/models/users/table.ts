@@ -12,4 +12,6 @@ export const usersTable = defineTable({
   image: v.optional(v.string()),
   /** The GitHub login, for accounts that use GitHub. */
   username: v.optional(v.string()),
+  /** Where assistants call you, in international format like +14155550123. */
+  phone: v.optional(v.string()),
 })

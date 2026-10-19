@@ -3,6 +3,7 @@ import { botsTable } from './models/bots/table'
 import { commandsTable } from './models/commands/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
+import { remindersTable } from './models/reminders/table'
 import { phoneLinksTable } from './models/texts/table'
 import { threadsTable } from './models/threads/table'
 import { usageTable } from './models/usage/table'
@@ -17,4 +18,5 @@ export default defineSchema({
   phoneLinks: phoneLinksTable,
   plans: plansTable,
   usage: usageTable,
+  reminders: remindersTable,
 })

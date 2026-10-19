@@ -25,12 +25,24 @@ export type ReplyOptions = {
   command?: RunCommand
   /** The reply goes out as a text message. */
   viaText?: boolean
+  /** The user's IANA time zone, so "at 5 tomorrow" means their 5. UTC when unknown. */
+  timeZone?: string
+}
+
+/** The current time in the user's zone, for reminders and anything date-relative. */
+function now(timeZone = 'UTC') {
+  const local = new Date().toLocaleString('en-US', {
+    timeZone,
+    dateStyle: 'full',
+    timeStyle: 'short',
+  })
+  return `\nIt is now ${local} (${timeZone}).`
 }
 
 function leadInstructions(
   project: Project,
   bots: Array<Bot>,
-  { command, viaText }: ReplyOptions,
+  { command, viaText, timeZone }: ReplyOptions,
 ) {
   const team = bots.length
     ? `Your bots:
@@ -44,19 +56,24 @@ ${
   viaText
     ? 'You are replying by text message: plain text with no markdown, a few sentences at most.'
     : 'Keep replies concise and use markdown.'
-}${guidelines(project)}${
+}${now(timeZone)}${guidelines(project)}${
     command
       ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
       : ''
   }`
 }
 
-function botInstructions(project: Project, bot: Bot, members: Array<Bot>) {
+function botInstructions(
+  project: Project,
+  bot: Bot,
+  members: Array<Bot>,
+  timeZone?: string,
+) {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
-${bot.instructions}${team}${guidelines(project)}`
+${bot.instructions}${team}${now(timeZone)}${guidelines(project)}`
 }
 
 const BOT_CALLS_PER_REPLY = 6
@@ -131,17 +148,22 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
 }
 
 /** A bot answering the user directly in its own chat, with the chat's members. */
-export function createBot(project: Project, bot: Bot, members: Array<Bot>) {
+export function createBot(
+  project: Project,
+  bot: Bot,
+  members: Array<Bot>,
+  timeZone?: string,
+) {
   return {
     agent: new Agent(components.agent, {
       name: bot.name,
       languageModel,
-      instructions: botInstructions(project, bot, members),
+      instructions: botInstructions(project, bot, members, timeZone),
       stopWhen: stepCountIs(6),
       usageHandler: recordUsage(project),
     }),
     tools: {
-      ...assistantTools(project),
+      ...assistantTools(project, bot.name),
       ...askTools(project, members, bot.name),
     },
   }
@@ -162,7 +184,7 @@ export function createLead(
       usageHandler: recordUsage(project),
     }),
     tools: {
-      ...assistantTools(project),
+      ...assistantTools(project, project.name),
       ...askTools(project, bots, project.name),
     },
   }

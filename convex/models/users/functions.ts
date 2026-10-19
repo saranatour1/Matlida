@@ -1,9 +1,10 @@
 import { vGithubProfile } from '@convex-dev/auth/methods/github/server'
 import { vGoogleProfile } from '@convex-dev/auth/methods/google/server'
 import { v } from 'convex/values'
+import { z } from 'zod'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
-import { authedQuery } from '../../lib/functions'
+import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import type { MutationCtx } from '../../_generated/server'
 import type { Infer } from 'convex/values'
 import type { Id } from '../../_generated/dataModel'
@@ -84,9 +85,25 @@ const syncProfile = internalMutation({
   },
 })
 
+/** Saves where assistants call you. An empty string clears it. */
+const setPhone = zAuthedMutation({
+  args: {
+    phone: z
+      .string()
+      .trim()
+      .regex(
+        /^(\+[1-9]\d{7,14})?$/,
+        'Use international format, like +14155550123.',
+      ),
+  },
+  handler: async (ctx, { phone }) => {
+    await ctx.db.patch('users', ctx.userId, { phone: phone || undefined })
+  },
+})
+
 const current = authedQuery({
   args: {},
   handler: async (ctx) => await ctx.db.get('users', ctx.userId),
 })
 
-export const usersApi = { createUser, syncProfile, current }
+export const usersApi = { createUser, syncProfile, setPhone, current }

@@ -60,3 +60,10 @@
 - Costs come from a new `usage` table. Every model step (through the agent's `usageHandler`), web search and research records its AI gateway cost and tokens. Each reply records its Convex action time, which the panel turns into an estimate at $0.30 per GB-hour for 64 MB actions. A bot's sub-thread work is charged to the chat that asked for it.
 - Context shows the assistant's role, instructions, guidelines and members. Connectors shows search, research, voice and texting (with a link to set texting up). Changes lists plans saved from the chat.
 - Verified on the authenticated local deployment: a weather question with one web search showed $0.01 AI across 3,095 tokens (two model steps and a $0.0053 search) and 14.0s of action time.
+
+### Reminders and calls (2026-10-19)
+
+- Every assistant has `set_reminder`. A reminder is scheduled with `ctx.scheduler.runAt`. When it's due it posts in its chat, and also texts through Photon or calls when you asked for that. The Library lists upcoming reminders, and you can cancel them there.
+- Assistants know the current time in your zone. The browser sends its IANA time zone with each message.
+- Calls: Photon's voice line is SIP-only (no SDK call control or webhooks yet), so a Vapi voice agent dials out through it (`convex/models/reminders/call.ts`) and hangs up with Vapi's end-call function. It's gated on `VAPI_API_KEY` and `VAPI_PHONE_NUMBER_ID`. Until they're set, a call reminder becomes a text, or stays in the chat. Settings has your phone number, and the panel shows whether calls are ready.
+- Verified on the authenticated local deployment: "Call me in 1 minute to remind me to stretch" set a reminder for 5:28 PM local, and at 5:28 the chat got "⏰ Reminder: Time to stretch!" with the fallback note. Not verified: a real call, which needs a Vapi account with a SIP trunk to Photon.
