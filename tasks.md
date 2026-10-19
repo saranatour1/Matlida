@@ -29,7 +29,7 @@
 - [x] Email: a personal address per user, claimed on Connections
 - [x] Email: inbound mail answered by an assistant, with sender authentication
 - [x] Email reminders
-- [ ] Setup guide for email, Photon, Telegram and WhatsApp, with a DNS checker
+- [x] Setup guide for email, Photon, Telegram and WhatsApp, with a DNS checker
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

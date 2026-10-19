@@ -170,3 +170,9 @@
 - Inbound texting is rate limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
 - The Photon webhook's checks are now pinned by tests: forged, stale, tampered and unsigned deliveries are refused with nothing stored, and a replay is acknowledged once.
 - Verified with unit tests (Resend and the model mocked): an email reminder's exact send, the no-address note, the owner flood across two apps, the ignored stranger, code guessing, a turn that sends nothing, and the webhook cases above.
+
+### Setup guide and DNS checker (2026-10-20)
+
+- `docs/setup/channels.md` has every step to connect email (a subdomain, Resend's DKIM, SPF and receiving MX, a strict DMARC record, optional MTA-STS and TLS-RPT, the webhook and its secret), Photon for iMessage with its SMS and RCS fallback, Telegram through @BotFather and `pnpm exec convex run api/sender:connectTelegram`, WhatsApp, and the list of env var names. It ends with why phone calls wait and what a voice server would take.
+- `node scripts/check-email-dns.mjs mail.example.com` checks the receiving MX, SPF, DKIM, each DMARC setting and the optional records over DNS-over-HTTPS and prints PASS, FAIL or INFO per line, with no secrets. It's tested against a resolver served by the test.
+- `pnpm audit --prod` reports no known vulnerabilities.

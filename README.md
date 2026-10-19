@@ -46,7 +46,7 @@ Set these on the Convex deployment (`npx convex env set NAME value`):
 | `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, verified with Resend. Optional |
 | `RESEND_WEBHOOK_SECRET`                                                     | Signs Resend's inbound webhook at `/resend/inbound` (`whsec_…`). Optional      |
 
-To message on Telegram, add the bot in Photon, set `TELEGRAM_BOT_TOKEN`, then run `npx convex run api/sender:connectTelegram` once to point the bot at Photon. WhatsApp needs only the number added in Photon.
+To message on Telegram, add the bot in Photon, set `TELEGRAM_BOT_TOKEN`, then run `npx convex run api/sender:connectTelegram` once to point the bot at Photon. WhatsApp needs only the number added in Photon. Email, the DNS records it needs and the rest of the channel setup are in [docs/setup/channels.md](docs/setup/channels.md); `node scripts/check-email-dns.mjs <domain>` checks the records.
 
 And in the app's environment when deploying:
 
