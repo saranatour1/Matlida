@@ -67,3 +67,10 @@
 - Assistants know the current time in your zone. The browser sends its IANA time zone with each message.
 - Calls wait on Photon: its voice line is SIP-only today, with SDK call control and webhooks on the roadmap, so a Convex action can't place a call yet. A Vapi bridge was tried and dropped at the user's request.
 - Verified on the authenticated local deployment: "Remind me in 1 minute to stretch" set a reminder for one minute out in local time, and the chat got "⏰ Reminder: Time to stretch!" when it fired.
+
+### Character looks (2026-10-19)
+
+- Assistants are drawn as characters on a dark rounded tile: a head shape, a skin color and one of 18 figures (plain, cat, bear, bunny, frog, horns, beanie, cap, bucket hat, beret, bandana, crown, shades, glasses, headphones, bow, sprout, hood). The head crops like a close-up portrait. The face is Matilda's own: round eyes with a light catch, blush and a small smile. Costume colors switch when they'd clash with the skin.
+- Inspired by the style of the community Grokbot icons the user linked. Nothing was copied: that gallery says each image belongs to its creator, so every shape here is drawn in code (`src/components/bot-avatar.tsx`).
+- `look.figure` replaces the short-lived emblem field. It's optional, and a look without one gets a figure from the name.
+- Verified on a local run: all 18 figures render in sand, white, green and plum skins, and the New assistant dialog shows the Figure row.

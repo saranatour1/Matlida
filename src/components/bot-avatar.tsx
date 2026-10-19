@@ -103,7 +103,7 @@ const DARK = new Set<Color>(['plum', 'blue'])
 
 /**
  * The head outline of every shape, tilted, then fitted to fill the tile from
- * y=22 down past the bottom edge, so it crops like a portrait.
+ * y=26 out past the sides and bottom, so it crops like a close-up portrait.
  */
 const HEADS = Object.fromEntries(
   SHAPES.map((shape) => {
@@ -120,9 +120,9 @@ const HEADS = Object.fromEntries(
       Math.min(...ys),
       Math.max(...ys),
     ]
-    const scale = 88 / Math.max(maxX - minX, maxY - minY)
+    const scale = 104 / Math.max(maxX - minX, maxY - minY)
     const dx = 50 - ((minX + maxX) / 2) * scale
-    const dy = 22 - minY * scale
+    const dy = 26 - minY * scale
     const d = points
       .map(
         ([x, y], i) =>
@@ -211,7 +211,7 @@ function Behind({ figure, color }: { figure: Figure; color: Color }) {
       return (
         <path
           d="M-4 104 L-4 52 C-4 0 104 0 104 52 L104 104 Z"
-          fill={pick(color, '#3f3f46', '#57534e', ['gray'])}
+          fill={pick(color, '#7c3aed', '#0f766e', ['plum', 'blue', 'pink'])}
         />
       )
     default:
@@ -224,9 +224,9 @@ function Over({ figure, color }: { figure: Figure; color: Color }) {
   switch (figure) {
     case 'horns':
       return (
-        <g fill="#27272a">
-          <path d="M26 32 Q16 12 26 2 Q28 18 38 26 Z" />
-          <path d="M74 32 Q84 12 74 2 Q72 18 62 26 Z" />
+        <g fill={pick(color, '#b91c1c', '#f5f5f4', ['red', 'pink', 'orange'])}>
+          <path d="M24 36 Q12 14 24 2 Q27 20 40 30 Z" />
+          <path d="M76 36 Q88 14 76 2 Q73 20 60 30 Z" />
         </g>
       )
     case 'beanie': {
@@ -320,11 +320,11 @@ function Over({ figure, color }: { figure: Figure; color: Color }) {
     case 'shades':
       return (
         <g>
-          <rect x="12" y="52" width="76" height="17" rx="8" fill="#0a0a0a" />
+          <rect x="8" y="52" width="84" height="20" rx="10" fill="#0a0a0a" />
           <path
-            d="M20 56 L34 56"
+            d="M18 57 L34 57"
             stroke="#fff"
-            strokeWidth="2.5"
+            strokeWidth="3"
             strokeLinecap="round"
             opacity="0.5"
           />
@@ -333,9 +333,9 @@ function Over({ figure, color }: { figure: Figure; color: Color }) {
     case 'glasses':
       return (
         <g stroke={INK} strokeWidth="3" fill="none">
-          <circle cx="37" cy="60" r="10.5" />
-          <circle cx="63" cy="60" r="10.5" />
-          <path d="M47.5 60 L52.5 60 M26.5 58 L8 54 M73.5 58 L92 54" />
+          <circle cx="35" cy="62" r="12.5" />
+          <circle cx="65" cy="62" r="12.5" />
+          <path d="M47.5 62 L52.5 62 M22.5 60 L2 56 M77.5 60 L98 56" />
         </g>
       )
     case 'headphones':
@@ -407,28 +407,28 @@ function Face({ figure, color }: { figure: Figure; color: Color }) {
   const eye = DARK.has(color) ? '#fafafa' : INK
   const shine = DARK.has(color) ? INK : '#fff'
   // A frog's eyes sit up on its bumps.
-  const [ex, ey] = figure === 'frog' ? [21, 32] : [13, 60]
+  const [ex, ey] = figure === 'frog' ? [21, 31] : [15, 62]
   return (
     <>
-      {[50 - ex - 11, 50 + ex + 11].map((cx) => (
+      {[23, 77].map((cx) => (
         <ellipse
           key={cx}
           cx={cx}
-          cy={ey + 10}
-          rx="6.5"
-          ry="3.8"
+          cy="75"
+          rx="7.5"
+          ry="4.4"
           fill="#fb7185"
           opacity="0.45"
         />
       ))}
       {[50 - ex, 50 + ex].map((cx) => (
         <g key={cx}>
-          <ellipse cx={cx} cy={ey} rx="5.4" ry="6.6" fill={eye} />
-          <circle cx={cx + 1.8} cy={ey - 2.3} r="1.9" fill={shine} />
+          <ellipse cx={cx} cy={ey} rx="6.6" ry="8.2" fill={eye} />
+          <circle cx={cx + 2.2} cy={ey - 2.8} r="2.3" fill={shine} />
         </g>
       ))}
       <path
-        d="M45.5 71 Q50 75.5 54.5 71"
+        d="M45 75 Q50 80 55 75"
         stroke={eye}
         strokeWidth="2.4"
         strokeLinecap="round"
