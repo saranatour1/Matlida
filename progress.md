@@ -22,3 +22,8 @@
 - Picked C: the kite body is a speech bubble with three rounded corners, the sharp fourth corner is the tail, and the kite string runs from it. Three level typing dots sit inside. A was dropped because diagonal dots in a rounded square read as a die.
 - Stroke went from 3.5 to 4.5 so the mark holds at 16–32px.
 - `public/logo.svg`, every icon PNG, `favicon.ico` and `og.png` were re-rendered from it. Checked in light and dark mode with headless Chrome.
+
+### Logo v2.1: diagonal dots
+
+- The three typing dots now run diagonally at 45°, falling left to right (`transform="rotate(45 26.4 28)"` on the dots group in `public/logo.svg`).
+- `favicon.ico`, `apple-touch-icon.png`, both Android icons and `og.png` were re-rendered to match.
