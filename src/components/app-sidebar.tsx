@@ -1,0 +1,297 @@
+import { useAuthActions } from '@convex-dev/auth/react'
+import { Link, useParams, useSearch } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
+import {
+  BotIcon,
+  CrownIcon,
+  FolderIcon,
+  LogOutIcon,
+  MessageSquareIcon,
+  MessagesSquareIcon,
+  PlusIcon,
+  SlashSquareIcon,
+  SmartphoneIcon,
+} from 'lucide-react'
+import { api } from '../../convex/_generated/api'
+import type { Doc, Id } from '../../convex/_generated/dataModel'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { Button } from '~/components/ui/button'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '~/components/ui/sidebar'
+import { useProject } from '~/hooks/use-project'
+
+export function AppSidebar() {
+  const projects = useQuery(api.api.projects.list)
+  const project = useProject()
+  const { setOpenMobile } = useSidebar()
+
+  return (
+    <Sidebar>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupAction
+            render={<Link to="/" />}
+            aria-label="New project"
+            title="New project"
+          >
+            <PlusIcon />
+          </SidebarGroupAction>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {projects?.length === 0 && (
+                <li className="px-2 text-xs text-muted-foreground">
+                  No projects yet.
+                </li>
+              )}
+              {projects?.map((p) => (
+                <SidebarMenuItem key={p._id}>
+                  <SidebarMenuButton
+                    isActive={project?._id === p._id}
+                    render={
+                      <Link to="/p/$projectId" params={{ projectId: p._id }} />
+                    }
+                    onClick={() => setOpenMobile(false)}
+                  >
+                    <FolderIcon />
+                    <span className="truncate">{p.name}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        {project && <Bots project={project} />}
+        {project && <Commands projectId={project._id} />}
+        {project && <Chats projectId={project._id} />}
+        {project && <SubThreads projectId={project._id} />}
+      </SidebarContent>
+      <Account />
+    </Sidebar>
+  )
+}
+
+function Bots({ project }: { project: Doc<'projects'> }) {
+  const projectId = project._id
+  const bots = useQuery(api.api.bots.list, { projectId })
+  const { edit } = useSearch({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Bots</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId/bots" params={{ projectId }} />}
+        aria-label="Add a bot"
+        title="Add a bot"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={<Link to="/" search={{ edit: projectId }} />}
+              onClick={() => setOpenMobile(false)}
+            >
+              <CrownIcon />
+              <span className="truncate">
+                {project.name}{' '}
+                <span className="text-muted-foreground">· Lead</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={
+                <Link to="/p/$projectId/texting" params={{ projectId }} />
+              }
+              onClick={() => setOpenMobile(false)}
+            >
+              <SmartphoneIcon />
+              <span className="truncate">Text {project.name}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {bots?.map((b) => (
+            <SidebarMenuItem key={b._id}>
+              <SidebarMenuButton
+                isActive={edit === b._id}
+                render={
+                  <Link
+                    to="/p/$projectId/bots"
+                    params={{ projectId }}
+                    search={{ edit: b._id }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <BotIcon />
+                <span className="truncate">
+                  {b.name}{' '}
+                  <span className="text-muted-foreground">· {b.role}</span>
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function Commands({ projectId }: { projectId: Id<'projects'> }) {
+  const commands = useQuery(api.api.commands.list, { projectId })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Commands</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId/commands" params={{ projectId }} />}
+        aria-label="Add a command"
+        title="Add a command"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {commands?.length === 0 && (
+            <li className="px-2 text-xs text-muted-foreground">
+              No commands yet.
+            </li>
+          )}
+          {commands?.map((c) => (
+            <SidebarMenuItem key={c._id}>
+              <SidebarMenuButton
+                render={
+                  <Link to="/p/$projectId/commands" params={{ projectId }} />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <SlashSquareIcon />
+                <span className="truncate">/{c.name}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function Chats({ projectId }: { projectId: Id<'projects'> }) {
+  const chats = useQuery(api.api.threads.list, { projectId, kind: 'chat' })
+  const { thread } = useSearch({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Chats</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId" params={{ projectId }} />}
+        aria-label="New chat"
+        title="New chat"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {chats?.length === 0 && (
+            <li className="px-2 text-xs text-muted-foreground">
+              No chats yet.
+            </li>
+          )}
+          {chats?.map((c) => (
+            <SidebarMenuItem key={c._id}>
+              <SidebarMenuButton
+                isActive={thread === c.threadId}
+                render={
+                  <Link
+                    to="/p/$projectId"
+                    params={{ projectId }}
+                    search={{ thread: c.threadId }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <MessageSquareIcon />
+                <span className="truncate">{c.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+/** Where the lead handed work to a bot. */
+function SubThreads({ projectId }: { projectId: Id<'projects'> }) {
+  const threads = useQuery(api.api.threads.list, {
+    projectId,
+    kind: 'subagent',
+  })
+  const { threadId } = useParams({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  if (!threads?.length) return null
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Threads</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {threads.map((t) => (
+            <SidebarMenuItem key={t._id}>
+              <SidebarMenuButton
+                isActive={threadId === t.threadId}
+                render={
+                  <Link
+                    to="/p/$projectId/threads/$threadId"
+                    params={{ projectId, threadId: t.threadId }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <MessagesSquareIcon />
+                <span className="truncate">{t.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function Account() {
+  const user = useQuery(api.api.users.current)
+  const { signOut } = useAuthActions()
+  const name = user?.name ?? user?.email
+  return (
+    <SidebarFooter>
+      <div className="flex items-center gap-2 px-2 text-sm">
+        <Avatar className="size-6">
+          <AvatarImage src={user?.image} alt="" referrerPolicy="no-referrer" />
+          <AvatarFallback>{name?.[0]?.toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <span className="flex-1 truncate">{name}</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Sign out"
+          title="Sign out"
+          onClick={() => void signOut()}
+        >
+          <LogOutIcon />
+        </Button>
+      </div>
+    </SidebarFooter>
+  )
+}

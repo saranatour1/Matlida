@@ -1,0 +1,5 @@
+{
+  "node": {
+    "externalPackages": ["@spectrum-ts/convex", "@spectrum-ts/imessage"]
+  }
+}

@@ -1,3 +1,13 @@
 allowBuilds:
   esbuild: true
   unrs-resolver: false
+  protobufjs: false
+
+# One copy of the AI SDK provider spec, so the Convex AI gateway model and the
+# Agent component share the same LanguageModel type.
+# @ai-sdk/gateway 4.0.116 grows its model-id union until `new Agent(...)` fails
+# to typecheck ("union type that is too complex"). Unpin once that's fixed.
+overrides:
+  '@ai-sdk/provider': 4.0.29
+  '@ai-sdk/provider-utils': 5.0.62
+  '@ai-sdk/gateway': 4.0.110

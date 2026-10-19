@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompleteSignUp } from '@convex-dev/auth/methods/email-password/react'
-import { api } from '../../convex/_generated/api'
+import { api } from '../../../convex/_generated/api'
 import { AuthPage } from '~/components/auth-page'
 import { authErrorMessage, emailLinkSearch } from '~/lib/auth'
 

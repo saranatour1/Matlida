@@ -9,53 +9,84 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AuthRouteImport } from './routes/_auth'
-import { Route as AppIndexRouteImport } from './routes/_app.index'
-import { Route as AuthForgotPasswordRouteImport } from './routes/_auth.forgot-password'
-import { Route as AuthResetPasswordRouteImport } from './routes/_auth.reset-password'
-import { Route as AuthSignInRouteImport } from './routes/_auth.sign-in'
-import { Route as AuthSignUpRouteImport } from './routes/_auth.sign-up'
-import { Route as AuthVerifyEmailRouteImport } from './routes/_auth.verify-email'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as AuthRouteRouteImport } from './routes/_auth/route'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
+import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
+import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
+import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
+import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
+import { Route as AppPProjectIdCommandsRouteImport } from './routes/_app/p/$projectId/commands'
+import { Route as AppPProjectIdTextingRouteImport } from './routes/_app/p/$projectId/texting'
+import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
-const AppRoute = AppRouteImport.update({
+const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
+const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
-  getParentRoute: () => AuthRoute,
+  getParentRoute: () => AuthRouteRoute,
 } as any)
+const AppPProjectIdIndexRoute = AppPProjectIdIndexRouteImport.update({
+  id: '/p/$projectId/',
+  path: '/p/$projectId/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPProjectIdBotsRoute = AppPProjectIdBotsRouteImport.update({
+  id: '/p/$projectId/bots',
+  path: '/p/$projectId/bots',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPProjectIdCommandsRoute = AppPProjectIdCommandsRouteImport.update({
+  id: '/p/$projectId/commands',
+  path: '/p/$projectId/commands',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPProjectIdTextingRoute = AppPProjectIdTextingRouteImport.update({
+  id: '/p/$projectId/texting',
+  path: '/p/$projectId/texting',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPProjectIdThreadsThreadIdRoute =
+  AppPProjectIdThreadsThreadIdRouteImport.update({
+    id: '/p/$projectId/threads/$threadId',
+    path: '/p/$projectId/threads/$threadId',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -64,6 +95,11 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
+  '/p/$projectId/': typeof AppPProjectIdIndexRoute
+  '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -72,17 +108,27 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
+  '/p/$projectId': typeof AppPProjectIdIndexRoute
+  '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteWithChildren
-  '/_auth': typeof AuthRouteWithChildren
+  '/_app': typeof AppRouteRouteWithChildren
+  '/_auth': typeof AuthRouteRouteWithChildren
   '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/_app/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/_app/p/$projectId/texting': typeof AppPProjectIdTextingRoute
+  '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
+  '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -93,6 +139,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/p/$projectId/bots'
+    | '/p/$projectId/commands'
+    | '/p/$projectId/texting'
+    | '/p/$projectId/'
+    | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -101,6 +152,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/p/$projectId/bots'
+    | '/p/$projectId/commands'
+    | '/p/$projectId/texting'
+    | '/p/$projectId'
+    | '/p/$projectId/threads/$threadId'
   id:
     | '__root__'
     | '/_app'
@@ -111,11 +167,16 @@ export interface FileRouteTypes {
     | '/_auth/sign-up'
     | '/_auth/verify-email'
     | '/_app/'
+    | '/_app/p/$projectId/bots'
+    | '/_app/p/$projectId/commands'
+    | '/_app/p/$projectId/texting'
+    | '/_app/p/$projectId/'
+    | '/_app/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AppRoute: typeof AppRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  AuthRouteRoute: typeof AuthRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -124,14 +185,14 @@ declare module '@tanstack/react-router' {
       id: '/_app'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
+      preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
       id: '/_auth'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof AuthRouteImport
+      preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -139,57 +200,104 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+      parentRoute: typeof AppRouteRoute
     }
     '/_auth/forgot-password': {
       id: '/_auth/forgot-password'
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/reset-password': {
       id: '/_auth/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/sign-in': {
       id: '/_auth/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof AuthSignInRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/sign-up': {
       id: '/_auth/sign-up'
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof AuthSignUpRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/verify-email': {
       id: '/_auth/verify-email'
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof AuthVerifyEmailRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_app/p/$projectId/': {
+      id: '/_app/p/$projectId/'
+      path: '/p/$projectId'
+      fullPath: '/p/$projectId/'
+      preLoaderRoute: typeof AppPProjectIdIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/p/$projectId/bots': {
+      id: '/_app/p/$projectId/bots'
+      path: '/p/$projectId/bots'
+      fullPath: '/p/$projectId/bots'
+      preLoaderRoute: typeof AppPProjectIdBotsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/p/$projectId/commands': {
+      id: '/_app/p/$projectId/commands'
+      path: '/p/$projectId/commands'
+      fullPath: '/p/$projectId/commands'
+      preLoaderRoute: typeof AppPProjectIdCommandsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/p/$projectId/texting': {
+      id: '/_app/p/$projectId/texting'
+      path: '/p/$projectId/texting'
+      fullPath: '/p/$projectId/texting'
+      preLoaderRoute: typeof AppPProjectIdTextingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/p/$projectId/threads/$threadId': {
+      id: '/_app/p/$projectId/threads/$threadId'
+      path: '/p/$projectId/threads/$threadId'
+      fullPath: '/p/$projectId/threads/$threadId'
+      preLoaderRoute: typeof AppPProjectIdThreadsThreadIdRouteImport
+      parentRoute: typeof AppRouteRoute
     }
   }
 }
 
-interface AppRouteChildren {
+interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
+  AppPProjectIdCommandsRoute: typeof AppPProjectIdCommandsRoute
+  AppPProjectIdTextingRoute: typeof AppPProjectIdTextingRoute
+  AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
+  AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
 }
 
-const AppRouteChildren: AppRouteChildren = {
+const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
+  AppPProjectIdCommandsRoute: AppPProjectIdCommandsRoute,
+  AppPProjectIdTextingRoute: AppPProjectIdTextingRoute,
+  AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
+  AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
 }
 
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
 
-interface AuthRouteChildren {
+interface AuthRouteRouteChildren {
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignInRoute: typeof AuthSignInRoute
@@ -197,7 +305,7 @@ interface AuthRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
 }
 
-const AuthRouteChildren: AuthRouteChildren = {
+const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignInRoute: AuthSignInRoute,
@@ -205,11 +313,13 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
 }
 
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
+  AuthRouteRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
-  AppRoute: AppRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  AuthRouteRoute: AuthRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

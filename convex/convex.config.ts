@@ -7,6 +7,7 @@ import authGithub from '@convex-dev/auth/components/github/convex.config.js'
 import authGoogle from '@convex-dev/auth/components/google/convex.config.js'
 import authPassword from '@convex-dev/auth/components/password/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
+import spectrum from '@spectrum-ts/convex/convex.config.js'
 
 const app = defineApp({
   env: {
@@ -21,10 +22,15 @@ const app = defineApp({
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
+    /** Photon (texting). Read by the Photon component's webhook route and sender, so they stay optional until texting is set up. */
+    SPECTRUM_WEBHOOK_SECRET: v.optional(v.string()),
+    SPECTRUM_PROJECT_ID: v.optional(v.string()),
+    SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
   },
 })
 
 app.use(agent)
+app.use(spectrum)
 app.use(resend)
 app.use(auth, {
   httpPrefix: '/auth',
