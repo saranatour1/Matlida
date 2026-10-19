@@ -3,7 +3,11 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
-import { LookPicker, lookFromForm, lookOf } from '~/components/bot-avatar'
+import {
+  PortraitPicker,
+  portraitFromForm,
+  portraitOf,
+} from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -11,7 +15,7 @@ import { errorMessage } from '~/lib/errors'
 
 type ProjectValues = Pick<
   Doc<'projects'>,
-  'name' | 'brief' | 'guidelines' | 'look'
+  'name' | 'brief' | 'guidelines' | 'portrait'
 >
 type FormState = { error?: string; values?: ProjectValues }
 
@@ -25,7 +29,7 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         name: String(data.get('name')),
         brief: String(data.get('brief')),
         guidelines: String(data.get('guidelines')),
-        look: lookFromForm(data),
+        portrait: portraitFromForm(data),
       }
       try {
         const id = await save({ id: project?._id, ...values })
@@ -54,9 +58,9 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           placeholder="Matilda"
         />
       </label>
-      <LookPicker
-        defaultValue={lookOf({
-          look: values?.look,
+      <PortraitPicker
+        defaultValue={portraitOf({
+          portrait: values?.portrait,
           name: values?.name ?? 'Matilda',
         })}
       />

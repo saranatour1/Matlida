@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
-import { BotAvatar, lookOf } from '~/components/bot-avatar'
+import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
   Command,
@@ -111,7 +111,7 @@ export function CommandMenu({ project }: { project: Doc<'projects'> }) {
                       data-checked={picked.includes(b._id)}
                       onSelect={() => toggle(b._id)}
                     >
-                      <BotAvatar look={lookOf(b)} className="size-5" />
+                      <BotAvatar portrait={portraitOf(b)} className="size-5" />
                       {b.name}
                       <span className="truncate text-muted-foreground">
                         {b.role}
@@ -182,7 +182,7 @@ export function CommandMenu({ project }: { project: Doc<'projects'> }) {
                         )
                       }
                     >
-                      <BotAvatar look={lookOf(a)} className="size-5" />
+                      <BotAvatar portrait={portraitOf(a)} className="size-5" />
                       {a.name}
                       <span className="truncate text-muted-foreground">
                         {a.role}

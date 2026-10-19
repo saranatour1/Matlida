@@ -18,7 +18,7 @@ import { MODELS } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
-import { BotAvatar, lookOf } from '~/components/bot-avatar'
+import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -98,7 +98,7 @@ export function AssistantPanel({
       </div>
       <div className="flex flex-col items-center gap-2 px-4 pt-10 pb-4 text-center">
         <BotAvatar
-          look={lookOf(bot ?? project)}
+          portrait={portraitOf(bot ?? project)}
           className="size-16 shadow-lg"
         />
         <p className="text-base font-medium">{name}</p>
@@ -137,7 +137,7 @@ export function AssistantPanel({
               <ul className="flex flex-col gap-1.5">
                 {members.map((m) => (
                   <li key={m._id} className="flex items-center gap-2 text-xs">
-                    <BotAvatar look={lookOf(m)} />
+                    <BotAvatar portrait={portraitOf(m)} />
                     <span className="truncate">{m.name}</span>
                     <span className="truncate text-muted-foreground">
                       {m.role}
@@ -348,7 +348,7 @@ function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
       name: bot.name,
       role: bot.role,
       instructions: bot.instructions,
-      look: lookOf(bot),
+      portrait: portraitOf(bot),
     })
     await navigator.clipboard.writeText(
       `${location.origin}/?template=${template}`,
