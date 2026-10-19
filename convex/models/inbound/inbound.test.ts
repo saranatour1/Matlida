@@ -42,6 +42,7 @@ type Received = {
   id: string
   from: string
   to: Array<string>
+  cc?: Array<string>
   subject: string
   text: string | null
   authentication: { spf: string; dkim: string; dmarc: string } | null
@@ -180,6 +181,7 @@ test('the owner’s authenticated email gets a reply from the lead, threaded, in
       subject: 'Re: Plan my week',
       text: 'Hi from Matilda.',
       headers: [
+        { name: 'Auto-Submitted', value: 'auto-replied' },
         { name: 'In-Reply-To', value: '<em_1@example.com>' },
         { name: 'References', value: '<m0@example.com> <em_1@example.com>' },
       ],
@@ -267,6 +269,13 @@ test('spoofed senders are rejected with a reason and get no reply', async () => 
     }),
   )
   await receive(email({ id: 'em_none', authentication: null }))
+  await receive(
+    email({
+      id: 'em_auto',
+      headers: { 'auto-submitted': 'auto-replied' },
+    }),
+  )
+  // Mail to a handle nobody claimed is dropped at the webhook, before any fetch.
   await receive(email({ id: 'em_nobody', to: ['nobody@mail.example.com'] }))
   expect(await rows()).toMatchObject([
     { emailId: 'em_from', status: 'rejected', reason: 'from_mismatch' },
@@ -274,10 +283,90 @@ test('spoofed senders are rejected with a reason and get no reply', async () => 
     { emailId: 'em_dmarc', status: 'rejected', reason: 'dmarc_fail' },
     { emailId: 'em_dkim', status: 'rejected', reason: 'dkim_unaligned' },
     { emailId: 'em_none', status: 'rejected', reason: 'no_auth_results' },
-    { emailId: 'em_nobody', status: 'rejected', reason: 'unknown_mailbox' },
+    { emailId: 'em_auto', status: 'rejected', reason: 'auto_submitted' },
   ])
   expect(sent).toEqual([])
   expect(calls).toEqual([])
+})
+
+test('an owner at a domain with no DMARC policy (p=none, like Gmail) is still accepted when DKIM aligns', async () => {
+  const { receive, rows } = await setup()
+  await receive(
+    email({
+      id: 'em_gmail',
+      authentication: { spf: 'pass', dkim: 'pass', dmarc: 'gray' },
+    }),
+  )
+  await receive(
+    email({
+      id: 'em_unsigned',
+      authentication: { spf: 'pass', dkim: 'gray', dmarc: 'gray' },
+    }),
+  )
+  expect(await rows()).toMatchObject([
+    { emailId: 'em_gmail', status: 'answered' },
+    { emailId: 'em_unsigned', status: 'rejected', reason: 'dkim_unaligned' },
+  ])
+  expect(sent).toHaveLength(1)
+})
+
+test('an email to two people’s assistants is answered by the sender’s own', async () => {
+  const { t, receive, rows } = await setup()
+  const bob = await t.run(
+    async (ctx) => await ctx.db.insert('users', { email: 'bob@example.com' }),
+  )
+  const asBob = t.withIdentity({ subject: bob })
+  const bobProject = await asBob.mutation(api.api.projects.save, {
+    name: 'Matilda',
+    brief: '',
+    guidelines: '',
+  })
+  await asBob.mutation(api.api.mailboxes.claim, {
+    projectId: bobProject,
+    handle: 'bob',
+  })
+  await receive(
+    email({
+      id: 'em_both',
+      to: ['bob@mail.example.com'],
+      cc: [ADDRESS],
+    }),
+  )
+  expect(await rows()).toMatchObject([
+    { emailId: 'em_both', status: 'answered' },
+  ])
+  expect(sent).toMatchObject([{ to: OWNER, from: `"Matilda" <${ADDRESS}>` }])
+})
+
+test('a message already answered under another Resend id is a duplicate at verification', async () => {
+  const { t, rows } = await setup()
+  const [first, again] = await t.run(async (ctx) => [
+    await ctx.db.insert('inboundEmails', {
+      emailId: 'em_a',
+      messageId: '<same@example.com>',
+      status: 'answered',
+    }),
+    await ctx.db.insert('inboundEmails', {
+      emailId: 'em_b',
+      status: 'received',
+    }),
+  ])
+  expect(first).toBeTruthy()
+  expect(
+    await t.mutation(internal.api.inbound.verify, {
+      id: again,
+      from: OWNER,
+      to: [ADDRESS],
+      cc: [],
+      authentication: { spf: 'pass', dkim: 'pass', dmarc: 'pass' },
+      messageId: '<same@example.com>',
+      autoSubmitted: false,
+    }),
+  ).toBeNull()
+  expect((await rows()).map((r) => [r.emailId, r.status, r.reason])).toEqual([
+    ['em_a', 'answered', undefined],
+    ['em_b', 'rejected', 'duplicate'],
+  ])
 })
 
 test('@name in the subject or first line picks a bot, and sticks', async () => {
@@ -291,11 +380,20 @@ test('@name in the subject or first line picks a bot, and sticks', async () => {
   await receive(email({ id: 'em_1', subject: '@Ivy find a cafe' }))
   await receive(email({ id: 'em_2', subject: 'one with wifi' }))
   await receive(email({ id: 'em_3', subject: 'back', text: '@Matilda thanks' }))
+  // In a thread whose subject still carries @Ivy, the first line decides.
+  await receive(
+    email({
+      id: 'em_5',
+      subject: 'Re: @Ivy find a cafe',
+      text: '@Matilda you?',
+    }),
+  )
   await receive(email({ id: 'em_4', subject: '@Bob hi' }))
   expect(sent.map((s) => [s.from, s.subject, s.text])).toEqual([
     [`"Ivy" <${ADDRESS}>`, 'Re: @Ivy find a cafe', 'Hi from Matilda.'],
     [`"Ivy" <${ADDRESS}>`, 'Re: one with wifi', 'Hi from Matilda.'],
     [`"Matilda" <${ADDRESS}>`, 'Re: back', 'Hi from Matilda.'],
+    [`"Matilda" <${ADDRESS}>`, 'Re: @Ivy find a cafe', 'Hi from Matilda.'],
     [
       `"Matilda" <${ADDRESS}>`,
       'Re: @Bob hi',
@@ -355,8 +453,10 @@ test('an owner who sends a burst is rate limited at verification, so nothing is 
         id,
         from: OWNER,
         to: [ADDRESS],
+        cc: [],
         authentication: { spf: 'pass', dkim: 'pass', dmarc: 'pass' },
         messageId: null,
+        autoSubmitted: false,
       }),
     )
   }

@@ -24,6 +24,7 @@ import type * as api_texts from "../api/texts.js";
 import type * as api_threads from "../api/threads.js";
 import type * as api_usage from "../api/usage.js";
 import type * as api_users from "../api/users.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_addressee from "../lib/addressee.js";
 import type * as lib_ai from "../lib/ai.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   "api/threads": typeof api_threads;
   "api/usage": typeof api_usage;
   "api/users": typeof api_users;
+  crons: typeof crons;
   http: typeof http;
   "lib/addressee": typeof lib_addressee;
   "lib/ai": typeof lib_ai;

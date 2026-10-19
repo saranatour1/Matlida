@@ -1,5 +1,6 @@
 import {
   WorkflowManager,
+  cleanup,
   start,
   vResultValidator,
   vWorkflowId,
@@ -40,17 +41,47 @@ export const workflow = new WorkflowManager(components.workflow, {
   },
 })
 
+/** The claimed mailboxes among `recipients`, by the handle at MAIL_DOMAIN. At most the first 20 recipients count. */
+async function mailboxesFor(
+  ctx: Pick<MutationCtx, 'db'>,
+  recipients: Array<string>,
+  domain: string,
+) {
+  const found: Array<Doc<'mailboxes'>> = []
+  for (const recipient of recipients.slice(0, 20)) {
+    const handle = handleOf(bareAddress(recipient) ?? '', domain)
+    if (!handle) continue
+    const mailbox = await ctx.db
+      .query('mailboxes')
+      .withIndex('by_handle', (q) => q.eq('handle', handle))
+      .unique()
+    if (mailbox && !found.some((m) => m._id === mailbox._id))
+      found.push(mailbox)
+  }
+  return found
+}
+
 /**
  * Records a received email and starts its workflow, once. Redeliveries of the
- * same email, by Resend's id or by Message-ID, are acknowledged and dropped.
+ * same email, by Resend's id or by Message-ID, are acknowledged and dropped,
+ * and so is mail to a handle nobody has claimed, before it costs a fetch.
  */
 const receive = internalMutation({
-  args: { emailId: v.string(), messageId: v.union(v.string(), v.null()) },
+  args: {
+    emailId: v.string(),
+    messageId: v.union(v.string(), v.null()),
+    to: v.array(v.string()),
+  },
   returns: v.object({ started: v.boolean() }),
   handler: async (
     ctx,
-    { emailId, messageId },
+    { emailId, messageId, to },
   ): Promise<{ started: boolean }> => {
+    const domain = env.MAIL_DOMAIN
+    if (!domain || (await mailboxesFor(ctx, to, domain)).length === 0) {
+      console.warn(`Inbound email ${emailId} dropped: unknown_mailbox`)
+      return { started: false }
+    }
     const seen = await ctx.db
       .query('inboundEmails')
       .withIndex('by_emailId', (q) => q.eq('emailId', emailId))
@@ -82,11 +113,13 @@ const receive = internalMutation({
 const vFacts = {
   from: v.string(),
   to: v.array(v.string()),
+  cc: v.array(v.string()),
   authentication: v.union(
     v.object({ spf: v.string(), dkim: v.string(), dmarc: v.string() }),
     v.null(),
   ),
   messageId: v.union(v.string(), v.null()),
+  autoSubmitted: v.boolean(),
 }
 
 /** The facts needed to verify a received email, without its body. */
@@ -94,21 +127,29 @@ const facts = internalAction({
   args: { emailId: v.string() },
   returns: v.object(vFacts),
   handler: async (_ctx, { emailId }) => {
-    const { from, to, authentication, messageId } = await fetchReceived(emailId)
-    return { from, to, authentication, messageId }
+    const { from, to, cc, authentication, messageId, autoSubmitted } =
+      await fetchReceived(emailId)
+    return { from, to, cc, authentication, messageId, autoSubmitted }
   },
 })
 
 /**
- * Accepts an email only when it's to a claimed handle, from the mailbox
- * owner's verified address, and the receiving server saw DMARC pass with an
- * aligned DKIM signature. Anything else is rejected with a reason and gets
- * no reply. Checks the owner's rate limit last, so strangers can't use it up.
+ * Accepts an email only when it's to a claimed handle whose owner's verified
+ * address is the From, and the receiving server saw an aligned DKIM pass
+ * (`dkim: pass`, which Resend only reports when the signing domain matches
+ * the From domain) with DMARC `pass`, or `gray` when the sender's domain
+ * publishes no policy or `p=none`, as Gmail does. Mail from machines
+ * (out-of-office, bounces) is never answered. Anything else is rejected with
+ * a reason and gets no reply. Checks the owner's rate limit last, so
+ * strangers can't use it up.
  */
 const verify = internalMutation({
   args: { id: v.id('inboundEmails'), ...vFacts },
   returns: v.union(v.object({ mailboxId: v.id('mailboxes') }), v.null()),
-  handler: async (ctx, { id, from, to, authentication, messageId }) => {
+  handler: async (
+    ctx,
+    { id, from, to, cc, authentication, messageId, autoSubmitted },
+  ) => {
     const row = await ctx.db.get('inboundEmails', id)
     if (row?.status !== 'received') return null
     const reject = async (reason: string) => {
@@ -118,25 +159,27 @@ const verify = internalMutation({
     }
     const domain = env.MAIL_DOMAIN
     if (!domain) return await reject('no_domain')
+    const mailboxes = await mailboxesFor(ctx, [...to, ...cc], domain)
+    if (mailboxes.length === 0) return await reject('unknown_mailbox')
+    if (autoSubmitted) return await reject('auto_submitted')
+    // The sender's own assistant answers, even when others were written to as well.
+    const sender = bareAddress(from)
+    let owner: Doc<'users'> | null = null
     let mailbox: Doc<'mailboxes'> | null = null
-    for (const recipient of to) {
-      const handle = handleOf(bareAddress(recipient) ?? '', domain)
-      if (!handle) continue
-      mailbox = await ctx.db
-        .query('mailboxes')
-        .withIndex('by_handle', (q) => q.eq('handle', handle))
-        .unique()
-      if (mailbox) break
+    for (const candidate of mailboxes) {
+      const user = await ctx.db.get('users', candidate.userId)
+      if (user?.email && user.email.toLowerCase() === sender) {
+        owner = user
+        mailbox = candidate
+        break
+      }
     }
-    if (!mailbox) return await reject('unknown_mailbox')
-    const owner = await ctx.db.get('users', mailbox.userId)
-    if (!owner?.email) return await reject('owner_unverified')
-    if (bareAddress(from) !== owner.email.toLowerCase()) {
-      return await reject('from_mismatch')
-    }
+    if (!owner || !mailbox) return await reject('from_mismatch')
     if (!authentication) return await reject('no_auth_results')
-    if (authentication.dmarc !== 'pass') return await reject('dmarc_fail')
     if (authentication.dkim !== 'pass') return await reject('dkim_unaligned')
+    if (authentication.dmarc !== 'pass' && authentication.dmarc !== 'gray') {
+      return await reject('dmarc_fail')
+    }
     if (messageId) {
       const sameMessage = await ctx.db
         .query('inboundEmails')
@@ -223,10 +266,11 @@ const route = internalMutation({
     let subject = stripReplyPrefix(rawSubject)
     let line = firstLine
     let botId = mailbox.activeBotId
-    const tagged = subject.startsWith('@')
-      ? { in: 'subject' as const, tag: subject }
-      : line.trimStart().startsWith('@')
-        ? { in: 'line' as const, tag: line.trimStart() }
+    // The first line wins: a thread's subject keeps its tag for good.
+    const tagged = line.trimStart().startsWith('@')
+      ? { in: 'line' as const, tag: line.trimStart() }
+      : subject.startsWith('@')
+        ? { in: 'subject' as const, tag: subject }
         : null
     if (tagged) {
       const named = addressee(tagged.tag, people)
@@ -361,15 +405,19 @@ const send = internalMutation({
       })
       return null
     }
-    const headers = messageId
-      ? [
-          { name: 'In-Reply-To', value: messageId },
-          {
-            name: 'References',
-            value: replyReferences(references ?? undefined, messageId),
-          },
-        ]
-      : []
+    const headers = [
+      // RFC 3834: tells the owner's own auto-responders not to answer this.
+      { name: 'Auto-Submitted', value: 'auto-replied' },
+      ...(messageId
+        ? [
+            { name: 'In-Reply-To', value: messageId },
+            {
+              name: 'References',
+              value: replyReferences(references ?? undefined, messageId),
+            },
+          ]
+        : []),
+    ]
     const replyId = await resend.sendEmail(ctx, {
       from: `${fromName(from)} <${addressOf(mailbox.handle, domain)}>`,
       to: owner.email,
@@ -383,7 +431,10 @@ const send = internalMutation({
   },
 })
 
-/** Runs when the workflow ends. Marks an email that never got its reply. */
+/**
+ * Runs when the workflow ends. Marks an email that never got its reply, and
+ * deletes the workflow's journal.
+ */
 const record = internalMutation({
   args: {
     workflowId: vWorkflowId,
@@ -391,30 +442,56 @@ const record = internalMutation({
     context: v.object({ id: v.id('inboundEmails') }),
   },
   returns: v.null(),
-  handler: async (ctx, { result, context }) => {
+  handler: async (ctx, { workflowId, result, context }) => {
     const row = await ctx.db.get('inboundEmails', context.id)
-    if (!row || row.status !== 'received') return null
-    if (result.kind === 'success') return null
-    const reason = result.kind === 'failed' ? 'workflow_error' : 'cancelled'
-    await ctx.db.patch('inboundEmails', context.id, {
-      status: 'failed',
-      reason,
-    })
-    console.error(
-      `Inbound email ${row.emailId} failed: ${result.kind === 'failed' ? result.error : reason}`,
-    )
+    if (row && row.status === 'received' && result.kind !== 'success') {
+      const reason = result.kind === 'failed' ? 'workflow_error' : 'cancelled'
+      await ctx.db.patch('inboundEmails', context.id, {
+        status: 'failed',
+        reason,
+      })
+      console.error(
+        `Inbound email ${row.emailId} failed: ${result.kind === 'failed' ? result.error.slice(0, 200) : reason}`,
+      )
+    }
+    // The journal held the addresses and the reply; the row keeps only ids.
+    await cleanup(ctx, components.workflow, workflowId)
     return null
   },
 })
 
-/** Fetch the facts, verify, reply, send. Each action step retries on its own. */
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Drops the Resend component's record of mail older than a week, replies included. Run daily by `crons.ts`. */
+const forgetOldMail = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    await ctx.runMutation(components.resend.lib.cleanupOldEmails, {
+      olderThan: 7 * DAY_MS,
+    })
+    await ctx.runMutation(components.resend.lib.cleanupAbandonedEmails, {
+      olderThan: 7 * DAY_MS,
+    })
+    return null
+  },
+})
+
+/**
+ * Fetch the facts, verify, reply, send. The fetch retries for a couple of
+ * minutes, since Resend's API can be slow or rate limited; the reply runs at
+ * most once, so a retry can't bill twice or save the prompt twice.
+ */
 const answerEmail = workflow
   .define({ args: { id: v.id('inboundEmails'), emailId: v.string() } })
   .handler(async (step, { id, emailId }): Promise<void> => {
     const fetched = await step.runAction(
       internal.api.inbound.facts,
       { emailId },
-      { name: 'fetch' },
+      {
+        name: 'fetch',
+        retry: { maxAttempts: 5, initialBackoffMs: 5000, base: 2 },
+      },
     )
     const verified = await step.runMutation(
       internal.api.inbound.verify,
@@ -425,10 +502,7 @@ const answerEmail = workflow
     const answer = await step.runAction(
       internal.api.inbound.reply,
       { id, emailId, mailboxId: verified.mailboxId },
-      {
-        name: 'reply',
-        retry: { maxAttempts: 2, initialBackoffMs: 5000, base: 2 },
-      },
+      { name: 'reply', retry: false },
     )
     await step.runMutation(
       internal.api.inbound.send,
@@ -445,5 +519,6 @@ export const inboundApi = {
   reply,
   send,
   record,
+  forgetOldMail,
   answerEmail,
 }

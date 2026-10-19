@@ -6,8 +6,9 @@ import { verifySvix } from '../../lib/svix'
 const zEvent = z.looseObject({ type: z.string() })
 const zReceived = z.looseObject({
   data: z.looseObject({
-    email_id: z.string(),
-    message_id: z.string().nullish(),
+    email_id: z.string().max(200),
+    message_id: z.string().max(998).nullish(),
+    to: z.array(z.string().max(320)).max(50).nullish(),
   }),
 })
 
@@ -20,7 +21,7 @@ const zReceived = z.looseObject({
 export const receiveResendEvent = httpAction(async (ctx, request) => {
   const secret = env.RESEND_WEBHOOK_SECRET
   if (!secret) {
-    return new Response('RESEND_WEBHOOK_SECRET is not set', { status: 500 })
+    return new Response('inbound email is not set up', { status: 500 })
   }
   const body = new Uint8Array(await request.arrayBuffer())
   const outcome = await verifySvix({
@@ -52,10 +53,11 @@ export const receiveResendEvent = httpAction(async (ctx, request) => {
   if (!received.success) {
     return new Response('malformed event', { status: 400 })
   }
-  const { email_id, message_id } = received.data.data
+  const { email_id, message_id, to } = received.data.data
   await ctx.runMutation(internal.api.inbound.receive, {
     emailId: email_id,
     messageId: message_id ?? null,
+    to: to ?? [],
   })
   return new Response('ok', { status: 200 })
 })
