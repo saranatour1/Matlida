@@ -67,3 +67,47 @@ test('bots from your other projects are offered as templates', async () => {
     await asAda.query(api.api.bots.fromOtherProjects, { projectId: research }),
   ).toEqual([])
 })
+
+test('a bot made from just a name and a look gets a starter role and instructions', async () => {
+  const { asAda, newProject } = await setup()
+  const projectId = await newProject('Matilda')
+  const look = { shape: 'trefoil', color: 'plum' } as const
+
+  await asAda.mutation(api.api.bots.save, {
+    projectId,
+    name: 'Rex',
+    role: '',
+    instructions: '',
+    look,
+  })
+
+  expect(await asAda.query(api.api.bots.list, { projectId })).toMatchObject([
+    { name: 'Rex', role: 'Assistant', look },
+  ])
+})
+
+test('copying a bot adds a numbered copy with the same instructions and look', async () => {
+  const { asAda, asBob, newProject } = await setup()
+  const projectId = await newProject('Matilda')
+  const look = { shape: 'kite', color: 'gold' } as const
+  const id = await asAda.mutation(api.api.bots.save, {
+    projectId,
+    ...ivy,
+    look,
+  })
+
+  await asAda.mutation(api.api.bots.duplicate, { id })
+  await asAda.mutation(api.api.bots.duplicate, { id })
+
+  const bots = await asAda.query(api.api.bots.list, { projectId })
+  expect(bots.map((b) => b.name).sort()).toEqual([
+    'Ivy',
+    'Ivy copy',
+    'Ivy copy 2',
+  ])
+  expect(bots.every((b) => b.instructions === ivy.instructions)).toBe(true)
+  expect(bots.every((b) => b.look?.shape === 'kite')).toBe(true)
+  await expect(asBob.mutation(api.api.bots.duplicate, { id })).rejects.toThrow(
+    'Project not found.',
+  )
+})

@@ -1,7 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
-import { AVATARS } from '../../lib/avatars'
+import { zLook } from '../../lib/looks'
 import {
   authedMutation,
   authedQuery,
@@ -63,14 +63,17 @@ const save = zAuthedMutation({
     role: z
       .string()
       .trim()
-      .min(1, 'Give the bot a role.')
-      .max(80, 'Roles can be at most 80 characters.'),
+      .max(80, 'Roles can be at most 80 characters.')
+      .transform((role) => role || 'Assistant'),
     instructions: z
       .string()
       .trim()
-      .min(1, 'Describe what the bot does.')
-      .max(2000, 'Descriptions can be at most 2000 characters.'),
-    avatar: z.enum(AVATARS).optional(),
+      .max(2000, 'Descriptions can be at most 2000 characters.')
+      .transform(
+        (text) =>
+          text || 'Help with whatever the user asks. Keep answers short.',
+      ),
+    look: zLook.optional(),
   },
   handler: async (ctx, { projectId, id, ...bot }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)
@@ -92,6 +95,26 @@ const save = zAuthedMutation({
   },
 })
 
+/** Adds a copy of a bot to its workspace, named "<name> copy", "<name> copy 2"… */
+const duplicate = authedMutation({
+  args: { id: v.id('bots') },
+  handler: async (ctx, { id }) => {
+    const bot = await ctx.db.get('bots', id)
+    if (!bot) throw new ConvexError('Bot not found.')
+    await getOwnedProject(ctx, ctx.userId, bot.projectId)
+    const bots = await getBots(ctx, bot.projectId)
+    if (bots.length >= MAX_BOTS) {
+      throw new ConvexError(`A project can have at most ${MAX_BOTS} bots.`)
+    }
+    const base = `${bot.name.slice(0, 33)} copy`
+    let name = base
+    for (let n = 2; bots.some((b) => b.name === name); n++)
+      name = `${base} ${n}`
+    const { _id, _creationTime, ...fields } = bot
+    return await ctx.db.insert('bots', { ...fields, name })
+  },
+})
+
 const remove = authedMutation({
   args: { id: v.id('bots') },
   handler: async (ctx, { id }) => {
@@ -102,4 +125,4 @@ const remove = authedMutation({
   },
 })
 
-export const botsApi = { list, fromOtherProjects, save, remove }
+export const botsApi = { list, fromOtherProjects, save, duplicate, remove }

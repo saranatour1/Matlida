@@ -1,17 +1,32 @@
-import { Link } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
+import * as React from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
 import {
+  AlarmClockIcon,
+  CopyIcon,
   CpuIcon,
   GlobeIcon,
+  LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
+  ShareIcon,
   TelescopeIcon,
+  XIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { MODELS } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type * as React from 'react'
-import { Orb, defaultAvatar } from '~/components/orb'
+import { encodeTemplate } from '~/lib/bot-template'
+import { errorMessage } from '~/lib/errors'
+import { BotAvatar, lookOf } from '~/components/bot-avatar'
+import { Button } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 
 /**
  * Convex bills action time by memory used: 64 MB actions at $0.30 per GB-hour
@@ -29,7 +44,7 @@ const KIND_ICON = {
   compute: CpuIcon,
 } as const
 
-/** The right sidebar for a chat: costs, context, connectors, environment and changes. */
+/** The right sidebar for a chat: who you're talking to, with Details, Library and Costs tabs. */
 export function AssistantPanel({
   project,
   bot,
@@ -46,6 +61,9 @@ export function AssistantPanel({
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
+  const reminders = useQuery(api.api.reminders.list, {
+    projectId: project._id,
+  })
   const link = useQuery(api.api.texts.link, { projectId: project._id })
 
   const rows = usage ?? []
@@ -58,122 +76,190 @@ export function AssistantPanel({
   const others = (bots ?? []).filter((b) => b._id !== bot?._id)
   const memberIds = thread?.memberIds ?? (bot ? [] : others.map((b) => b._id))
   const members = others.filter((b) => memberIds.includes(b._id))
-  const chatPlans = (plans ?? []).filter((p) => p.threadId === threadId)
   const name = bot?.name ?? project.name
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col gap-6 overflow-y-auto border-l px-4 py-4 text-sm">
-      <Section title="Costs">
-        <div className="grid grid-cols-2 gap-2">
-          <Stat label="AI" value={usd(aiCost)} hint={`${tokens} tokens`} />
-          <Stat
-            label="Convex (est.)"
-            value={usd(computeMs * CONVEX_DOLLARS_PER_MS)}
-            hint={`${(computeMs / 1000).toFixed(1)}s of actions`}
-          />
-        </div>
-        {rows.length === 0 ? (
-          <p className="text-muted-foreground">
-            {threadId ? 'Nothing spent yet.' : 'Costs show once you send.'}
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {rows.map((r) => {
-              const Icon = KIND_ICON[r.kind]
-              return (
-                <li key={r._id} className="flex items-center gap-2 text-xs">
-                  <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 truncate">{r.label}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {r.kind === 'compute'
-                      ? `${((r.computeMs ?? 0) / 1000).toFixed(1)}s`
-                      : `${usd(r.aiCost)} · ${r.inputTokens + r.outputTokens}t`}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Section>
-
-      <Section title="Context">
-        <div className="flex items-center gap-2">
-          <Orb
-            avatar={(bot ?? project).avatar ?? defaultAvatar(name)}
-            className="size-6"
-          />
-          <p>
-            <span className="font-medium">{name}</span>{' '}
-            <span className="text-muted-foreground">
-              · {bot?.role ?? 'Lead'}
-            </span>
-          </p>
-        </div>
-        <p className="line-clamp-4 text-muted-foreground">
-          {bot?.instructions ?? (project.brief || 'No brief yet.')}
-        </p>
-        {project.guidelines && (
-          <p className="line-clamp-3 text-muted-foreground">
-            <span className="text-foreground">Guidelines:</span>{' '}
-            {project.guidelines}
-          </p>
-        )}
-        <p className="text-muted-foreground">
-          <span className="text-foreground">Members:</span>{' '}
-          {members.length ? members.map((m) => m.name).join(', ') : 'none'}
-        </p>
-      </Section>
-
-      <Section title="Connectors">
-        <Connector name="Web search" detail={MODELS.search} on />
-        <Connector name="Research" detail={MODELS.research} on />
-        <Connector name="Voice input" detail={MODELS.transcription} on />
-        <Connector
-          name="Texting"
-          detail="Photon"
-          on={link?.status === 'linked'}
-          action={
-            link?.status !== 'linked' && (
-              <Link
-                to="/p/$projectId/texting"
-                params={{ projectId: project._id }}
-                className="underline"
-              >
-                Set up
-              </Link>
-            )
+    <aside className="relative flex w-80 shrink-0 flex-col overflow-y-auto border-l text-sm">
+      <div className="absolute top-2 right-2 flex gap-1">
+        {bot && <ShareMenu bot={bot} />}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="rounded-full"
+          aria-label="Hide details"
+          title="Hide details"
+          render={
+            <Link to="." search={(prev) => ({ ...prev, panel: undefined })} />
           }
+          nativeButton={false}
+        >
+          <XIcon />
+        </Button>
+      </div>
+      <div className="flex flex-col items-center gap-2 px-4 pt-10 pb-4 text-center">
+        <BotAvatar
+          look={lookOf(bot ?? project)}
+          className="size-16 shadow-lg"
         />
-      </Section>
-
-      <Section title="Environment">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-          <dt className="text-muted-foreground">Workspace</dt>
-          <dd className="truncate">{project.name}</dd>
-          <dt className="text-muted-foreground">Model</dt>
-          <dd className="truncate">{MODELS.chat}</dd>
-          <dt className="text-muted-foreground">Gateway</dt>
-          <dd>Convex AI gateway</dd>
-        </dl>
-      </Section>
-
-      <Section title="Changes">
-        {chatPlans.length === 0 ? (
-          <p className="text-muted-foreground">No plans from this chat yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {chatPlans.map((p) => (
-              <li key={p._id} className="flex items-center gap-2 text-xs">
-                <ListChecksIcon className="size-3.5 text-muted-foreground" />
-                <span className="flex-1 truncate">{p.title}</span>
-                <span className="text-muted-foreground tabular-nums">
-                  {p.steps.filter((s) => s.done).length}/{p.steps.length}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+        <p className="text-base font-medium">{name}</p>
+        <p className="text-xs text-muted-foreground">{bot?.role ?? 'Lead'}</p>
+        <Link
+          to={bot ? '/p/$projectId/bots' : '/p/$projectId/settings'}
+          params={{ projectId: project._id }}
+          search={bot ? { edit: bot._id } : {}}
+          className="text-xs text-muted-foreground underline hover:text-foreground"
+        >
+          Edit
+        </Link>
+      </div>
+      <Tabs defaultValue="details" className="min-h-0 flex-1">
+        <TabsList className="mx-auto">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="library">Library</TabsTrigger>
+          <TabsTrigger value="costs">Costs</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" className="flex flex-col gap-6 px-4 py-4">
+          <Section title="About">
+            <p className="line-clamp-6 text-muted-foreground">
+              {bot?.instructions ?? (project.brief || 'No brief yet.')}
+            </p>
+            {project.guidelines && (
+              <p className="line-clamp-3 text-muted-foreground">
+                <span className="text-foreground">Guidelines:</span>{' '}
+                {project.guidelines}
+              </p>
+            )}
+          </Section>
+          <Section title="Members">
+            {members.length === 0 ? (
+              <p className="text-muted-foreground">Works alone in this chat.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {members.map((m) => (
+                  <li key={m._id} className="flex items-center gap-2 text-xs">
+                    <BotAvatar look={lookOf(m)} />
+                    <span className="truncate">{m.name}</span>
+                    <span className="truncate text-muted-foreground">
+                      {m.role}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Connectors">
+            <Connector name="Web search" detail={MODELS.search} on />
+            <Connector name="Research" detail={MODELS.research} on />
+            <Connector name="Voice input" detail={MODELS.transcription} on />
+            <Connector
+              name="Texting"
+              detail="Photon"
+              on={link?.status === 'linked'}
+              action={
+                link?.status !== 'linked' && (
+                  <Link
+                    to="/p/$projectId/texting"
+                    params={{ projectId: project._id }}
+                    className="underline"
+                  >
+                    Set up
+                  </Link>
+                )
+              }
+            />
+          </Section>
+          <Section title="Environment">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+              <dt className="text-muted-foreground">Workspace</dt>
+              <dd className="truncate">{project.name}</dd>
+              <dt className="text-muted-foreground">Model</dt>
+              <dd className="truncate">{MODELS.chat}</dd>
+              <dt className="text-muted-foreground">Gateway</dt>
+              <dd>Convex AI gateway</dd>
+            </dl>
+          </Section>
+        </TabsContent>
+        <TabsContent value="library" className="flex flex-col gap-6 px-4 py-4">
+          <Section title="Reminders">
+            {!reminders?.length ? (
+              <p className="text-muted-foreground">Nothing scheduled.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {reminders.map((r) => (
+                  <li key={r._id} className="flex items-center gap-2 text-xs">
+                    <AlarmClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate">{r.message}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {new Date(r.dueAt).toLocaleString(undefined, {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Plans">
+            {!plans?.length ? (
+              <p className="text-muted-foreground">No plans yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {plans.map((p) => (
+                  <li key={p._id} className="flex items-center gap-2 text-xs">
+                    <ListChecksIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate">{p.title}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {p.steps.filter((s) => s.done).length}/{p.steps.length}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Link
+            to="/p/$projectId/library"
+            params={{ projectId: project._id }}
+            className="text-xs text-muted-foreground underline hover:text-foreground"
+          >
+            Open the Library
+          </Link>
+        </TabsContent>
+        <TabsContent value="costs" className="flex flex-col gap-6 px-4 py-4">
+          <Section title="This chat">
+            <div className="grid grid-cols-2 gap-2">
+              <Stat label="AI" value={usd(aiCost)} hint={`${tokens} tokens`} />
+              <Stat
+                label="Convex (est.)"
+                value={usd(computeMs * CONVEX_DOLLARS_PER_MS)}
+                hint={`${(computeMs / 1000).toFixed(1)}s of actions`}
+              />
+            </div>
+            {rows.length === 0 ? (
+              <p className="text-muted-foreground">
+                {threadId ? 'Nothing spent yet.' : 'Costs show once you send.'}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {rows.map((r) => {
+                  const Icon = KIND_ICON[r.kind]
+                  return (
+                    <li key={r._id} className="flex items-center gap-2 text-xs">
+                      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="flex-1 truncate">{r.label}</span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {r.kind === 'compute'
+                          ? `${((r.computeMs ?? 0) / 1000).toFixed(1)}s`
+                          : `${usd(r.aiCost)} · ${r.inputTokens + r.outputTokens}t`}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Section>
+        </TabsContent>
+      </Tabs>
     </aside>
   )
 }
@@ -233,5 +319,80 @@ function Connector({
       <span className="flex-1 truncate text-muted-foreground">{detail}</span>
       {action}
     </div>
+  )
+}
+
+/** Copy a bot into this workspace, or share a link others can copy it from. */
+function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
+  const duplicate = useMutation(api.api.bots.duplicate)
+  const navigate = useNavigate()
+  const [status, setStatus] = React.useState<string>()
+  const flash = (message: string) => {
+    setStatus(message)
+    setTimeout(() => setStatus(undefined), 2500)
+  }
+  const copy = async () => {
+    try {
+      const id = await duplicate({ id: bot._id })
+      await navigate({
+        to: '/p/$projectId',
+        params: { projectId: bot.projectId },
+        search: { bot: id, panel: true },
+      })
+    } catch (e) {
+      flash(errorMessage(e, 'Could not copy it.'))
+    }
+  }
+  const share = async () => {
+    const template = encodeTemplate({
+      name: bot.name,
+      role: bot.role,
+      instructions: bot.instructions,
+      look: lookOf(bot),
+    })
+    await navigator.clipboard.writeText(
+      `${location.origin}/?template=${template}`,
+    )
+    flash('Template link copied')
+  }
+  return (
+    <>
+      {status && (
+        <span className="self-center rounded-full bg-muted px-2 py-0.5 text-xs">
+          {status}
+        </span>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="icon-sm" className="rounded-full" />
+          }
+          aria-label="Share"
+          title="Share"
+        >
+          <ShareIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-60">
+          <DropdownMenuItem onClick={() => void copy()}>
+            <CopyIcon />
+            <span className="flex flex-col">
+              Create a copy
+              <span className="text-xs text-muted-foreground">
+                Adds {bot.name} copy to this workspace
+              </span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void share()}>
+            <LinkIcon />
+            <span className="flex flex-col">
+              Copy template link
+              <span className="text-xs text-muted-foreground">
+                Anyone signed in can make their own
+              </span>
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   )
 }

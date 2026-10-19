@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { AccountForm } from '~/components/account-form'
 import { ProjectForm } from '~/components/project-form'
 import { useProject } from '~/hooks/use-project'
 
@@ -32,6 +33,7 @@ function Settings() {
             </Link>
           </p>
         </section>
+        <AccountForm />
       </div>
     </div>
   )

@@ -199,3 +199,34 @@ test("a reply records its model usage and action time, visible only to the chat'
   })
   expect(await asBob.query(api.api.usage.forThread, { threadId })).toEqual([])
 })
+
+test('a group chat starts with the picked bots as members, from this workspace only', async () => {
+  const { t, asAda, projectId } = await setup()
+  const [rex, ivy] = await Promise.all(
+    ['Rex', 'Ivy'].map((name) =>
+      asAda.mutation(api.api.bots.save, {
+        projectId,
+        name,
+        role: 'Helper',
+        instructions: 'Help.',
+      }),
+    ),
+  )
+  const threadId = await asAda.mutation(api.api.threads.startGroup, {
+    projectId,
+    memberIds: [rex, ivy],
+  })
+
+  expect(
+    (await t.query(internal.api.chat.context, { threadId })).members
+      .map((m) => m.name)
+      .sort(),
+  ).toEqual(['Ivy', 'Rex'])
+  expect(await asAda.query(api.api.threads.get, { threadId })).toMatchObject({
+    title: 'Matilda, Ivy, Rex',
+    kind: 'chat',
+  })
+  await expect(
+    asAda.mutation(api.api.threads.startGroup, { projectId, memberIds: [] }),
+  ).rejects.toThrow('Pick at least one assistant from this workspace.')
+})

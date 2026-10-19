@@ -142,5 +142,31 @@
   }
   html {
     @apply font-sans;
+    color-scheme: light;
+    @variant dark {
+      color-scheme: dark;
+    }
+  }
+
+  /* Thin, muted scrollbars like Linear's. Firefox and Chrome 121+ read the first two; Safari and older Chrome read the pseudo-elements. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: --alpha(var(--color-foreground) / 20%) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: --alpha(var(--color-foreground) / 20%);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: --alpha(var(--color-foreground) / 35%);
   }
 }

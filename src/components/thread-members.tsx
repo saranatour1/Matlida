@@ -2,7 +2,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { UserPlusIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
-import { Orb, defaultAvatar } from '~/components/orb'
+import { BotAvatar, lookOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -38,9 +38,9 @@ export function ThreadMembers({
     <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-6 pt-2 text-xs text-muted-foreground">
       <span className="flex -space-x-1">
         {members.map((m) => (
-          <Orb
+          <BotAvatar
             key={m._id}
-            avatar={m.avatar ?? defaultAvatar(m.name)}
+            look={lookOf(m)}
             className="size-5 ring-2 ring-background"
           />
         ))}
@@ -75,7 +75,7 @@ export function ThreadMembers({
                     })
                   }
                 >
-                  <Orb avatar={b.avatar ?? defaultAvatar(b.name)} />
+                  <BotAvatar look={lookOf(b)} />
                   {b.name}
                 </DropdownMenuCheckboxItem>
               ))}

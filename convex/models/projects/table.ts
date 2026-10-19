@@ -1,6 +1,6 @@
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
-import { vAvatar } from '../../lib/avatars'
+import { vLook } from '../../lib/looks'
 
 export const projectsTable = defineTable({
   ownerId: v.id('users'),
@@ -11,5 +11,5 @@ export const projectsTable = defineTable({
   /** Rules the lead and every bot always follow. */
   guidelines: v.optional(v.string()),
   /** The lead's look. */
-  avatar: v.optional(vAvatar),
+  look: v.optional(vLook),
 }).index('by_owner', ['ownerId'])
