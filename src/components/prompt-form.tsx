@@ -1,6 +1,14 @@
 import * as React from 'react'
-import { ArrowUpIcon } from 'lucide-react'
+import { ArrowUpIcon, PlusIcon } from 'lucide-react'
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import {
   InputGroup,
   InputGroupAddon,
@@ -13,23 +21,26 @@ export function PromptForm({
   placeholder,
   isBusy,
   onSubmit,
+  commands = [],
 }: {
   placeholder: string
   isBusy: boolean
   onSubmit: (prompt: string) => void
+  /** `/name` commands the "+" menu can run. */
+  commands?: Array<{ name: string; description: string }>
 }) {
   const textarea = React.useRef<HTMLTextAreaElement>(null)
   const [voiceError, setVoiceError] = React.useState<string>()
   return (
     <form action={(data) => onSubmit(String(data.get('prompt')))}>
-      <InputGroup>
+      <InputGroup className="rounded-3xl">
         <InputGroupTextarea
           ref={textarea}
           name="prompt"
           required
           maxLength={4000}
           placeholder={placeholder}
-          className="p-3.5"
+          className="px-4 pt-3.5 pb-2"
           onKeyDown={(event) => {
             if (
               event.key === 'Enter' &&
@@ -42,6 +53,37 @@ export function PromptForm({
           }}
         />
         <InputGroupAddon align="block-end">
+          {commands.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<InputGroupButton size="icon-sm" variant="ghost" />}
+                aria-label="Commands"
+                title="Commands"
+              >
+                <PlusIcon />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                side="top"
+                className="min-w-56"
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Commands</DropdownMenuLabel>
+                  {commands.map((c) => (
+                    <DropdownMenuItem
+                      key={c.name}
+                      onClick={() => !isBusy && onSubmit(`/${c.name}`)}
+                    >
+                      <span className="font-mono text-xs">/{c.name}</span>
+                      <span className="truncate text-muted-foreground">
+                        {c.description}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <VoiceButton
             onError={setVoiceError}
             onText={(text) => {

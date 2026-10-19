@@ -212,6 +212,7 @@ export function Chat({
             placeholder={`Message ${lead}…`}
             isBusy={isBusy}
             onSubmit={send}
+            commands={bot ? [] : (commands ?? [])}
           />
         </div>
       </div>
