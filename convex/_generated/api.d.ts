@@ -13,6 +13,7 @@ import type * as api_auth from "../api/auth.js";
 import type * as api_bots from "../api/bots.js";
 import type * as api_chat from "../api/chat.js";
 import type * as api_commands from "../api/commands.js";
+import type * as api_lead from "../api/lead.js";
 import type * as api_projects from "../api/projects.js";
 import type * as api_reply from "../api/reply.js";
 import type * as api_sender from "../api/sender.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "api/bots": typeof api_bots;
   "api/chat": typeof api_chat;
   "api/commands": typeof api_commands;
+  "api/lead": typeof api_lead;
   "api/projects": typeof api_projects;
   "api/reply": typeof api_reply;
   "api/sender": typeof api_sender;

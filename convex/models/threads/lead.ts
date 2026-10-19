@@ -1,6 +1,8 @@
 import { Agent, createTool, stepCountIs } from '@convex-dev/agent'
+import { v } from 'convex/values'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
+import { internalAction } from '../../_generated/server'
 import { languageModel } from '../../lib/ai'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolSet } from 'ai'
@@ -121,3 +123,42 @@ export function createLead(
     tools: leadTools(project, bots),
   }
 }
+
+// Here, not in ./chat, so the chat query and mutation don't load the lead's model and tools.
+
+/** Streams the lead's reply into the thread. */
+const respond = internalAction({
+  args: {
+    threadId: v.string(),
+    promptMessageId: v.string(),
+    commandId: v.optional(v.id('commands')),
+  },
+  returns: v.null(),
+  handler: async (ctx, { threadId, promptMessageId, commandId }) => {
+    const {
+      project,
+      bots,
+      command,
+    }: {
+      project: Doc<'projects'>
+      bots: Array<Doc<'bots'>>
+      command: Doc<'commands'> | null
+    } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
+    const markdown =
+      command && (await (await ctx.storage.get(command.storageId))?.text())
+    const lead = createLead(project, bots, {
+      command:
+        command && markdown ? { name: command.name, markdown } : undefined,
+    })
+    const result = await lead.agent.streamText(
+      ctx,
+      { threadId, userId: project.ownerId },
+      { promptMessageId, tools: lead.tools },
+      { saveStreamDeltas: true },
+    )
+    await result.consumeStream()
+    return null
+  },
+})
+
+export const leadApi = { respond }
