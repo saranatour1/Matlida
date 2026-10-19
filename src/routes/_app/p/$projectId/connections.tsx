@@ -3,7 +3,8 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import { CHANNELS, STATUS_LABELS } from '../../../../../convex/lib/channels'
 import type { Channel, ChannelStatus } from '../../../../../convex/lib/channels'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import type { Doc } from '../../../../../convex/_generated/dataModel'
+import { EmailAddress } from '~/components/email-address'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
 
@@ -66,7 +67,7 @@ function Connections() {
                     key={channel.id}
                     channel={channel}
                     status={statuses?.find((s) => s.id === channel.id)}
-                    projectId={project._id}
+                    project={project}
                   />
                 ),
               )}
@@ -81,11 +82,11 @@ function Connections() {
 function Row({
   channel,
   status,
-  projectId,
+  project,
 }: {
   channel: Channel
   status?: Status
-  projectId: Id<'projects'>
+  project: Doc<'projects'>
 }) {
   return (
     <li className="flex items-start gap-3 p-4">
@@ -121,6 +122,9 @@ function Row({
             </p>
           )
         )}
+        {channel.via === 'email' && status?.status !== 'needs_setup' && (
+          <EmailAddress project={project} />
+        )}
       </div>
       {channel.via === 'photon' &&
         (status?.status === 'ready' || status?.status === 'connected') && (
@@ -128,7 +132,10 @@ function Row({
             variant="outline"
             size="sm"
             render={
-              <Link to="/p/$projectId/messaging" params={{ projectId }} />
+              <Link
+                to="/p/$projectId/messaging"
+                params={{ projectId: project._id }}
+              />
             }
             nativeButton={false}
           >

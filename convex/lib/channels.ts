@@ -139,8 +139,8 @@ export type ChannelFacts = {
   env: ReadonlyArray<EnvName>
   /** Photon apps (`platform`) with a linked chat. */
   linked: ReadonlyArray<string>
-  /** The user's address at MAIL_DOMAIN, once claimed. */
-  mailbox: string | null
+  /** The user's address at MAIL_DOMAIN once claimed, and whether this workspace answers it. */
+  mailbox: { address: string; here: boolean } | null | null
 }
 
 /**
@@ -174,9 +174,16 @@ export function channelStatus(
           missing,
         }
   }
-  return facts.mailbox
-    ? { status: 'connected', detail: facts.mailbox, missing }
-    : { status: 'ready', detail: 'Claim an address.', missing }
+  if (!facts.mailbox) {
+    return { status: 'ready', detail: 'Claim an address.', missing }
+  }
+  return facts.mailbox.here
+    ? { status: 'connected', detail: facts.mailbox.address, missing }
+    : {
+        status: 'ready',
+        detail: `${facts.mailbox.address} answers in another workspace.`,
+        missing,
+      }
 }
 
 /** How a Photon messaging app is named in the app, by Photon's id for it. */

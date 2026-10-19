@@ -2,6 +2,8 @@ import { v } from 'convex/values'
 import { env } from '../../_generated/server'
 import { CHANNELS, channelStatus } from '../../lib/channels'
 import { authedQuery } from '../../lib/functions'
+import { addressOf } from '../../lib/handles'
+import { getMailbox } from '../mailboxes/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getLinks } from '../texts/functions'
 import type { EnvName } from '../../lib/channels'
@@ -21,12 +23,19 @@ const list = authedQuery({
   handler: async (ctx, { projectId }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)
     const links = await getLinks(ctx, projectId)
+    const mailbox = await getMailbox(ctx, ctx.userId)
     const facts = {
       env: presentEnv(),
       linked: links.flatMap((link) =>
         link.status === 'linked' ? [link.platform ?? 'imessage'] : [],
       ),
-      mailbox: null,
+      mailbox:
+        mailbox && env.MAIL_DOMAIN
+          ? {
+              address: addressOf(mailbox.handle, env.MAIL_DOMAIN),
+              here: mailbox.projectId === projectId,
+            }
+          : null,
     }
     return CHANNELS.map((channel) => ({
       id: channel.id,
