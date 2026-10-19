@@ -1,12 +1,13 @@
 import { ConvexError, v } from 'convex/values'
-import { internalMutation } from '../../_generated/server'
+import { internalMutation, internalQuery } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
+import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/functions'
 import { callLinesTable } from './table'
-import type { Id } from '../../_generated/dataModel'
+import type { Doc, Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
 
-/** Lines past this stay in the chat but not in the call's transcript. */
+/** Longer lines stay whole in the chat but are cut in the call's transcript. */
 const MAX_LINE = 4000
 
 async function getOwnedCall(
@@ -20,31 +21,42 @@ async function getOwnedCall(
   return call
 }
 
-/** Starts a call's record once the microphone is on. `opening` is what the assistant said first, when it called you. */
-const begin = authedMutation({
+function linesOf(ctx: Pick<QueryCtx, 'db'>, callId: Id<'calls'>) {
+  return ctx.db
+    .query('callLines')
+    .withIndex('by_call', (q) => q.eq('callId', callId))
+}
+
+/**
+ * Saves one line of a call as soon as it's said, starting the call's record
+ * with its first line. For `calls.turn` and `calls.answer`, which have checked
+ * the project is the caller's. Returns the call's id.
+ */
+const addLine = internalMutation({
   args: {
+    callId: v.optional(v.id('calls')),
     projectId: v.id('projects'),
     botId: v.optional(v.id('bots')),
-    threadId: v.optional(v.string()),
-    opening: v.optional(v.string()),
+    threadId: v.string(),
+    ...callLinesTable.validator.pick('who', 'text', 'ms').fields,
   },
-  handler: async (ctx, { opening, ...call }) => {
-    await getOwnedProject(ctx, ctx.userId, call.projectId)
-    if (call.botId) {
-      const bot = await ctx.db.get('bots', call.botId)
-      if (bot?.projectId !== call.projectId) {
-        throw new ConvexError('Assistant not found.')
-      }
+  returns: v.id('calls'),
+  handler: async (ctx, { callId, projectId, botId, threadId, ...line }) => {
+    let id = callId
+    if (id) {
+      const call = await ctx.db.get('calls', id)
+      if (call?.projectId !== projectId)
+        throw new ConvexError('Call not found.')
+      if (!call.threadId) await ctx.db.patch('calls', id, { threadId })
+    } else {
+      id = await ctx.db.insert('calls', { projectId, botId, threadId })
     }
-    const callId = await ctx.db.insert('calls', call)
-    if (opening) {
-      await ctx.db.insert('callLines', {
-        callId,
-        who: 'them',
-        text: opening.slice(0, MAX_LINE),
-      })
-    }
-    return callId
+    await ctx.db.insert('callLines', {
+      ...line,
+      callId: id,
+      text: line.text.slice(0, MAX_LINE),
+    })
+    return id
   },
 })
 
@@ -56,31 +68,10 @@ const end = authedMutation({
   },
 })
 
-/** Saves a turn's lines for `calls.turn`, which has checked the project is the caller's. */
-const addLines = internalMutation({
-  args: {
-    callId: v.id('calls'),
-    projectId: v.id('projects'),
-    threadId: v.string(),
-    lines: v.array(callLinesTable.validator.pick('who', 'text')),
-  },
-  returns: v.null(),
-  handler: async (ctx, { callId, projectId, threadId, lines }) => {
-    const call = await ctx.db.get('calls', callId)
-    if (call?.projectId !== projectId) throw new ConvexError('Call not found.')
-    if (!call.threadId) await ctx.db.patch('calls', callId, { threadId })
-    for (const { who, text } of lines) {
-      await ctx.db.insert('callLines', {
-        callId,
-        who,
-        text: text.slice(0, MAX_LINE),
-      })
-    }
-    return null
-  },
-})
-
-/** An assistant's recent calls, newest first, each with its first line. */
+/**
+ * An assistant's recent calls, newest first, each with its first line. A call
+ * that never hung up cleanly (a closed tab) ends at its last line.
+ */
 const history = authedQuery({
   args: { projectId: v.id('projects'), botId: v.optional(v.id('bots')) },
   handler: async (ctx, { projectId, botId }) => {
@@ -94,11 +85,13 @@ const history = authedQuery({
       .take(20)
     return await Promise.all(
       calls.map(async (call) => {
-        const first = await ctx.db
-          .query('callLines')
-          .withIndex('by_call', (q) => q.eq('callId', call._id))
-          .first()
-        return { ...call, firstLine: first?.text ?? null }
+        const first = await linesOf(ctx, call._id).first()
+        const last = await linesOf(ctx, call._id).order('desc').first()
+        return {
+          ...call,
+          firstLine: first?.text ?? null,
+          endedAt: call.endedAt ?? last?._creationTime ?? call._creationTime,
+        }
       }),
     )
   },
@@ -108,11 +101,34 @@ const transcript = authedQuery({
   args: { id: v.id('calls') },
   handler: async (ctx, { id }) => {
     await getOwnedCall(ctx, ctx.userId, id)
-    return await ctx.db
-      .query('callLines')
-      .withIndex('by_call', (q) => q.eq('callId', id))
-      .take(500)
+    return await linesOf(ctx, id).take(500)
   },
 })
 
-export const callLogApi = { begin, end, addLines, history, transcript }
+/**
+ * A call's transcript as plain text, with timings: the most recent call, or
+ * `id`. For the CLI: `npx convex run api/calls:dump`.
+ */
+const dump = internalQuery({
+  args: { id: v.optional(v.id('calls')) },
+  returns: v.string(),
+  handler: async (ctx, { id }) => {
+    const call: Doc<'calls'> | null = id
+      ? await ctx.db.get('calls', id)
+      : await ctx.db.query('calls').order('desc').first()
+    if (!call) return 'No calls yet.'
+    const [project, bot, lines] = await Promise.all([
+      ctx.db.get('projects', call.projectId),
+      call.botId ? ctx.db.get('bots', call.botId) : null,
+      linesOf(ctx, call._id).take(500),
+    ])
+    return formatTranscript({
+      name: (bot ?? project)?.name ?? 'Assistant',
+      when: `${new Date(call._creationTime).toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+      call,
+      lines,
+    })
+  },
+})
+
+export const callLogApi = { addLine, end, history, transcript, dump }

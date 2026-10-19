@@ -236,7 +236,7 @@ export function AssistantPanel({
           </Link>
         </TabsContent>
         <TabsContent value="calls" className="px-2 py-4">
-          <CallHistory projectId={project._id} botId={bot?._id} />
+          <CallHistory projectId={project._id} botId={bot?._id} name={name} />
         </TabsContent>
         <TabsContent value="costs" className="flex flex-col gap-6 px-4 py-4">
           <Section title="This chat">

@@ -17,4 +17,6 @@ export const callLinesTable = defineTable({
   callId: v.id('calls'),
   who: literals('you', 'them'),
   text: v.string(),
+  /** For a reply: how long it took, from hearing you to the reply being ready to play. */
+  ms: v.optional(v.number()),
 }).index('by_call', ['callId'])

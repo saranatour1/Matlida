@@ -89,6 +89,7 @@ test('silence gets no reply and starts no chat', async () => {
 
   expect(result).toEqual({
     threadId: null,
+    callId: null,
     transcript: '',
     reply: null,
     audioUrl: null,
@@ -187,45 +188,85 @@ test('answering a ringing reminder opens with it spoken, once, and only for you'
   expect(await asAda.action(api.api.calls.answer, { id })).toBeNull()
 })
 
-test('a call keeps its transcript, for you only', async () => {
+test('a call keeps every line from its first turn, for you only', async () => {
   heard.text = 'Hello Matilda'
-  const { asAda, asBob, projectId, clip } = await setup()
-  const callId = await asAda.mutation(api.api.calls.begin, {
-    projectId,
-    opening: 'Hi, it is Matilda.',
-  })
+  const { t, asAda, asBob, projectId, clip } = await setup()
 
-  const result = await asAda.action(api.api.calls.turn, {
+  const first = await asAda.action(api.api.calls.turn, {
     projectId,
     storageId: await clip(),
-    callId,
   })
-  await asAda.mutation(api.api.calls.end, { id: callId })
+  heard.text = 'And again'
+  const second = await asAda.action(api.api.calls.turn, {
+    projectId,
+    threadId: first.threadId ?? undefined,
+    storageId: await clip(),
+    callId: first.callId ?? undefined,
+  })
+  const callId = first.callId
+  if (!callId) throw new Error('The first turn should start a call.')
+  expect(second.callId).toBe(callId)
 
-  expect(
-    (await asAda.query(api.api.calls.transcript, { id: callId })).map((l) => [
-      l.who,
-      l.text,
-    ]),
-  ).toEqual([
-    ['them', 'Hi, it is Matilda.'],
+  const lines = await asAda.query(api.api.calls.transcript, { id: callId })
+  expect(lines.map((l) => [l.who, l.text])).toEqual([
     ['you', 'Hello Matilda'],
     ['them', 'Sure, talk soon.'],
+    ['you', 'And again'],
+    ['them', 'Sure, talk soon.'],
   ])
+  expect(lines[1]?.ms).toEqual(expect.any(Number))
+  // Never hung up (a closed tab): it still ends at its last line.
   expect(await asAda.query(api.api.calls.history, { projectId })).toMatchObject(
     [
       {
         _id: callId,
-        threadId: result.threadId,
-        firstLine: 'Hi, it is Matilda.',
-        endedAt: expect.any(Number),
+        threadId: first.threadId,
+        firstLine: 'Hello Matilda',
+        endedAt: lines[3]?._creationTime,
       },
     ],
   )
+  const text = await t.query(internal.api.calls.dump, {})
+  expect(text).toContain('Call with Matilda')
+  expect(text).toMatch(/\] You: Hello Matilda/)
+  expect(text).toMatch(/\] Matilda, replied in \d+\.\d s: Sure, talk soon\./)
+
   await expect(
     asBob.query(api.api.calls.transcript, { id: callId }),
   ).rejects.toThrow('Project not found.')
+  const bobsProject = await asBob.mutation(api.api.projects.save, {
+    name: 'Bob',
+    brief: '',
+    guidelines: '',
+  })
   await expect(
-    asBob.mutation(api.api.calls.begin, { projectId }),
-  ).rejects.toThrow('Project not found.')
+    asBob.action(api.api.calls.turn, {
+      projectId: bobsProject,
+      storageId: await clip(),
+      callId,
+    }),
+  ).rejects.toThrow('Call not found.')
+})
+
+test('answering a ring starts the call with its opening line', async () => {
+  const { t, asAda, projectId } = await setup()
+  const threadId = await chatWithReminder(t, projectId)
+  const id = await t.run((ctx) =>
+    ctx.db.insert('reminders', {
+      projectId,
+      threadId,
+      from: 'Matilda',
+      message: 'Stretch',
+      dueAt: Date.now(),
+      via: 'call',
+      status: 'ringing',
+    }),
+  )
+  const answered = await asAda.action(api.api.calls.answer, { id })
+  if (!answered) throw new Error('The ring should be answered.')
+  expect(
+    (await asAda.query(api.api.calls.transcript, { id: answered.callId })).map(
+      (l) => [l.who, l.text],
+    ),
+  ).toEqual([['them', "Hi, it's Matilda with your reminder. Stretch"]])
 })

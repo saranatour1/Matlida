@@ -2,15 +2,19 @@ import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import { formatTranscript } from '../../convex/lib/transcript'
+import type { Doc, Id } from '../../convex/_generated/dataModel'
 
 /** An assistant's recent calls, each opening to its transcript. */
 export function CallHistory({
   projectId,
   botId,
+  name,
 }: {
   projectId: Id<'projects'>
   botId?: Id<'bots'>
+  /** The assistant's name, for the copied transcript. */
+  name: string
 }) {
   const calls = useQuery(api.api.calls.history, { projectId, botId })
   const [open, setOpen] = React.useState<Id<'calls'>>()
@@ -40,9 +44,7 @@ export function CallHistory({
                 })}
               </span>
               <span className="text-muted-foreground">
-                {call.endedAt
-                  ? duration(call.endedAt - call._creationTime)
-                  : 'Didn’t end cleanly'}
+                {duration(call.endedAt - call._creationTime)}
               </span>
             </span>
             {call.firstLine && (
@@ -52,12 +54,7 @@ export function CallHistory({
             )}
           </button>
           {open === call._id && (
-            <Transcript
-              callId={call._id}
-              projectId={projectId}
-              botId={botId}
-              threadId={call.threadId}
-            />
+            <Transcript call={call} botId={botId} name={name} />
           )}
         </li>
       ))}
@@ -66,18 +63,30 @@ export function CallHistory({
 }
 
 function Transcript({
-  callId,
-  projectId,
+  call,
   botId,
-  threadId,
+  name,
 }: {
-  callId: Id<'calls'>
-  projectId: Id<'projects'>
+  call: Doc<'calls'>
   botId?: Id<'bots'>
-  threadId?: string
+  name: string
 }) {
-  const lines = useQuery(api.api.calls.transcript, { id: callId })
+  const lines = useQuery(api.api.calls.transcript, { id: call._id })
+  const [copied, setCopied] = React.useState(false)
   if (lines === undefined) return null
+  async function copy(said: Array<Doc<'callLines'>>) {
+    const text = formatTranscript({
+      name,
+      when: new Date(call._creationTime).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+      call,
+      lines: said,
+    })
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+  }
   return (
     <div className="flex flex-col gap-2 px-2 pt-1 pb-3 text-xs">
       {lines.length === 0 ? (
@@ -98,16 +107,27 @@ function Transcript({
           ))}
         </ol>
       )}
-      {threadId && (
-        <Link
-          to="/p/$projectId"
-          params={{ projectId }}
-          search={{ thread: threadId, bot: botId, panel: true }}
-          className="self-start text-muted-foreground underline hover:text-foreground"
-        >
-          Open the chat
-        </Link>
-      )}
+      <div className="flex gap-3 text-muted-foreground">
+        {lines.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void copy(lines)}
+            className="underline hover:text-foreground"
+          >
+            {copied ? 'Copied' : 'Copy transcript'}
+          </button>
+        )}
+        {call.threadId && (
+          <Link
+            to="/p/$projectId"
+            params={{ projectId: call.projectId }}
+            search={{ thread: call.threadId, bot: botId, panel: true }}
+            className="underline hover:text-foreground"
+          >
+            Open the chat
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

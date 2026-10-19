@@ -34,12 +34,19 @@ type Session = CallTarget & {
   recorder?: MediaRecorder
   playing?: AudioBufferSourceNode
   frame?: number
-  /** The call's record in history, from `calls.begin`. */
+  /** The call's record in history, from its first turn or the answered ring. */
   callId?: Id<'calls'>
   ended: boolean
 }
 
 type Line = { who: 'you' | 'them'; text: string }
+
+/** What an assistant says first when it called you, still loading when the call starts. */
+type Opening = Promise<{
+  text: string
+  audioUrl: string | null
+  callId?: Id<'calls'>
+} | null>
 
 /**
  * A voice call with one assistant: listen until the user stops talking, send
@@ -59,7 +66,6 @@ export function useVoiceCall({
   const session = React.useRef<Session | null>(null)
   const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
   const turn = useAction(api.api.calls.turn)
-  const begin = useMutation(api.api.calls.begin)
   const end = useMutation(api.api.calls.end)
 
   function listen(s: Session) {
@@ -125,6 +131,7 @@ export function useVoiceCall({
       // The user may have hung up while we waited.
       if (session.current !== s) return
       setError(undefined)
+      s.callId = result.callId ?? s.callId
       if (result.threadId && result.threadId !== s.threadId) {
         s.threadId = result.threadId
         onThread?.({
@@ -168,10 +175,7 @@ export function useVoiceCall({
    * when it called you; it can still be loading, since the call must start
    * in the click.
    */
-  async function start(
-    target: CallTarget,
-    opening?: Promise<{ text: string; audioUrl: string | null } | null>,
-  ) {
+  async function start(target: CallTarget, opening?: Opening) {
     if (session.current) return
     setError(undefined)
     setLines([])
@@ -188,12 +192,9 @@ export function useVoiceCall({
       const s: Session = { ...target, stream, audio, analyser, ended: false }
       session.current = s
       const first = await opening?.catch(() => null)
-      if (first) setLines([{ who: 'them', text: first.text }])
-      // ponytail: a call whose record fails to save still goes ahead, just without history.
-      s.callId = await begin({ ...target, opening: first?.text }).catch(
-        () => undefined,
-      )
       if (session.current !== s) return
+      if (first) setLines([{ who: 'them', text: first.text }])
+      s.callId = first?.callId
       if (first?.audioUrl) await play(s, first.audioUrl).catch(() => listen(s))
       else listen(s)
     } catch {
@@ -240,7 +241,6 @@ const STATUS_LABEL: Record<Status, string> = {
 }
 
 type Caller = { name: string; portrait: Portrait }
-type Opening = Promise<{ text: string; audioUrl: string | null } | null>
 
 const CallContext = React.createContext<{
   call: ReturnType<typeof useVoiceCall>
