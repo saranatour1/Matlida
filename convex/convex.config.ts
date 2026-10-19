@@ -1,5 +1,6 @@
 import { defineApp } from 'convex/server'
 import { v } from 'convex/values'
+import agent from '@convex-dev/agent/convex.config.js'
 import auth from '@convex-dev/auth/convex.config.js'
 import authEmail from '@convex-dev/auth/components/email/convex.config.js'
 import authGithub from '@convex-dev/auth/components/github/convex.config.js'
@@ -23,6 +24,7 @@ const app = defineApp({
   },
 })
 
+app.use(agent)
 app.use(resend)
 app.use(auth, {
   httpPrefix: '/auth',
