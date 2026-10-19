@@ -163,3 +163,10 @@
 - `@name` at the start of the subject or the first line picks the assistant and sticks, like texting. Each assistant answers in its own "Name · Email" chat. Only the plain-text part is read, quoted history is cut, attachments are ignored, and the reply goes to the owner only, from the assistant's name at the owner's address, threaded with In-Reply-To and References.
 - Per-owner rate limit with `@convex-dev/rate-limiter`: a burst of 5, then 20 an hour.
 - Verified with unit tests and mocks for the model, Resend's API and the sender: a bad, old or missing signature and malformed bodies refused; a replay handled once; each spoof rejected with no reply and no model call; the owner's mail answered in its thread with the right headers; `@name` routing that sticks; quoted text cut and HTML-only mail answered with a fixed line; the rate limit; and that every send in every test went to the owner. Nothing ran against a deployment.
+
+### Email reminders and texting limits (2026-10-20)
+
+- `set_reminder` takes `via: 'email'`: the reminder is emailed to you from the assistant at your handle, and still posts in the chat. Without an address it only posts, with a note.
+- Inbound texting is rate limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
+- The Photon webhook's checks are now pinned by tests: forged, stale, tampered and unsigned deliveries are refused with nothing stored, and a replay is acknowledged once.
+- Verified with unit tests (Resend and the model mocked): an email reminder's exact send, the no-address note, the owner flood across two apps, the ignored stranger, code guessing, a turn that sends nothing, and the webhook cases above.

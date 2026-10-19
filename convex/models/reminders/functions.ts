@@ -3,12 +3,16 @@ import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
 import { components, internal } from '../../_generated/api'
 import {
+  env,
   internalAction,
   internalMutation,
   internalQuery,
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import schema from '../../schema'
+import { addressOf } from '../../lib/handles'
+import { resend } from '../../lib/resend'
+import { getMailbox } from '../mailboxes/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getLink } from '../texts/functions'
 import { spectrum } from '../texts/spectrum'
@@ -85,6 +89,8 @@ const delivery = internalQuery({
     v.object({
       reminder: schema.doc('reminders'),
       spaceId: v.union(v.string(), v.null()),
+      /** Where an email reminder goes and comes from, once the owner has an address. */
+      mail: v.union(v.object({ to: v.string(), from: v.string() }), v.null()),
     }),
     v.null(),
   ),
@@ -94,9 +100,16 @@ const delivery = internalQuery({
     const project = await ctx.db.get('projects', reminder.projectId)
     if (!project) return null
     const link = await getLink(ctx, project._id)
+    const owner = await ctx.db.get('users', project.ownerId)
+    const mailbox = await getMailbox(ctx, project.ownerId)
+    const mail =
+      owner?.email && mailbox && env.MAIL_DOMAIN
+        ? { to: owner.email, from: addressOf(mailbox.handle, env.MAIL_DOMAIN) }
+        : null
     return {
       reminder,
       spaceId: link?.status === 'linked' ? link.spaceId : null,
+      mail,
     }
   },
 })
@@ -249,7 +262,7 @@ const miss = internalAction({
   },
 })
 
-/** Delivers a due reminder: a ring or a text when asked for, and always a chat message. */
+/** Delivers a due reminder: a ring, a text or an email when asked for, and always a chat message. */
 const fire = internalAction({
   args: { id: v.id('reminders') },
   returns: v.null(),
@@ -259,12 +272,25 @@ const fire = internalAction({
       status: 'scheduled',
     })
     if (!found) return null
-    const { reminder, spaceId } = found
+    const { reminder, spaceId, mail } = found
     if (reminder.via === 'call') {
       await ctx.runMutation(internal.api.reminders.ring, { id })
       return null
     }
     let note: string | undefined
+    if (reminder.via === 'email') {
+      if (mail) {
+        await resend.sendEmail(ctx, {
+          from: `"${reminder.from.replace(/["\\<>\r\n]/g, '')}" <${mail.from}>`,
+          to: mail.to,
+          subject: `Reminder: ${reminder.message.slice(0, 80)}`,
+          text: `${reminder.message}\n\n${reminder.from}`,
+          idempotencyKey: `reminder:${id}`,
+        })
+      } else {
+        note = "Email isn't set up, so it's only here."
+      }
+    }
     if (reminder.via === 'text') {
       if (spaceId) {
         await spectrum.send(ctx, {

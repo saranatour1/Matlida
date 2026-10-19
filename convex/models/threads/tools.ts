@@ -88,7 +88,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     }),
     set_reminder: createTool({
       description:
-        'Remind the user about something later. It posts in this chat when due, and also texts them or rings them in the app if they ask for that.',
+        'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that.',
       inputSchema: z.object({
         message: z
           .string()
@@ -101,9 +101,9 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             "When, as ISO 8601 with the UTC offset of the user's time zone, like 2026-10-20T17:00:00+03:00.",
           ),
         via: z
-          .enum(['chat', 'text', 'call'])
+          .enum(['chat', 'text', 'call', 'email'])
           .describe(
-            'chat unless they asked to be texted (text) or called (call).',
+            'chat unless they asked to be texted (text), emailed (email) or called (call).',
           ),
       }),
       execute: async (ctx, { message, at, via }) => {

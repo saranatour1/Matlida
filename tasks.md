@@ -28,7 +28,7 @@
 - [x] Connections page: one registry of every channel and its status
 - [x] Email: a personal address per user, claimed on Connections
 - [x] Email: inbound mail answered by an assistant, with sender authentication
-- [ ] Email reminders
+- [x] Email reminders
 - [ ] Setup guide for email, Photon, Telegram and WhatsApp, with a DNS checker
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
