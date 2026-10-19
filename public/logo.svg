@@ -2,7 +2,7 @@
   <style>@media (prefers-color-scheme: dark) { svg { fill: #f5f5f5; stroke: #f5f5f5 } }</style>
   <path fill="none" d="M13.87 14.74 30.13 11.26Q36 10 37.6 15.78L46 46 21.94 42.79Q16 42 14.24 36.26L9.76 21.74Q8 16 13.87 14.74Z" />
   <path fill="none" d="M46 46q3 0 3 3t3 3 3 3 3 3" />
-  <g stroke="none">
+  <g stroke="none" transform="rotate(-12 26.4 28)">
     <circle cx="19.2" cy="28" r="2.8" />
     <circle cx="26.4" cy="28" r="2.8" />
     <circle cx="33.6" cy="28" r="2.8" />
