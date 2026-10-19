@@ -11,7 +11,7 @@
 
 ## Open
 
-- [ ] Reminder calls, once Photon ships SDK call control
+- [ ] Phone calls for reminders, once Photon ships SDK call control
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
 - [x] Orb avatars, settings, library and thread members
@@ -20,6 +20,10 @@
 - [x] Reminders that post in the chat and text you
 - [x] New assistant dialog, copies, template links, group chats from search
 - [x] Portraits: 22 ready-made assistant portraits in the minimal bot-icon style
+- [x] In-app voice calls with any assistant
+- [ ] Assistants ring you in the app for call reminders
+- [ ] Message assistants over iMessage, WhatsApp and Telegram through Photon (needs Photon, Telegram and WhatsApp credentials)
+- [ ] Calls: barge-in, and streaming speech per sentence for lower latency
 
 - [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL
