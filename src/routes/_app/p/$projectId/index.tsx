@@ -40,9 +40,6 @@ function ProjectPage() {
   const bot = bots?.find((b) => b._id === botId)
   // Lives here, not in Chat, so a call survives Chat remounting on a new thread.
   const call = useVoiceCall({
-    projectId: project?._id,
-    botId: bot?._id,
-    threadId: thread,
     onThread: (id) =>
       void navigate({ search: (prev) => ({ ...prev, thread: id }) }),
   })
@@ -65,7 +62,13 @@ function ProjectPage() {
         bot={bot}
         threadId={thread}
         panel={panel}
-        onCall={() => void call.start()}
+        onCall={() =>
+          void call.start({
+            projectId: project._id,
+            botId: bot?._id,
+            threadId: thread,
+          })
+        }
       />
       {(call.status !== 'idle' || call.error) && (
         <VoiceCallScreen

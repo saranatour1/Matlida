@@ -7,4 +7,9 @@ export const {
   delivery,
   markSent,
   fire,
+  ring,
+  ringing,
+  pickUp,
+  decline,
+  miss,
 } = remindersApi

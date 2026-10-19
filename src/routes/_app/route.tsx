@@ -1,6 +1,7 @@
 import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
 import { AppSidebar } from '~/components/app-sidebar'
+import { IncomingCall } from '~/components/incoming-call'
 import {
   SidebarInset,
   SidebarProvider,
@@ -27,6 +28,7 @@ function AppLayout() {
           <Outlet />
         </SidebarInset>
       </SidebarProvider>
+      <IncomingCall />
     </TooltipProvider>
   )
 }
