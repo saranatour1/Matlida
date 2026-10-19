@@ -28,11 +28,11 @@ Preconditions:
 - **Mismatch.** Set `Email` to `$EMAIL`, `Password` to `$PASSWORD`, and `Confirm password` to `$PASSWORD` with an `x` appended, then submit. Only `The passwords don't match.` shows. `verify.sh convex data users --format jsonl` prints `There are no documents in this table.`.
 - **Submit.** `find "textbox"` again, set `Password` and `Confirm password` to `$PASSWORD`, and `left_click` `Create account`. Wait for the heading `Check your email`, then `get_page_text` shows `We sent a link to $EMAIL`.
 - **Email stored.** Run `verify.sh convex data --component resend emails --format jsonl --limit 1`. The newest row has `to` set to `$EMAIL` and the subject `Validate your email address`.
-- **Open the link.** Run `verify.sh email-link $EMAIL > $RUN/sign-up/link.txt`, then `navigate` to that URL in the same pane. After `Verifying your email`, the page lands on `/`. `read_page` shows text with `$EMAIL` and a button named `Sign out`.
+- **Open the link.** Run `verify.sh email-link $EMAIL > $RUN/sign-up/link.txt`, then `navigate` to that URL in the same browser. After `Verifying your email`, the page lands on `/`. `read_page` shows text with `$EMAIL` and a button named `Sign out`.
 - **Side effect.** Run `verify.sh convex data users --format jsonl > $RUN/sign-up/users.jsonl`. It has one row whose `email` is `$EMAIL`.
 - **Bad link.** `left_click` `Sign out`, which lands on `/sign-in`, then `navigate` to `http://localhost:3100/verify-email?code=bogus`. The page shows `This link can't be used`, `Open the link in the browser where you asked for it.`, and a `Sign up again` link.
 - **Other email.** On `/sign-up`, submit the form with `b-$EMAIL` and `$PASSWORD` in both password fields. Wait for `Check your email`, then `left_click` the `Use a different email` link. The heading `Welcome to Matilda` returns, with all three fields empty.
-- **Proof.** Save `read_page` as `$RUN/sign-up/home.aria.txt` and copy the screenshot's source `.jpg` to `$RUN/sign-up/home.jpg`. Both must show `$EMAIL` on the home card.
+- **Proof.** Save `read_page` as `$RUN/sign-up/home.aria.txt` and copy the screenshot's source `.jpg` to `$RUN/sign-up/home.jpg`, or run `snap home` with the headless driver. Both must show `$EMAIL` on the home card.
 
 ## Gotchas
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Runs Matilda against a local Convex backend for verification. See SKILL.md.
-# Usage: verify.sh launch | doctor | account | email-link <to> | convex <args> | cleanup
+# Usage: verify.sh launch | doctor | account | email-link <to> | convex <args> | drive <feature> <steps> | cleanup
 set -eu
 
 ROOT=$(git rev-parse --show-toplevel)
@@ -16,8 +16,16 @@ export CONVEX_AGENT_MODE=anonymous
 
 convex() { pnpm exec convex "$@"; }
 is_local() { grep -q '^CONVEX_DEPLOYMENT=anonymous:' .env.local 2>/dev/null; }
-cwd_of() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p'; }
-listener() { lsof -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1; }
+if [ "$(uname)" = Linux ]; then
+  # ponytail: ss shows pids only for this user's processes, which is all of them as root in a cloud session.
+  needs="ss pgrep"
+  cwd_of() { readlink "/proc/$1/cwd"; }
+  listener() { ss -Hltnp "sport = :$1" | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1; }
+else
+  needs="lsof pgrep"
+  cwd_of() { lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p'; }
+  listener() { lsof -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1; }
+fi
 kill_tree() {
   for child in $(pgrep -P "$1"); do kill_tree "$child"; done
   kill "$1" 2>/dev/null || true
@@ -50,6 +58,9 @@ launch() {
     echo "refusing: .env.local points at a cloud deployment. Run from a git worktree without one." >&2
     exit 1
   fi
+  for t in $needs; do
+    command -v "$t" >/dev/null || { echo "refusing: $t is not installed (apt install iproute2 procps)" >&2; exit 1; }
+  done
   for p in 3210 3211 "$PORT"; do
     pid=$(listener "$p")
     [ -z "$pid" ] || { echo "refusing: port $p is taken by pid $pid in $(cwd_of "$pid")" >&2; exit 1; }
@@ -64,7 +75,8 @@ launch() {
   id=$(date +%Y%m%d-%H%M%S)
   mkdir -p "$RUNS/$id"
   ln -sfn "$id" "$RUN"
-  nohup pnpm exec convex dev --tail-logs always --start "vite dev --port $PORT --strictPort" \
+  # The bin shims exec node, so dev.pid is convex itself. On Linux a pnpm exec wrapper outlives cleanup's SIGTERM.
+  PATH="$ROOT/node_modules/.bin:$PATH" nohup convex dev --tail-logs always --start "vite dev --port $PORT --strictPort" \
     >"$RUN/dev.log" 2>&1 &
   echo $! >"$RUN/dev.pid"
   i=0
@@ -123,6 +135,7 @@ cleanup() {
   [ -f "$RUN/dev.pid" ] && kill_tree "$(cat "$RUN/dev.pid")"
   # Wipe the local deployment, so the next launch starts from an empty database.
   if is_local; then rm -rf .convex/local .env.local; fi
+  rm -rf "$RUN/browser"
   echo "evidence kept in $(cd "$RUN" && pwd -P)"
 }
 
@@ -133,5 +146,6 @@ case "${1:-}" in
   email-link) email_link "${2:?usage: verify.sh email-link <to>}" ;;
   cleanup) cleanup ;;
   convex) shift; convex "$@" ;;
-  *) echo "usage: verify.sh launch | doctor | account | email-link <to> | convex <args> | cleanup" >&2; exit 2 ;;
+  drive) shift; node "$ROOT/.claude/skills/verify-matlida/drive.mjs" "$@" ;;
+  *) echo "usage: verify.sh launch | doctor | account | email-link <to> | convex <args> | drive <feature> <steps> | cleanup" >&2; exit 2 ;;
 esac
