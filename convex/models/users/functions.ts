@@ -27,11 +27,22 @@ const vProvider = v.union(
   }),
 )
 
-/** Runs the first time someone signs in with a method. `syncProfile` fills in the row. */
+/**
+ * Runs the first time someone signs in with a method. `syncProfile` fills in
+ * the row. Every account starts with a workspace led by Matilda.
+ */
 const createUser = internalMutation({
   args: { provider: vProvider },
   returns: v.id('users'),
-  handler: async (ctx) => await ctx.db.insert('users', {}),
+  handler: async (ctx) => {
+    const userId = await ctx.db.insert('users', {})
+    await ctx.db.insert('projects', {
+      ownerId: userId,
+      name: 'Matilda',
+      brief: '',
+    })
+    return userId
+  },
 })
 
 async function profileOf(

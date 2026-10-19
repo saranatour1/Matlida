@@ -16,28 +16,36 @@ import { getBots } from '../bots/functions'
 import { findCommand } from '../commands/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getOwnedThread, startThread } from './functions'
-import { createLead } from './lead'
+import { createBot, createLead } from './lead'
 import type { Doc } from '../../_generated/dataModel'
 
 /**
  * Saves the user's message, starting a chat on the first one, and schedules
- * the lead's reply.
+ * the reply from the chat's assistant: `botId`, or the lead when unset.
  */
 const sendMessage = zAuthedMutation({
   args: {
     projectId: zid('projects'),
     threadId: z.string().optional(),
+    botId: zid('bots').optional(),
     prompt: z
       .string()
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
-  handler: async (ctx, { projectId, prompt, ...args }) => {
+  handler: async (ctx, { projectId, botId, prompt, ...args }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)
+    if (botId && (await ctx.db.get('bots', botId))?.projectId !== projectId) {
+      throw new ConvexError('Assistant not found.')
+    }
     if (args.threadId) {
       const thread = await getOwnedThread(ctx, ctx.userId, args.threadId)
-      if (thread?.projectId !== projectId || thread.kind !== 'chat') {
+      if (
+        thread?.projectId !== projectId ||
+        thread.kind !== 'chat' ||
+        thread.botId !== botId
+      ) {
         throw new ConvexError('Chat not found.')
       }
     }
@@ -47,6 +55,7 @@ const sendMessage = zAuthedMutation({
       (await startThread(ctx, {
         projectId,
         kind: 'chat',
+        botId,
         title: prompt.slice(0, 60),
         userId: ctx.userId,
       }))
@@ -67,6 +76,7 @@ const context = internalQuery({
   args: { threadId: v.string(), commandId: v.optional(v.id('commands')) },
   returns: v.object({
     project: schema.doc('projects'),
+    bot: v.union(schema.doc('bots'), v.null()),
     bots: v.array(schema.doc('bots')),
     command: v.union(schema.doc('commands'), v.null()),
   }),
@@ -78,15 +88,17 @@ const context = internalQuery({
     const project = thread && (await ctx.db.get('projects', thread.projectId))
     if (!project) throw new Error(`No project for thread ${threadId}`)
     const command = commandId && (await ctx.db.get('commands', commandId))
+    const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
     return {
       project,
+      bot,
       bots: await getBots(ctx, project._id),
       command: command && command.projectId === project._id ? command : null,
     }
   },
 })
 
-/** Streams the lead's reply into the thread. */
+/** Streams the reply from the thread's assistant into the thread. */
 const respond = internalAction({
   args: {
     threadId: v.string(),
@@ -97,23 +109,27 @@ const respond = internalAction({
   handler: async (ctx, { threadId, promptMessageId, commandId }) => {
     const {
       project,
+      bot,
       bots,
       command,
     }: {
       project: Doc<'projects'>
+      bot: Doc<'bots'> | null
       bots: Array<Doc<'bots'>>
       command: Doc<'commands'> | null
     } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
     const markdown =
       command && (await (await ctx.storage.get(command.storageId))?.text())
-    const lead = createLead(project, bots, {
-      command:
-        command && markdown ? { name: command.name, markdown } : undefined,
-    })
-    const result = await lead.agent.streamText(
+    const { agent, tools } = bot
+      ? { agent: createBot(project, bot), tools: {} }
+      : createLead(project, bots, {
+          command:
+            command && markdown ? { name: command.name, markdown } : undefined,
+        })
+    const result = await agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
-      { promptMessageId, tools: lead.tools },
+      { promptMessageId, tools },
       { saveStreamDeltas: true },
     )
     await result.consumeStream()

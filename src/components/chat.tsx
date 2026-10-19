@@ -27,18 +27,23 @@ import {
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
 
-/** A chat with the project's lead. Without `threadId`, the first message starts one. */
+/**
+ * A chat with one of the project's assistants: `bot`, or the lead when unset.
+ * Without `threadId`, the first message starts one.
+ */
 export function Chat({
   project,
+  bot,
   threadId,
 }: {
   project: Doc<'projects'>
+  bot?: Doc<'bots'>
   threadId?: string
 }) {
   const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
-  const lead = project.name
+  const lead = bot?.name ?? project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
     threadId ? { threadId } : 'skip',
@@ -66,6 +71,7 @@ export function Chat({
       try {
         const id = await sendMessage({
           projectId: project._id,
+          botId: bot?._id,
           threadId,
           prompt,
         })
@@ -73,7 +79,7 @@ export function Chat({
           void navigate({
             to: '/p/$projectId',
             params: { projectId: project._id },
-            search: { thread: id },
+            search: { thread: id, bot: bot?._id },
           })
         }
         return undefined
@@ -92,17 +98,27 @@ export function Chat({
             <EmptyHeader>
               <EmptyTitle>What should {lead} work on?</EmptyTitle>
               <EmptyDescription>
-                {project.brief || `Ask ${lead} anything.`}{' '}
-                <Link to="/" search={{ edit: project._id }}>
-                  Edit project
-                </Link>
+                {(bot ? bot.role : project.brief) || `Ask ${lead} anything.`}{' '}
+                {bot ? (
+                  <Link
+                    to="/p/$projectId/bots"
+                    params={{ projectId: project._id }}
+                    search={{ edit: bot._id }}
+                  >
+                    Edit {bot.name}
+                  </Link>
+                ) : (
+                  <Link to="/" search={{ edit: project._id }}>
+                    Edit project
+                  </Link>
+                )}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Suggestions
                 onSelect={(prompt) => React.startTransition(() => send(prompt))}
               />
-              {commands && commands.length > 0 && (
+              {!bot && commands && commands.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2">
                   {commands.map((c) => (
                     <Button
