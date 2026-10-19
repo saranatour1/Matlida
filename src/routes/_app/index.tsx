@@ -6,16 +6,26 @@ import { ProjectForm } from '~/components/project-form'
 import { Button } from '~/components/ui/button'
 
 export const Route = createFileRoute('/_app/')({
-  validateSearch: z.object({ create: z.boolean().optional() }),
+  validateSearch: z.object({
+    create: z.boolean().optional(),
+    /** A template link lands here and opens in your first workspace. */
+    template: z.string().optional(),
+  }),
   component: Projects,
 })
 
 function Projects() {
   const projects = useQuery(api.api.projects.list)
-  const { create } = Route.useSearch()
+  const { create, template } = Route.useSearch()
   const first = projects?.at(0)
   if (first && !create) {
-    return <Navigate to="/p/$projectId" params={{ projectId: first._id }} />
+    return (
+      <Navigate
+        to="/p/$projectId"
+        params={{ projectId: first._id }}
+        search={{ template }}
+      />
+    )
   }
 
   return (

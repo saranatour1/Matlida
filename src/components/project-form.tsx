@@ -3,8 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type { Avatar } from '../../convex/lib/avatars'
-import { AvatarPicker, defaultAvatar } from '~/components/orb'
+import { LookPicker, lookFromForm, lookOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -12,7 +11,7 @@ import { errorMessage } from '~/lib/errors'
 
 type ProjectValues = Pick<
   Doc<'projects'>,
-  'name' | 'brief' | 'guidelines' | 'avatar'
+  'name' | 'brief' | 'guidelines' | 'look'
 >
 type FormState = { error?: string; values?: ProjectValues }
 
@@ -26,7 +25,7 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         name: String(data.get('name')),
         brief: String(data.get('brief')),
         guidelines: String(data.get('guidelines')),
-        avatar: (data.get('avatar') as Avatar | null) ?? undefined,
+        look: lookFromForm(data),
       }
       try {
         const id = await save({ id: project?._id, ...values })
@@ -55,8 +54,11 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           placeholder="Matilda"
         />
       </label>
-      <AvatarPicker
-        value={values?.avatar ?? defaultAvatar(values?.name ?? 'Matilda')}
+      <LookPicker
+        defaultValue={lookOf({
+          look: values?.look,
+          name: values?.name ?? 'Matilda',
+        })}
       />
       <label className="flex flex-col gap-1.5 text-sm">
         Brief

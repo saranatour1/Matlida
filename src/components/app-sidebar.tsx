@@ -1,7 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import * as React from 'react'
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -9,13 +8,13 @@ import {
   LogOutIcon,
   MessagesSquareIcon,
   PlusIcon,
-  SearchIcon,
   SettingsIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
-import type { Avatar } from '../../convex/lib/avatars'
-import { Orb, defaultAvatar } from '~/components/orb'
+import type { Look } from '../../convex/lib/looks'
+import { BotAvatar, lookOf } from '~/components/bot-avatar'
+import { CommandMenu } from '~/components/command-menu'
 import {
   AvatarFallback,
   AvatarImage,
@@ -44,7 +43,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuButton,
@@ -58,12 +56,11 @@ import { useProject } from '~/hooks/use-project'
 
 export function AppSidebar() {
   const project = useProject()
-  const [filter, setFilter] = React.useState('')
   return (
     <Sidebar>
       <SidebarHeader className="gap-3 pt-3">
         <div className="flex items-center justify-end gap-1">
-          <SearchField value={filter} onChange={setFilter} />
+          {project && <CommandMenu project={project} />}
           {project && (
             <Button
               variant="ghost"
@@ -73,8 +70,9 @@ export function AppSidebar() {
               title="New assistant"
               render={
                 <Link
-                  to="/p/$projectId/bots"
+                  to="/p/$projectId"
                   params={{ projectId: project._id }}
+                  search={{ new: true }}
                 />
               }
               nativeButton={false}
@@ -86,51 +84,10 @@ export function AppSidebar() {
         {project && <Hero project={project} />}
       </SidebarHeader>
       <SidebarContent>
-        {project && <Assistants project={project} filter={filter} />}
+        {project && <Assistants project={project} />}
       </SidebarContent>
       <Account />
     </Sidebar>
-  )
-}
-
-/** A search box that opens from an icon and filters the assistants. */
-function SearchField({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (value: string) => void
-}) {
-  const [open, setOpen] = React.useState(false)
-  if (!open && !value) {
-    return (
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="rounded-full"
-        aria-label="Search assistants"
-        title="Search assistants"
-        onClick={() => setOpen(true)}
-      >
-        <SearchIcon />
-      </Button>
-    )
-  }
-  return (
-    <SidebarInput
-      autoFocus
-      value={value}
-      placeholder="Search assistants"
-      aria-label="Search assistants"
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={() => !value && setOpen(false)}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          onChange('')
-          setOpen(false)
-        }
-      }}
-    />
   )
 }
 
@@ -148,10 +105,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
         aria-label={`New chat with ${project.name}`}
         title={`New chat with ${project.name}`}
       >
-        <Orb
-          avatar={project.avatar ?? defaultAvatar(project.name)}
-          className="size-14 shadow-lg"
-        />
+        <BotAvatar look={lookOf(project)} className="size-14 shadow-lg" />
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -171,7 +125,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
                   <Link to="/p/$projectId" params={{ projectId: p._id }} />
                 }
               >
-                <Orb avatar={p.avatar ?? defaultAvatar(p.name)} />
+                <BotAvatar look={lookOf(p)} />
                 {p.name}
               </DropdownMenuItem>
             ))}
@@ -188,48 +142,28 @@ function Hero({ project }: { project: Doc<'projects'> }) {
 }
 
 /** The lead first, then the bots, as cards. Each one opens to its recent chats. */
-function Assistants({
-  project,
-  filter,
-}: {
-  project: Doc<'projects'>
-  filter: string
-}) {
+function Assistants({ project }: { project: Doc<'projects'> }) {
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
-  const q = filter.trim().toLowerCase()
-  const matches = (name: string, role: string) =>
-    !q || `${name} ${role}`.toLowerCase().includes(q)
-  const shown = (bots ?? []).filter((b) => matches(b.name, b.role))
   return (
     <SidebarGroup>
       <SidebarGroupContent>
         <SidebarMenu className="gap-1.5">
-          {matches(project.name, 'Lead') && (
-            <Assistant
-              projectId={project._id}
-              name={project.name}
-              role="Lead"
-              avatar={project.avatar ?? defaultAvatar(project.name)}
-            />
-          )}
-          {shown.map((b) => (
+          <Assistant
+            projectId={project._id}
+            name={project.name}
+            role="Lead"
+            look={lookOf(project)}
+          />
+          {bots?.map((b) => (
             <Assistant
               key={b._id}
               projectId={project._id}
               bot={b}
               name={b.name}
               role={b.role}
-              avatar={b.avatar ?? defaultAvatar(b.name)}
+              look={lookOf(b)}
             />
           ))}
-          {bots &&
-            q &&
-            shown.length === 0 &&
-            !matches(project.name, 'Lead') && (
-              <li className="px-2 text-xs text-muted-foreground">
-                No assistant matches.
-              </li>
-            )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
@@ -241,13 +175,13 @@ function Assistant({
   bot,
   name,
   role,
-  avatar,
+  look,
 }: {
   projectId: Id<'projects'>
   bot?: Doc<'bots'>
   name: string
   role: string
-  avatar: Avatar
+  look: Look
 }) {
   const search = useSearch({ strict: false })
   const { threadId } = useParams({ strict: false })
@@ -281,7 +215,7 @@ function Assistant({
         onClick={() => setOpenMobile(false)}
         title={`New chat with ${name}`}
       >
-        <Orb avatar={avatar} className="size-9" />
+        <BotAvatar look={look} className="size-9" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="truncate font-medium">{name}</span>

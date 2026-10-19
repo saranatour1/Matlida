@@ -1,20 +1,31 @@
-import { Link } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
+import * as React from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
+  CopyIcon,
   CpuIcon,
   GlobeIcon,
+  LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
+  ShareIcon,
   TelescopeIcon,
   XIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { MODELS } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
-import type * as React from 'react'
-import { Orb, defaultAvatar } from '~/components/orb'
+import { encodeTemplate } from '~/lib/bot-template'
+import { errorMessage } from '~/lib/errors'
+import { BotAvatar, lookOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 
 /**
@@ -69,22 +80,25 @@ export function AssistantPanel({
 
   return (
     <aside className="relative flex w-80 shrink-0 flex-col overflow-y-auto border-l text-sm">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="absolute top-2 right-2 rounded-full"
-        aria-label="Hide details"
-        title="Hide details"
-        render={
-          <Link to="." search={(prev) => ({ ...prev, panel: undefined })} />
-        }
-        nativeButton={false}
-      >
-        <XIcon />
-      </Button>
+      <div className="absolute top-2 right-2 flex gap-1">
+        {bot && <ShareMenu bot={bot} />}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="rounded-full"
+          aria-label="Hide details"
+          title="Hide details"
+          render={
+            <Link to="." search={(prev) => ({ ...prev, panel: undefined })} />
+          }
+          nativeButton={false}
+        >
+          <XIcon />
+        </Button>
+      </div>
       <div className="flex flex-col items-center gap-2 px-4 pt-10 pb-4 text-center">
-        <Orb
-          avatar={(bot ?? project).avatar ?? defaultAvatar(name)}
+        <BotAvatar
+          look={lookOf(bot ?? project)}
           className="size-16 shadow-lg"
         />
         <p className="text-base font-medium">{name}</p>
@@ -123,7 +137,7 @@ export function AssistantPanel({
               <ul className="flex flex-col gap-1.5">
                 {members.map((m) => (
                   <li key={m._id} className="flex items-center gap-2 text-xs">
-                    <Orb avatar={m.avatar ?? defaultAvatar(m.name)} />
+                    <BotAvatar look={lookOf(m)} />
                     <span className="truncate">{m.name}</span>
                     <span className="truncate text-muted-foreground">
                       {m.role}
@@ -305,5 +319,80 @@ function Connector({
       <span className="flex-1 truncate text-muted-foreground">{detail}</span>
       {action}
     </div>
+  )
+}
+
+/** Copy a bot into this workspace, or share a link others can copy it from. */
+function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
+  const duplicate = useMutation(api.api.bots.duplicate)
+  const navigate = useNavigate()
+  const [status, setStatus] = React.useState<string>()
+  const flash = (message: string) => {
+    setStatus(message)
+    setTimeout(() => setStatus(undefined), 2500)
+  }
+  const copy = async () => {
+    try {
+      const id = await duplicate({ id: bot._id })
+      await navigate({
+        to: '/p/$projectId',
+        params: { projectId: bot.projectId },
+        search: { bot: id, panel: true },
+      })
+    } catch (e) {
+      flash(errorMessage(e, 'Could not copy it.'))
+    }
+  }
+  const share = async () => {
+    const template = encodeTemplate({
+      name: bot.name,
+      role: bot.role,
+      instructions: bot.instructions,
+      look: lookOf(bot),
+    })
+    await navigator.clipboard.writeText(
+      `${location.origin}/?template=${template}`,
+    )
+    flash('Template link copied')
+  }
+  return (
+    <>
+      {status && (
+        <span className="self-center rounded-full bg-muted px-2 py-0.5 text-xs">
+          {status}
+        </span>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="icon-sm" className="rounded-full" />
+          }
+          aria-label="Share"
+          title="Share"
+        >
+          <ShareIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-60">
+          <DropdownMenuItem onClick={() => void copy()}>
+            <CopyIcon />
+            <span className="flex flex-col">
+              Create a copy
+              <span className="text-xs text-muted-foreground">
+                Adds {bot.name} copy to this workspace
+              </span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void share()}>
+            <LinkIcon />
+            <span className="flex flex-col">
+              Copy template link
+              <span className="text-xs text-muted-foreground">
+                Anyone signed in can make their own
+              </span>
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   )
 }

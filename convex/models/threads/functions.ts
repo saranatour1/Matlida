@@ -98,10 +98,40 @@ const setMembers = authedMutation({
   },
 })
 
+/** Starts a chat where the lead works with the bots you picked. */
+const startGroup = authedMutation({
+  args: { projectId: v.id('projects'), memberIds: v.array(v.id('bots')) },
+  handler: async (ctx, { projectId, memberIds }) => {
+    const project = await getOwnedProject(ctx, ctx.userId, projectId)
+    const bots = await getBots(ctx, projectId)
+    const members = bots.filter((b) => memberIds.includes(b._id))
+    if (members.length === 0 || members.length !== memberIds.length) {
+      throw new ConvexError('Pick at least one assistant from this workspace.')
+    }
+    return await startThread(ctx, {
+      projectId,
+      kind: 'chat',
+      title: `${project.name}, ${members.map((m) => m.name).join(', ')}`.slice(
+        0,
+        60,
+      ),
+      memberIds: members.map((m) => m._id),
+      userId: ctx.userId,
+    })
+  },
+})
+
 const get = authedQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) =>
     await getOwnedThread(ctx, ctx.userId, threadId),
 })
 
-export const threadsApi = { start, list, listForBot, setMembers, get }
+export const threadsApi = {
+  start,
+  list,
+  listForBot,
+  setMembers,
+  startGroup,
+  get,
+}
