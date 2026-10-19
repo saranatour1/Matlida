@@ -57,6 +57,7 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;

@@ -1,6 +1,7 @@
 {
-  "name": "",
-  "short_name": "",
+  "name": "Matilda",
+  "short_name": "Matilda",
+  "description": "Matilda is the only assistant you need, doesn't f**k around",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
