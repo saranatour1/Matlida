@@ -14,8 +14,8 @@ import {
 } from '~/components/ui/dropdown-menu'
 
 /**
- * Who the chat's assistant can hand work to. Without a saved list, the lead
- * works with every bot and a bot works alone.
+ * Who the chat's assistant can hand work to, for the chat's header. Without a
+ * saved list, the lead works with every bot and a bot works alone.
  */
 export function ThreadMembers({
   project,
@@ -35,27 +35,29 @@ export function ThreadMembers({
   const members = others.filter((b) => memberIds.includes(b._id))
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-6 pt-2 text-xs text-muted-foreground">
-      <span className="flex -space-x-1">
-        {members.map((m) => (
-          <BotAvatar
-            key={m._id}
-            portrait={portraitOf(m)}
-            className="size-5 ring-2 ring-background"
-          />
-        ))}
-      </span>
-      <span className="truncate">
-        {members.length
-          ? `With ${members.map((m) => m.name).join(', ')}`
-          : 'No members'}
-      </span>
+    <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+      {members.length > 0 && (
+        <>
+          <span className="flex -space-x-1">
+            {members.map((m) => (
+              <BotAvatar
+                key={m._id}
+                portrait={portraitOf(m)}
+                className="size-5 ring-2 ring-background"
+              />
+            ))}
+          </span>
+          <span className="truncate">
+            with {members.map((m) => m.name).join(', ')}
+          </span>
+        </>
+      )}
       {others.length > 0 && (
         <DropdownMenu>
           <DropdownMenuTrigger
             render={<Button variant="ghost" size="icon-sm" />}
             aria-label="Members"
-            title="Members"
+            title="Add or remove members"
           >
             <UserPlusIcon />
           </DropdownMenuTrigger>

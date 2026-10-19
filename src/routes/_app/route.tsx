@@ -1,4 +1,10 @@
-import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router'
+import {
+  Link,
+  Navigate,
+  Outlet,
+  createFileRoute,
+  useMatch,
+} from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
 import { AppSidebar } from '~/components/app-sidebar'
 import { IncomingCall } from '~/components/incoming-call'
@@ -18,6 +24,8 @@ export const Route = createFileRoute('/_app')({
 /** Pages for signed-in users, with the sidebar. */
 function AppLayout() {
   const { isLoading, isAuthenticated } = useConvexAuth()
+  // The chat draws its own header, with the assistant and its actions.
+  const inChat = useMatch({ from: '/_app/p/$projectId/', shouldThrow: false })
   if (isLoading) return null
   if (!isAuthenticated) return <Navigate to="/sign-in" />
   return (
@@ -26,7 +34,7 @@ function AppLayout() {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="h-svh min-h-0">
-            <Header />
+            {!inChat && <Header />}
             <Outlet />
           </SidebarInset>
         </SidebarProvider>
