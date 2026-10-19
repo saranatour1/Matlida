@@ -1,5 +1,11 @@
 {
   "node": {
-    "externalPackages": ["@spectrum-ts/convex", "@spectrum-ts/imessage"]
+    "externalPackages": [
+      "@spectrum-ts/convex",
+      "@spectrum-ts/core",
+      "@spectrum-ts/imessage",
+      "@spectrum-ts/telegram",
+      "@spectrum-ts/whatsapp-business"
+    ]
   }
 }

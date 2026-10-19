@@ -1,7 +1,7 @@
 import { textsApi } from '../models/texts/functions'
 
 export const {
-  link,
+  links,
   startLink,
   unlink,
   claim,

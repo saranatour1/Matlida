@@ -22,10 +22,12 @@ const app = defineApp({
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
-    /** Photon (texting). Read by the Photon component's webhook route and sender, so they stay optional until texting is set up. */
+    /** Photon (messaging). Read by the Photon component's webhook route and sender, so they stay optional until messaging is set up. */
     SPECTRUM_WEBHOOK_SECRET: v.optional(v.string()),
     SPECTRUM_PROJECT_ID: v.optional(v.string()),
     SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
+    /** The Telegram bot's token from @BotFather, for replies on Telegram. */
+    TELEGRAM_BOT_TOKEN: v.optional(v.string()),
   },
 })
 

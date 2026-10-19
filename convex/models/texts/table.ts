@@ -2,9 +2,9 @@ import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 /**
- * A phone linked to a project's lead over Photon. It starts `pending` with a
- * one-time code; texting `link <code>` from the phone makes it `linked` to that
- * phone's Photon space.
+ * A chat on iMessage, WhatsApp or Telegram linked to a project over Photon. It
+ * starts `pending` with a one-time code; sending `link <code>` from the chat
+ * makes it `linked` to that chat's Photon space. A project has one link per app.
  */
 export const phoneLinksTable = defineTable(
   v.union(
@@ -19,8 +19,16 @@ export const phoneLinksTable = defineTable(
       ownerId: v.id('users'),
       projectId: v.id('projects'),
       spaceId: v.string(),
-      /** The project's "Texts" chat, started on the first message. */
+      /** The app, as Photon names it: imessage, telegram or whatsapp_business. Unset on early iMessage links. */
+      platform: v.optional(v.string()),
+      /** The lead's chat for this link, started on the first message. */
       threadId: v.optional(v.string()),
+      /** Each bot's chat for this link, started when it's first messaged. */
+      botThreads: v.optional(
+        v.array(v.object({ botId: v.id('bots'), threadId: v.string() })),
+      ),
+      /** Who messages go to, picked with `@name`. Unset means the lead. */
+      activeBotId: v.optional(v.id('bots')),
     }),
   ),
 )

@@ -22,7 +22,9 @@
 - [x] Portraits: 22 ready-made assistant portraits in the minimal bot-icon style
 - [x] In-app voice calls with any assistant
 - [x] Assistants ring you in the app for call reminders
-- [ ] Message assistants over iMessage, WhatsApp and Telegram through Photon (needs Photon, Telegram and WhatsApp credentials)
+- [x] Message assistants over iMessage, WhatsApp and Telegram through Photon
+- [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
+- [ ] WhatsApp templates for reminders outside the 24-hour window
 - [ ] Calls: barge-in, and streaming speech per sentence for lower latency
 
 - [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters

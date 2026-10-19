@@ -21,6 +21,35 @@ const delivered = vi.hoisted(
   () => [] as Array<{ spaceId: string; content?: unknown }>,
 )
 
+const sentOn = vi.hoisted(
+  () => [] as Array<{ platform: string; spaceId: string; text: string }>,
+)
+
+/** A Photon provider whose spaces record what's sent to them. */
+const fakeProvider = vi.hoisted(
+  () => (platform: string) =>
+    Object.assign(
+      () => ({
+        space: {
+          get: (spaceId: string) =>
+            Promise.resolve({
+              send: (text: string) => {
+                sentOn.push({ platform, spaceId, text })
+                return Promise.resolve({ id: `${platform}-1` })
+              },
+            }),
+        },
+      }),
+      { config: () => ({}) },
+    ),
+)
+
+vi.mock('@spectrum-ts/core', () => ({ Spectrum: () => Promise.resolve({}) }))
+vi.mock('@spectrum-ts/telegram', () => ({ telegram: fakeProvider('telegram') }))
+vi.mock('@spectrum-ts/whatsapp-business', () => ({
+  whatsappBusiness: fakeProvider('whatsapp_business'),
+}))
+
 vi.mock('@spectrum-ts/convex/sender', () => ({
   createCloudSender: () => ({
     deliver: (job: { spaceId: string; content?: unknown }) => {
@@ -36,11 +65,13 @@ const calls = (languageModel as unknown as { doGenerateCalls: Array<unknown> })
 beforeEach(() => {
   calls.length = 0
   delivered.length = 0
+  sentOn.length = 0
 })
 
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
+  vi.unstubAllEnvs()
 })
 
 async function setup() {
@@ -57,8 +88,8 @@ async function setup() {
     brief: '',
     guidelines: '',
   })
-  const text = (spaceId: string, message: string) =>
-    t.action(internal.api.texts.answer, { spaceId, text: message })
+  const text = (spaceId: string, message: string, platform = 'imessage') =>
+    t.action(internal.api.texts.answer, { spaceId, platform, text: message })
   return { t, asAda, asBob: t.withIdentity({ subject: bob }), projectId, text }
 }
 
@@ -66,20 +97,18 @@ test('texting the code links the phone, once', async () => {
   const { asAda, projectId, text } = await setup()
   const code = await asAda.mutation(api.api.texts.startLink, { projectId })
   expect(code).toMatch(/^[A-Z0-9]{6}$/)
-  expect(await asAda.query(api.api.texts.link, { projectId })).toMatchObject({
-    status: 'pending',
-    code,
-  })
+  expect(await asAda.query(api.api.texts.links, { projectId })).toMatchObject([
+    { status: 'pending', code },
+  ])
 
   expect(await text('space-1', `link ${code.toLowerCase()}`)).toBe(
-    'Linked to Matilda. Text me anytime.',
+    'Linked to Matilda. Message me anytime, start with @name to talk to another assistant, or send "who" to see who\'s here.',
   )
-  expect(await asAda.query(api.api.texts.link, { projectId })).toMatchObject({
-    status: 'linked',
-    spaceId: 'space-1',
-  })
+  expect(await asAda.query(api.api.texts.links, { projectId })).toMatchObject([
+    { status: 'linked', spaceId: 'space-1', platform: 'imessage' },
+  ])
   expect(await text('space-2', `link ${code}`)).toBe(
-    "That code didn't match. Get a new one on the Texting page in Matilda.",
+    "That code didn't match. Get a new one on the Messaging page in Matilda.",
   )
 })
 
@@ -89,28 +118,27 @@ test('a code works for 10 minutes', async () => {
   const stale = await asAda.mutation(api.api.texts.startLink, { projectId })
   vi.advanceTimersByTime(11 * 60_000)
   expect(await text('space-1', `link ${stale}`)).toBe(
-    "That code didn't match. Get a new one on the Texting page in Matilda.",
+    "That code didn't match. Get a new one on the Messaging page in Matilda.",
   )
-  expect(await asAda.query(api.api.texts.link, { projectId })).toMatchObject({
-    status: 'pending',
-    code: stale,
-  })
+  expect(await asAda.query(api.api.texts.links, { projectId })).toMatchObject([
+    { status: 'pending', code: stale },
+  ])
 
   const fresh = await asAda.mutation(api.api.texts.startLink, { projectId })
   vi.advanceTimersByTime(9 * 60_000)
   expect(await text('space-1', `link ${fresh}`)).toBe(
-    'Linked to Matilda. Text me anytime.',
+    'Linked to Matilda. Message me anytime, start with @name to talk to another assistant, or send "who" to see who\'s here.',
   )
 })
 
 test('an unlinked number is told how to link', async () => {
   const { text } = await setup()
   expect(await text('space-x', 'hello?')).toBe(
-    "This number isn't linked yet. Open Texting in Matilda and text me the code it shows.",
+    "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows.",
   )
 })
 
-test('a linked phone talks to the lead in a Texts chat, in plain text', async () => {
+test('a linked chat talks to the lead in its own chat, in plain text', async () => {
   const { asAda, projectId, text } = await setup()
   const code = await asAda.mutation(api.api.texts.startLink, { projectId })
   await text('space-1', `link ${code}`)
@@ -122,7 +150,7 @@ test('a linked phone talks to the lead in a Texts chat, in plain text', async ()
     projectId,
     kind: 'chat',
   })
-  expect(chat).toMatchObject({ title: 'Texts' })
+  expect(chat).toMatchObject({ title: 'Matilda · iMessage' })
   const { page } = await asAda.query(api.api.chat.listMessages, {
     threadId: chat.threadId,
     paginationOpts: { numItems: 10, cursor: null },
@@ -179,7 +207,115 @@ test('only the owner can start or read a link', async () => {
   await expect(
     asBob.mutation(api.api.texts.startLink, { projectId }),
   ).rejects.toThrow('Project not found.')
-  await expect(asBob.query(api.api.texts.link, { projectId })).rejects.toThrow(
+  await expect(asBob.query(api.api.texts.links, { projectId })).rejects.toThrow(
     'Project not found.',
   )
+})
+
+test('a project links one chat per app, and relinking an app replaces it', async () => {
+  const { asAda, projectId, text } = await setup()
+  const link = async (spaceId: string, platform: string) =>
+    await text(
+      spaceId,
+      `link ${await asAda.mutation(api.api.texts.startLink, { projectId })}`,
+      platform,
+    )
+  await link('imessage-1', 'imessage')
+  await link('telegram-1', 'telegram')
+  await link('telegram-2', 'telegram')
+
+  const links = await asAda.query(api.api.texts.links, { projectId })
+  expect(links.map((l) => l.status === 'linked' && l.spaceId).sort()).toEqual([
+    'imessage-1',
+    'telegram-2',
+  ])
+})
+
+test('@name talks to that assistant until you switch back', async () => {
+  const { asAda, projectId, text } = await setup()
+  const ivyId = await asAda.mutation(api.api.bots.save, {
+    projectId,
+    name: 'Ivy',
+    role: 'Researcher',
+    instructions: 'You dig into questions.',
+  })
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await text('tg-1', `link ${code}`, 'telegram')
+
+  expect(await text('tg-1', '@ivy, find me a cafe', 'telegram')).toBe(
+    'Ivy: Hi from Matilda.',
+  )
+  expect(await text('tg-1', 'one with wifi', 'telegram')).toBe(
+    'Ivy: Hi from Matilda.',
+  )
+  expect(await text('tg-1', 'who', 'telegram')).toBe(
+    "You're talking to Ivy. You can message Matilda, Ivy: start a message with @name to switch.",
+  )
+  expect(await text('tg-1', '@Bob hi', 'telegram')).toBe(
+    "There's no one by that name here. You can message Matilda, Ivy.",
+  )
+  expect(await text('tg-1', '@Matilda', 'telegram')).toBe(
+    "You're talking to Matilda now.",
+  )
+  expect(await text('tg-1', 'thanks', 'telegram')).toBe('Hi from Matilda.')
+
+  const chats = await asAda.query(api.api.threads.list, {
+    projectId,
+    kind: 'chat',
+  })
+  expect(chats.map((c) => [c.title, c.botId]).sort()).toEqual([
+    ['Ivy · Telegram', ivyId],
+    ['Matilda · Telegram', undefined],
+  ])
+})
+
+test('Telegram and WhatsApp chats link through Photon and get replies through their provider', async () => {
+  const { t, asAda, projectId } = await setup()
+  vi.stubEnv('SPECTRUM_PROJECT_ID', 'project')
+  vi.stubEnv('SPECTRUM_PROJECT_SECRET', 'secret')
+  vi.stubEnv('TELEGRAM_BOT_TOKEN', '1:token')
+  const chats = [
+    ['tg-1', 'telegram'],
+    ['wa-1', 'whatsapp_business'],
+  ] as const
+  vi.useFakeTimers()
+  /** Delivers `text` from each chat the way Photon's webhook does, and runs the turns. */
+  const receive = async (text: (spaceId: string) => Promise<string>) => {
+    for (const [spaceId, platform] of chats) {
+      const message = await text(spaceId)
+      await t.run(async (ctx) => {
+        await ctx.runMutation(components.spectrum.inbound.enqueue, {
+          spaceId,
+          messageId: `${spaceId}-${message}`,
+          platform,
+          content: { type: 'text', text: message },
+          mode: 'collapse',
+          onBatch: await createFunctionHandle(internal.api.texts.respond),
+        })
+      })
+      await t.finishAllScheduledFunctions(vi.runAllTimers)
+    }
+  }
+
+  await receive(
+    async () =>
+      `link ${await asAda.mutation(api.api.texts.startLink, { projectId })}`,
+  )
+  const links = await asAda.query(api.api.texts.links, { projectId })
+  expect(links.map((l) => l.status === 'linked' && l.platform).sort()).toEqual([
+    'telegram',
+    'whatsapp_business',
+  ])
+
+  sentOn.length = 0
+  await receive(() => Promise.resolve('Hello?'))
+  expect(delivered).toEqual([])
+  expect(sentOn.sort((a, b) => a.spaceId.localeCompare(b.spaceId))).toEqual([
+    { platform: 'telegram', spaceId: 'tg-1', text: 'Hi from Matilda.' },
+    {
+      platform: 'whatsapp_business',
+      spaceId: 'wa-1',
+      text: 'Hi from Matilda.',
+    },
+  ])
 })

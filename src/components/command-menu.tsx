@@ -195,7 +195,7 @@ export function CommandMenu({ project }: { project: Doc<'projects'> }) {
                     [
                       ['Library', '/p/$projectId/library', LibraryIcon],
                       ['Assistants', '/p/$projectId/bots', BotIcon],
-                      ['Texting', '/p/$projectId/texting', SmartphoneIcon],
+                      ['Messaging', '/p/$projectId/messaging', SmartphoneIcon],
                       ['Settings', '/p/$projectId/settings', SettingsIcon],
                     ] as const
                   ).map(([label, to, Icon]) => (
