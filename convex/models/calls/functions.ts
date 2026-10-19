@@ -3,7 +3,7 @@ import { internalMutation, internalQuery } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/functions'
-import { callLinesTable } from './table'
+import { callLinesTable, liveTurnsTable } from './table'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
 
@@ -38,7 +38,7 @@ const addLine = internalMutation({
     projectId: v.id('projects'),
     botId: v.optional(v.id('bots')),
     threadId: v.string(),
-    ...callLinesTable.validator.pick('who', 'text', 'ms').fields,
+    ...callLinesTable.validator.pick('who', 'text', 'ms', 'firstMs').fields,
     /** You talked over the call's last reply before saying this. */
     afterCutOff: v.optional(v.boolean()),
   },
@@ -142,4 +142,76 @@ const dump = internalQuery({
   },
 })
 
-export const callLogApi = { addLine, end, history, transcript, dump }
+/** A live turn by its key, for `calls.turn`: starts it, then adds what was heard, a voiced piece, or done. */
+const updateLive = internalMutation({
+  args: {
+    key: v.string(),
+    userId: v.id('users'),
+    heard: v.optional(v.string()),
+    piece: v.optional(liveTurnsTable.validator.fields.pieces.element),
+    done: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { key, userId, heard, piece, done }) => {
+    const turn = await ctx.db
+      .query('liveTurns')
+      .withIndex('by_key', (q) => q.eq('key', key))
+      .unique()
+    if (!turn) {
+      await ctx.db.insert('liveTurns', {
+        key,
+        userId,
+        heard,
+        pieces: piece ? [piece] : [],
+        done: done ?? false,
+      })
+      return null
+    }
+    if (turn.userId !== userId) throw new ConvexError('Turn not found.')
+    await ctx.db.patch('liveTurns', turn._id, {
+      ...(heard === undefined ? {} : { heard }),
+      ...(piece ? { pieces: [...turn.pieces, piece] } : {}),
+      ...(done === undefined ? {} : { done }),
+    })
+    return null
+  },
+})
+
+/** Your turn in progress, by the key your browser made for it. */
+const live = authedQuery({
+  args: { key: v.string() },
+  handler: async (ctx, { key }) => {
+    const turn = await ctx.db
+      .query('liveTurns')
+      .withIndex('by_key', (q) => q.eq('key', key))
+      .unique()
+    return turn?.userId === ctx.userId ? turn : null
+  },
+})
+
+/** Deletes a live turn and its audio once it has had time to play. */
+const forgetLive = internalMutation({
+  args: { key: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { key }) => {
+    const turn = await ctx.db
+      .query('liveTurns')
+      .withIndex('by_key', (q) => q.eq('key', key))
+      .unique()
+    if (!turn) return null
+    for (const piece of turn.pieces) await ctx.storage.delete(piece.storageId)
+    await ctx.db.delete('liveTurns', turn._id)
+    return null
+  },
+})
+
+export const callLogApi = {
+  addLine,
+  end,
+  history,
+  transcript,
+  dump,
+  updateLive,
+  live,
+  forgetLive,
+}

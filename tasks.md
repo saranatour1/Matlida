@@ -28,7 +28,7 @@
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn
-- [ ] Calls: streaming speech per sentence for lower latency
+- [x] Calls: speak the reply sentence by sentence as it streams
 - [ ] Calls: keep listening in a background tab (the mic check runs on animation frames)
 - [ ] Tune the turn-taking thresholds from real calls (`npx convex run api/calls:dump`)
 

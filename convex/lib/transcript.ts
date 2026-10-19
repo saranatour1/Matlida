@@ -19,6 +19,7 @@ export function formatTranscript({
     who: 'you' | 'them'
     text: string
     ms?: number
+    firstMs?: number
     cutOff?: boolean
     _creationTime: number
   }>
@@ -33,17 +34,24 @@ export function formatTranscript({
   const body = lines.map((line) => {
     const who = line.who === 'you' ? 'You' : name
     const took =
-      line.ms === undefined
-        ? ''
-        : `, replied in ${(line.ms / 1000).toFixed(1)} s`
+      line.firstMs !== undefined && line.ms !== undefined
+        ? `, first words in ${seconds(line.firstMs)}, all of it in ${seconds(line.ms)}`
+        : line.ms === undefined
+          ? ''
+          : `, replied in ${seconds(line.ms)}`
     const cut = line.cutOff ? ' (you cut in)' : ''
     return `[${clock(line._creationTime - start)}] ${who}${took}: ${line.text}${cut}`
   })
   return [...head, ...(body.length ? body : ['Nothing was said.'])].join('\n')
 }
 
+/** "4.3 s". */
+function seconds(ms: number) {
+  return `${(ms / 1000).toFixed(1)} s`
+}
+
 /** "1:05" for 65 seconds. */
 function clock(ms: number) {
-  const seconds = Math.max(0, Math.round(ms / 1000))
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  const total = Math.max(0, Math.round(ms / 1000))
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }

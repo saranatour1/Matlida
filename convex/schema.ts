@@ -1,6 +1,10 @@
 import { defineSchema } from 'convex/server'
 import { botsTable } from './models/bots/table'
-import { callLinesTable, callsTable } from './models/calls/table'
+import {
+  callLinesTable,
+  callsTable,
+  liveTurnsTable,
+} from './models/calls/table'
 import { commandsTable } from './models/commands/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
@@ -22,4 +26,5 @@ export default defineSchema({
   reminders: remindersTable,
   calls: callsTable,
   callLines: callLinesTable,
+  liveTurns: liveTurnsTable,
 })

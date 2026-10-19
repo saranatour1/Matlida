@@ -7,6 +7,7 @@ import { internalMutation } from '../../_generated/server'
 import { speechModel } from '../../lib/ai'
 import { zAuthedAction } from '../../lib/functions'
 import { voiceFor } from '../../lib/models'
+import { takePieces } from '../../lib/sentences'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
 import type { Id } from '../../_generated/dataModel'
@@ -14,6 +15,8 @@ import type { ActionCtx } from '../../_generated/server'
 
 /** How long a spoken reply stays in storage, long enough to play it. */
 const AUDIO_TTL_MS = 10 * 60_000
+/** Replies past this many characters stay in the chat but aren't read out. */
+const MAX_SPOKEN = 2000
 
 /** `postMessage` for a call turn, which runs in an action. */
 const post = internalMutation({
@@ -43,20 +46,26 @@ const forget = internalMutation({
   },
 })
 
-/** Reads `text` out in `name`'s voice, and returns a URL to the audio for the next 10 minutes. */
-async function speak(ctx: ActionCtx, text: string, name: string) {
+/** Reads `text` out in `name`'s voice and stores it. */
+async function voice(ctx: ActionCtx, text: string, name: string) {
   const { audio } = await generateSpeech({
     model: speechModel,
-    text: text.slice(0, 2000),
+    text: text.slice(0, MAX_SPOKEN),
     voice: voiceFor(name),
   })
-  const audioId = await ctx.storage.store(
+  const storageId = await ctx.storage.store(
     new Blob([new Uint8Array(audio.uint8Array)], { type: audio.mediaType }),
   )
+  return { storageId, url: (await ctx.storage.getUrl(storageId)) ?? '' }
+}
+
+/** `voice`, deleted after 10 minutes. Returns its URL. */
+async function speak(ctx: ActionCtx, text: string, name: string) {
+  const { storageId, url } = await voice(ctx, text, name)
   await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
-    storageId: audioId,
+    storageId,
   })
-  return await ctx.storage.getUrl(audioId)
+  return url
 }
 
 type Turn = {
@@ -65,13 +74,14 @@ type Turn = {
   callId: Id<'calls'> | null
   transcript: string
   reply: string | null
-  audioUrl: string | null
 }
 
 /**
  * One turn of a voice call: transcribes what the user said, saves it to the
- * chat, lets the chat's assistant answer as it would in the chat but written
- * to be spoken, then speaks the answer. Silence gets no reply.
+ * chat, and lets the chat's assistant answer as it would in the chat but
+ * written to be spoken. The answer is spoken a piece at a time as it streams,
+ * into the live turn `liveKey` the browser is watching, so it starts playing
+ * after the first sentence. Silence gets no reply.
  */
 const turn = zAuthedAction({
   args: {
@@ -84,22 +94,39 @@ const turn = zAuthedAction({
     callId: zid('calls').optional(),
     /** You talked over the last reply, so it's marked cut off. */
     interrupted: z.boolean().optional(),
+    /** The live turn to fill: made by the browser so it can watch from the start. */
+    liveKey: z.string().min(8).max(64),
   },
   handler: async (
     ctx,
-    { storageId, timeZone, interrupted, ...where },
+    { storageId, timeZone, interrupted, liveKey, ...where },
   ): Promise<Turn> => {
     const started = Date.now()
+    const live = (update: {
+      heard?: string
+      piece?: { text: string; url: string; storageId: Id<'_storage'> }
+      done?: boolean
+    }) =>
+      ctx.runMutation(internal.api.calls.updateLive, {
+        key: liveKey,
+        userId: ctx.userId,
+        ...update,
+      })
+    await live({})
+    await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forgetLive, {
+      key: liveKey,
+    })
     const heard = await transcribeClip(ctx, storageId)
     if (!heard.text) {
+      await live({ heard: '', done: true })
       return {
         threadId: where.threadId ?? null,
         callId: where.callId ?? null,
         transcript: '',
         reply: null,
-        audioUrl: null,
       }
     }
+    await live({ heard: heard.text })
     const { callId: _, ...message } = where
     const posted = await ctx.runMutation(internal.api.calls.post, {
       userId: ctx.userId,
@@ -128,41 +155,70 @@ const turn = zAuthedAction({
       inputTokens: 0,
       outputTokens: 0,
     })
-    const { text, project, bot } = await runReply(ctx, {
-      ...posted,
-      timeZone,
-      via: 'voice',
-      cutOff: interrupted,
-    })
-    if (!text.trim()) {
-      return {
-        threadId: posted.threadId,
-        callId,
-        transcript: heard.text,
-        reply: null,
-        audioUrl: null,
-      }
-    }
-    let audioUrl: string | null = null
-    try {
-      audioUrl = await speak(ctx, text, (bot ?? project).name)
-    } finally {
-      // Saved even when speaking fails, with how long the reply took to be ready.
-      callId = await ctx.runMutation(internal.api.calls.addLine, {
-        callId,
-        projectId: where.projectId,
-        threadId: posted.threadId,
-        who: 'them',
-        text,
-        ms: Date.now() - started,
+    // Each finished piece is voiced in order while the rest still streams.
+    let buffer = ''
+    let spoken = 0
+    let firstMs: number | undefined
+    let speaking = Promise.resolve()
+    const say = (piece: string, name: string) => {
+      const text = piece.slice(0, MAX_SPOKEN - spoken)
+      if (!text) return
+      spoken += text.length
+      speaking = speaking.then(async () => {
+        const audio = await voice(ctx, text, name)
+        firstMs ??= Date.now() - started
+        await live({ piece: { text, ...audio } })
       })
+    }
+    let text = ''
+    try {
+      const reply = await runReply(ctx, {
+        ...posted,
+        timeZone,
+        via: 'voice',
+        cutOff: interrupted,
+        onText: (delta, who) => {
+          buffer += delta
+          const ready = takePieces(buffer, {
+            first: spoken === 0,
+            final: false,
+          })
+          buffer = ready.rest
+          for (const piece of ready.pieces)
+            say(piece, (who.bot ?? who.project).name)
+        },
+      })
+      text = reply.text
+      const name = (reply.bot ?? reply.project).name
+      for (const piece of takePieces(buffer, {
+        first: spoken === 0,
+        final: true,
+      }).pieces) {
+        say(piece, name)
+      }
+      await speaking
+    } finally {
+      // If the reply itself failed, a piece still being voiced can't matter.
+      await speaking.catch(() => undefined)
+      await live({ done: true })
+      if (text.trim()) {
+        // Saved even when speaking fails, with how long the reply took.
+        callId = await ctx.runMutation(internal.api.calls.addLine, {
+          callId,
+          projectId: where.projectId,
+          threadId: posted.threadId,
+          who: 'them',
+          text,
+          ms: Date.now() - started,
+          firstMs,
+        })
+      }
     }
     return {
       threadId: posted.threadId,
       callId,
       transcript: heard.text,
-      reply: text,
-      audioUrl,
+      reply: text.trim() ? text : null,
     }
   },
 })

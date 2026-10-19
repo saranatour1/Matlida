@@ -132,3 +132,11 @@
 
 - Below the `md` breakpoint the chat's details panel is now a full-screen overlay (`fixed inset-0 z-40 bg-background`), like the docked call. From `md` up it's the same 20rem side column as before.
 - Before, at 375px it squeezed the chat to about 55px: the message box placeholder wrapped one letter per line, and the header's Call and details buttons sat under the panel where they couldn't be tapped.
+
+### Faster call replies (2026-10-19)
+
+- The assistant starts talking after its first sentence instead of after the whole answer. As the reply streams, `calls.turn` cuts it into pieces (`takePieces` in `convex/lib/sentences.ts`), voices each with Kokoro in order while the rest is still coming, and appends it to a live turn (`liveTurns`).
+- The browser makes the live turn's key, watches it with the Convex client from the moment it uploads your words, and plays each piece as soon as it's decoded. What you said and the reply so far show in the transcript as they arrive.
+- The first piece is cut at the first sentence end so speech starts fast. Later pieces gather sentences to about 80 characters, for fewer, smoother clips. Live turns and their audio are deleted after 10 minutes.
+- Talking over the assistant works across pieces, and now also while it's still thinking. The call history records `firstMs`, the time to the first words, and the dump shows it: `first words in 1.4 s, all of it in 5.2 s`.
+- Verified with unit tests: the splitter (a short first piece, gathering, decimals, new lines, long runs, nothing lost while streaming) and the turn (two sentences voiced as two pieces in order into the live turn, another user can't read it, timings in the dump). The browser playback is untested on a live call, by the user's request; read real timings with `npx convex run api/calls:dump`.

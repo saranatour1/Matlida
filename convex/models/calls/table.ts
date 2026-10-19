@@ -19,6 +19,28 @@ export const callLinesTable = defineTable({
   text: v.string(),
   /** For a reply: how long it took, from hearing you to the reply being ready to play. */
   ms: v.optional(v.number()),
+  /** For a reply: how long until its first words were ready to play. */
+  firstMs: v.optional(v.number()),
   /** For a reply: you talked over it before it finished. */
   cutOff: v.optional(v.boolean()),
 }).index('by_call', ['callId'])
+
+/**
+ * A call turn while it happens: what you said, then the reply's pieces as
+ * each is voiced, so the browser can play them as they come. Deleted after
+ * 10 minutes, with the audio.
+ */
+export const liveTurnsTable = defineTable({
+  userId: v.id('users'),
+  /** Made by the browser, so it can watch the turn before it starts. */
+  key: v.string(),
+  heard: v.optional(v.string()),
+  pieces: v.array(
+    v.object({
+      text: v.string(),
+      url: v.string(),
+      storageId: v.id('_storage'),
+    }),
+  ),
+  done: v.boolean(),
+}).index('by_key', ['key'])

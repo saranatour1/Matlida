@@ -2,6 +2,7 @@ import { createThread } from '@convex-dev/agent'
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { expect, test, vi } from 'vitest'
+import { generateSpeech } from 'ai'
 import { api, components, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { languageModel } from '../../lib/ai'
@@ -13,7 +14,7 @@ vi.mock('../../lib/ai', async () => {
   const { mockModel } = await import('@convex-dev/agent')
   return {
     languageModel: mockModel({
-      content: [{ type: 'text', text: 'Sure, talk soon.' }],
+      content: [{ type: 'text', text: 'Sure, talk soon. Bye for now.' }],
     }),
     transcriptionModel: {},
     speechModel: {},
@@ -55,19 +56,37 @@ async function setup() {
 
 test('a call turn saves what you said and the reply, and returns it spoken', async () => {
   heard.text = 'Hello Matilda'
-  const { t, asAda, projectId, clip } = await setup()
+  vi.mocked(generateSpeech).mockClear()
+  const { t, asAda, asBob, projectId, clip } = await setup()
   const storageId = await clip()
 
+  const liveKey = 'live-turn-key-1'
   const result = await asAda.action(api.api.calls.turn, {
+    liveKey,
     projectId,
     storageId,
   })
 
   expect(result).toMatchObject({
     transcript: 'Hello Matilda',
-    reply: 'Sure, talk soon.',
+    reply: 'Sure, talk soon. Bye for now.',
   })
-  expect(result.audioUrl).toEqual(expect.any(String))
+  // Spoken a sentence at a time, in order, into the live turn the browser watches.
+  expect(await asAda.query(api.api.calls.live, { key: liveKey })).toMatchObject(
+    {
+      heard: 'Hello Matilda',
+      done: true,
+      pieces: [
+        { text: 'Sure, talk soon.', url: expect.any(String) },
+        { text: 'Bye for now.', url: expect.any(String) },
+      ],
+    },
+  )
+  expect(vi.mocked(generateSpeech).mock.calls.map(([o]) => o.text)).toEqual([
+    'Sure, talk soon.',
+    'Bye for now.',
+  ])
+  expect(await asBob.query(api.api.calls.live, { key: liveKey })).toBeNull()
   expect(await t.run((ctx) => ctx.storage.get(storageId))).toBeNull()
   const { page } = await asAda.query(api.api.chat.listMessages, {
     threadId: result.threadId ?? '',
@@ -75,7 +94,7 @@ test('a call turn saves what you said and the reply, and returns it spoken', asy
   })
   expect(page.map((m) => m.text).sort()).toEqual([
     'Hello Matilda',
-    'Sure, talk soon.',
+    'Sure, talk soon. Bye for now.',
   ])
 })
 
@@ -84,6 +103,7 @@ test('silence gets no reply and starts no chat', async () => {
   const { t, asAda, projectId, clip } = await setup()
 
   const result = await asAda.action(api.api.calls.turn, {
+    liveKey: crypto.randomUUID(),
     projectId,
     storageId: await clip(),
   })
@@ -93,7 +113,6 @@ test('silence gets no reply and starts no chat', async () => {
     callId: null,
     transcript: '',
     reply: null,
-    audioUrl: null,
   })
   expect(await t.run((ctx) => ctx.db.query('threads').take(1))).toEqual([])
 })
@@ -103,7 +122,11 @@ test("you can't call into someone else's workspace", async () => {
   const { asBob, projectId, clip } = await setup()
 
   await expect(
-    asBob.action(api.api.calls.turn, { projectId, storageId: await clip() }),
+    asBob.action(api.api.calls.turn, {
+      liveKey: crypto.randomUUID(),
+      projectId,
+      storageId: await clip(),
+    }),
   ).rejects.toThrow('Project not found.')
 })
 
@@ -194,11 +217,13 @@ test('a call keeps every line from its first turn, for you only', async () => {
   const { t, asAda, asBob, projectId, clip } = await setup()
 
   const first = await asAda.action(api.api.calls.turn, {
+    liveKey: crypto.randomUUID(),
     projectId,
     storageId: await clip(),
   })
   heard.text = 'And again'
   const second = await asAda.action(api.api.calls.turn, {
+    liveKey: crypto.randomUUID(),
     projectId,
     threadId: first.threadId ?? undefined,
     storageId: await clip(),
@@ -211,9 +236,9 @@ test('a call keeps every line from its first turn, for you only', async () => {
   const lines = await asAda.query(api.api.calls.transcript, { id: callId })
   expect(lines.map((l) => [l.who, l.text])).toEqual([
     ['you', 'Hello Matilda'],
-    ['them', 'Sure, talk soon.'],
+    ['them', 'Sure, talk soon. Bye for now.'],
     ['you', 'And again'],
-    ['them', 'Sure, talk soon.'],
+    ['them', 'Sure, talk soon. Bye for now.'],
   ])
   expect(lines[1]?.ms).toEqual(expect.any(Number))
   // Never hung up (a closed tab): it still ends at its last line.
@@ -230,7 +255,9 @@ test('a call keeps every line from its first turn, for you only', async () => {
   const text = await t.query(internal.api.calls.dump, {})
   expect(text).toContain('Call with Matilda')
   expect(text).toMatch(/\] You: Hello Matilda/)
-  expect(text).toMatch(/\] Matilda, replied in \d+\.\d s: Sure, talk soon\./)
+  expect(text).toMatch(
+    /\] Matilda, first words in \d+\.\d s, all of it in \d+\.\d s: Sure, talk soon\./,
+  )
 
   await expect(
     asBob.query(api.api.calls.transcript, { id: callId }),
@@ -242,6 +269,7 @@ test('a call keeps every line from its first turn, for you only', async () => {
   })
   await expect(
     asBob.action(api.api.calls.turn, {
+      liveKey: crypto.randomUUID(),
       projectId: bobsProject,
       storageId: await clip(),
       callId,
@@ -276,11 +304,13 @@ test('talking over a reply marks it cut off in the call history', async () => {
   heard.text = 'Tell me a long story'
   const { t, asAda, projectId, clip } = await setup()
   const first = await asAda.action(api.api.calls.turn, {
+    liveKey: crypto.randomUUID(),
     projectId,
     storageId: await clip(),
   })
   heard.text = 'Actually, stop'
   await asAda.action(api.api.calls.turn, {
+    liveKey: crypto.randomUUID(),
     projectId,
     threadId: first.threadId ?? undefined,
     storageId: await clip(),
@@ -297,7 +327,7 @@ test('talking over a reply marks it cut off in the call history', async () => {
     ['them', false],
   ])
   expect(await t.query(internal.api.calls.dump, {})).toContain(
-    'Sure, talk soon. (you cut in)',
+    'Sure, talk soon. Bye for now. (you cut in)',
   )
   const prompts = (
     languageModel as unknown as { doStreamCalls: Array<unknown> }
