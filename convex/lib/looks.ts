@@ -2,9 +2,9 @@ import { literals } from 'convex-helpers/validators'
 import { v } from 'convex/values'
 
 /**
- * How an assistant looks: a body shape and a color, with Matilda's three
- * typing dots for a face. The app draws them, so nobody uploads images. The
- * trefoil and swirl borrow from Convex's mark, the kite from Matilda's.
+ * How an assistant looks: a body shape and a color, drawn as a glossy gem.
+ * The app draws them, so nobody uploads images. The trefoil and swirl borrow
+ * from Convex's mark, the kite from Matilda's.
  */
 export const SHAPES = [
   'round',
