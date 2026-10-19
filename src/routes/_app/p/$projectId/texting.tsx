@@ -68,6 +68,9 @@ function Texting() {
             <p className="font-mono text-lg tracking-widest">
               link {link.code}
             </p>
+            <p className="text-muted-foreground">
+              The code works for 10 minutes.
+            </p>
             <Button
               variant="outline"
               className="self-start"

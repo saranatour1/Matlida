@@ -14,11 +14,18 @@ import type { MutationCtx, QueryCtx } from '../../_generated/server'
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 
+const UNBIASED_BYTES = 256 - (256 % CODE_ALPHABET.length)
+
+const CODE_TTL_MS = 10 * 60_000
+
 function newCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join(
-    '',
-  )
+  let code = ''
+  while (code.length < 6) {
+    const [byte] = crypto.getRandomValues(new Uint8Array(1))
+    if (byte < UNBIASED_BYTES)
+      code += CODE_ALPHABET[byte % CODE_ALPHABET.length]
+  }
+  return code
 }
 
 async function getLink(ctx: Pick<QueryCtx, 'db'>, projectId: Id<'projects'>) {
@@ -75,6 +82,7 @@ const claim = internalMutation({
       .withIndex('by_code', (q) => q.eq('code', code.toUpperCase()))
       .unique()
     if (pending?.status !== 'pending') return null
+    if (Date.now() - pending._creationTime > CODE_TTL_MS) return null
     const previous = await ctx.db
       .query('phoneLinks')
       .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
@@ -177,20 +185,25 @@ const respond = internalAction({
       .map(textOf)
       .filter(Boolean)
       .join('\n')
-    if (text) {
-      const reply: string = await ctx.runAction(internal.api.texts.answer, {
-        spaceId: args.spaceId,
-        text,
-      })
-      // A newer text may have superseded this turn while the lead was thinking.
-      if (await spectrum.isCancelled(ctx, args)) return null
-      await spectrum.send(ctx, {
-        spaceId: args.spaceId,
-        chainId: args.chainId,
-        content: { type: 'text', text: reply },
-      })
+    try {
+      if (text) {
+        const reply: string = await ctx
+          .runAction(internal.api.texts.answer, { spaceId: args.spaceId, text })
+          .catch((error: unknown) => {
+            console.error(error)
+            return 'Sorry, something went wrong. Try again in a minute.'
+          })
+        // A newer text may have superseded this turn while the lead was thinking.
+        if (await spectrum.isCancelled(ctx, args)) return null
+        await spectrum.send(ctx, {
+          spaceId: args.spaceId,
+          chainId: args.chainId,
+          content: { type: 'text', text: reply },
+        })
+      }
+    } finally {
+      await spectrum.completeChain(ctx, args)
     }
-    await spectrum.completeChain(ctx, args)
     return null
   },
 })
