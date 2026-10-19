@@ -8,9 +8,16 @@ import { zid } from 'convex-helpers/server/zod4'
 import { paginationOptsValidator } from 'convex/server'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
+import { transcribe as transcribeAudio } from 'ai'
 import { components, internal } from '../../_generated/api'
 import { internalAction, internalQuery } from '../../_generated/server'
-import { authedQuery, zAuthedMutation } from '../../lib/functions'
+import { transcriptionModel } from '../../lib/ai'
+import {
+  authedAction,
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { findCommand } from '../commands/functions'
@@ -159,4 +166,35 @@ const listMessages = authedQuery({
   },
 })
 
-export const chatApi = { sendMessage, context, respond, listMessages }
+/** Where the browser uploads a voice recording before `transcribe`. */
+const voiceUploadUrl = authedMutation({
+  args: {},
+  handler: async (ctx) => await ctx.storage.generateUploadUrl(),
+})
+
+/** Turns an uploaded voice recording into text, then deletes the recording. */
+const transcribe = authedAction({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, { storageId }) => {
+    const audio = await ctx.storage.get(storageId)
+    await ctx.storage.delete(storageId)
+    if (!audio) throw new ConvexError('The recording was lost. Try again.')
+    if (audio.size > 10 * 1024 * 1024) {
+      throw new ConvexError('Recordings can be at most 10 MB.')
+    }
+    const { text } = await transcribeAudio({
+      model: transcriptionModel,
+      audio: new Uint8Array(await audio.arrayBuffer()),
+    })
+    return text.trim()
+  },
+})
+
+export const chatApi = {
+  sendMessage,
+  context,
+  respond,
+  listMessages,
+  voiceUploadUrl,
+  transcribe,
+}

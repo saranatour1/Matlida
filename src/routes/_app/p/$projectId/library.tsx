@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_app/p/$projectId/library')({
 
 type Editing = Doc<'commands'> & { markdown: string }
 
-/** Saved material the assistants use. Commands for now. */
+/** What the assistants made and use: plans and commands. */
 function Library() {
   const project = useProject()
   const commands = useQuery(
@@ -48,7 +48,8 @@ function Library() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
           <h1 className="text-lg font-semibold">Library</h1>
-          <h2 className="mt-4 font-medium">Commands</h2>
+          <Plans projectId={project._id} />
+          <h2 className="mt-6 font-medium">Commands</h2>
           <p className="text-sm text-muted-foreground">
             Type <code>/name</code> in a chat to have {project.name} follow a
             command. Each one is a markdown file in Convex storage.
@@ -187,5 +188,60 @@ function CommandForm({
         </Button>
       </div>
     </form>
+  )
+}
+
+/** Plans assistants saved with `save_plan`. Tick steps off as you go. */
+function Plans({ projectId }: { projectId: Id<'projects'> }) {
+  const plans = useQuery(api.api.plans.list, { projectId })
+  const toggle = useMutation(api.api.plans.toggleStep)
+  const remove = useMutation(api.api.plans.remove)
+  return (
+    <section className="mt-4 flex flex-col gap-2">
+      <h2 className="font-medium">Plans</h2>
+      {plans?.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No plans yet. Ask an assistant to make one.
+        </p>
+      )}
+      {plans?.map((plan) => (
+        <div key={plan._id} className="rounded-xl border p-3 text-sm">
+          <div className="flex items-center gap-2">
+            <p className="flex-1 font-medium">{plan.title}</p>
+            <span className="text-xs text-muted-foreground">
+              {plan.steps.filter((s) => s.done).length}/{plan.steps.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void remove({ id: plan._id })}
+            >
+              Delete
+            </Button>
+          </div>
+          <ul className="mt-2 flex flex-col gap-1">
+            {plan.steps.map((step, index) => (
+              <li key={index}>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={step.done}
+                    onChange={() => void toggle({ id: plan._id, index })}
+                    className="mt-1"
+                  />
+                  <span
+                    className={
+                      step.done ? 'text-muted-foreground line-through' : ''
+                    }
+                  >
+                    {step.text}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
   )
 }

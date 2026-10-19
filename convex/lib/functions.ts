@@ -1,5 +1,6 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
 import {
+  customAction,
   customCtx,
   customMutation,
   customQuery,
@@ -18,6 +19,7 @@ const withUser = customCtx(async (ctx: { auth: Auth }) => {
 /** Queries and mutations for signed-in users. They add `ctx.userId`, and throw when nobody is signed in. */
 export const authedQuery = customQuery(query, withUser)
 export const authedMutation = customMutation(mutation, withUser)
+export const authedAction = customAction(action, withUser)
 
 /**
  * Signed-in mutations and actions whose args are Zod schemas, for validating
