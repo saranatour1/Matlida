@@ -103,6 +103,9 @@ function Transcript({
               }
             >
               {line.text}
+              {line.cutOff && (
+                <span className="text-muted-foreground"> (cut off)</span>
+              )}
             </li>
           ))}
         </ol>

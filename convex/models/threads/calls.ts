@@ -82,8 +82,13 @@ const turn = zAuthedAction({
     timeZone: zTimeZone.optional(),
     /** The call's record, from its first turn or `calls.answer`, so the turn joins its transcript. */
     callId: zid('calls').optional(),
+    /** You talked over the last reply, so it's marked cut off. */
+    interrupted: z.boolean().optional(),
   },
-  handler: async (ctx, { storageId, timeZone, ...where }): Promise<Turn> => {
+  handler: async (
+    ctx,
+    { storageId, timeZone, interrupted, ...where },
+  ): Promise<Turn> => {
     const started = Date.now()
     const heard = await transcribeClip(ctx, storageId)
     if (!heard.text) {
@@ -111,6 +116,7 @@ const turn = zAuthedAction({
         threadId: posted.threadId,
         who: 'you',
         text: heard.text,
+        afterCutOff: interrupted,
       },
     )
     await ctx.runMutation(internal.api.usage.record, {
@@ -126,6 +132,7 @@ const turn = zAuthedAction({
       ...posted,
       timeZone,
       via: 'voice',
+      cutOff: interrupted,
     })
     if (!text.trim()) {
       return {

@@ -19,4 +19,6 @@ export const callLinesTable = defineTable({
   text: v.string(),
   /** For a reply: how long it took, from hearing you to the reply being ready to play. */
   ms: v.optional(v.number()),
+  /** For a reply: you talked over it before it finished. */
+  cutOff: v.optional(v.boolean()),
 }).index('by_call', ['callId'])

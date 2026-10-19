@@ -19,6 +19,7 @@ export function formatTranscript({
     who: 'you' | 'them'
     text: string
     ms?: number
+    cutOff?: boolean
     _creationTime: number
   }>
 }) {
@@ -35,7 +36,8 @@ export function formatTranscript({
       line.ms === undefined
         ? ''
         : `, replied in ${(line.ms / 1000).toFixed(1)} s`
-    return `[${clock(line._creationTime - start)}] ${who}${took}: ${line.text}`
+    const cut = line.cutOff ? ' (you cut in)' : ''
+    return `[${clock(line._creationTime - start)}] ${who}${took}: ${line.text}${cut}`
   })
   return [...head, ...(body.length ? body : ['Nothing was said.'])].join('\n')
 }

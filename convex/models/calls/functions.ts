@@ -39,15 +39,26 @@ const addLine = internalMutation({
     botId: v.optional(v.id('bots')),
     threadId: v.string(),
     ...callLinesTable.validator.pick('who', 'text', 'ms').fields,
+    /** You talked over the call's last reply before saying this. */
+    afterCutOff: v.optional(v.boolean()),
   },
   returns: v.id('calls'),
-  handler: async (ctx, { callId, projectId, botId, threadId, ...line }) => {
+  handler: async (
+    ctx,
+    { callId, projectId, botId, threadId, afterCutOff, ...line },
+  ) => {
     let id = callId
     if (id) {
       const call = await ctx.db.get('calls', id)
       if (call?.projectId !== projectId)
         throw new ConvexError('Call not found.')
       if (!call.threadId) await ctx.db.patch('calls', id, { threadId })
+      if (afterCutOff) {
+        const last = await linesOf(ctx, id).order('desc').first()
+        if (last?.who === 'them') {
+          await ctx.db.patch('callLines', last._id, { cutOff: true })
+        }
+      }
     } else {
       id = await ctx.db.insert('calls', { projectId, botId, threadId })
     }

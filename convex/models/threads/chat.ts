@@ -163,12 +163,15 @@ export async function runReply(
     commandId,
     timeZone,
     via,
+    cutOff,
   }: {
     threadId: string
     promptMessageId: string
     commandId?: Id<'commands'>
     timeZone?: string
     via?: Via
+    /** On a call: the user talked over the last reply. */
+    cutOff?: boolean
   },
 ) {
   const {
@@ -185,10 +188,11 @@ export async function runReply(
   const markdown =
     command && (await (await ctx.storage.get(command.storageId))?.text())
   const { agent, tools } = bot
-    ? createBot(project, bot, members, { timeZone, via })
+    ? createBot(project, bot, members, { timeZone, via, cutOff })
     : createLead(project, members, {
         timeZone,
         via,
+        cutOff,
         command:
           command && markdown ? { name: command.name, markdown } : undefined,
       })
