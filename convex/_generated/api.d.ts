@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as _workaround from "../_workaround.js";
 import type * as api_auth from "../api/auth.js";
 import type * as api_bots from "../api/bots.js";
 import type * as api_chat from "../api/chat.js";
@@ -46,7 +45,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  _workaround: typeof _workaround;
   "api/auth": typeof api_auth;
   "api/bots": typeof api_bots;
   "api/chat": typeof api_chat;
