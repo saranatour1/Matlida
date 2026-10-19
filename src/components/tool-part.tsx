@@ -70,7 +70,7 @@ export function ToolPart({ part }: { part: Part }) {
   )
 }
 
-const VIA = { chat: 'here', text: 'by text', call: 'with a call' } as const
+const VIA = { chat: 'here', text: 'by text' } as const
 
 /** A reminder an assistant set, with when and how it will arrive. */
 export function ReminderPart({

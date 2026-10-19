@@ -39,7 +39,7 @@ async function setup() {
 
 const HOUR = 60 * 60 * 1000
 
-test('a due call reminder falls back to the chat when calls and texting are off', async () => {
+test('a due text reminder lands in the chat when texting is not linked', async () => {
   const { t, asAda, projectId, threadId } = await setup()
   await t.mutation(internal.api.reminders.schedule, {
     projectId,
@@ -47,7 +47,7 @@ test('a due call reminder falls back to the chat when calls and texting are off'
     from: 'Matilda',
     message: 'Call the bank',
     dueAt: Date.now() + HOUR,
-    via: 'call',
+    via: 'text',
   })
   expect(await asAda.query(api.api.reminders.list, { projectId })).toHaveLength(
     1,
@@ -59,7 +59,7 @@ test('a due call reminder falls back to the chat when calls and texting are off'
   const [reminder] = await t.run((ctx) => ctx.db.query('reminders').take(10))
   expect(reminder).toMatchObject({
     status: 'sent',
-    note: "Calls aren't set up yet and texting isn't linked, so it's only here.",
+    note: "Texting isn't linked, so it's only here.",
   })
   const { page } = await asAda.query(api.api.chat.listMessages, {
     threadId,
@@ -100,16 +100,4 @@ test('reminders in the past or over a year out are refused', async () => {
       }),
     ).rejects.toThrow()
   }
-})
-
-test('a phone number must be in international format', async () => {
-  const { asAda } = await setup()
-  await expect(
-    asAda.mutation(api.api.users.setPhone, { phone: '555-0123' }),
-  ).rejects.toThrow('Use international format, like +14155550123.')
-  await asAda.mutation(api.api.users.setPhone, { phone: '+14155550123' })
-  expect(await asAda.query(api.api.reminders.callStatus, {})).toEqual({
-    configured: false,
-    phone: '+14155550123',
-  })
 })

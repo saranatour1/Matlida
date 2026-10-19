@@ -26,13 +26,6 @@ const app = defineApp({
     SPECTRUM_WEBHOOK_SECRET: v.optional(v.string()),
     SPECTRUM_PROJECT_ID: v.optional(v.string()),
     SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
-    /**
-     * Vapi places reminder calls through Photon's SIP line. VAPI_PHONE_NUMBER_ID
-     * is a Vapi number on a BYO SIP trunk pointed at sip.spectrum.photon.codes.
-     * Calls fall back to a text until both are set.
-     */
-    VAPI_API_KEY: v.optional(v.string()),
-    VAPI_PHONE_NUMBER_ID: v.optional(v.string()),
   },
 })
 

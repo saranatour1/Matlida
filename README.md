@@ -42,24 +42,12 @@ Set these on the Convex deployment (`npx convex env set NAME value`):
 | `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET`                        | Google sign-in                                         |
 | `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET`                        | GitHub sign-in                                         |
 | `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `SPECTRUM_WEBHOOK_SECRET` | Texting through Photon. Optional                       |
-| `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`                                      | Reminder calls. Optional, see below                    |
 
 And in the app's environment when deploying:
 
 | Name            | What it's for                                                    |
 | --------------- | ---------------------------------------------------------------- |
 | `VITE_SITE_URL` | Public URL, so the `og:image` link is absolute for link previews |
-
-### Reminder calls
-
-Assistants can call you with a reminder and hang up when you're done. Photon's voice line only speaks SIP, so a Vapi voice agent places the call through it:
-
-1. In Vapi, add a BYO SIP trunk credential pointed at `sip.spectrum.photon.codes` (TLS on port 5061), with your Photon project ID and secret as the username and password.
-2. Add a phone number on that credential, using your Photon iMessage line's number.
-3. Set `VAPI_API_KEY` and that number's id as `VAPI_PHONE_NUMBER_ID` on the Convex deployment.
-4. Save your own number in Settings.
-
-Until all of that is set, a reminder that asks for a call goes out as a text, or stays in the chat if texting isn't linked.
 
 ## Scripts
 

@@ -2,7 +2,6 @@ import { saveMessage } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
 import { components, internal } from '../../_generated/api'
 import {
-  env,
   internalAction,
   internalMutation,
   internalQuery,
@@ -12,7 +11,6 @@ import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import { getLink } from '../texts/functions'
 import { spectrum } from '../texts/spectrum'
-import { placeCall } from './call'
 import { remindersTable } from './table'
 
 const YEAR_MS = 366 * 24 * 60 * 60 * 1000
@@ -76,21 +74,11 @@ const cancel = authedMutation({
   },
 })
 
-/** Whether reminder calls can go out: Vapi is configured and you saved a number. */
-const callStatus = authedQuery({
-  args: {},
-  handler: async (ctx) => ({
-    configured: Boolean(env.VAPI_API_KEY && env.VAPI_PHONE_NUMBER_ID),
-    phone: (await ctx.db.get('users', ctx.userId))?.phone ?? null,
-  }),
-})
-
 const delivery = internalQuery({
   args: { id: v.id('reminders') },
   returns: v.union(
     v.object({
       reminder: schema.doc('reminders'),
-      phone: v.union(v.string(), v.null()),
       spaceId: v.union(v.string(), v.null()),
     }),
     v.null(),
@@ -100,11 +88,9 @@ const delivery = internalQuery({
     if (reminder?.status !== 'scheduled') return null
     const project = await ctx.db.get('projects', reminder.projectId)
     if (!project) return null
-    const owner = await ctx.db.get('users', project.ownerId)
     const link = await getLink(ctx, project._id)
     return {
       reminder,
-      phone: owner?.phone ?? null,
       spaceId: link?.status === 'linked' ? link.spaceId : null,
     }
   },
@@ -129,40 +115,16 @@ const markSent = internalMutation({
   },
 })
 
-/** Delivers a due reminder: a call or a text when asked for, and always a chat message. */
+/** Delivers a due reminder: a text when asked for, and always a chat message. */
 const fire = internalAction({
   args: { id: v.id('reminders') },
   returns: v.null(),
   handler: async (ctx, { id }) => {
     const found = await ctx.runQuery(internal.api.reminders.delivery, { id })
     if (!found) return null
-    const { reminder, phone, spaceId } = found
-    /** Why a call fell back to a text, if it did. */
-    let fallback: string | undefined
-    if (reminder.via === 'call') {
-      const apiKey = env.VAPI_API_KEY
-      const phoneNumberId = env.VAPI_PHONE_NUMBER_ID
-      if (!apiKey || !phoneNumberId) {
-        fallback = "Calls aren't set up yet"
-      } else if (!phone) {
-        fallback = 'I need your phone number in Settings to call'
-      } else {
-        try {
-          await placeCall({
-            apiKey,
-            phoneNumberId,
-            to: phone,
-            from: reminder.from,
-            message: reminder.message,
-          })
-        } catch (error) {
-          console.error(error)
-          fallback = "The call didn't go through"
-        }
-      }
-    }
-    let note = fallback && `${fallback}, so I texted instead.`
-    if (reminder.via === 'text' || fallback) {
+    const { reminder, spaceId } = found
+    let note: string | undefined
+    if (reminder.via === 'text') {
       if (spaceId) {
         await spectrum.send(ctx, {
           spaceId,
@@ -172,9 +134,7 @@ const fire = internalAction({
           },
         })
       } else {
-        note = fallback
-          ? `${fallback} and texting isn't linked, so it's only here.`
-          : "Texting isn't linked, so it's only here."
+        note = "Texting isn't linked, so it's only here."
       }
     }
     await ctx.runMutation(internal.api.reminders.markSent, { id, note })
@@ -186,7 +146,6 @@ export const remindersApi = {
   schedule,
   list,
   cancel,
-  callStatus,
   delivery,
   markSent,
   fire,

@@ -47,7 +47,6 @@ export function AssistantPanel({
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
   const link = useQuery(api.api.texts.link, { projectId: project._id })
-  const calls = useQuery(api.api.reminders.callStatus)
 
   const rows = usage ?? []
   const aiCost = rows.reduce((sum, r) => sum + r.aiCost, 0)
@@ -141,22 +140,6 @@ export function AssistantPanel({
                 className="underline"
               >
                 Set up
-              </Link>
-            )
-          }
-        />
-        <Connector
-          name="Calls"
-          detail="Vapi over Photon"
-          on={Boolean(calls?.configured && calls.phone)}
-          action={
-            !(calls?.configured && calls.phone) && (
-              <Link
-                to="/p/$projectId/settings"
-                params={{ projectId: project._id }}
-                className="underline"
-              >
-                {calls?.configured ? 'Add number' : 'Not set up'}
               </Link>
             )
           }

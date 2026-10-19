@@ -1,5 +1,4 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { PhoneForm } from '~/components/phone-form'
 import { ProjectForm } from '~/components/project-form'
 import { useProject } from '~/hooks/use-project'
 
@@ -20,7 +19,6 @@ function Settings() {
           </p>
         </div>
         <ProjectForm key={project._id} project={project} />
-        <PhoneForm />
         <section className="flex flex-col gap-1 rounded-xl border p-4 text-sm">
           <h2 className="font-medium">Texting</h2>
           <p className="text-muted-foreground">
