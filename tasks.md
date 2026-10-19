@@ -23,6 +23,7 @@
 - [x] In-app voice calls with any assistant
 - [x] Call history, and the call docked at the side with its full transcript
 - [x] Assistants ring you in the app for call reminders
+- [x] Details panel is full screen on phones
 - [x] Message assistants over iMessage, WhatsApp and Telegram through Photon
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
