@@ -145,6 +145,6 @@
 
 - One registry lists every channel: Email, iMessage (which also reaches SMS and RCS phones through Photon's fallback), Telegram, WhatsApp, Phone calls (coming soon), and the assistants' tools (web search, research, voice input, voice replies). It lives in `convex/lib/channels.ts` as a union on `via`, so adding a channel is one entry.
 - `channels.list` computes each channel's status for a workspace from existing data: connected, ready to link, needs deployment setup, or coming soon. It says which env vars are missing by name and never sends a value.
-- `/p/$projectId/connections` shows the list in two groups. The details panel's Connectors section, the command menu, Settings and the Messaging page all point at it, and the Messaging page keeps the `link <code>` flow.
+- `/p/$projectId/connections` shows the list in two groups. The details panel's Connectors section reads the same query, the Messaging page reads the registry's names and keeps the `link <code>` flow, and the command menu and Settings link to the page.
 - `MAIL_DOMAIN` is declared (optional) for the email channel, which later PRs fill in.
 - Verified with unit tests: the pure status rules, the query's statuses with and without env vars and a linked app, that no env value appears in the result, and that another user is refused. Not run against a deployment: this environment only had access to the shared dev deployment, which is off limits.

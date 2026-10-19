@@ -1,6 +1,7 @@
 import { convexTest } from 'convex-test'
 import { afterEach, expect, test, vi } from 'vitest'
 import { api } from '../../_generated/api'
+import { CHANNELS } from '../../lib/channels'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -9,6 +10,10 @@ afterEach(() => {
 })
 
 async function setup() {
+  // Start from nothing set, whatever the shell exported.
+  for (const name of new Set(CHANNELS.flatMap((c) => c.env))) {
+    vi.stubEnv(name, '')
+  }
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', {}),

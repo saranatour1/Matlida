@@ -165,11 +165,15 @@ export function AssistantPanel({
                     (status?.status === 'ready' ||
                       status?.status === 'needs_setup') && (
                       <Link
-                        to="/p/$projectId/connections"
+                        to={
+                          status.status === 'ready' && channel.via === 'photon'
+                            ? '/p/$projectId/messaging'
+                            : '/p/$projectId/connections'
+                        }
                         params={{ projectId: project._id }}
                         className="underline"
                       >
-                        Set up
+                        {status.status === 'ready' ? 'Link' : 'Set up'}
                       </Link>
                     )
                   }
