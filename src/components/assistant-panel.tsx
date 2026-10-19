@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { CHANNELS } from '../../convex/lib/channels'
-import { MODELS } from '../../convex/lib/models'
+import { MODELS, modelName } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
@@ -193,7 +193,9 @@ export function AssistantPanel({
               <dt className="text-muted-foreground">Workspace</dt>
               <dd className="truncate">{project.name}</dd>
               <dt className="text-muted-foreground">Model</dt>
-              <dd className="truncate">{MODELS.chat}</dd>
+              <dd className="truncate">
+                {thread?.model ?? bot?.model ?? project.model ?? MODELS.chat}
+              </dd>
               <dt className="text-muted-foreground">Gateway</dt>
               <dd>Convex AI gateway</dd>
             </dl>
@@ -269,7 +271,15 @@ export function AssistantPanel({
                   return (
                     <li key={r._id} className="flex items-center gap-2 text-xs">
                       <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                      <span className="flex-1 truncate">{r.label}</span>
+                      <span className="flex-1 truncate">
+                        {r.label}
+                        {r.model && (
+                          <span className="text-muted-foreground">
+                            {' '}
+                            · {modelName(r.model)}
+                          </span>
+                        )}
+                      </span>
                       <span className="text-muted-foreground tabular-nums">
                         {r.kind === 'compute'
                           ? `${((r.computeMs ?? 0) / 1000).toFixed(1)}s`

@@ -9,5 +9,7 @@ export const botsTable = defineTable({
   role: v.string(),
   /** What the bot does and how it thinks. It becomes the bot's system prompt. */
   instructions: v.string(),
+  /** The gateway model it runs on. Unset means the app's default. */
+  model: v.optional(v.string()),
   portrait: v.optional(vPortrait),
 }).index('by_project_and_name', ['projectId', 'name'])

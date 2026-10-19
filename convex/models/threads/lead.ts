@@ -2,7 +2,8 @@ import { Agent, createTool, stepCountIs } from '@convex-dev/agent'
 import { z } from 'zod'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
-import { languageModel } from '../../lib/ai'
+import { chatModel, languageModel } from '../../lib/ai'
+import { MODELS } from '../../lib/models'
 import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
 import type { UsageHandler } from '@convex-dev/agent'
@@ -36,6 +37,8 @@ const STYLE: Record<Via, string> = {
 export type ReplyOptions = {
   command?: RunCommand
   via?: Via
+  /** The chat's model, chosen in the chat. It wins over the assistant's own. */
+  model?: string
   /** The user's IANA time zone, so "at 5 tomorrow" means their 5. UTC when unknown. */
   timeZone?: string
   /** On a call: the user talked over the last reply. */
@@ -95,8 +98,17 @@ ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}`
 
 const BOT_CALLS_PER_REPLY = 6
 
+/** The gateway model for `id`, or the default when it's unset or the default itself. */
+function modelFor(id: string | undefined) {
+  return !id || id === MODELS.chat ? languageModel : chatModel(id)
+}
+
 /** Records each model step's tokens and cost, charged to `chargeTo` or the agent's own thread. */
-function recordUsage(project: Project, chargeTo?: string): UsageHandler {
+function recordUsage(
+  project: Project,
+  model: string,
+  chargeTo?: string,
+): UsageHandler {
   return async (ctx, { threadId, agentName, usage, providerMetadata }) => {
     const thread = chargeTo ?? threadId
     if (!thread) return
@@ -105,6 +117,7 @@ function recordUsage(project: Project, chargeTo?: string): UsageHandler {
       threadId: thread,
       kind: 'reply',
       label: agentName ?? 'Assistant',
+      model,
       aiCost: gatewayCost(providerMetadata),
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
@@ -147,11 +160,12 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
             userId: project.ownerId,
           },
         )
+        const model = b.model ?? MODELS.chat
         const agent = new Agent(components.agent, {
           name: b.name,
-          languageModel,
+          languageModel: modelFor(model),
           instructions: botInstructions(project, b, []),
-          usageHandler: recordUsage(project, ctx.threadId),
+          usageHandler: recordUsage(project, model, ctx.threadId),
         })
         const { text } = await agent.generateText(
           ctx,
@@ -171,13 +185,14 @@ export function createBot(
   members: Array<Bot>,
   options: ReplyOptions = {},
 ) {
+  const model = options.model ?? bot.model ?? MODELS.chat
   return {
     agent: new Agent(components.agent, {
       name: bot.name,
-      languageModel,
+      languageModel: modelFor(model),
       instructions: botInstructions(project, bot, members, options),
       stopWhen: stepCountIs(6),
-      usageHandler: recordUsage(project),
+      usageHandler: recordUsage(project, model),
     }),
     tools: {
       ...assistantTools(project, bot.name),
@@ -192,13 +207,14 @@ export function createLead(
   bots: Array<Bot>,
   options: ReplyOptions = {},
 ) {
+  const model = options.model ?? project.model ?? MODELS.chat
   return {
     agent: new Agent(components.agent, {
       name: project.name,
-      languageModel,
+      languageModel: modelFor(model),
       instructions: leadInstructions(project, bots, options),
       stopWhen: stepCountIs(6),
-      usageHandler: recordUsage(project),
+      usageHandler: recordUsage(project, model),
     }),
     tools: {
       ...assistantTools(project, project.name),

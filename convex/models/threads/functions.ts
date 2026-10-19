@@ -1,8 +1,14 @@
 import { createThread } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
+import { z } from 'zod'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
-import { authedMutation, authedQuery } from '../../lib/functions'
+import {
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
+import { MODEL_ID } from '../../lib/models'
 import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { threadsTable } from './table'
@@ -127,6 +133,24 @@ const get = authedQuery({
     await getOwnedThread(ctx, ctx.userId, threadId),
 })
 
+/** Picks the model this chat's replies use from now on. The chat's history stays. Null goes back to the assistant's own. */
+const setModel = zAuthedMutation({
+  args: {
+    threadId: z.string(),
+    model: z
+      .string()
+      .trim()
+      .max(80)
+      .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
+      .nullable(),
+  },
+  handler: async (ctx, { threadId, model }) => {
+    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
+    if (!thread) throw new ConvexError('Chat not found.')
+    await ctx.db.patch('threads', thread._id, { model: model ?? undefined })
+  },
+})
+
 export const threadsApi = {
   start,
   list,
@@ -134,4 +158,5 @@ export const threadsApi = {
   setMembers,
   startGroup,
   get,
+  setModel,
 }

@@ -19,6 +19,8 @@ export const threadsTable = defineTable({
   memberIds: v.optional(v.array(v.id('bots'))),
   /** For sub-threads: the chat they came from. */
   parentThreadId: v.optional(v.string()),
+  /** A model picked for this chat. It wins over the assistant's own, and the history stays. */
+  model: v.optional(v.string()),
 })
   .index('by_project_and_kind', ['projectId', 'kind'])
   .index('by_project_and_bot', ['projectId', 'botId', 'kind'])

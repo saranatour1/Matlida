@@ -9,6 +9,7 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
+import { ModelMenu } from '~/components/model-menu'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
 import { ThreadMembers } from '~/components/thread-members'
@@ -54,6 +55,9 @@ export function Chat({
   const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
+  const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
+  // A new chat's model, until the first message starts the thread.
+  const [startModel, setStartModel] = React.useState<string>()
   const lead = bot?.name ?? project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
@@ -85,6 +89,7 @@ export function Chat({
           botId: bot?._id,
           threadId,
           prompt,
+          model: threadId ? undefined : startModel,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         if (!threadId) {
@@ -113,6 +118,12 @@ export function Chat({
             <ThreadMembers project={project} bot={bot} threadId={threadId} />
           )}
           <div className="ml-auto flex items-center gap-1">
+            <ModelMenu
+              threadId={threadId}
+              model={threadId ? thread?.model : startModel}
+              own={bot ? bot.model : project.model}
+              onPick={setStartModel}
+            />
             <Button
               variant="ghost"
               size="icon-sm"
