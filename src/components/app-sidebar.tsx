@@ -3,19 +3,34 @@ import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
   BotIcon,
+  ChevronRightIcon,
+  ChevronsUpDownIcon,
   CrownIcon,
-  FolderIcon,
   LogOutIcon,
-  MessageSquareIcon,
   MessagesSquareIcon,
   PlusIcon,
+  SettingsIcon,
   SlashSquareIcon,
   SmartphoneIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
+import type * as React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '~/components/ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import {
   Sidebar,
   SidebarContent,
@@ -24,91 +39,224 @@ import {
   SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from '~/components/ui/sidebar'
 import { useProject } from '~/hooks/use-project'
 
 export function AppSidebar() {
-  const projects = useQuery(api.api.projects.list)
   const project = useProject()
-  const { setOpenMobile } = useSidebar()
-
   return (
     <Sidebar>
+      <SidebarHeader>
+        <WorkspaceSwitcher project={project ?? undefined} />
+      </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupAction
-            render={<Link to="/" />}
-            aria-label="New project"
-            title="New project"
-          >
-            <PlusIcon />
-          </SidebarGroupAction>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects?.length === 0 && (
-                <li className="px-2 text-xs text-muted-foreground">
-                  No projects yet.
-                </li>
-              )}
-              {projects?.map((p) => (
-                <SidebarMenuItem key={p._id}>
-                  <SidebarMenuButton
-                    isActive={project?._id === p._id}
-                    render={
-                      <Link to="/p/$projectId" params={{ projectId: p._id }} />
-                    }
-                    onClick={() => setOpenMobile(false)}
-                  >
-                    <FolderIcon />
-                    <span className="truncate">{p.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        {project && <Bots project={project} />}
-        {project && <Commands projectId={project._id} />}
-        {project && <Chats projectId={project._id} />}
-        {project && <SubThreads projectId={project._id} />}
+        {project && <Assistants project={project} />}
+        {project && <Workspace project={project} />}
       </SidebarContent>
       <Account />
     </Sidebar>
   )
 }
 
-function Bots({ project }: { project: Doc<'projects'> }) {
-  const projectId = project._id
-  const bots = useQuery(api.api.bots.list, { projectId })
-  const { edit } = useSearch({ strict: false })
-  const { setOpenMobile } = useSidebar()
+function WorkspaceSwitcher({ project }: { project?: Doc<'projects'> }) {
+  const projects = useQuery(api.api.projects.list)
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<SidebarMenuButton size="lg" />}
+            aria-label="Switch workspace"
+          >
+            <img src="/logo.svg" alt="" className="size-8" />
+            <span className="flex-1 truncate font-medium">
+              {project?.name ?? 'Workspaces'}
+            </span>
+            <ChevronsUpDownIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-56">
+            <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+            {projects?.map((p) => (
+              <DropdownMenuItem
+                key={p._id}
+                render={
+                  <Link to="/p/$projectId" params={{ projectId: p._id }} />
+                }
+              >
+                {p.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              render={<Link to="/" search={{ create: true }} />}
+            >
+              <PlusIcon />
+              New workspace
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
+}
+
+/** The lead first, then the bots. Each one opens to its recent chats. */
+function Assistants({ project }: { project: Doc<'projects'> }) {
+  const bots = useQuery(api.api.bots.list, { projectId: project._id })
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Bots</SidebarGroupLabel>
+      <SidebarGroupLabel>Assistants</SidebarGroupLabel>
       <SidebarGroupAction
-        render={<Link to="/p/$projectId/bots" params={{ projectId }} />}
-        aria-label="Add a bot"
-        title="Add a bot"
+        render={
+          <Link to="/p/$projectId/bots" params={{ projectId: project._id }} />
+        }
+        aria-label="New assistant"
+        title="New assistant"
       >
         <PlusIcon />
       </SidebarGroupAction>
       <SidebarGroupContent>
         <SidebarMenu>
+          <Assistant
+            projectId={project._id}
+            name={project.name}
+            role="Lead"
+            icon={<CrownIcon />}
+          />
+          {bots?.map((b) => (
+            <Assistant
+              key={b._id}
+              projectId={project._id}
+              bot={b}
+              name={b.name}
+              role={b.role}
+              icon={<BotIcon />}
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function Assistant({
+  projectId,
+  bot,
+  name,
+  role,
+  icon,
+}: {
+  projectId: Id<'projects'>
+  bot?: Doc<'bots'>
+  name: string
+  role: string
+  icon: React.ReactNode
+}) {
+  const search = useSearch({ strict: false })
+  const { threadId } = useParams({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  const threads = useQuery(api.api.threads.listForBot, {
+    projectId,
+    botId: bot?._id,
+  })
+  const isActive = search.bot === bot?._id && !threadId
+  return (
+    <Collapsible
+      key={String(isActive)}
+      defaultOpen={isActive}
+      render={<SidebarMenuItem />}
+      className="group/collapsible"
+    >
+      <SidebarMenuButton
+        isActive={isActive && !search.thread}
+        render={
+          <Link
+            to="/p/$projectId"
+            params={{ projectId }}
+            search={{ bot: bot?._id }}
+          />
+        }
+        onClick={() => setOpenMobile(false)}
+        title={`New chat with ${name}`}
+      >
+        {icon}
+        <span className="truncate">
+          {name} <span className="text-muted-foreground">· {role}</span>
+        </span>
+      </SidebarMenuButton>
+      {threads && threads.length > 0 && (
+        <>
+          <CollapsibleTrigger
+            render={<SidebarMenuAction />}
+            aria-label={`${name}'s chats`}
+            className="transition-transform group-data-[open]/collapsible:rotate-90"
+          >
+            <ChevronRightIcon />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {threads.map((t) => (
+                <SidebarMenuSubItem key={t._id}>
+                  <SidebarMenuSubButton
+                    isActive={
+                      search.thread === t.threadId || threadId === t.threadId
+                    }
+                    render={
+                      t.kind === 'chat' ? (
+                        <Link
+                          to="/p/$projectId"
+                          params={{ projectId }}
+                          search={{ bot: bot?._id, thread: t.threadId }}
+                        />
+                      ) : (
+                        <Link
+                          to="/p/$projectId/threads/$threadId"
+                          params={{ projectId, threadId: t.threadId }}
+                        />
+                      )
+                    }
+                    onClick={() => setOpenMobile(false)}
+                  >
+                    {t.kind === 'subagent' && <MessagesSquareIcon />}
+                    <span className="truncate">{t.title}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </>
+      )}
+    </Collapsible>
+  )
+}
+
+function Workspace({ project }: { project: Doc<'projects'> }) {
+  const projectId = project._id
+  const { setOpenMobile } = useSidebar()
+  const close = () => setOpenMobile(false)
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              render={<Link to="/" search={{ edit: projectId }} />}
-              onClick={() => setOpenMobile(false)}
+              render={
+                <Link to="/p/$projectId/commands" params={{ projectId }} />
+              }
+              onClick={close}
             >
-              <CrownIcon />
-              <span className="truncate">
-                {project.name}{' '}
-                <span className="text-muted-foreground">· Lead</span>
-              </span>
+              <SlashSquareIcon />
+              <span>Commands</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -116,154 +264,21 @@ function Bots({ project }: { project: Doc<'projects'> }) {
               render={
                 <Link to="/p/$projectId/texting" params={{ projectId }} />
               }
-              onClick={() => setOpenMobile(false)}
+              onClick={close}
             >
               <SmartphoneIcon />
               <span className="truncate">Text {project.name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {bots?.map((b) => (
-            <SidebarMenuItem key={b._id}>
-              <SidebarMenuButton
-                isActive={edit === b._id}
-                render={
-                  <Link
-                    to="/p/$projectId/bots"
-                    params={{ projectId }}
-                    search={{ edit: b._id }}
-                  />
-                }
-                onClick={() => setOpenMobile(false)}
-              >
-                <BotIcon />
-                <span className="truncate">
-                  {b.name}{' '}
-                  <span className="text-muted-foreground">· {b.role}</span>
-                </span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
-function Commands({ projectId }: { projectId: Id<'projects'> }) {
-  const commands = useQuery(api.api.commands.list, { projectId })
-  const { setOpenMobile } = useSidebar()
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Commands</SidebarGroupLabel>
-      <SidebarGroupAction
-        render={<Link to="/p/$projectId/commands" params={{ projectId }} />}
-        aria-label="Add a command"
-        title="Add a command"
-      >
-        <PlusIcon />
-      </SidebarGroupAction>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {commands?.length === 0 && (
-            <li className="px-2 text-xs text-muted-foreground">
-              No commands yet.
-            </li>
-          )}
-          {commands?.map((c) => (
-            <SidebarMenuItem key={c._id}>
-              <SidebarMenuButton
-                render={
-                  <Link to="/p/$projectId/commands" params={{ projectId }} />
-                }
-                onClick={() => setOpenMobile(false)}
-              >
-                <SlashSquareIcon />
-                <span className="truncate">/{c.name}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
-function Chats({ projectId }: { projectId: Id<'projects'> }) {
-  const chats = useQuery(api.api.threads.list, { projectId, kind: 'chat' })
-  const { thread } = useSearch({ strict: false })
-  const { setOpenMobile } = useSidebar()
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Chats</SidebarGroupLabel>
-      <SidebarGroupAction
-        render={<Link to="/p/$projectId" params={{ projectId }} />}
-        aria-label="New chat"
-        title="New chat"
-      >
-        <PlusIcon />
-      </SidebarGroupAction>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {chats?.length === 0 && (
-            <li className="px-2 text-xs text-muted-foreground">
-              No chats yet.
-            </li>
-          )}
-          {chats?.map((c) => (
-            <SidebarMenuItem key={c._id}>
-              <SidebarMenuButton
-                isActive={thread === c.threadId}
-                render={
-                  <Link
-                    to="/p/$projectId"
-                    params={{ projectId }}
-                    search={{ thread: c.threadId }}
-                  />
-                }
-                onClick={() => setOpenMobile(false)}
-              >
-                <MessageSquareIcon />
-                <span className="truncate">{c.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
-}
-
-/** Where the lead handed work to a bot. */
-function SubThreads({ projectId }: { projectId: Id<'projects'> }) {
-  const threads = useQuery(api.api.threads.list, {
-    projectId,
-    kind: 'subagent',
-  })
-  const { threadId } = useParams({ strict: false })
-  const { setOpenMobile } = useSidebar()
-  if (!threads?.length) return null
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Threads</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {threads.map((t) => (
-            <SidebarMenuItem key={t._id}>
-              <SidebarMenuButton
-                isActive={threadId === t.threadId}
-                render={
-                  <Link
-                    to="/p/$projectId/threads/$threadId"
-                    params={{ projectId, threadId: t.threadId }}
-                  />
-                }
-                onClick={() => setOpenMobile(false)}
-              >
-                <MessagesSquareIcon />
-                <span className="truncate">{t.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={<Link to="/" search={{ edit: projectId }} />}
+              onClick={close}
+            >
+              <SettingsIcon />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

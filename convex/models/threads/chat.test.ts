@@ -87,3 +87,57 @@ test("another user can't read or post to the chat", async () => {
     asBob.mutation(api.api.chat.sendMessage, { projectId, prompt: 'Hi' }),
   ).rejects.toThrow('Project not found.')
 })
+
+test('a chat with a bot is listed under that bot, not the lead', async () => {
+  const { t, asAda, projectId } = await setup()
+  const botId = await asAda.mutation(api.api.bots.save, {
+    projectId,
+    name: 'Rex',
+    role: 'Researcher',
+    instructions: 'Find things out.',
+  })
+
+  const threadId = await asAda.mutation(api.api.chat.sendMessage, {
+    projectId,
+    botId,
+    prompt: 'Look into this',
+  })
+  await finishReply(t)
+
+  expect(
+    await asAda.query(api.api.threads.listForBot, { projectId, botId }),
+  ).toMatchObject([{ threadId, botId, kind: 'chat' }])
+  expect(
+    await asAda.query(api.api.threads.listForBot, { projectId }),
+  ).toEqual([])
+  await expect(
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      threadId,
+      prompt: 'Lead, are you there?',
+    }),
+  ).rejects.toThrow('Chat not found.')
+})
+
+test("a bot from another workspace can't be messaged", async () => {
+  const { asAda, projectId } = await setup()
+  const otherProject = await asAda.mutation(api.api.projects.save, {
+    name: 'Side',
+    brief: '',
+    guidelines: '',
+  })
+  const botId = await asAda.mutation(api.api.bots.save, {
+    projectId: otherProject,
+    name: 'Rex',
+    role: 'Researcher',
+    instructions: 'Find things out.',
+  })
+
+  await expect(
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      botId,
+      prompt: 'Hi',
+    }),
+  ).rejects.toThrow('Assistant not found.')
+})

@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import {
+  Link,
+  Navigate,
+  createFileRoute,
+  useNavigate,
+} from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { z } from 'zod'
 import { api } from '../../../convex/_generated/api'
@@ -10,30 +15,37 @@ import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 
 export const Route = createFileRoute('/_app/')({
-  validateSearch: z.object({ edit: z.string().optional() }),
+  validateSearch: z.object({
+    edit: z.string().optional(),
+    create: z.boolean().optional(),
+  }),
   component: Projects,
 })
 
 function Projects() {
   const projects = useQuery(api.api.projects.list)
-  const { edit } = Route.useSearch()
+  const { edit, create } = Route.useSearch()
   const editing = projects?.find((p) => p._id === edit)
+  const first = projects?.at(0)
+  if (first && !edit && !create) {
+    return <Navigate to="/p/$projectId" params={{ projectId: first._id }} />
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
-          <h1 className="text-lg font-semibold">Projects</h1>
+          <h1 className="text-lg font-semibold">Workspaces</h1>
           <p className="text-sm text-muted-foreground">
-            Each project has a lead who goes by the project's name, with its own
-            chats.
+            Each workspace has a lead assistant, Matilda by default, with its
+            own chats.
           </p>
         </div>
 
         <ul className="flex flex-col gap-2">
           {projects?.length === 0 && (
             <li className="text-sm text-muted-foreground">
-              No projects yet. Create the first one below.
+              No workspaces yet. Create the first one below.
             </li>
           )}
           {projects?.map((p) => (
@@ -103,10 +115,10 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
   return (
     <form action={submit} className="flex flex-col gap-4 rounded-xl border p-4">
       <h2 className="font-medium">
-        {project ? `Edit ${project.name}` : 'New project'}
+        {project ? `Edit ${project.name}` : 'New workspace'}
       </h2>
       <label className="flex flex-col gap-1.5 text-sm">
-        Name (the lead goes by this name too)
+        Lead assistant name
         <Input
           name="name"
           defaultValue={values?.name}
@@ -141,7 +153,7 @@ function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           </Button>
         )}
         <Button type="submit" disabled={isPending}>
-          {project ? 'Save changes' : 'Create project'}
+          {project ? 'Save changes' : 'Create workspace'}
         </Button>
       </div>
     </form>

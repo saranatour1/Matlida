@@ -86,6 +86,7 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
             kind: 'subagent',
             title: `${project.name} → ${b.name}`,
             parentThreadId: ctx.threadId,
+            botId: b._id,
             userId: project.ownerId,
           },
         )
@@ -103,6 +104,16 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
       },
     }),
   }
+}
+
+/** A bot answering the user directly in its own chat. */
+export function createBot(project: Project, bot: Bot) {
+  return new Agent(components.agent, {
+    name: bot.name,
+    languageModel,
+    instructions: botInstructions(project, bot),
+    stopWhen: stepCountIs(6),
+  })
 }
 
 /** The project's lead for one reply, with the project's current bots. */

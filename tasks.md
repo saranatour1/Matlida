@@ -11,4 +11,10 @@
 
 ## Open
 
+- [x] Assistants sidebar: Matilda first, then bots, each with its chats
+- [ ] Orb avatars, settings, library and thread members
+- [ ] Web search and research, plans, voice input
+- [ ] Right panel: environment, context, connectors, changes, costs
+- [ ] Reminders and phone calls through Photon
+
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL

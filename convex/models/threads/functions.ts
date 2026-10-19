@@ -64,10 +64,25 @@ const list = authedQuery({
   },
 })
 
+/** One assistant's recent chats: a bot's, or the lead's when `botId` is unset. */
+const listForBot = authedQuery({
+  args: { projectId: v.id('projects'), botId: v.optional(v.id('bots')) },
+  handler: async (ctx, { projectId, botId }) => {
+    await getOwnedProject(ctx, ctx.userId, projectId)
+    return await ctx.db
+      .query('threads')
+      .withIndex('by_project_and_bot', (q) =>
+        q.eq('projectId', projectId).eq('botId', botId),
+      )
+      .order('desc')
+      .take(20)
+  },
+})
+
 const get = authedQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) =>
     await getOwnedThread(ctx, ctx.userId, threadId),
 })
 
-export const threadsApi = { start, list, get }
+export const threadsApi = { start, list, listForBot, get }

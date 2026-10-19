@@ -1,6 +1,6 @@
 import { convexTest } from 'convex-test'
 import { expect, test } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -15,4 +15,16 @@ test('current rejects anonymous callers and returns the signed-in user', async (
     .withIdentity({ subject: userId })
     .query(api.api.users.current, {})
   expect(user?.name).toBe('Ada')
+})
+
+test('a new account starts with a workspace led by Matilda', async () => {
+  const t = convexTest(schema, modules)
+  const userId = await t.mutation(internal.api.users.createUser, {
+    provider: { name: 'emailPassword', accountId: 'ada', profile: {} },
+  })
+
+  const projects = await t
+    .withIdentity({ subject: userId })
+    .query(api.api.projects.list, {})
+  expect(projects).toMatchObject([{ name: 'Matilda' }])
 })

@@ -10,8 +10,11 @@ export const threadsTable = defineTable({
   /** A chat with the user, or a sub-thread where the lead hands work to a bot. */
   kind: literals('chat', 'subagent'),
   title: v.string(),
+  /** The assistant this thread talks to. Unset means the project's lead. */
+  botId: v.optional(v.id('bots')),
   /** For sub-threads: the chat they came from. */
   parentThreadId: v.optional(v.string()),
 })
   .index('by_project_and_kind', ['projectId', 'kind'])
+  .index('by_project_and_bot', ['projectId', 'botId', 'kind'])
   .index('by_threadId', ['threadId'])
