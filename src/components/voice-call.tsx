@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation } from 'convex/react'
 import { MicIcon, MicOffIcon, PhoneOffIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
@@ -46,8 +47,8 @@ type Line = { who: 'you' | 'them'; text: string }
 export function useVoiceCall({
   onThread,
 }: {
-  /** Called when the first turn starts a new chat, with its id. */
-  onThread?: (threadId: string) => void
+  /** Called when the first turn starts a new chat. */
+  onThread?: (target: CallTarget & { threadId: string }) => void
 } = {}) {
   const [status, setStatus] = React.useState<Status>('idle')
   const [error, setError] = React.useState<string>()
@@ -120,7 +121,11 @@ export function useVoiceCall({
       if (session.current !== s) return
       if (result.threadId && result.threadId !== s.threadId) {
         s.threadId = result.threadId
-        onThread?.(result.threadId)
+        onThread?.({
+          projectId: s.projectId,
+          botId: s.botId,
+          threadId: result.threadId,
+        })
       }
       const said = result.transcript
       const reply = result.reply
@@ -220,6 +225,53 @@ const STATUS_LABEL: Record<Status, string> = {
   hearing: 'Hearing you…',
   thinking: 'Thinking…',
   speaking: 'Speaking…',
+}
+
+type Caller = { name: string; portrait: Portrait }
+type Opening = Promise<{ text: string; audioUrl: string | null } | null>
+
+const CallContext = React.createContext<{
+  call: ReturnType<typeof useVoiceCall>
+  /** Starts a call unless one is on. Call it from a click. */
+  startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
+} | null>(null)
+
+/** The app's one call and its screen, so a ring can't start a second call over the first. */
+export function CallProvider({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate()
+  // Kept from the start, since the page can change during the call.
+  const [caller, setCaller] = React.useState<Caller>()
+  const call = useVoiceCall({
+    onThread: ({ projectId, botId, threadId }) =>
+      void navigate({
+        to: '/p/$projectId',
+        params: { projectId },
+        search: { thread: threadId, bot: botId },
+      }),
+  })
+  function startCall(target: CallTarget, who: Caller, opening?: Opening) {
+    if (call.status !== 'idle') return
+    setCaller(who)
+    void call.start(target, opening)
+  }
+  return (
+    <CallContext.Provider value={{ call, startCall }}>
+      {children}
+      {caller && (call.status !== 'idle' || call.error) && (
+        <VoiceCallScreen
+          call={call}
+          name={caller.name}
+          portrait={caller.portrait}
+        />
+      )}
+    </CallContext.Provider>
+  )
+}
+
+export function useCall() {
+  const context = React.useContext(CallContext)
+  if (!context) throw new Error('useCall needs a CallProvider above it.')
+  return context
 }
 
 /** The full-screen call: the assistant's portrait, what's happening, and the last things said. */

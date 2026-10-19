@@ -2,6 +2,7 @@ import { Link, Navigate, Outlet, createFileRoute } from '@tanstack/react-router'
 import { useConvexAuth } from 'convex/react'
 import { AppSidebar } from '~/components/app-sidebar'
 import { IncomingCall } from '~/components/incoming-call'
+import { CallProvider } from '~/components/voice-call'
 import {
   SidebarInset,
   SidebarProvider,
@@ -21,14 +22,16 @@ function AppLayout() {
   if (!isAuthenticated) return <Navigate to="/sign-in" />
   return (
     <TooltipProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset className="h-svh min-h-0">
-          <Header />
-          <Outlet />
-        </SidebarInset>
-      </SidebarProvider>
-      <IncomingCall />
+      <CallProvider>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset className="h-svh min-h-0">
+            <Header />
+            <Outlet />
+          </SidebarInset>
+        </SidebarProvider>
+        <IncomingCall />
+      </CallProvider>
     </TooltipProvider>
   )
 }
