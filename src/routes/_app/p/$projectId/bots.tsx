@@ -5,7 +5,11 @@ import { PlusIcon } from 'lucide-react'
 import { z } from 'zod'
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
-import { LookPicker, lookFromForm, lookOf } from '~/components/bot-avatar'
+import {
+  PortraitPicker,
+  portraitFromForm,
+  portraitOf,
+} from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -18,7 +22,10 @@ export const Route = createFileRoute('/_app/p/$projectId/bots')({
   component: Bots,
 })
 
-type BotValues = Pick<Doc<'bots'>, 'name' | 'role' | 'instructions' | 'look'>
+type BotValues = Pick<
+  Doc<'bots'>,
+  'name' | 'role' | 'instructions' | 'portrait'
+>
 
 function Bots() {
   const project = useProject()
@@ -204,7 +211,7 @@ function BotForm({
         name: String(data.get('name')),
         role: String(data.get('role')),
         instructions: String(data.get('instructions')),
-        look: lookFromForm(data),
+        portrait: portraitFromForm(data),
       }
       try {
         await save({ projectId, id: bot?._id, ...values })
@@ -249,8 +256,11 @@ function BotForm({
           placeholder="Researcher"
         />
       </label>
-      <LookPicker
-        defaultValue={lookOf({ look: values?.look, name: values?.name ?? '' })}
+      <PortraitPicker
+        defaultValue={portraitOf({
+          portrait: values?.portrait,
+          name: values?.name ?? '',
+        })}
       />
       <label className="flex flex-col gap-1.5 text-sm">
         What it does and how it thinks

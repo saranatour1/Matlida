@@ -18,5 +18,7 @@
 - [x] Web search and research, plans, voice input
 - [x] Right panel: environment, context, connectors, changes, costs
 - [x] Reminders that post in the chat and text you
+- [x] New assistant dialog, copies, template links, group chats from search
+- [x] Portraits: 22 ready-made assistant portraits in the minimal bot-icon style
 
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL

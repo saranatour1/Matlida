@@ -12,8 +12,8 @@ import {
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
-import type { Look } from '../../convex/lib/looks'
-import { BotAvatar, lookOf } from '~/components/bot-avatar'
+import type { Portrait } from '../../convex/lib/portraits'
+import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { CommandMenu } from '~/components/command-menu'
 import {
   AvatarFallback,
@@ -105,7 +105,10 @@ function Hero({ project }: { project: Doc<'projects'> }) {
         aria-label={`New chat with ${project.name}`}
         title={`New chat with ${project.name}`}
       >
-        <BotAvatar look={lookOf(project)} className="size-14 shadow-lg" />
+        <BotAvatar
+          portrait={portraitOf(project)}
+          className="size-14 shadow-lg"
+        />
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -125,7 +128,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
                   <Link to="/p/$projectId" params={{ projectId: p._id }} />
                 }
               >
-                <BotAvatar look={lookOf(p)} />
+                <BotAvatar portrait={portraitOf(p)} />
                 {p.name}
               </DropdownMenuItem>
             ))}
@@ -152,7 +155,7 @@ function Assistants({ project }: { project: Doc<'projects'> }) {
             projectId={project._id}
             name={project.name}
             role="Lead"
-            look={lookOf(project)}
+            portrait={portraitOf(project)}
           />
           {bots?.map((b) => (
             <Assistant
@@ -161,7 +164,7 @@ function Assistants({ project }: { project: Doc<'projects'> }) {
               bot={b}
               name={b.name}
               role={b.role}
-              look={lookOf(b)}
+              portrait={portraitOf(b)}
             />
           ))}
         </SidebarMenu>
@@ -175,13 +178,13 @@ function Assistant({
   bot,
   name,
   role,
-  look,
+  portrait,
 }: {
   projectId: Id<'projects'>
   bot?: Doc<'bots'>
   name: string
   role: string
-  look: Look
+  portrait: Portrait
 }) {
   const search = useSearch({ strict: false })
   const { threadId } = useParams({ strict: false })
@@ -215,7 +218,7 @@ function Assistant({
         onClick={() => setOpenMobile(false)}
         title={`New chat with ${name}`}
       >
-        <BotAvatar look={look} className="size-9" />
+        <BotAvatar portrait={portrait} className="size-9" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="truncate font-medium">{name}</span>

@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { zLook } from '../../convex/lib/looks'
+import { zPortrait } from '../../convex/lib/portraits'
 
 /** Everything needed to make a copy of an assistant somewhere else. */
 const templateSchema = z.object({
   name: z.string().max(40),
   role: z.string().max(80),
   instructions: z.string().max(2000),
-  look: zLook,
+  portrait: zPortrait,
 })
 
 export type BotTemplate = z.infer<typeof templateSchema>

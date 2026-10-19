@@ -5,10 +5,10 @@ import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 import type { BotTemplate } from '~/lib/bot-template'
 import {
-  LookPicker,
-  lookFromForm,
-  lookOf,
-  randomLook,
+  PortraitPicker,
+  portraitFromForm,
+  portraitOf,
+  randomPortrait,
 } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -37,8 +37,8 @@ export function NewAssistantDialog({
 }) {
   const save = useMutation(api.api.bots.save)
   const navigate = useNavigate()
-  const [look] = React.useState(() =>
-    template ? lookOf(template) : randomLook(),
+  const [portrait] = React.useState(() =>
+    template ? portraitOf(template) : randomPortrait(),
   )
   const [error, submit, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {
@@ -48,7 +48,7 @@ export function NewAssistantDialog({
           name: String(data.get('name')),
           role: String(data.get('role')),
           instructions: template?.instructions ?? '',
-          look: lookFromForm(data),
+          portrait: portraitFromForm(data),
         })
         void navigate({
           to: '/p/$projectId',
@@ -65,7 +65,7 @@ export function NewAssistantDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {template ? `Copy ${template.name}` : 'New assistant'}
@@ -73,11 +73,11 @@ export function NewAssistantDialog({
           <DialogDescription>
             {template
               ? 'It comes with their instructions. Change anything you like.'
-              : 'Pick a look and a name. You can write its instructions after.'}
+              : 'Pick a portrait and a name. You can write its instructions after.'}
           </DialogDescription>
         </DialogHeader>
         <form action={submit} className="flex flex-col gap-6">
-          <LookPicker defaultValue={look}>
+          <PortraitPicker defaultValue={portrait}>
             <Input
               name="name"
               aria-label="Name"
@@ -96,7 +96,7 @@ export function NewAssistantDialog({
               defaultValue={template?.role}
               className="text-center"
             />
-          </LookPicker>
+          </PortraitPicker>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>

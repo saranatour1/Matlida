@@ -1,7 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
-import { zLook } from '../../lib/looks'
+import { zPortrait } from '../../lib/portraits'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -53,7 +53,7 @@ const save = zAuthedMutation({
       .string()
       .trim()
       .max(2000, 'Guidelines can be at most 2000 characters.'),
-    look: zLook.optional(),
+    portrait: zPortrait.optional(),
   },
   handler: async (ctx, { id, ...project }) => {
     if (id) {
