@@ -39,6 +39,9 @@ type Env = {
   readonly AUTH_PRIVATE_KEY: string;
   readonly RESEND_API_KEY: string;
   readonly SITE_URL: string;
+  readonly SPECTRUM_PROJECT_ID: string | undefined;
+  readonly SPECTRUM_PROJECT_SECRET: string | undefined;
+  readonly SPECTRUM_WEBHOOK_SECRET: string | undefined;
 };
 
 /**
