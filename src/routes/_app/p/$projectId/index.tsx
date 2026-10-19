@@ -9,6 +9,7 @@ export const Route = createFileRoute('/_app/p/$projectId/')({
   validateSearch: z.object({
     thread: z.string().optional(),
     bot: z.string().optional(),
+    panel: z.boolean().optional(),
   }),
   component: ProjectPage,
 })
@@ -19,7 +20,7 @@ export const Route = createFileRoute('/_app/p/$projectId/')({
  */
 function ProjectPage() {
   const project = useProject()
-  const { thread, bot: botId } = Route.useSearch()
+  const { thread, bot: botId, panel } = Route.useSearch()
   const bots = useQuery(
     api.api.bots.list,
     project && botId ? { projectId: project._id } : 'skip',
@@ -42,6 +43,7 @@ function ProjectPage() {
       project={project}
       bot={bot}
       threadId={thread}
+      panel={panel}
     />
   )
 }

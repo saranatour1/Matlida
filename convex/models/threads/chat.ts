@@ -138,6 +138,7 @@ const respond = internalAction({
           command:
             command && markdown ? { name: command.name, markdown } : undefined,
         })
+    const started = Date.now()
     const result = await agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
@@ -145,6 +146,16 @@ const respond = internalAction({
       { saveStreamDeltas: true },
     )
     await result.consumeStream()
+    await ctx.runMutation(internal.api.usage.record, {
+      projectId: project._id,
+      threadId,
+      kind: 'compute',
+      label: bot?.name ?? project.name,
+      aiCost: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      computeMs: Date.now() - started,
+    })
     return null
   },
 })

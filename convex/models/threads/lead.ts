@@ -1,9 +1,11 @@
 import { Agent, createTool, stepCountIs } from '@convex-dev/agent'
 import { z } from 'zod'
+import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
 import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
+import type { UsageHandler } from '@convex-dev/agent'
 import type { ToolSet } from 'ai'
 
 type Project = Doc<'projects'>
@@ -59,6 +61,23 @@ ${bot.instructions}${team}${guidelines(project)}`
 
 const BOT_CALLS_PER_REPLY = 6
 
+/** Records each model step's tokens and cost, charged to `chargeTo` or the agent's own thread. */
+function recordUsage(project: Project, chargeTo?: string): UsageHandler {
+  return async (ctx, { threadId, agentName, usage, providerMetadata }) => {
+    const thread = chargeTo ?? threadId
+    if (!thread) return
+    await ctx.runMutation(internal.api.usage.record, {
+      projectId: project._id,
+      threadId: thread,
+      kind: 'reply',
+      label: agentName ?? 'Assistant',
+      aiCost: gatewayCost(providerMetadata),
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+    })
+  }
+}
+
 /** `ask_bot` over the chat's members, for whoever is answering. None without members. */
 function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
   if (bots.length === 0) return {}
@@ -98,6 +117,7 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
           name: b.name,
           languageModel,
           instructions: botInstructions(project, b, []),
+          usageHandler: recordUsage(project, ctx.threadId),
         })
         const { text } = await agent.generateText(
           ctx,
@@ -118,6 +138,7 @@ export function createBot(project: Project, bot: Bot, members: Array<Bot>) {
       languageModel,
       instructions: botInstructions(project, bot, members),
       stopWhen: stepCountIs(6),
+      usageHandler: recordUsage(project),
     }),
     tools: {
       ...assistantTools(project),
@@ -138,6 +159,7 @@ export function createLead(
       languageModel,
       instructions: leadInstructions(project, bots, options),
       stopWhen: stepCountIs(6),
+      usageHandler: recordUsage(project),
     }),
     tools: {
       ...assistantTools(project),
