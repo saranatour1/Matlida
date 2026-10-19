@@ -61,6 +61,8 @@ async function speak(ctx: ActionCtx, text: string, name: string) {
 
 type Turn = {
   threadId: string | null
+  /** The call's record, started by its first turn. */
+  callId: Id<'calls'> | null
   transcript: string
   reply: string | null
   audioUrl: string | null
@@ -78,22 +80,39 @@ const turn = zAuthedAction({
     threadId: z.string().optional(),
     storageId: zid('_storage'),
     timeZone: zTimeZone.optional(),
+    /** The call's record, from its first turn or `calls.answer`, so the turn joins its transcript. */
+    callId: zid('calls').optional(),
   },
   handler: async (ctx, { storageId, timeZone, ...where }): Promise<Turn> => {
+    const started = Date.now()
     const heard = await transcribeClip(ctx, storageId)
     if (!heard.text) {
       return {
         threadId: where.threadId ?? null,
+        callId: where.callId ?? null,
         transcript: '',
         reply: null,
         audioUrl: null,
       }
     }
+    const { callId: _, ...message } = where
     const posted = await ctx.runMutation(internal.api.calls.post, {
       userId: ctx.userId,
-      ...where,
+      ...message,
       prompt: heard.text.slice(0, 4000),
     })
+    // Saved before the reply, so a failed reply can't lose what you said.
+    let callId: Id<'calls'> = await ctx.runMutation(
+      internal.api.calls.addLine,
+      {
+        callId: where.callId,
+        projectId: where.projectId,
+        botId: where.botId,
+        threadId: posted.threadId,
+        who: 'you',
+        text: heard.text,
+      },
+    )
     await ctx.runMutation(internal.api.usage.record, {
       projectId: where.projectId,
       threadId: posted.threadId,
@@ -111,16 +130,32 @@ const turn = zAuthedAction({
     if (!text.trim()) {
       return {
         threadId: posted.threadId,
+        callId,
         transcript: heard.text,
         reply: null,
         audioUrl: null,
       }
     }
+    let audioUrl: string | null = null
+    try {
+      audioUrl = await speak(ctx, text, (bot ?? project).name)
+    } finally {
+      // Saved even when speaking fails, with how long the reply took to be ready.
+      callId = await ctx.runMutation(internal.api.calls.addLine, {
+        callId,
+        projectId: where.projectId,
+        threadId: posted.threadId,
+        who: 'them',
+        text,
+        ms: Date.now() - started,
+      })
+    }
     return {
       threadId: posted.threadId,
+      callId,
       transcript: heard.text,
       reply: text,
-      audioUrl: await speak(ctx, text, (bot ?? project).name),
+      audioUrl,
     }
   },
 })
@@ -132,6 +167,8 @@ type Answered = {
   from: string
   message: string
   text: string
+  /** The call's record, started with the opening line. */
+  callId: Id<'calls'>
   audioUrl: string | null
 }
 
@@ -142,14 +179,29 @@ type Answered = {
 const answer = zAuthedAction({
   args: { id: zid('reminders') },
   handler: async (ctx, { id }): Promise<Answered | null> => {
-    const call: Omit<Answered, 'text' | 'audioUrl'> | null =
+    const call: Omit<Answered, 'text' | 'audioUrl' | 'callId'> | null =
       await ctx.runMutation(internal.api.reminders.pickUp, {
         id,
         userId: ctx.userId,
       })
     if (!call) return null
     const text = `Hi, it's ${call.from} with your reminder. ${call.message}`
-    return { ...call, text, audioUrl: await speak(ctx, text, call.from) }
+    const callId: Id<'calls'> = await ctx.runMutation(
+      internal.api.calls.addLine,
+      {
+        projectId: call.projectId,
+        botId: call.botId,
+        threadId: call.threadId,
+        who: 'them',
+        text,
+      },
+    )
+    return {
+      ...call,
+      text,
+      callId,
+      audioUrl: await speak(ctx, text, call.from),
+    }
   },
 })
 

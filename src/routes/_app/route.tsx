@@ -8,7 +8,7 @@ import {
 import { useConvexAuth } from 'convex/react'
 import { AppSidebar } from '~/components/app-sidebar'
 import { IncomingCall } from '~/components/incoming-call'
-import { CallProvider } from '~/components/voice-call'
+import { CallPanel, CallProvider } from '~/components/voice-call'
 import {
   SidebarInset,
   SidebarProvider,
@@ -37,6 +37,7 @@ function AppLayout() {
             {!inChat && <Header />}
             <Outlet />
           </SidebarInset>
+          <CallPanel />
         </SidebarProvider>
         <IncomingCall />
       </CallProvider>
