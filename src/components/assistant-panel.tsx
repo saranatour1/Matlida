@@ -9,6 +9,7 @@ import {
   LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
+  MicIcon,
   ShareIcon,
   TelescopeIcon,
   XIcon,
@@ -42,6 +43,7 @@ const KIND_ICON = {
   search: GlobeIcon,
   research: TelescopeIcon,
   compute: CpuIcon,
+  voice: MicIcon,
 } as const
 
 /** The right sidebar for a chat: who you're talking to, with Details, Library and Costs tabs. */
@@ -151,6 +153,7 @@ export function AssistantPanel({
             <Connector name="Web search" detail={MODELS.search} on />
             <Connector name="Research" detail={MODELS.research} on />
             <Connector name="Voice input" detail={MODELS.transcription} on />
+            <Connector name="Voice replies" detail={MODELS.speech} on />
             <Connector
               name="Texting"
               detail="Photon"

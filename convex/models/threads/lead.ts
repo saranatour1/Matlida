@@ -20,11 +20,20 @@ function guidelines(project: Project) {
 /** A command the user ran with `/name`, and its markdown from storage. */
 export type RunCommand = { name: string; markdown: string }
 
+/** Where the reply goes, which decides how it's written. */
+export type Via = 'chat' | 'text' | 'voice'
+
+const STYLE: Record<Via, string> = {
+  chat: 'Keep replies concise and use markdown.',
+  text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
+  voice:
+    'You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more.',
+}
+
 /** How this reply differs from a normal chat reply. */
 export type ReplyOptions = {
   command?: RunCommand
-  /** The reply goes out as a text message. */
-  viaText?: boolean
+  via?: Via
   /** The user's IANA time zone, so "at 5 tomorrow" means their 5. UTC when unknown. */
   timeZone?: string
 }
@@ -42,7 +51,7 @@ function now(timeZone = 'UTC') {
 function leadInstructions(
   project: Project,
   bots: Array<Bot>,
-  { command, viaText, timeZone }: ReplyOptions,
+  { command, via = 'chat', timeZone }: ReplyOptions,
 ) {
   const team = bots.length
     ? `Your bots:
@@ -52,11 +61,7 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-${
-  viaText
-    ? 'You are replying by text message: plain text with no markdown, a few sentences at most.'
-    : 'Keep replies concise and use markdown.'
-}${now(timeZone)}${guidelines(project)}${
+${STYLE[via]}${now(timeZone)}${guidelines(project)}${
     command
       ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
       : ''
@@ -67,13 +72,14 @@ function botInstructions(
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  timeZone?: string,
+  { via = 'chat', timeZone }: ReplyOptions = {},
 ) {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
-${bot.instructions}${team}${now(timeZone)}${guidelines(project)}`
+${bot.instructions}${team}
+${STYLE[via]}${now(timeZone)}${guidelines(project)}`
 }
 
 const BOT_CALLS_PER_REPLY = 6
@@ -152,13 +158,13 @@ export function createBot(
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  timeZone?: string,
+  options: ReplyOptions = {},
 ) {
   return {
     agent: new Agent(components.agent, {
       name: bot.name,
       languageModel,
-      instructions: botInstructions(project, bot, members, timeZone),
+      instructions: botInstructions(project, bot, members, options),
       stopWhen: stepCountIs(6),
       usageHandler: recordUsage(project),
     }),

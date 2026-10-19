@@ -24,7 +24,69 @@ import { findCommand } from '../commands/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getOwnedThread, startThread } from './functions'
 import { createBot, createLead } from './lead'
-import type { Doc } from '../../_generated/dataModel'
+import type { Via } from './lead'
+import type { Doc, Id } from '../../_generated/dataModel'
+import type { ActionCtx, MutationCtx } from '../../_generated/server'
+
+/** An IANA time zone the runtime knows, like Europe/London. */
+export const zTimeZone = z.string().refine((tz) => {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}, 'Unknown time zone.')
+
+/**
+ * Saves the user's message to a chat with `botId` (the lead when unset),
+ * starting the chat on the first message. Checks that it's all `userId`'s.
+ */
+export async function postMessage(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  {
+    projectId,
+    botId,
+    threadId,
+    prompt,
+  }: {
+    projectId: Id<'projects'>
+    botId?: Id<'bots'>
+    threadId?: string
+    prompt: string
+  },
+) {
+  await getOwnedProject(ctx, userId, projectId)
+  if (botId && (await ctx.db.get('bots', botId))?.projectId !== projectId) {
+    throw new ConvexError('Assistant not found.')
+  }
+  if (threadId) {
+    const thread = await getOwnedThread(ctx, userId, threadId)
+    if (
+      thread?.projectId !== projectId ||
+      thread.kind !== 'chat' ||
+      thread.botId !== botId
+    ) {
+      throw new ConvexError('Chat not found.')
+    }
+  }
+  const command = await findCommand(ctx, projectId, prompt)
+  const id =
+    threadId ??
+    (await startThread(ctx, {
+      projectId,
+      kind: 'chat',
+      botId,
+      title: prompt.slice(0, 60),
+      userId,
+    }))
+  const { messageId } = await saveMessage(ctx, components.agent, {
+    threadId: id,
+    prompt,
+  })
+  return { threadId: id, promptMessageId: messageId, commandId: command?._id }
+}
 
 /**
  * Saves the user's message, starting a chat on the first one, and schedules
@@ -35,56 +97,23 @@ const sendMessage = zAuthedMutation({
     projectId: zid('projects'),
     threadId: z.string().optional(),
     botId: zid('bots').optional(),
-    timeZone: z
-      .string()
-      .refine((tz) => {
-        try {
-          new Intl.DateTimeFormat('en-US', { timeZone: tz })
-          return true
-        } catch {
-          return false
-        }
-      }, 'Unknown time zone.')
-      .optional(),
+    timeZone: zTimeZone.optional(),
     prompt: z
       .string()
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
-  handler: async (ctx, { projectId, botId, timeZone, prompt, ...args }) => {
-    await getOwnedProject(ctx, ctx.userId, projectId)
-    if (botId && (await ctx.db.get('bots', botId))?.projectId !== projectId) {
-      throw new ConvexError('Assistant not found.')
-    }
-    if (args.threadId) {
-      const thread = await getOwnedThread(ctx, ctx.userId, args.threadId)
-      if (
-        thread?.projectId !== projectId ||
-        thread.kind !== 'chat' ||
-        thread.botId !== botId
-      ) {
-        throw new ConvexError('Chat not found.')
-      }
-    }
-    const command = await findCommand(ctx, projectId, prompt)
-    const threadId =
-      args.threadId ??
-      (await startThread(ctx, {
-        projectId,
-        kind: 'chat',
-        botId,
-        title: prompt.slice(0, 60),
-        userId: ctx.userId,
-      }))
-    const { messageId } = await saveMessage(ctx, components.agent, {
-      threadId,
-      prompt,
-    })
+  handler: async (ctx, { timeZone, ...message }) => {
+    const { threadId, promptMessageId, commandId } = await postMessage(
+      ctx,
+      ctx.userId,
+      message,
+    )
     await ctx.scheduler.runAfter(0, internal.api.chat.respond, {
       threadId,
-      promptMessageId: messageId,
-      commandId: command?._id,
+      promptMessageId,
+      commandId,
       timeZone,
     })
     return threadId
@@ -122,6 +151,68 @@ const context = internalQuery({
   },
 })
 
+/**
+ * Streams the reply from the thread's assistant into the thread, and returns
+ * its text. `via` decides how it's written: for the chat, or out loud.
+ */
+export async function runReply(
+  ctx: ActionCtx,
+  {
+    threadId,
+    promptMessageId,
+    commandId,
+    timeZone,
+    via,
+  }: {
+    threadId: string
+    promptMessageId: string
+    commandId?: Id<'commands'>
+    timeZone?: string
+    via?: Via
+  },
+) {
+  const {
+    project,
+    bot,
+    members,
+    command,
+  }: {
+    project: Doc<'projects'>
+    bot: Doc<'bots'> | null
+    members: Array<Doc<'bots'>>
+    command: Doc<'commands'> | null
+  } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
+  const markdown =
+    command && (await (await ctx.storage.get(command.storageId))?.text())
+  const { agent, tools } = bot
+    ? createBot(project, bot, members, { timeZone, via })
+    : createLead(project, members, {
+        timeZone,
+        via,
+        command:
+          command && markdown ? { name: command.name, markdown } : undefined,
+      })
+  const started = Date.now()
+  const result = await agent.streamText(
+    ctx,
+    { threadId, userId: project.ownerId },
+    { promptMessageId, tools },
+    { saveStreamDeltas: true },
+  )
+  await result.consumeStream()
+  await ctx.runMutation(internal.api.usage.record, {
+    projectId: project._id,
+    threadId,
+    kind: 'compute',
+    label: bot?.name ?? project.name,
+    aiCost: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    computeMs: Date.now() - started,
+  })
+  return { text: await result.text, project, bot }
+}
+
 /** Streams the reply from the thread's assistant into the thread. */
 const respond = internalAction({
   args: {
@@ -131,45 +222,8 @@ const respond = internalAction({
     timeZone: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { threadId, promptMessageId, commandId, timeZone }) => {
-    const {
-      project,
-      bot,
-      members,
-      command,
-    }: {
-      project: Doc<'projects'>
-      bot: Doc<'bots'> | null
-      members: Array<Doc<'bots'>>
-      command: Doc<'commands'> | null
-    } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
-    const markdown =
-      command && (await (await ctx.storage.get(command.storageId))?.text())
-    const { agent, tools } = bot
-      ? createBot(project, bot, members, timeZone)
-      : createLead(project, members, {
-          timeZone,
-          command:
-            command && markdown ? { name: command.name, markdown } : undefined,
-        })
-    const started = Date.now()
-    const result = await agent.streamText(
-      ctx,
-      { threadId, userId: project.ownerId },
-      { promptMessageId, tools },
-      { saveStreamDeltas: true },
-    )
-    await result.consumeStream()
-    await ctx.runMutation(internal.api.usage.record, {
-      projectId: project._id,
-      threadId,
-      kind: 'compute',
-      label: bot?.name ?? project.name,
-      aiCost: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      computeMs: Date.now() - started,
-    })
+  handler: async (ctx, args) => {
+    await runReply(ctx, args)
     return null
   },
 })
@@ -197,22 +251,29 @@ const voiceUploadUrl = authedMutation({
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
 })
 
+/** Transcribes an uploaded recording, then deletes it. Returns the text and the gateway's metadata. */
+export async function transcribeClip(
+  ctx: ActionCtx,
+  storageId: Id<'_storage'>,
+) {
+  const audio = await ctx.storage.get(storageId)
+  await ctx.storage.delete(storageId)
+  if (!audio) throw new ConvexError('The recording was lost. Try again.')
+  if (audio.size > 10 * 1024 * 1024) {
+    throw new ConvexError('Recordings can be at most 10 MB.')
+  }
+  const { text, providerMetadata } = await transcribeAudio({
+    model: transcriptionModel,
+    audio: new Uint8Array(await audio.arrayBuffer()),
+  })
+  return { text: text.trim(), providerMetadata }
+}
+
 /** Turns an uploaded voice recording into text, then deletes the recording. */
 const transcribe = authedAction({
   args: { storageId: v.id('_storage') },
-  handler: async (ctx, { storageId }) => {
-    const audio = await ctx.storage.get(storageId)
-    await ctx.storage.delete(storageId)
-    if (!audio) throw new ConvexError('The recording was lost. Try again.')
-    if (audio.size > 10 * 1024 * 1024) {
-      throw new ConvexError('Recordings can be at most 10 MB.')
-    }
-    const { text } = await transcribeAudio({
-      model: transcriptionModel,
-      audio: new Uint8Array(await audio.arrayBuffer()),
-    })
-    return text.trim()
-  },
+  handler: async (ctx, { storageId }) =>
+    (await transcribeClip(ctx, storageId)).text,
 })
 
 export const chatApi = {

@@ -164,7 +164,7 @@ const answer = internalAction({
       return "This number isn't linked yet. Open Texting in Matilda and text me the code it shows."
     }
     const { project, bots, threadId } = linked
-    const lead = createLead(project, bots, { viaText: true })
+    const lead = createLead(project, bots, { via: 'text' })
     const reply = await lead.agent.generateText(
       ctx,
       { threadId, userId: project.ownerId },

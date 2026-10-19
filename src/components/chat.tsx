@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { PanelRightIcon } from 'lucide-react'
+import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
@@ -39,12 +39,15 @@ export function Chat({
   bot,
   threadId,
   panel,
+  onCall,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
   threadId?: string
   /** Whether the right sidebar is open. It lives in the URL as `?panel=true`. */
   panel?: boolean
+  /** Starts a voice call with this chat's assistant. */
+  onCall: () => void
 }) {
   const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
@@ -100,6 +103,16 @@ export function Chat({
   return (
     <div className="flex min-h-0 flex-1">
       <div className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-2 right-12 z-10"
+          aria-label={`Call ${lead}`}
+          title={`Call ${lead}`}
+          onClick={onCall}
+        >
+          <PhoneIcon />
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"
