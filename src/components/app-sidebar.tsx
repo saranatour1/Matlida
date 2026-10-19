@@ -2,20 +2,19 @@ import { useAuthActions } from '@convex-dev/auth/react'
 import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
-  BotIcon,
   ChevronRightIcon,
   ChevronsUpDownIcon,
-  CrownIcon,
+  LibraryIcon,
   LogOutIcon,
   MessagesSquareIcon,
   PlusIcon,
   SettingsIcon,
-  SlashSquareIcon,
   SmartphoneIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import type * as React from 'react'
+import { Orb, defaultAvatar } from '~/components/orb'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -130,7 +129,9 @@ function Assistants({ project }: { project: Doc<'projects'> }) {
             projectId={project._id}
             name={project.name}
             role="Lead"
-            icon={<CrownIcon />}
+            icon={
+              <Orb avatar={project.avatar ?? defaultAvatar(project.name)} />
+            }
           />
           {bots?.map((b) => (
             <Assistant
@@ -139,7 +140,7 @@ function Assistants({ project }: { project: Doc<'projects'> }) {
               bot={b}
               name={b.name}
               role={b.role}
-              icon={<BotIcon />}
+              icon={<Orb avatar={b.avatar ?? defaultAvatar(b.name)} />}
             />
           ))}
         </SidebarMenu>
@@ -251,12 +252,12 @@ function Workspace({ project }: { project: Doc<'projects'> }) {
           <SidebarMenuItem>
             <SidebarMenuButton
               render={
-                <Link to="/p/$projectId/commands" params={{ projectId }} />
+                <Link to="/p/$projectId/library" params={{ projectId }} />
               }
               onClick={close}
             >
-              <SlashSquareIcon />
-              <span>Commands</span>
+              <LibraryIcon />
+              <span>Library</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -272,7 +273,9 @@ function Workspace({ project }: { project: Doc<'projects'> }) {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              render={<Link to="/" search={{ edit: projectId }} />}
+              render={
+                <Link to="/p/$projectId/settings" params={{ projectId }} />
+              }
               onClick={close}
             >
               <SettingsIcon />

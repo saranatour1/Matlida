@@ -9,13 +9,14 @@ import { Textarea } from '~/components/ui/textarea'
 import { useProject } from '~/hooks/use-project'
 import { errorMessage } from '~/lib/errors'
 
-export const Route = createFileRoute('/_app/p/$projectId/commands')({
-  component: Commands,
+export const Route = createFileRoute('/_app/p/$projectId/library')({
+  component: Library,
 })
 
 type Editing = Doc<'commands'> & { markdown: string }
 
-function Commands() {
+/** Saved material the assistants use. Commands for now. */
+function Library() {
   const project = useProject()
   const commands = useQuery(
     api.api.commands.list,
@@ -46,7 +47,8 @@ function Commands() {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
-          <h1 className="text-lg font-semibold">Commands</h1>
+          <h1 className="text-lg font-semibold">Library</h1>
+          <h2 className="mt-4 font-medium">Commands</h2>
           <p className="text-sm text-muted-foreground">
             Type <code>/name</code> in a chat to have {project.name} follow a
             command. Each one is a markdown file in Convex storage.

@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -107,9 +107,9 @@ test('a chat with a bot is listed under that bot, not the lead', async () => {
   expect(
     await asAda.query(api.api.threads.listForBot, { projectId, botId }),
   ).toMatchObject([{ threadId, botId, kind: 'chat' }])
-  expect(
-    await asAda.query(api.api.threads.listForBot, { projectId }),
-  ).toEqual([])
+  expect(await asAda.query(api.api.threads.listForBot, { projectId })).toEqual(
+    [],
+  )
   await expect(
     asAda.mutation(api.api.chat.sendMessage, {
       projectId,
@@ -140,4 +140,46 @@ test("a bot from another workspace can't be messaged", async () => {
       prompt: 'Hi',
     }),
   ).rejects.toThrow('Assistant not found.')
+})
+
+test('members decide who an assistant can hand work to', async () => {
+  const { t, asAda, projectId } = await setup()
+  const [rex, ivy] = await Promise.all(
+    ['Rex', 'Ivy'].map((name) =>
+      asAda.mutation(api.api.bots.save, {
+        projectId,
+        name,
+        role: 'Helper',
+        instructions: 'Help.',
+      }),
+    ),
+  )
+  const leadThread = await asAda.mutation(api.api.chat.sendMessage, {
+    projectId,
+    prompt: 'Hi',
+  })
+  const rexThread = await asAda.mutation(api.api.chat.sendMessage, {
+    projectId,
+    botId: rex,
+    prompt: 'Hi',
+  })
+  const membersOf = async (threadId: string) =>
+    (await t.query(internal.api.chat.context, { threadId })).members.map(
+      (m) => m.name,
+    )
+
+  expect((await membersOf(leadThread)).sort()).toEqual(['Ivy', 'Rex'])
+  expect(await membersOf(rexThread)).toEqual([])
+
+  await asAda.mutation(api.api.threads.setMembers, {
+    threadId: rexThread,
+    memberIds: [ivy],
+  })
+  expect(await membersOf(rexThread)).toEqual(['Ivy'])
+  await expect(
+    asAda.mutation(api.api.threads.setMembers, {
+      threadId: rexThread,
+      memberIds: [rex],
+    }),
+  ).rejects.toThrow('Only other assistants in this workspace can join.')
 })

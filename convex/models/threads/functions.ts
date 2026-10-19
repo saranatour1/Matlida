@@ -1,8 +1,9 @@
 import { createThread } from '@convex-dev/agent'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
-import { authedQuery } from '../../lib/functions'
+import { authedMutation, authedQuery } from '../../lib/functions'
+import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { threadsTable } from './table'
 import type { Doc, Id } from '../../_generated/dataModel'
@@ -79,10 +80,28 @@ const listForBot = authedQuery({
   },
 })
 
+/** Sets who the thread's assistant can hand work to. */
+const setMembers = authedMutation({
+  args: { threadId: v.string(), memberIds: v.array(v.id('bots')) },
+  handler: async (ctx, { threadId, memberIds }) => {
+    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
+    if (!thread) throw new ConvexError('Chat not found.')
+    const bots = await getBots(ctx, thread.projectId)
+    if (
+      memberIds.some(
+        (id) => id === thread.botId || !bots.some((b) => b._id === id),
+      )
+    ) {
+      throw new ConvexError('Only other assistants in this workspace can join.')
+    }
+    await ctx.db.patch('threads', thread._id, { memberIds })
+  },
+})
+
 const get = authedQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) =>
     await getOwnedThread(ctx, ctx.userId, threadId),
 })
 
-export const threadsApi = { start, list, listForBot, get }
+export const threadsApi = { start, list, listForBot, setMembers, get }

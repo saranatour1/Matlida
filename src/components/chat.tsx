@@ -8,6 +8,7 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import { ChatMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
+import { ThreadMembers } from '~/components/thread-members'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import {
@@ -108,8 +109,11 @@ export function Chat({
                     Edit {bot.name}
                   </Link>
                 ) : (
-                  <Link to="/" search={{ edit: project._id }}>
-                    Edit project
+                  <Link
+                    to="/p/$projectId/settings"
+                    params={{ projectId: project._id }}
+                  >
+                    Settings
                   </Link>
                 )}
               </EmptyDescription>
@@ -139,31 +143,34 @@ export function Chat({
           </Empty>
         </div>
       ) : (
-        <MessageScrollerProvider>
-          <MessageScroller className="flex-1">
-            <MessageScrollerViewport>
-              <MessageScrollerContent className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
-                {messages.map((message) => (
-                  <MessageScrollerItem
-                    key={message.key}
-                    messageId={message.key}
-                    scrollAnchor={message.role === 'user'}
-                  >
-                    <ChatMessage message={message} />
-                  </MessageScrollerItem>
-                ))}
-                {isWaiting && (
-                  <MessageScrollerItem messageId="thinking">
-                    <div className="flex shimmer items-center gap-2 px-3 text-sm text-muted-foreground">
-                      {lead} is thinking…
-                    </div>
-                  </MessageScrollerItem>
-                )}
-              </MessageScrollerContent>
-            </MessageScrollerViewport>
-            <MessageScrollerButton />
-          </MessageScroller>
-        </MessageScrollerProvider>
+        <>
+          <ThreadMembers project={project} bot={bot} threadId={threadId} />
+          <MessageScrollerProvider>
+            <MessageScroller className="flex-1">
+              <MessageScrollerViewport>
+                <MessageScrollerContent className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
+                  {messages.map((message) => (
+                    <MessageScrollerItem
+                      key={message.key}
+                      messageId={message.key}
+                      scrollAnchor={message.role === 'user'}
+                    >
+                      <ChatMessage message={message} />
+                    </MessageScrollerItem>
+                  ))}
+                  {isWaiting && (
+                    <MessageScrollerItem messageId="thinking">
+                      <div className="flex shimmer items-center gap-2 px-3 text-sm text-muted-foreground">
+                        {lead} is thinking…
+                      </div>
+                    </MessageScrollerItem>
+                  )}
+                </MessageScrollerContent>
+              </MessageScrollerViewport>
+              <MessageScrollerButton />
+            </MessageScroller>
+          </MessageScrollerProvider>
+        </>
       )}
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-6 pb-6">

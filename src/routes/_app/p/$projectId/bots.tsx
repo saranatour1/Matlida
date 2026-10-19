@@ -4,7 +4,9 @@ import { useMutation, useQuery } from 'convex/react'
 import { PlusIcon } from 'lucide-react'
 import { z } from 'zod'
 import { api } from '../../../../../convex/_generated/api'
+import type { Avatar } from '../../../../../convex/lib/avatars'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
+import { AvatarPicker, defaultAvatar } from '~/components/orb'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -17,7 +19,7 @@ export const Route = createFileRoute('/_app/p/$projectId/bots')({
   component: Bots,
 })
 
-type BotValues = Pick<Doc<'bots'>, 'name' | 'role' | 'instructions'>
+type BotValues = Pick<Doc<'bots'>, 'name' | 'role' | 'instructions' | 'avatar'>
 
 function Bots() {
   const project = useProject()
@@ -203,6 +205,7 @@ function BotForm({
         name: String(data.get('name')),
         role: String(data.get('role')),
         instructions: String(data.get('instructions')),
+        avatar: (data.get('avatar') as Avatar | null) ?? undefined,
       }
       try {
         await save({ projectId, id: bot?._id, ...values })
@@ -247,6 +250,9 @@ function BotForm({
           placeholder="Researcher"
         />
       </label>
+      <AvatarPicker
+        value={values?.avatar ?? defaultAvatar(values?.name ?? '')}
+      />
       <label className="flex flex-col gap-1.5 text-sm">
         What it does and how it thinks
         <Textarea
