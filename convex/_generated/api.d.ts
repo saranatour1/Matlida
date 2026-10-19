@@ -33,7 +33,6 @@ import type * as models_plans_functions from "../models/plans/functions.js";
 import type * as models_plans_table from "../models/plans/table.js";
 import type * as models_projects_functions from "../models/projects/functions.js";
 import type * as models_projects_table from "../models/projects/table.js";
-import type * as models_reminders_call from "../models/reminders/call.js";
 import type * as models_reminders_functions from "../models/reminders/functions.js";
 import type * as models_reminders_table from "../models/reminders/table.js";
 import type * as models_texts_functions from "../models/texts/functions.js";
@@ -83,7 +82,6 @@ declare const fullApi: ApiFromModules<{
   "models/plans/table": typeof models_plans_table;
   "models/projects/functions": typeof models_projects_functions;
   "models/projects/table": typeof models_projects_table;
-  "models/reminders/call": typeof models_reminders_call;
   "models/reminders/functions": typeof models_reminders_functions;
   "models/reminders/table": typeof models_reminders_table;
   "models/texts/functions": typeof models_texts_functions;

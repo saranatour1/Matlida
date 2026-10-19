@@ -16,7 +16,6 @@ import type { Doc, Id } from '../../convex/_generated/dataModel'
 import type * as React from 'react'
 import { Orb, defaultAvatar } from '~/components/orb'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
-import { Button } from '~/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,6 +24,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -83,17 +83,19 @@ function WorkspaceSwitcher({ project }: { project?: Doc<'projects'> }) {
             <ChevronsUpDownIcon />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-56">
-            <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-            {projects?.map((p) => (
-              <DropdownMenuItem
-                key={p._id}
-                render={
-                  <Link to="/p/$projectId" params={{ projectId: p._id }} />
-                }
-              >
-                {p.name}
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+              {projects?.map((p) => (
+                <DropdownMenuItem
+                  key={p._id}
+                  render={
+                    <Link to="/p/$projectId" params={{ projectId: p._id }} />
+                  }
+                >
+                  {p.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               render={<Link to="/" search={{ create: true }} />}
@@ -288,28 +290,61 @@ function Workspace({ project }: { project: Doc<'projects'> }) {
   )
 }
 
+/** You, at the bottom. Opens to your settings and sign out. */
 function Account() {
   const user = useQuery(api.api.users.current)
+  const project = useProject()
   const { signOut } = useAuthActions()
   const name = user?.name ?? user?.email
   return (
     <SidebarFooter>
-      <div className="flex items-center gap-2 px-2 text-sm">
-        <Avatar className="size-6">
-          <AvatarImage src={user?.image} alt="" referrerPolicy="no-referrer" />
-          <AvatarFallback>{name?.[0]?.toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <span className="flex-1 truncate">{name}</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Sign out"
-          title="Sign out"
-          onClick={() => void signOut()}
-        >
-          <LogOutIcon />
-        </Button>
-      </div>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<SidebarMenuButton size="lg" />}
+              aria-label="Account"
+            >
+              <Avatar className="size-6">
+                <AvatarImage
+                  src={user?.image}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+                <AvatarFallback>{name?.[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="flex-1 truncate">{name}</span>
+              <ChevronsUpDownIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="min-w-56">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="truncate font-normal">
+                  {user?.email ?? name}
+                </DropdownMenuLabel>
+                {project && (
+                  <DropdownMenuItem
+                    render={
+                      <Link
+                        to="/p/$projectId/settings"
+                        params={{ projectId: project._id }}
+                        hash="account"
+                      />
+                    }
+                  >
+                    <SettingsIcon />
+                    Settings
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => void signOut()}>
+                <LogOutIcon />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarFooter>
   )
 }
