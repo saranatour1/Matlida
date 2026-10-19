@@ -21,4 +21,5 @@
 - [x] New assistant dialog, copies, template links, group chats from search
 - [x] Portraits: 22 ready-made assistant portraits in the minimal bot-icon style
 
+- [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL
