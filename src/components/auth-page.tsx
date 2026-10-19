@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { GalleryVerticalEndIcon } from 'lucide-react'
 import type * as React from 'react'
 import { FieldDescription, FieldGroup } from '~/components/ui/field'
 
@@ -20,9 +19,7 @@ export function AuthPage({
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
           <Link to="/" className="flex flex-col items-center gap-2 font-medium">
-            <div className="flex size-8 items-center justify-center rounded-md">
-              <GalleryVerticalEndIcon className="size-6" />
-            </div>
+            <img src="/logo.svg" alt="" className="size-12" />
             <span className="sr-only">Matilda</span>
           </Link>
           <h1 className="text-xl font-bold">{title}</h1>
