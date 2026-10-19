@@ -35,11 +35,15 @@ export function ThreadMembers({
   const members = others.filter((b) => memberIds.includes(b._id))
 
   return (
-    // On phones only the avatars and button show, so the chat's name keeps the room.
-    <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground sm:min-w-0 sm:shrink">
+    // The header's width decides what fits, so nothing spills onto Call: no
+    // members below 20rem, avatars and the button from there, names from 42rem.
+    <div className="hidden shrink-0 items-center gap-1.5 text-xs text-muted-foreground @xs:flex @2xl:min-w-0 @2xl:shrink">
       {members.length > 0 && (
         <>
-          <span className="flex items-center -space-x-1">
+          <span
+            className="flex shrink-0 items-center -space-x-1"
+            title={members.map((m) => m.name).join(', ')}
+          >
             {members.slice(0, 3).map((m) => (
               <BotAvatar
                 key={m._id}
@@ -49,9 +53,9 @@ export function ThreadMembers({
             ))}
           </span>
           {members.length > 3 && (
-            <span className="sm:hidden">+{members.length - 3}</span>
+            <span className="shrink-0 @2xl:hidden">+{members.length - 3}</span>
           )}
-          <span className="hidden truncate sm:inline">
+          <span className="hidden min-w-0 truncate @2xl:inline">
             with {members.map((m) => m.name).join(', ')}
           </span>
         </>
