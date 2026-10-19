@@ -11,6 +11,7 @@ afterEach(() => {
 async function setup() {
   vi.stubEnv('MAIL_DOMAIN', 'mail.example.com')
   vi.stubEnv('RESEND_API_KEY', 're_test')
+  vi.stubEnv('RESEND_WEBHOOK_SECRET', 'whsec_dGVzdA==')
   const t = convexTest(schema, modules)
   const [ada, bob, cal] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { email: 'ada@example.com' }),

@@ -44,6 +44,7 @@ Set these on the Convex deployment (`npx convex env set NAME value`):
 | `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `SPECTRUM_WEBHOOK_SECRET` | Messaging on iMessage and WhatsApp through Photon. Optional                    |
 | `TELEGRAM_BOT_TOKEN`                                                        | Messaging on Telegram, with the token from @BotFather. Optional                |
 | `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, verified with Resend. Optional |
+| `RESEND_WEBHOOK_SECRET`                                                     | Signs Resend's inbound webhook at `/resend/inbound` (`whsec_…`). Optional      |
 
 To message on Telegram, add the bot in Photon, set `TELEGRAM_BOT_TOKEN`, then run `npx convex run api/sender:connectTelegram` once to point the bot at Photon. WhatsApp needs only the number added in Photon.
 

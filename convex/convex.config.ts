@@ -6,7 +6,9 @@ import authEmail from '@convex-dev/auth/components/email/convex.config.js'
 import authGithub from '@convex-dev/auth/components/github/convex.config.js'
 import authGoogle from '@convex-dev/auth/components/google/convex.config.js'
 import authPassword from '@convex-dev/auth/components/password/convex.config.js'
+import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
+import workflow from '@convex-dev/workflow/convex.config.js'
 import spectrum from '@spectrum-ts/convex/convex.config.js'
 
 const app = defineApp({
@@ -30,12 +32,16 @@ const app = defineApp({
     TELEGRAM_BOT_TOKEN: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), verified with Resend for sending and receiving. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
+    /** Signs Resend's inbound webhook (`whsec_…`, from the webhook's page). Unset until email is set up. */
+    RESEND_WEBHOOK_SECRET: v.optional(v.string()),
   },
 })
 
 app.use(agent)
 app.use(spectrum)
 app.use(resend)
+app.use(workflow)
+app.use(rateLimiter)
 app.use(auth, {
   httpPrefix: '/auth',
   env: {
