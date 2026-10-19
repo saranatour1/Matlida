@@ -10,6 +10,7 @@
 
 import type * as api_auth from "../api/auth.js";
 import type * as api_bots from "../api/bots.js";
+import type * as api_calls from "../api/calls.js";
 import type * as api_chat from "../api/chat.js";
 import type * as api_commands from "../api/commands.js";
 import type * as api_plans from "../api/plans.js";
@@ -39,6 +40,7 @@ import type * as models_texts_functions from "../models/texts/functions.js";
 import type * as models_texts_sender from "../models/texts/sender.js";
 import type * as models_texts_spectrum from "../models/texts/spectrum.js";
 import type * as models_texts_table from "../models/texts/table.js";
+import type * as models_threads_calls from "../models/threads/calls.js";
 import type * as models_threads_chat from "../models/threads/chat.js";
 import type * as models_threads_functions from "../models/threads/functions.js";
 import type * as models_threads_lead from "../models/threads/lead.js";
@@ -59,6 +61,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "api/auth": typeof api_auth;
   "api/bots": typeof api_bots;
+  "api/calls": typeof api_calls;
   "api/chat": typeof api_chat;
   "api/commands": typeof api_commands;
   "api/plans": typeof api_plans;
@@ -88,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "models/texts/sender": typeof models_texts_sender;
   "models/texts/spectrum": typeof models_texts_spectrum;
   "models/texts/table": typeof models_texts_table;
+  "models/threads/calls": typeof models_threads_calls;
   "models/threads/chat": typeof models_threads_chat;
   "models/threads/functions": typeof models_threads_functions;
   "models/threads/lead": typeof models_threads_lead;

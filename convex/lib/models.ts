@@ -4,4 +4,23 @@ export const MODELS = {
   search: 'perplexity/sonar',
   research: 'perplexity/sonar-pro',
   transcription: 'openai/whisper-large-v3-turbo',
+  speech: 'hexgrad/kokoro-82m',
 } as const
+
+/** Kokoro voices the assistants speak in on calls. */
+export const VOICES = [
+  'af_heart',
+  'af_bella',
+  'af_nicole',
+  'am_adam',
+  'am_michael',
+  'bm_george',
+] as const
+
+/** An assistant's voice, stable for its name. Matilda gets the first one. */
+export function voiceFor(name: string): (typeof VOICES)[number] {
+  if (name === 'Matilda') return VOICES[0]
+  let hash = 0
+  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  return VOICES[hash % VOICES.length]
+}

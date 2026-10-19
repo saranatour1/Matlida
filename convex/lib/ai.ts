@@ -11,3 +11,5 @@ export const researchModel = convexGateway(MODELS.research)
 export const transcriptionModel = convexGateway.transcriptionModel(
   MODELS.transcription,
 )
+
+export const speechModel = convexGateway.speechModel(MODELS.speech)
