@@ -153,6 +153,7 @@ export function AssistantPanel({
             <Connector name="Web search" detail={MODELS.search} on />
             <Connector name="Research" detail={MODELS.research} on />
             <Connector name="Voice input" detail={MODELS.transcription} on />
+            <Connector name="Voice replies" detail={MODELS.speech} on />
             <Connector
               name="Texting"
               detail="Photon"

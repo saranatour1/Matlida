@@ -175,7 +175,9 @@ export function useVoiceCall({
     }
   }
 
+  /** Ends the call, or closes the screen when the call never started. */
   function hangUp() {
+    setError(undefined)
     const s = session.current
     if (!s) return
     s.ended = true
@@ -223,7 +225,7 @@ export function VoiceCallScreen({
     <div
       role="dialog"
       aria-label={`Call with ${name}`}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background/95 px-6 backdrop-blur"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center-safe gap-6 overflow-y-auto bg-background/95 px-6 py-6 backdrop-blur"
     >
       <div
         className={`rounded-[28%] p-1.5 transition-shadow ${
@@ -260,6 +262,7 @@ export function VoiceCallScreen({
           variant="outline"
           className="size-14 rounded-full"
           aria-label={call.muted ? 'Unmute' : 'Mute'}
+          disabled={call.status === 'idle' || call.status === 'starting'}
           aria-pressed={call.muted}
           onClick={call.toggleMute}
         >

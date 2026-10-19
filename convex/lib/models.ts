@@ -17,10 +17,10 @@ export const VOICES = [
   'bm_george',
 ] as const
 
-/** An assistant's voice, stable for its name. Matilda gets the first one. */
+/** An assistant's voice, stable for its name. Matilda's is hers alone. */
 export function voiceFor(name: string): (typeof VOICES)[number] {
   if (name === 'Matilda') return VOICES[0]
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  return VOICES[hash % VOICES.length]
+  return VOICES[1 + (hash % (VOICES.length - 1))]
 }

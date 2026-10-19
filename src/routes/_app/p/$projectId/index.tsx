@@ -67,7 +67,7 @@ function ProjectPage() {
         panel={panel}
         onCall={() => void call.start()}
       />
-      {call.status !== 'idle' && (
+      {(call.status !== 'idle' || call.error) && (
         <VoiceCallScreen
           call={call}
           name={(bot ?? project).name}
