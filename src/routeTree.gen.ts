@@ -20,6 +20,7 @@ import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
 import { Route as AppPProjectIdCommandsRouteImport } from './routes/_app/p/$projectId/commands'
+import { Route as AppPProjectIdTextingRouteImport } from './routes/_app/p/$projectId/texting'
 import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -75,6 +76,11 @@ const AppPProjectIdCommandsRoute = AppPProjectIdCommandsRouteImport.update({
   path: '/p/$projectId/commands',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPProjectIdTextingRoute = AppPProjectIdTextingRouteImport.update({
+  id: '/p/$projectId/texting',
+  path: '/p/$projectId/texting',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPProjectIdThreadsThreadIdRoute =
   AppPProjectIdThreadsThreadIdRouteImport.update({
     id: '/p/$projectId/threads/$threadId',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/_app/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/_app/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/p/$projectId/bots'
     | '/p/$projectId/commands'
+    | '/p/$projectId/texting'
     | '/p/$projectId/'
     | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/p/$projectId/bots'
     | '/p/$projectId/commands'
+    | '/p/$projectId/texting'
     | '/p/$projectId'
     | '/p/$projectId/threads/$threadId'
   id:
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/p/$projectId/bots'
     | '/_app/p/$projectId/commands'
+    | '/_app/p/$projectId/texting'
     | '/_app/p/$projectId/'
     | '/_app/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdCommandsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/texting': {
+      id: '/_app/p/$projectId/texting'
+      path: '/p/$projectId/texting'
+      fullPath: '/p/$projectId/texting'
+      preLoaderRoute: typeof AppPProjectIdTextingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/p/$projectId/threads/$threadId': {
       id: '/_app/p/$projectId/threads/$threadId'
       path: '/p/$projectId/threads/$threadId'
@@ -260,6 +279,7 @@ interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
   AppPProjectIdCommandsRoute: typeof AppPProjectIdCommandsRoute
+  AppPProjectIdTextingRoute: typeof AppPProjectIdTextingRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
   AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -268,6 +288,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
   AppPProjectIdCommandsRoute: AppPProjectIdCommandsRoute,
+  AppPProjectIdTextingRoute: AppPProjectIdTextingRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
   AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
 }

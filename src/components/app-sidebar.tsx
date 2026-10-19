@@ -10,6 +10,7 @@ import {
   MessagesSquareIcon,
   PlusIcon,
   SlashSquareIcon,
+  SmartphoneIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
@@ -108,6 +109,17 @@ function Bots({ project }: { project: Doc<'projects'> }) {
                 {project.name}{' '}
                 <span className="text-muted-foreground">· Lead</span>
               </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={
+                <Link to="/p/$projectId/texting" params={{ projectId }} />
+              }
+              onClick={() => setOpenMobile(false)}
+            >
+              <SmartphoneIcon />
+              <span className="truncate">Text {project.name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           {bots?.map((b) => (

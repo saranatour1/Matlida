@@ -17,10 +17,17 @@ function guidelines(project: Project) {
 /** A command the user ran with `/name`, and its markdown from storage. */
 export type RunCommand = { name: string; markdown: string }
 
+/** How this reply differs from a normal chat reply. */
+export type ReplyOptions = {
+  command?: RunCommand
+  /** The reply goes out as a text message. */
+  viaText?: boolean
+}
+
 function leadInstructions(
   project: Project,
   bots: Array<Bot>,
-  command?: RunCommand,
+  { command, viaText }: ReplyOptions,
 ) {
   const team = bots.length
     ? `Your bots:
@@ -30,7 +37,11 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-Keep replies concise and use markdown.${guidelines(project)}${
+${
+  viaText
+    ? 'You are replying by text message: plain text with no markdown, a few sentences at most.'
+    : 'Keep replies concise and use markdown.'
+}${guidelines(project)}${
     command
       ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
       : ''
@@ -90,13 +101,13 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
 export function createLead(
   project: Project,
   bots: Array<Bot>,
-  command?: RunCommand,
+  options: ReplyOptions = {},
 ) {
   return {
     agent: new Agent(components.agent, {
       name: project.name,
       languageModel,
-      instructions: leadInstructions(project, bots, command),
+      instructions: leadInstructions(project, bots, options),
       stopWhen: stepCountIs(6),
     }),
     tools: leadTools(project, bots),
