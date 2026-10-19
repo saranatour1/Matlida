@@ -19,8 +19,8 @@ export type ChatUIMessage = UIMessage<
     web_search: { input: { query: string }; output: { answer: string } }
     research: { input: { question: string }; output: { report: string } }
     set_reminder: {
-      input: { message: string; at: string; via: 'chat' | 'text' }
-      output: { scheduled: boolean; at: string; via: 'chat' | 'text' }
+      input: { message: string; at: string; via: 'chat' | 'text' | 'call' }
+      output: { scheduled: boolean; at: string; via: 'chat' | 'text' | 'call' }
     }
     save_plan: {
       input: { title: string; steps: Array<string>; planId?: string }
