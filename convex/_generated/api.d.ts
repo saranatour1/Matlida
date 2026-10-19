@@ -9,12 +9,15 @@
  */
 
 import type * as api_auth from "../api/auth.js";
+import type * as api_bots from "../api/bots.js";
 import type * as api_chat from "../api/chat.js";
 import type * as api_projects from "../api/projects.js";
 import type * as api_threads from "../api/threads.js";
 import type * as api_users from "../api/users.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as models_bots_functions from "../models/bots/functions.js";
+import type * as models_bots_table from "../models/bots/table.js";
 import type * as models_projects_functions from "../models/projects/functions.js";
 import type * as models_projects_table from "../models/projects/table.js";
 import type * as models_threads_chat from "../models/threads/chat.js";
@@ -33,12 +36,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "api/auth": typeof api_auth;
+  "api/bots": typeof api_bots;
   "api/chat": typeof api_chat;
   "api/projects": typeof api_projects;
   "api/threads": typeof api_threads;
   "api/users": typeof api_users;
   "lib/ai": typeof lib_ai;
   "lib/functions": typeof lib_functions;
+  "models/bots/functions": typeof models_bots_functions;
+  "models/bots/table": typeof models_bots_table;
   "models/projects/functions": typeof models_projects_functions;
   "models/projects/table": typeof models_projects_table;
   "models/threads/chat": typeof models_threads_chat;

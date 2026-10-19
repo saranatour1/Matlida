@@ -1,5 +1,9 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
-import { customCtx, customQuery } from 'convex-helpers/server/customFunctions'
+import {
+  customCtx,
+  customMutation,
+  customQuery,
+} from 'convex-helpers/server/customFunctions'
 import { zCustomMutation } from 'convex-helpers/server/zod4'
 import { ConvexError } from 'convex/values'
 import { mutation, query } from '../_generated/server'
@@ -11,8 +15,9 @@ const withUser = customCtx(async (ctx: { auth: Auth }) => {
   return { userId }
 })
 
-/** Queries for signed-in users. They add `ctx.userId`, and throw when nobody is signed in. */
+/** Queries and mutations for signed-in users. They add `ctx.userId`, and throw when nobody is signed in. */
 export const authedQuery = customQuery(query, withUser)
+export const authedMutation = customMutation(mutation, withUser)
 
 /**
  * Signed-in mutations whose args are Zod schemas, for validating user input

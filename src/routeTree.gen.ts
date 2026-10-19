@@ -18,6 +18,7 @@ import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
+import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -62,6 +63,11 @@ const AppPProjectIdIndexRoute = AppPProjectIdIndexRouteImport.update({
   path: '/p/$projectId/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPProjectIdBotsRoute = AppPProjectIdBotsRouteImport.update({
+  id: '/p/$projectId/bots',
+  path: '/p/$projectId/bots',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
 }
 export interface FileRoutesById {
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -102,6 +111,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/p/$projectId/bots'
     | '/p/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/p/$projectId/bots'
     | '/p/$projectId'
   id:
     | '__root__'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-up'
     | '/_auth/verify-email'
     | '/_app/'
+    | '/_app/p/$projectId/bots'
     | '/_app/p/$projectId/'
   fileRoutesById: FileRoutesById
 }
@@ -195,16 +207,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/bots': {
+      id: '/_app/p/$projectId/bots'
+      path: '/p/$projectId/bots'
+      fullPath: '/p/$projectId/bots'
+      preLoaderRoute: typeof AppPProjectIdBotsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
 interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
 }
 
