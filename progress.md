@@ -27,3 +27,8 @@
 
 - The three typing dots now run diagonally at 45°, falling left to right (`transform="rotate(45 26.4 28)"` on the dots group in `public/logo.svg`).
 - `favicon.ico`, `apple-touch-icon.png`, both Android icons and `og.png` were re-rendered to match.
+
+### Vendored shadcn CSS (Dependabot #1)
+
+- `shadcn` was a devDependency only so `app.css` could import `shadcn/tailwind.css`, and it pulled in `braces@3.0.3` (high-severity DoS, no patched release). That file now lives at `src/styles/shadcn.css` and the dependency is gone, along with braces.
+- Run the CLI with `pnpm dlx shadcn@latest add <component>`.
