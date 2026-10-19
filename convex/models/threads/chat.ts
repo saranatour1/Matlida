@@ -164,6 +164,7 @@ export async function runReply(
     timeZone,
     via,
     cutOff,
+    onText,
   }: {
     threadId: string
     promptMessageId: string
@@ -172,6 +173,11 @@ export async function runReply(
     via?: Via
     /** On a call: the user talked over the last reply. */
     cutOff?: boolean
+    /** Each piece of the reply's text as it streams, with who is replying. */
+    onText?: (
+      delta: string,
+      who: { project: Doc<'projects'>; bot: Doc<'bots'> | null },
+    ) => void
   },
 ) {
   const {
@@ -203,6 +209,9 @@ export async function runReply(
     { promptMessageId, tools },
     { saveStreamDeltas: true },
   )
+  if (onText) {
+    for await (const delta of result.textStream) onText(delta, { project, bot })
+  }
   await result.consumeStream()
   await ctx.runMutation(internal.api.usage.record, {
     projectId: project._id,
