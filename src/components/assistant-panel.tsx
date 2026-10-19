@@ -15,7 +15,7 @@ import {
   XIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import { MODELS } from '../../convex/lib/models'
+import { MESSAGING_APPS, MODELS } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
@@ -66,7 +66,12 @@ export function AssistantPanel({
   const reminders = useQuery(api.api.reminders.list, {
     projectId: project._id,
   })
-  const link = useQuery(api.api.texts.link, { projectId: project._id })
+  const links = useQuery(api.api.texts.links, { projectId: project._id })
+  const apps = (links ?? []).flatMap((l) =>
+    l.status === 'linked'
+      ? [MESSAGING_APPS[l.platform ?? 'imessage'] ?? l.platform]
+      : [],
+  )
 
   const rows = usage ?? []
   const aiCost = rows.reduce((sum, r) => sum + r.aiCost, 0)
@@ -155,13 +160,13 @@ export function AssistantPanel({
             <Connector name="Voice input" detail={MODELS.transcription} on />
             <Connector name="Voice replies" detail={MODELS.speech} on />
             <Connector
-              name="Texting"
-              detail="Photon"
-              on={link?.status === 'linked'}
+              name="Messaging"
+              detail={apps.length ? apps.join(', ') : 'Photon'}
+              on={apps.length > 0}
               action={
-                link?.status !== 'linked' && (
+                apps.length === 0 && (
                   <Link
-                    to="/p/$projectId/texting"
+                    to="/p/$projectId/messaging"
                     params={{ projectId: project._id }}
                     className="underline"
                   >

@@ -24,3 +24,10 @@ export function voiceFor(name: string): (typeof VOICES)[number] {
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   return VOICES[1 + (hash % (VOICES.length - 1))]
 }
+
+/** How each Photon messaging app is named in the app, by Photon's id for it. */
+export const MESSAGING_APPS: Record<string, string> = {
+  imessage: 'iMessage',
+  telegram: 'Telegram',
+  whatsapp_business: 'WhatsApp',
+}

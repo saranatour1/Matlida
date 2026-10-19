@@ -21,15 +21,15 @@ function Settings() {
         </div>
         <ProjectForm key={project._id} project={project} />
         <section className="flex flex-col gap-1 rounded-xl border p-4 text-sm">
-          <h2 className="font-medium">Texting</h2>
+          <h2 className="font-medium">Messaging</h2>
           <p className="text-muted-foreground">
-            Link your phone to text {project.name}.{' '}
+            Message {project.name} on iMessage, WhatsApp or Telegram.{' '}
             <Link
-              to="/p/$projectId/texting"
+              to="/p/$projectId/messaging"
               params={{ projectId: project._id }}
               className="underline"
             >
-              Set up texting
+              Set up messaging
             </Link>
           </p>
         </section>

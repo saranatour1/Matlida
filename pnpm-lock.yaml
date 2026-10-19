@@ -50,9 +50,18 @@ importers:
       '@spectrum-ts/convex':
         specifier: ^0.1.1
         version: 0.1.1(@spectrum-ts/imessage@12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(supports-color@7.2.0)
+      '@spectrum-ts/core':
+        specifier: ^12.12.0
+        version: 12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
       '@spectrum-ts/imessage':
         specifier: ^12.11.0
         version: 12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
+      '@spectrum-ts/telegram':
+        specifier: ^12.11.0
+        version: 12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)
+      '@spectrum-ts/whatsapp-business':
+        specifier: ^12.11.0
+        version: 12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.104.1(react@19.3.0)
@@ -889,6 +898,14 @@ packages:
   '@photon-ai/proto@0.2.4':
     resolution: {integrity: sha512-DQANEp0gHvtwqpMGEF0ufa0hs1nniRdsSuo0Q/TG6GoL1WjC5tp59tHFSLUeIm6fvnAuRjREsGzURz3+/69g7g==}
 
+  '@photon-ai/telegram-ts@10.0.0':
+    resolution: {integrity: sha512-kYGj/ieKOCG+OxoD1R69xHoT7zHl9dboF52LMPUl4FnorbwA8b2pid0uFoDYF55WIfoeo+VSqwlmY84GgpSedg==}
+    engines: {node: '>=18'}
+
+  '@photon-ai/whatsapp-business@0.3.2':
+    resolution: {integrity: sha512-uloaWcAefUBIHPs177gMvtNl+kCRv6JbD9dpALAKGGS05TlfqcN9kJcL8FSllz25Iflq9WOaLd12yxItKL9Sdg==}
+    engines: {node: '>=18'}
+
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
 
@@ -1218,6 +1235,18 @@ packages:
 
   '@spectrum-ts/imessage@12.11.0':
     resolution: {integrity: sha512-1ABMYLbQ5PdnZi+eG1/dQCGqhz7xvlRvfX7JPeCwpKXEvsMvsiUvFuzvf1YI/ibYecRVbp1OquzdyZmr3qlVUg==}
+    peerDependencies:
+      '@spectrum-ts/core': ^12.0.0
+      typescript: ^5 || ^6.0.0
+
+  '@spectrum-ts/telegram@12.11.0':
+    resolution: {integrity: sha512-o6DUHX9K0eo69I9r0KEaAnkkvKnJsuvr7vy+gDX+9R6D27KsnwDoFnahzF3cgI1yYVLs4DsiVYPjgR0uvh/kLQ==}
+    peerDependencies:
+      '@spectrum-ts/core': ^12.0.0
+      typescript: ^5 || ^6.0.0
+
+  '@spectrum-ts/whatsapp-business@12.11.0':
+    resolution: {integrity: sha512-goG3p4VsZgRgA6MdozalN/oNYKxWypIZ6eP92U4wX8D4eF6aipeATio5YetcI/Oz+WuC/ZyEAS0N8uudhKXZJw==}
     peerDependencies:
       '@spectrum-ts/core': ^12.0.0
       typescript: ^5 || ^6.0.0
@@ -3097,6 +3126,10 @@ packages:
     resolution: {integrity: sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==}
     engines: {node: '>=12.0.0'}
 
+  protobufjs@8.8.1:
+    resolution: {integrity: sha512-d9e9179bjXSJdpJ3+R9fP8hzXsnKLyxTjHLG1dUzje8a27pPyXCe6PrcRtgx2rjoM3IZzHd2vAs+6J/BsO1k7Q==}
+    engines: {node: '>=12.0.0'}
+
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
@@ -4483,6 +4516,18 @@ snapshots:
       '@bufbuild/protobuf': 2.16.0
       nice-grpc-common: 2.0.4
 
+  '@photon-ai/telegram-ts@10.0.0':
+    dependencies:
+      zod: 4.6.6
+
+  '@photon-ai/whatsapp-business@0.3.2':
+    dependencies:
+      '@grpc/grpc-js': 1.14.6
+      long: 5.3.2
+      nice-grpc: 2.1.17
+      nice-grpc-common: 2.0.4
+      protobufjs: 8.8.1
+
   '@protobufjs/aspromise@1.1.2': {}
 
   '@protobufjs/base64@1.1.2': {}
@@ -4750,6 +4795,22 @@ snapshots:
       zod: 4.6.6
     transitivePeerDependencies:
       - supports-color
+
+  '@spectrum-ts/telegram@12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)':
+    dependencies:
+      '@photon-ai/telegram-ts': 10.0.0
+      '@spectrum-ts/core': 12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
+      marked: 18.1.1
+      typescript: '@typescript/typescript6@6.0.2'
+      zod: 4.6.6
+
+  '@spectrum-ts/whatsapp-business@12.11.0(@spectrum-ts/core@12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)':
+    dependencies:
+      '@photon-ai/whatsapp-business': 0.3.2
+      '@spectrum-ts/core': 12.12.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
+      mime-types: 3.0.2
+      typescript: '@typescript/typescript6@6.0.2'
+      zod: 4.6.6
 
   '@stablelib/base64@1.0.1': {}
 
@@ -6754,6 +6815,10 @@ snapshots:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.2
       '@types/node': 26.6.5
+      long: 5.3.2
+
+  protobufjs@8.8.1:
+    dependencies:
       long: 5.3.2
 
   punycode@2.3.1: {}

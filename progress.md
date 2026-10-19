@@ -101,3 +101,12 @@
 - A chat now has one header row: the sidebar toggle, the assistant's portrait and name, its members (avatars, "with …", and the add button), then Call and the details toggle on the right. Before, the call and details buttons floated below the app header and "No members" sat on its own line above the messages.
 - Other pages keep the app header with the workspace name. "No members" is gone; the add button stays when there are bots to add.
 - Checked on the local deployment at desktop width (with and without the details panel), on a new chat, on Library, and at phone width with no sideways scroll.
+
+### Messaging on WhatsApp and Telegram (2026-10-19)
+
+- Texting became Messaging (`/p/$projectId/messaging`). A project links one chat per app: iMessage, WhatsApp or Telegram, through Photon. The `link <code>` flow is unchanged and works from any of them. Linking an app again replaces its old link.
+- Start a message with `@Ivy` to talk to Ivy, and `@Matilda` to go back. The assistant you picked stays on for later messages, and `who` lists who you can message. Bots sign their replies ("Ivy: …") since they share one chat.
+- Each assistant gets its own chat per link, titled like "Ivy · Telegram", so the conversation also shows in the app.
+- Replies go out by the chat's app, which Photon's space record names. iMessage keeps the component's gRPC sender. WhatsApp uses `@spectrum-ts/whatsapp-business` in cloud mode, where Photon holds the Meta credentials. Telegram uses `@spectrum-ts/telegram` with `TELEGRAM_BOT_TOKEN`. `api/sender:connectTelegram` points the bot's webhook at Photon.
+- WhatsApp only allows free-form messages within 24 hours of your last one. Meta enforces that, so a reminder texted outside the window fails to send but still posts in the chat. Approved templates are a follow-up.
+- Verified on the authenticated local deployment with signed, Telegram-shaped Photon webhooks, standing in for Photon's delivery: linking replied "Linked to Matilda", `@Ivy` answered as "Ivy: Ash" and stayed on Ivy for the next message, `who` listed both, `@Matilda` switched back, and the Messaging page showed Telegram linked. Each reply went to the Telegram sender, which stopped at the missing bot token. Live delivery on WhatsApp and Telegram still needs the Photon credentials.

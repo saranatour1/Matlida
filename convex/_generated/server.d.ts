@@ -42,6 +42,7 @@ type Env = {
   readonly SPECTRUM_PROJECT_ID: string | undefined;
   readonly SPECTRUM_PROJECT_SECRET: string | undefined;
   readonly SPECTRUM_WEBHOOK_SECRET: string | undefined;
+  readonly TELEGRAM_BOT_TOKEN: string | undefined;
 };
 
 /**
