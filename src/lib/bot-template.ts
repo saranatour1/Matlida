@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { COLORS, SHAPES } from '../../convex/lib/looks'
+import { zLook } from '../../convex/lib/looks'
 
 /** Everything needed to make a copy of an assistant somewhere else. */
 const templateSchema = z.object({
   name: z.string().max(40),
   role: z.string().max(80),
   instructions: z.string().max(2000),
-  look: z.object({ shape: z.enum(SHAPES), color: z.enum(COLORS) }),
+  look: zLook,
 })
 
 export type BotTemplate = z.infer<typeof templateSchema>

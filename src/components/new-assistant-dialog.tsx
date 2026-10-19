@@ -4,7 +4,12 @@ import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 import type { BotTemplate } from '~/lib/bot-template'
-import { LookPicker, lookFromForm, randomLook } from '~/components/bot-avatar'
+import {
+  LookPicker,
+  lookFromForm,
+  lookOf,
+  randomLook,
+} from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -32,7 +37,9 @@ export function NewAssistantDialog({
 }) {
   const save = useMutation(api.api.bots.save)
   const navigate = useNavigate()
-  const [look] = React.useState(() => template?.look ?? randomLook())
+  const [look] = React.useState(() =>
+    template ? lookOf(template) : randomLook(),
+  )
   const [error, submit, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {
       try {

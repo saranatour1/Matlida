@@ -1,7 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
-import { COLORS, SHAPES } from '../../lib/looks'
+import { zLook } from '../../lib/looks'
 import {
   authedMutation,
   authedQuery,
@@ -73,7 +73,7 @@ const save = zAuthedMutation({
         (text) =>
           text || 'Help with whatever the user asks. Keep answers short.',
       ),
-    look: z.object({ shape: z.enum(SHAPES), color: z.enum(COLORS) }).optional(),
+    look: zLook.optional(),
   },
   handler: async (ctx, { projectId, id, ...bot }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)

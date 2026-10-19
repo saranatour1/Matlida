@@ -1,7 +1,22 @@
 import * as React from 'react'
 import { cn } from 'cn'
-import { COLORS, SHAPES } from '../../convex/lib/looks'
-import type { Color, Look, Shape } from '../../convex/lib/looks'
+import {
+  BookOpenIcon,
+  CalendarDaysIcon,
+  CodeIcon,
+  CompassIcon,
+  FlaskConicalIcon,
+  GlobeIcon,
+  HeartIcon,
+  LeafIcon,
+  PenLineIcon,
+  RocketIcon,
+  TrendingUpIcon,
+  ZapIcon,
+} from 'lucide-react'
+import { COLORS, MARKS, SHAPES } from '../../convex/lib/looks'
+import type { Color, Look, Mark, Shape } from '../../convex/lib/looks'
+import type { LucideIcon } from 'lucide-react'
 
 type Outline = Array<readonly [number, number]>
 
@@ -103,8 +118,23 @@ const STOPS = Object.fromEntries(
   COLORS.map((c) => [c, [shade(HEX[c], 0.45), HEX[c], shade(HEX[c], -0.25)]]),
 ) as Record<Color, [string, string, string]>
 
-/** Bodies too light for a white sparkle. */
+/** Bodies too light for a white emblem. */
 const LIGHT = new Set<Color>(['white', 'gold'])
+
+const MARK_ICON: Record<Mark, LucideIcon> = {
+  bolt: ZapIcon,
+  leaf: LeafIcon,
+  book: BookOpenIcon,
+  pen: PenLineIcon,
+  globe: GlobeIcon,
+  code: CodeIcon,
+  flask: FlaskConicalIcon,
+  compass: CompassIcon,
+  rocket: RocketIcon,
+  heart: HeartIcon,
+  calendar: CalendarDaysIcon,
+  chart: TrendingUpIcon,
+}
 
 /** The outline of every shape, tilted, then fitted into a 100×100 box with a margin. */
 const PATHS = Object.fromEntries(
@@ -135,10 +165,6 @@ const PATHS = Object.fromEntries(
   }),
 ) as Record<Shape, string>
 
-/** A four-point sparkle, a little up and right of center. */
-const SPARKLE =
-  'M61 29Q62.6 37.4 71 39Q62.6 40.6 61 49Q59.4 40.6 51 39Q59.4 37.4 61 29Z'
-
 /** A stable look for an assistant that hasn't picked one. */
 export function defaultLook(name: string): Look {
   let hash = 0
@@ -146,14 +172,17 @@ export function defaultLook(name: string): Look {
   return {
     shape: SHAPES[hash % SHAPES.length],
     color: COLORS[(hash >>> 8) % COLORS.length],
+    mark: MARKS[(hash >>> 16) % MARKS.length],
   }
 }
 
-/** An assistant's look, or its default. */
-export const lookOf = (a: { look?: Look; name: string }) =>
-  a.look ?? defaultLook(a.name)
+/** An assistant's look, or its default. A look saved without an emblem gets one from the name. */
+export function lookOf(a: { look?: Look; name: string }): Required<Look> {
+  const fallback = defaultLook(a.name) as Required<Look>
+  return a.look ? { ...a.look, mark: a.look.mark ?? fallback.mark } : fallback
+}
 
-/** An assistant as a glossy body: a gradient, a curved reflection and a sparkle. */
+/** An assistant as a glossy body with its emblem: a gradient, a curved reflection and the mark. */
 export function BotAvatar({
   look,
   className,
@@ -192,32 +221,49 @@ export function BotAvatar({
           opacity="0.32"
         />
       </g>
-      <path
-        d={SPARKLE}
-        fill={LIGHT.has(look.color) ? '#000' : '#fff'}
-        opacity={LIGHT.has(look.color) ? 0.35 : 0.9}
-      />
+      {look.mark && <Emblem mark={look.mark} color={look.color} />}
     </svg>
   )
 }
 
+/** The emblem, centered and sized to read at every avatar size. */
+function Emblem({ mark, color }: { mark: Mark; color: Color }) {
+  const Icon = MARK_ICON[mark]
+  const light = LIGHT.has(color)
+  return (
+    <Icon
+      x="29"
+      y="29"
+      width="42"
+      height="42"
+      strokeWidth={2.6}
+      color={light ? 'rgb(0 0 0 / 0.6)' : '#fff'}
+      style={
+        light
+          ? undefined
+          : { filter: 'drop-shadow(0 1px 1px rgb(0 0 0 / 0.25))' }
+      }
+    />
+  )
+}
+
 /** A random look, for a new assistant. */
-export function randomLook(): Look {
+export function randomLook(): Required<Look> {
   const pick = <T,>(list: ReadonlyArray<T>) =>
     list[Math.floor(Math.random() * list.length)]
-  return { shape: pick(SHAPES), color: pick(COLORS) }
+  return { shape: pick(SHAPES), color: pick(COLORS), mark: pick(MARKS) }
 }
 
 /**
- * A big preview beside the shapes and colors to pick from. `children` (name
- * fields, say) sit under the preview. Submits as the `shape` and `color`
- * form fields.
+ * A big preview beside the shapes, emblems and colors to pick from.
+ * `children` (name fields, say) sit under the preview. Submits as the
+ * `shape`, `color` and `mark` form fields.
  */
 export function LookPicker({
   defaultValue,
   children,
 }: {
-  defaultValue: Look
+  defaultValue: Required<Look>
   children?: React.ReactNode
 }) {
   const [look, setLook] = React.useState(defaultValue)
@@ -225,6 +271,7 @@ export function LookPicker({
     <div className="grid gap-6 sm:grid-cols-[11rem_1fr] sm:items-start">
       <input type="hidden" name="shape" value={look.shape} />
       <input type="hidden" name="color" value={look.color} />
+      <input type="hidden" name="mark" value={look.mark} />
       <div className="flex flex-col items-center gap-3">
         <BotAvatar look={look} className="size-28 drop-shadow-lg" />
         {children}
@@ -255,6 +302,32 @@ export function LookPicker({
         </div>
         <div
           role="radiogroup"
+          aria-label="Emblem"
+          className="flex flex-col gap-2"
+        >
+          <span className="text-xs text-muted-foreground">Emblem</span>
+          <div className="grid grid-cols-6 gap-1">
+            {MARKS.map((mark) => {
+              const Icon = MARK_ICON[mark]
+              return (
+                <button
+                  key={mark}
+                  type="button"
+                  role="radio"
+                  aria-checked={look.mark === mark}
+                  aria-label={mark}
+                  title={mark}
+                  onClick={() => setLook({ ...look, mark })}
+                  className="grid place-items-center rounded-lg p-1.5 text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-muted aria-checked:text-foreground aria-checked:ring-1 aria-checked:ring-foreground/40"
+                >
+                  <Icon className="size-4" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div
+          role="radiogroup"
           aria-label="Color"
           className="flex flex-col gap-2"
         >
@@ -280,10 +353,11 @@ export function LookPicker({
   )
 }
 
-/** The `shape` and `color` fields a `LookPicker` submitted. The server validates them. */
-export function lookFromForm(data: FormData): Look {
+/** The `shape`, `color` and `mark` fields a `LookPicker` submitted. The server validates them. */
+export function lookFromForm(data: FormData): Required<Look> {
   return {
     shape: String(data.get('shape')) as Shape,
     color: String(data.get('color')) as Color,
+    mark: String(data.get('mark')) as Mark,
   }
 }
