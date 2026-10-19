@@ -25,5 +25,5 @@
 
 ### Logo v2.1: diagonal dots
 
-- The three typing dots now run diagonally at −45° (`transform="rotate(-45 26.4 28)"` on the dots group in `public/logo.svg`).
+- The three typing dots now run diagonally at 45°, falling left to right (`transform="rotate(45 26.4 28)"` on the dots group in `public/logo.svg`).
 - `favicon.ico`, `apple-touch-icon.png`, both Android icons and `og.png` were re-rendered to match.
