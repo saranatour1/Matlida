@@ -186,3 +186,46 @@ test('answering a ringing reminder opens with it spoken, once, and only for you'
   })
   expect(await asAda.action(api.api.calls.answer, { id })).toBeNull()
 })
+
+test('a call keeps its transcript, for you only', async () => {
+  heard.text = 'Hello Matilda'
+  const { asAda, asBob, projectId, clip } = await setup()
+  const callId = await asAda.mutation(api.api.calls.begin, {
+    projectId,
+    opening: 'Hi, it is Matilda.',
+  })
+
+  const result = await asAda.action(api.api.calls.turn, {
+    projectId,
+    storageId: await clip(),
+    callId,
+  })
+  await asAda.mutation(api.api.calls.end, { id: callId })
+
+  expect(
+    (await asAda.query(api.api.calls.transcript, { id: callId })).map((l) => [
+      l.who,
+      l.text,
+    ]),
+  ).toEqual([
+    ['them', 'Hi, it is Matilda.'],
+    ['you', 'Hello Matilda'],
+    ['them', 'Sure, talk soon.'],
+  ])
+  expect(await asAda.query(api.api.calls.history, { projectId })).toMatchObject(
+    [
+      {
+        _id: callId,
+        threadId: result.threadId,
+        firstLine: 'Hi, it is Matilda.',
+        endedAt: expect.any(Number),
+      },
+    ],
+  )
+  await expect(
+    asBob.query(api.api.calls.transcript, { id: callId }),
+  ).rejects.toThrow('Project not found.')
+  await expect(
+    asBob.mutation(api.api.calls.begin, { projectId }),
+  ).rejects.toThrow('Project not found.')
+})

@@ -78,8 +78,13 @@ const turn = zAuthedAction({
     threadId: z.string().optional(),
     storageId: zid('_storage'),
     timeZone: zTimeZone.optional(),
+    /** The call's record, from `calls.begin`, so the turn joins its transcript. */
+    callId: zid('calls').optional(),
   },
-  handler: async (ctx, { storageId, timeZone, ...where }): Promise<Turn> => {
+  handler: async (
+    ctx,
+    { storageId, timeZone, callId, ...where },
+  ): Promise<Turn> => {
     const heard = await transcribeClip(ctx, storageId)
     if (!heard.text) {
       return {
@@ -108,6 +113,17 @@ const turn = zAuthedAction({
       timeZone,
       via: 'voice',
     })
+    if (callId) {
+      await ctx.runMutation(internal.api.calls.addLines, {
+        callId,
+        projectId: where.projectId,
+        threadId: posted.threadId,
+        lines: [
+          { who: 'you', text: heard.text },
+          ...(text.trim() ? [{ who: 'them' as const, text }] : []),
+        ],
+      })
+    }
     if (!text.trim()) {
       return {
         threadId: posted.threadId,

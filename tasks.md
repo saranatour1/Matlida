@@ -21,6 +21,7 @@
 - [x] New assistant dialog, copies, template links, group chats from search
 - [x] Portraits: 22 ready-made assistant portraits in the minimal bot-icon style
 - [x] In-app voice calls with any assistant
+- [x] Call history, and the call docked at the side with its full transcript
 - [x] Assistants ring you in the app for call reminders
 - [x] Message assistants over iMessage, WhatsApp and Telegram through Photon
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set

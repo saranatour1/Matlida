@@ -34,6 +34,8 @@ type Session = CallTarget & {
   recorder?: MediaRecorder
   playing?: AudioBufferSourceNode
   frame?: number
+  /** The call's record in history, from `calls.begin`. */
+  callId?: Id<'calls'>
   ended: boolean
 }
 
@@ -57,6 +59,8 @@ export function useVoiceCall({
   const session = React.useRef<Session | null>(null)
   const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
   const turn = useAction(api.api.calls.turn)
+  const begin = useMutation(api.api.calls.begin)
+  const end = useMutation(api.api.calls.end)
 
   function listen(s: Session) {
     if (s.ended) return
@@ -116,9 +120,11 @@ export function useVoiceCall({
         threadId: s.threadId,
         storageId,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        callId: s.callId,
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
+      setError(undefined)
       if (result.threadId && result.threadId !== s.threadId) {
         s.threadId = result.threadId
         onThread?.({
@@ -183,6 +189,11 @@ export function useVoiceCall({
       session.current = s
       const first = await opening?.catch(() => null)
       if (first) setLines([{ who: 'them', text: first.text }])
+      // ponytail: a call whose record fails to save still goes ahead, just without history.
+      s.callId = await begin({ ...target, opening: first?.text }).catch(
+        () => undefined,
+      )
+      if (session.current !== s) return
       if (first?.audioUrl) await play(s, first.audioUrl).catch(() => listen(s))
       else listen(s)
     } catch {
@@ -198,6 +209,7 @@ export function useVoiceCall({
     const s = session.current
     if (!s) return
     s.ended = true
+    if (s.callId) void end({ id: s.callId })
     if (s.frame) cancelAnimationFrame(s.frame)
     if (s.recorder?.state === 'recording') s.recorder.stop()
     s.playing?.stop()
@@ -232,21 +244,22 @@ type Opening = Promise<{ text: string; audioUrl: string | null } | null>
 
 const CallContext = React.createContext<{
   call: ReturnType<typeof useVoiceCall>
+  /** Who the call is with, kept from the start, since the page can change during the call. */
+  caller?: Caller
   /** Starts a call unless one is on. Call it from a click. */
   startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
 } | null>(null)
 
-/** The app's one call and its screen, so a ring can't start a second call over the first. */
+/** The app's one call, so a ring can't start a second call over the first. `CallPanel` shows it. */
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
-  // Kept from the start, since the page can change during the call.
   const [caller, setCaller] = React.useState<Caller>()
   const call = useVoiceCall({
     onThread: ({ projectId, botId, threadId }) =>
       void navigate({
         to: '/p/$projectId',
         params: { projectId },
-        search: { thread: threadId, bot: botId },
+        search: (prev) => ({ ...prev, thread: threadId, bot: botId }),
       }),
   })
   function startCall(target: CallTarget, who: Caller, opening?: Opening) {
@@ -255,15 +268,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     void call.start(target, opening)
   }
   return (
-    <CallContext.Provider value={{ call, startCall }}>
+    <CallContext.Provider value={{ call, caller, startCall }}>
       {children}
-      {caller && (call.status !== 'idle' || call.error) && (
-        <VoiceCallScreen
-          call={call}
-          name={caller.name}
-          portrait={caller.portrait}
-        />
-      )}
     </CallContext.Provider>
   )
 }
@@ -274,61 +280,71 @@ export function useCall() {
   return context
 }
 
-/** The full-screen call: the assistant's portrait, what's happening, and the last things said. */
-export function VoiceCallScreen({
-  call,
-  name,
-  portrait,
-}: {
-  call: ReturnType<typeof useVoiceCall>
-  name: string
-  portrait: Portrait
-}) {
+/**
+ * The call, docked at the side of the app: who it's with, what's happening,
+ * and everything said so far. Full screen on phones.
+ */
+export function CallPanel() {
+  const { call, caller } = useCall()
+  if (!caller || (call.status === 'idle' && !call.error)) return null
   const live = call.status === 'speaking' || call.status === 'hearing'
   return (
-    <div
+    <aside
       role="dialog"
-      aria-label={`Call with ${name}`}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center-safe gap-6 overflow-y-auto bg-background/95 px-6 py-6 backdrop-blur"
+      aria-label={`Call with ${caller.name}`}
+      className="fixed inset-0 z-40 flex flex-col bg-background md:sticky md:top-0 md:h-svh md:w-80 md:shrink-0 md:border-l lg:w-96"
     >
-      <div
-        className={`rounded-[28%] p-1.5 transition-shadow ${
-          live
-            ? call.status === 'speaking'
-              ? 'animate-pulse ring-4 ring-emerald-400/70'
-              : 'ring-4 ring-sky-400/70'
-            : 'ring-4 ring-transparent'
-        }`}
+      <div className="flex items-center gap-3 border-b p-4">
+        <div
+          className={`rounded-[28%] p-1 ${
+            live
+              ? call.status === 'speaking'
+                ? 'animate-pulse ring-2 ring-emerald-400/70'
+                : 'ring-2 ring-sky-400/70'
+              : 'ring-2 ring-transparent'
+          }`}
+        >
+          <BotAvatar portrait={caller.portrait} className="size-12" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-medium">{caller.name}</p>
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {call.muted ? 'Muted' : STATUS_LABEL[call.status]}
+          </p>
+        </div>
+      </div>
+      <ol
+        aria-label="Transcript"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 text-sm"
       >
-        <BotAvatar portrait={portrait} className="size-40" />
-      </div>
-      <div className="text-center">
-        <p className="text-xl font-medium">{name}</p>
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          {call.muted ? 'Muted' : STATUS_LABEL[call.status]}
-        </p>
-      </div>
-      <div className="flex min-h-16 w-full max-w-md flex-col gap-1 text-center text-sm">
-        {call.lines.slice(-2).map((line, i) => (
-          <p
+        {call.lines.length === 0 && !call.error && (
+          <li className="text-muted-foreground">
+            What you and {caller.name} say shows up here.
+          </li>
+        )}
+        {call.lines.map((line, i) => (
+          <li
             key={i}
+            ref={i === call.lines.length - 1 ? scrollIntoView : undefined}
             className={
-              line.who === 'you' ? 'text-muted-foreground' : 'text-foreground'
+              line.who === 'you'
+                ? 'max-w-[85%] self-end rounded-2xl bg-muted px-3 py-2'
+                : 'max-w-[85%]'
             }
           >
             {line.text}
-          </p>
+          </li>
         ))}
         {call.error && (
-          <p role="alert" className="text-destructive">
+          <li role="alert" className="text-destructive">
             {call.error}
-          </p>
+          </li>
         )}
-      </div>
-      <div className="flex gap-4">
+      </ol>
+      <div className="flex justify-center gap-4 border-t p-4">
         <Button
           variant="outline"
-          className="size-14 rounded-full"
+          className="size-12 rounded-full"
           aria-label={call.muted ? 'Unmute' : 'Mute'}
           disabled={call.status === 'idle' || call.status === 'starting'}
           aria-pressed={call.muted}
@@ -338,13 +354,18 @@ export function VoiceCallScreen({
         </Button>
         <Button
           variant="destructive"
-          className="size-14 rounded-full"
+          className="size-12 rounded-full"
           aria-label="Hang up"
           onClick={call.hangUp}
         >
           <PhoneOffIcon />
         </Button>
       </div>
-    </div>
+    </aside>
   )
+}
+
+/** Keeps the newest line in view as the transcript grows. */
+function scrollIntoView(element: HTMLLIElement | null) {
+  element?.scrollIntoView({ block: 'nearest' })
 }

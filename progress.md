@@ -110,3 +110,11 @@
 - Replies go out by the chat's app, which Photon's space record names. iMessage keeps the component's gRPC sender. WhatsApp uses `@spectrum-ts/whatsapp-business` in cloud mode, where Photon holds the Meta credentials. Telegram uses `@spectrum-ts/telegram` with `TELEGRAM_BOT_TOKEN`. `api/sender:connectTelegram` points the bot's webhook at Photon.
 - WhatsApp only allows free-form messages within 24 hours of your last one. Meta enforces that, so a reminder texted outside the window fails to send but still posts in the chat. Approved templates are a follow-up.
 - Verified on the authenticated local deployment with signed, Telegram-shaped Photon webhooks, standing in for Photon's delivery: linking replied "Linked to Matilda", `@Ivy` answered as "Ivy: Ash" and stayed on Ivy for the next message, `who` listed both, `@Matilda` switched back, and the Messaging page showed Telegram linked. Each reply went to the Telegram sender, which stopped at the missing bot token. Live delivery on WhatsApp and Telegram still needs the Photon credentials.
+
+### Call history and a docked call (2026-10-19)
+
+- A call now docks at the side of the app instead of covering it: the assistant, its status, the whole transcript (scrolling, newest in view, nothing cut to the last two lines), and Mute and Hang up. The chat stays usable next to it. On phones it's full screen.
+- Calls are saved: `calls` (who, chat, when it ended) and `callLines` (each thing said). `calls.begin` runs once the mic is on, with the opening line when the assistant called you; each turn adds its lines; Hang up sets the end.
+- The details panel has a Calls tab: an assistant's last 20 calls with time, length and first line, each opening to its transcript and a link to the chat.
+- A call's first turn keeps the URL's other params, so the details panel stays open. A stale call error clears once a turn succeeds.
+- Verified on a local deployment: a two-turn call to Matilda docked at desktop width with both turns in the transcript, then showed in the Calls tab with "2 min" and its four lines.

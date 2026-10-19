@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { CallHistory } from '~/components/call-history'
 
 /**
  * Convex bills action time by memory used: 64 MB actions at $0.30 per GB-hour
@@ -123,6 +124,7 @@ export function AssistantPanel({
         <TabsList className="mx-auto">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="library">Library</TabsTrigger>
+          <TabsTrigger value="calls">Calls</TabsTrigger>
           <TabsTrigger value="costs">Costs</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="flex flex-col gap-6 px-4 py-4">
@@ -232,6 +234,9 @@ export function AssistantPanel({
           >
             Open the Library
           </Link>
+        </TabsContent>
+        <TabsContent value="calls" className="px-2 py-4">
+          <CallHistory projectId={project._id} botId={bot?._id} />
         </TabsContent>
         <TabsContent value="costs" className="flex flex-col gap-6 px-4 py-4">
           <Section title="This chat">

@@ -28,6 +28,8 @@ import type * as lib_models from "../lib/models.js";
 import type * as lib_portraits from "../lib/portraits.js";
 import type * as models_bots_functions from "../models/bots/functions.js";
 import type * as models_bots_table from "../models/bots/table.js";
+import type * as models_calls_functions from "../models/calls/functions.js";
+import type * as models_calls_table from "../models/calls/table.js";
 import type * as models_commands_functions from "../models/commands/functions.js";
 import type * as models_commands_table from "../models/commands/table.js";
 import type * as models_plans_functions from "../models/plans/functions.js";
@@ -79,6 +81,8 @@ declare const fullApi: ApiFromModules<{
   "lib/portraits": typeof lib_portraits;
   "models/bots/functions": typeof models_bots_functions;
   "models/bots/table": typeof models_bots_table;
+  "models/calls/functions": typeof models_calls_functions;
+  "models/calls/table": typeof models_calls_table;
   "models/commands/functions": typeof models_commands_functions;
   "models/commands/table": typeof models_commands_table;
   "models/plans/functions": typeof models_plans_functions;
