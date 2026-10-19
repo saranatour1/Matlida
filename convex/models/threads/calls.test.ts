@@ -1,9 +1,11 @@
+import { createThread } from '@convex-dev/agent'
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, components, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import type { Id } from '../../_generated/dataModel'
 import type * as Ai from 'ai'
 
 vi.mock('../../lib/ai', async () => {
@@ -101,4 +103,86 @@ test("you can't call into someone else's workspace", async () => {
   await expect(
     asBob.action(api.api.calls.turn, { projectId, storageId: await clip() }),
   ).rejects.toThrow('Project not found.')
+})
+
+async function chatWithReminder(
+  t: Awaited<ReturnType<typeof setup>>['t'],
+  projectId: Id<'projects'>,
+) {
+  return await t.run(async (ctx) => {
+    const project = await ctx.db.get('projects', projectId)
+    const threadId = await createThread(ctx, components.agent, {
+      userId: project?.ownerId,
+    })
+    await ctx.db.insert('threads', {
+      projectId,
+      threadId,
+      kind: 'chat',
+      title: 'Chat',
+    })
+    return threadId
+  })
+}
+
+test('a call reminder rings, then counts as missed and lands in the chat', async () => {
+  vi.useFakeTimers()
+  const { t, asAda, projectId } = await setup()
+  const threadId = await chatWithReminder(t, projectId)
+  await t.mutation(internal.api.reminders.schedule, {
+    projectId,
+    threadId,
+    from: 'Matilda',
+    message: 'Stretch',
+    dueAt: Date.now() + 60_000,
+    via: 'call',
+  })
+
+  vi.advanceTimersByTime(60_000)
+  await t.finishInProgressScheduledFunctions()
+  expect(await asAda.query(api.api.reminders.ringing, {})).toMatchObject([
+    { from: 'Matilda', threadId },
+  ])
+
+  vi.advanceTimersByTime(30_000)
+  await t.finishInProgressScheduledFunctions()
+  vi.useRealTimers()
+  expect(await asAda.query(api.api.reminders.ringing, {})).toEqual([])
+  const [reminder] = await t.run((ctx) => ctx.db.query('reminders').take(1))
+  expect(reminder).toMatchObject({
+    status: 'sent',
+    note: 'You missed the call.',
+  })
+})
+
+test('answering a ringing reminder opens with it spoken, once, and only for you', async () => {
+  const { t, asAda, asBob, projectId } = await setup()
+  const threadId = await chatWithReminder(t, projectId)
+  const id = await t.run((ctx) =>
+    ctx.db.insert('reminders', {
+      projectId,
+      threadId,
+      from: 'Matilda',
+      message: 'Stretch',
+      dueAt: Date.now(),
+      via: 'call',
+      status: 'ringing',
+    }),
+  )
+
+  await expect(asBob.action(api.api.calls.answer, { id })).rejects.toThrow(
+    'Project not found.',
+  )
+  const call = await asAda.action(api.api.calls.answer, { id })
+
+  expect(call).toMatchObject({
+    projectId,
+    threadId,
+    text: "Hi, it's Matilda with your reminder. Stretch",
+    audioUrl: expect.any(String),
+  })
+  expect(await t.run((ctx) => ctx.db.get('reminders', id))).toMatchObject({
+    status: 'sent',
+    note: 'You picked up.',
+  })
+  expect(await asAda.action(api.api.calls.answer, { id })).toBeNull()
 })

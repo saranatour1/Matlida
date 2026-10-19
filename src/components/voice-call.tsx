@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation } from 'convex/react'
 import { MicIcon, MicOffIcon, PhoneOffIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
@@ -19,7 +20,14 @@ const MAX_TURN_MS = 30_000
 /** A turn with no talking restarts after this, so recordings stay small. */
 const IDLE_RESTART_MS = 15_000
 
-type Session = {
+/** Who the call is with. `threadId` fills in when the first turn starts a chat. */
+export type CallTarget = {
+  projectId: Id<'projects'>
+  botId?: Id<'bots'>
+  threadId?: string
+}
+
+type Session = CallTarget & {
   stream: MediaStream
   audio: AudioContext
   analyser: AnalyserNode
@@ -37,23 +45,16 @@ type Line = { who: 'you' | 'them'; text: string }
  * from a click, so the browser allows the microphone and audio playback.
  */
 export function useVoiceCall({
-  projectId,
-  botId,
-  threadId,
   onThread,
 }: {
-  projectId?: Id<'projects'>
-  botId?: Id<'bots'>
-  threadId?: string
-  /** Called when the first turn starts a new chat, with its id. */
-  onThread: (threadId: string) => void
-}) {
+  /** Called when the first turn starts a new chat. */
+  onThread?: (target: CallTarget & { threadId: string }) => void
+} = {}) {
   const [status, setStatus] = React.useState<Status>('idle')
   const [error, setError] = React.useState<string>()
   const [muted, setMuted] = React.useState(false)
   const [lines, setLines] = React.useState<Array<Line>>([])
   const session = React.useRef<Session | null>(null)
-  const thread = React.useRef<string | undefined>(undefined)
   const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
   const turn = useAction(api.api.calls.turn)
 
@@ -101,7 +102,6 @@ export function useVoiceCall({
   }
 
   async function send(s: Session, clip: Blob) {
-    if (!projectId) return
     setStatus('thinking')
     try {
       const res = await fetch(await uploadUrl(), {
@@ -111,47 +111,62 @@ export function useVoiceCall({
       })
       const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
       const result = await turn({
-        projectId,
-        botId,
-        threadId: thread.current,
+        projectId: s.projectId,
+        botId: s.botId,
+        threadId: s.threadId,
         storageId,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
-      if (result.threadId && result.threadId !== thread.current) {
-        thread.current = result.threadId
-        onThread(result.threadId)
+      if (result.threadId && result.threadId !== s.threadId) {
+        s.threadId = result.threadId
+        onThread?.({
+          projectId: s.projectId,
+          botId: s.botId,
+          threadId: result.threadId,
+        })
       }
       const said = result.transcript
       const reply = result.reply
       if (said) setLines((l) => [...l, { who: 'you', text: said }])
       if (reply) setLines((l) => [...l, { who: 'them', text: reply }])
-      if (!result.audioUrl) {
-        listen(s)
-        return
-      }
-      const sound = await (await fetch(result.audioUrl)).arrayBuffer()
-      const buffer = await s.audio.decodeAudioData(sound)
-      if (session.current !== s) return
-      const source = s.audio.createBufferSource()
-      source.buffer = buffer
-      source.connect(s.audio.destination)
-      source.onended = () => {
-        s.playing = undefined
-        listen(s)
-      }
-      s.playing = source
-      setStatus('speaking')
-      source.start()
+      if (result.audioUrl) await play(s, result.audioUrl)
+      else listen(s)
     } catch (e) {
       setError(errorMessage(e, "Couldn't reach the assistant. Try again."))
       listen(s)
     }
   }
 
-  async function start() {
-    if (session.current || !projectId) return
+  /** Plays a spoken reply, then listens again. */
+  async function play(s: Session, audioUrl: string) {
+    const sound = await (await fetch(audioUrl)).arrayBuffer()
+    const buffer = await s.audio.decodeAudioData(sound)
+    // The user may have hung up while it loaded.
+    if (session.current !== s) return
+    const source = s.audio.createBufferSource()
+    source.buffer = buffer
+    source.connect(s.audio.destination)
+    source.onended = () => {
+      s.playing = undefined
+      listen(s)
+    }
+    s.playing = source
+    setStatus('speaking')
+    source.start()
+  }
+
+  /**
+   * Starts a call with `target`. `opening` is what the assistant says first
+   * when it called you; it can still be loading, since the call must start
+   * in the click.
+   */
+  async function start(
+    target: CallTarget,
+    opening?: Promise<{ text: string; audioUrl: string | null } | null>,
+  ) {
+    if (session.current) return
     setError(undefined)
     setLines([])
     setStatus('starting')
@@ -164,10 +179,12 @@ export function useVoiceCall({
       const analyser = audio.createAnalyser()
       analyser.fftSize = 1024
       audio.createMediaStreamSource(stream).connect(analyser)
-      const s: Session = { stream, audio, analyser, ended: false }
+      const s: Session = { ...target, stream, audio, analyser, ended: false }
       session.current = s
-      thread.current = threadId
-      listen(s)
+      const first = await opening?.catch(() => null)
+      if (first) setLines([{ who: 'them', text: first.text }])
+      if (first?.audioUrl) await play(s, first.audioUrl).catch(() => listen(s))
+      else listen(s)
     } catch {
       void audio.close()
       setError('Allow microphone access to call.')
@@ -208,6 +225,53 @@ const STATUS_LABEL: Record<Status, string> = {
   hearing: 'Hearing you…',
   thinking: 'Thinking…',
   speaking: 'Speaking…',
+}
+
+type Caller = { name: string; portrait: Portrait }
+type Opening = Promise<{ text: string; audioUrl: string | null } | null>
+
+const CallContext = React.createContext<{
+  call: ReturnType<typeof useVoiceCall>
+  /** Starts a call unless one is on. Call it from a click. */
+  startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
+} | null>(null)
+
+/** The app's one call and its screen, so a ring can't start a second call over the first. */
+export function CallProvider({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate()
+  // Kept from the start, since the page can change during the call.
+  const [caller, setCaller] = React.useState<Caller>()
+  const call = useVoiceCall({
+    onThread: ({ projectId, botId, threadId }) =>
+      void navigate({
+        to: '/p/$projectId',
+        params: { projectId },
+        search: { thread: threadId, bot: botId },
+      }),
+  })
+  function startCall(target: CallTarget, who: Caller, opening?: Opening) {
+    if (call.status !== 'idle') return
+    setCaller(who)
+    void call.start(target, opening)
+  }
+  return (
+    <CallContext.Provider value={{ call, startCall }}>
+      {children}
+      {caller && (call.status !== 'idle' || call.error) && (
+        <VoiceCallScreen
+          call={call}
+          name={caller.name}
+          portrait={caller.portrait}
+        />
+      )}
+    </CallContext.Provider>
+  )
+}
+
+export function useCall() {
+  const context = React.useContext(CallContext)
+  if (!context) throw new Error('useCall needs a CallProvider above it.')
+  return context
 }
 
 /** The full-screen call: the assistant's portrait, what's happening, and the last things said. */

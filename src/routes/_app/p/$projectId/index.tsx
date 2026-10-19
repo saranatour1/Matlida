@@ -5,7 +5,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { portraitOf } from '~/components/bot-avatar'
 import { Chat } from '~/components/chat'
 import { NewAssistantDialog } from '~/components/new-assistant-dialog'
-import { VoiceCallScreen, useVoiceCall } from '~/components/voice-call'
+import { useCall } from '~/components/voice-call'
 import { useProject } from '~/hooks/use-project'
 import { decodeTemplate } from '~/lib/bot-template'
 
@@ -38,14 +38,7 @@ function ProjectPage() {
     project && botId ? { projectId: project._id } : 'skip',
   )
   const bot = bots?.find((b) => b._id === botId)
-  // Lives here, not in Chat, so a call survives Chat remounting on a new thread.
-  const call = useVoiceCall({
-    projectId: project?._id,
-    botId: bot?._id,
-    threadId: thread,
-    onThread: (id) =>
-      void navigate({ search: (prev) => ({ ...prev, thread: id }) }),
-  })
+  const { startCall } = useCall()
   if (project === undefined || (botId && bots === undefined)) return null
   if (project === null) {
     return (
@@ -65,15 +58,16 @@ function ProjectPage() {
         bot={bot}
         threadId={thread}
         panel={panel}
-        onCall={() => void call.start()}
+        onCall={() =>
+          startCall(
+            { projectId: project._id, botId: bot?._id, threadId: thread },
+            {
+              name: (bot ?? project).name,
+              portrait: portraitOf(bot ?? project),
+            },
+          )
+        }
       />
-      {(call.status !== 'idle' || call.error) && (
-        <VoiceCallScreen
-          call={call}
-          name={(bot ?? project).name}
-          portrait={portraitOf(bot ?? project)}
-        />
-      )}
       {(search.new || template) && (
         <NewAssistantDialog
           projectId={project._id}

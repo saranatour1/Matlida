@@ -9,6 +9,8 @@ import { zAuthedAction } from '../../lib/functions'
 import { voiceFor } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
+import type { Id } from '../../_generated/dataModel'
+import type { ActionCtx } from '../../_generated/server'
 
 /** How long a spoken reply stays in storage, long enough to play it. */
 const AUDIO_TTL_MS = 10 * 60_000
@@ -40,6 +42,22 @@ const forget = internalMutation({
     return null
   },
 })
+
+/** Reads `text` out in `name`'s voice, and returns a URL to the audio for the next 10 minutes. */
+async function speak(ctx: ActionCtx, text: string, name: string) {
+  const { audio } = await generateSpeech({
+    model: speechModel,
+    text: text.slice(0, 2000),
+    voice: voiceFor(name),
+  })
+  const audioId = await ctx.storage.store(
+    new Blob([new Uint8Array(audio.uint8Array)], { type: audio.mediaType }),
+  )
+  await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
+    storageId: audioId,
+  })
+  return await ctx.storage.getUrl(audioId)
+}
 
 type Turn = {
   threadId: string | null
@@ -98,24 +116,41 @@ const turn = zAuthedAction({
         audioUrl: null,
       }
     }
-    const { audio } = await generateSpeech({
-      model: speechModel,
-      text: text.slice(0, 2000),
-      voice: voiceFor((bot ?? project).name),
-    })
-    const audioId = await ctx.storage.store(
-      new Blob([new Uint8Array(audio.uint8Array)], { type: audio.mediaType }),
-    )
-    await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
-      storageId: audioId,
-    })
     return {
       threadId: posted.threadId,
       transcript: heard.text,
       reply: text,
-      audioUrl: await ctx.storage.getUrl(audioId),
+      audioUrl: await speak(ctx, text, (bot ?? project).name),
     }
   },
 })
 
-export const callsApi = { post, forget, turn }
+type Answered = {
+  projectId: Id<'projects'>
+  threadId: string
+  botId?: Id<'bots'>
+  from: string
+  message: string
+  text: string
+  audioUrl: string | null
+}
+
+/**
+ * Picks up a ringing call reminder: the assistant opens the call by saying
+ * the reminder. Null when it already stopped ringing.
+ */
+const answer = zAuthedAction({
+  args: { id: zid('reminders') },
+  handler: async (ctx, { id }): Promise<Answered | null> => {
+    const call: Omit<Answered, 'text' | 'audioUrl'> | null =
+      await ctx.runMutation(internal.api.reminders.pickUp, {
+        id,
+        userId: ctx.userId,
+      })
+    if (!call) return null
+    const text = `Hi, it's ${call.from} with your reminder. ${call.message}`
+    return { ...call, text, audioUrl: await speak(ctx, text, call.from) }
+  },
+})
+
+export const callsApi = { post, forget, turn, answer }
