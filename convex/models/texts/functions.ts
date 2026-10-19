@@ -28,7 +28,10 @@ function newCode() {
   return code
 }
 
-async function getLink(ctx: Pick<QueryCtx, 'db'>, projectId: Id<'projects'>) {
+export async function getLink(
+  ctx: Pick<QueryCtx, 'db'>,
+  projectId: Id<'projects'>,
+) {
   return await ctx.db
     .query('phoneLinks')
     .withIndex('by_project', (q) => q.eq('projectId', projectId))

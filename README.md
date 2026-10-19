@@ -34,13 +34,14 @@ pnpm dev
 
 Set these on the Convex deployment (`npx convex env set NAME value`):
 
-| Name                                                 | What it's for                                          |
-| ---------------------------------------------------- | ------------------------------------------------------ |
-| `SITE_URL`                                           | The app's URL, used in email links and OAuth redirects |
-| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                      | Key pair Convex Auth signs session tokens with         |
-| `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                  | Sending verification and reset emails                  |
-| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET` | Google sign-in                                         |
-| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET` | GitHub sign-in                                         |
+| Name                                                                        | What it's for                                          |
+| --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `SITE_URL`                                                                  | The app's URL, used in email links and OAuth redirects |
+| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                                             | Key pair Convex Auth signs session tokens with         |
+| `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                                         | Sending verification and reset emails                  |
+| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET`                        | Google sign-in                                         |
+| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET`                        | GitHub sign-in                                         |
+| `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `SPECTRUM_WEBHOOK_SECRET` | Texting through Photon. Optional                       |
 
 And in the app's environment when deploying:
 

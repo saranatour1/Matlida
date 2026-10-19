@@ -35,13 +35,24 @@ const sendMessage = zAuthedMutation({
     projectId: zid('projects'),
     threadId: z.string().optional(),
     botId: zid('bots').optional(),
+    timeZone: z
+      .string()
+      .refine((tz) => {
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: tz })
+          return true
+        } catch {
+          return false
+        }
+      }, 'Unknown time zone.')
+      .optional(),
     prompt: z
       .string()
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
-  handler: async (ctx, { projectId, botId, prompt, ...args }) => {
+  handler: async (ctx, { projectId, botId, timeZone, prompt, ...args }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)
     if (botId && (await ctx.db.get('bots', botId))?.projectId !== projectId) {
       throw new ConvexError('Assistant not found.')
@@ -74,6 +85,7 @@ const sendMessage = zAuthedMutation({
       threadId,
       promptMessageId: messageId,
       commandId: command?._id,
+      timeZone,
     })
     return threadId
   },
@@ -116,9 +128,10 @@ const respond = internalAction({
     threadId: v.string(),
     promptMessageId: v.string(),
     commandId: v.optional(v.id('commands')),
+    timeZone: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { threadId, promptMessageId, commandId }) => {
+  handler: async (ctx, { threadId, promptMessageId, commandId, timeZone }) => {
     const {
       project,
       bot,
@@ -133,8 +146,9 @@ const respond = internalAction({
     const markdown =
       command && (await (await ctx.storage.get(command.storageId))?.text())
     const { agent, tools } = bot
-      ? createBot(project, bot, members)
+      ? createBot(project, bot, members, timeZone)
       : createLead(project, members, {
+          timeZone,
           command:
             command && markdown ? { name: command.name, markdown } : undefined,
         })

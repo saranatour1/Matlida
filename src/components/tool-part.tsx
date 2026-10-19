@@ -1,5 +1,10 @@
 import { Link, useParams } from '@tanstack/react-router'
-import { GlobeIcon, ListChecksIcon, TelescopeIcon } from 'lucide-react'
+import {
+  AlarmClockIcon,
+  GlobeIcon,
+  ListChecksIcon,
+  TelescopeIcon,
+} from 'lucide-react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { Markdown } from '~/components/chat-message'
 import { Spinner } from '~/components/ui/spinner'
@@ -62,5 +67,27 @@ export function ToolPart({ part }: { part: Part }) {
         <Markdown text={result} />
       </div>
     </details>
+  )
+}
+
+const VIA = { chat: 'here', text: 'by text' } as const
+
+/** A reminder an assistant set, with when and how it will arrive. */
+export function ReminderPart({
+  part,
+}: {
+  part: Extract<ChatUIMessage['parts'][number], { type: 'tool-set_reminder' }>
+}) {
+  const busy =
+    part.state === 'input-streaming' || part.state === 'input-available'
+  return (
+    <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+      {busy ? <Spinner /> : <AlarmClockIcon className="size-4" />}
+      {part.state === 'output-available'
+        ? `Reminder set for ${new Date(part.output.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}, ${VIA[part.output.via]}.`
+        : part.state === 'output-error'
+          ? `Couldn't set the reminder: ${part.errorText}`
+          : 'Setting a reminder…'}
+    </div>
   )
 }

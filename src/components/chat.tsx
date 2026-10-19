@@ -80,6 +80,7 @@ export function Chat({
           botId: bot?._id,
           threadId,
           prompt,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         if (!threadId) {
           void navigate({
