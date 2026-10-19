@@ -23,7 +23,7 @@
 - Stroke went from 3.5 to 4.5 so the mark holds at 16–32px.
 - `public/logo.svg`, every icon PNG, `favicon.ico` and `og.png` were re-rendered from it. Checked in light and dark mode with headless Chrome.
 
-### Logo v2.1: tilted dots
+### Logo v2.1: diagonal dots
 
-- The three typing dots now tilt −12° to run parallel to the kite's top edge (`transform="rotate(-12 26.4 28)"` on the dots group in `public/logo.svg`).
+- The three typing dots now run diagonally at −45° (`transform="rotate(-45 26.4 28)"` on the dots group in `public/logo.svg`).
 - `favicon.ico`, `apple-touch-icon.png`, both Android icons and `og.png` were re-rendered to match.
