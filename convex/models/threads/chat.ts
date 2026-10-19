@@ -13,6 +13,7 @@ import { internalAction, internalQuery } from '../../_generated/server'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
+import { findCommand } from '../commands/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getOwnedThread, startThread } from './functions'
 import { createLead } from './lead'
@@ -40,6 +41,7 @@ const sendMessage = zAuthedMutation({
         throw new ConvexError('Chat not found.')
       }
     }
+    const command = await findCommand(ctx, projectId, prompt)
     const threadId =
       args.threadId ??
       (await startThread(ctx, {
@@ -55,39 +57,60 @@ const sendMessage = zAuthedMutation({
     await ctx.scheduler.runAfter(0, internal.api.chat.respond, {
       threadId,
       promptMessageId: messageId,
+      commandId: command?._id,
     })
     return threadId
   },
 })
 
 const context = internalQuery({
-  args: { threadId: v.string() },
+  args: { threadId: v.string(), commandId: v.optional(v.id('commands')) },
   returns: v.object({
     project: schema.doc('projects'),
     bots: v.array(schema.doc('bots')),
+    command: v.union(schema.doc('commands'), v.null()),
   }),
-  handler: async (ctx, { threadId }) => {
+  handler: async (ctx, { threadId, commandId }) => {
     const thread = await ctx.db
       .query('threads')
       .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
       .unique()
     const project = thread && (await ctx.db.get('projects', thread.projectId))
     if (!project) throw new Error(`No project for thread ${threadId}`)
-    return { project, bots: await getBots(ctx, project._id) }
+    const command = commandId && (await ctx.db.get('commands', commandId))
+    return {
+      project,
+      bots: await getBots(ctx, project._id),
+      command: command && command.projectId === project._id ? command : null,
+    }
   },
 })
 
 /** Streams the lead's reply into the thread. */
 const respond = internalAction({
-  args: { threadId: v.string(), promptMessageId: v.string() },
+  args: {
+    threadId: v.string(),
+    promptMessageId: v.string(),
+    commandId: v.optional(v.id('commands')),
+  },
   returns: v.null(),
-  handler: async (ctx, { threadId, promptMessageId }) => {
+  handler: async (ctx, { threadId, promptMessageId, commandId }) => {
     const {
       project,
       bots,
-    }: { project: Doc<'projects'>; bots: Array<Doc<'bots'>> } =
-      await ctx.runQuery(internal.api.chat.context, { threadId })
-    const lead = createLead(project, bots)
+      command,
+    }: {
+      project: Doc<'projects'>
+      bots: Array<Doc<'bots'>>
+      command: Doc<'commands'> | null
+    } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
+    const markdown =
+      command && (await (await ctx.storage.get(command.storageId))?.text())
+    const lead = createLead(
+      project,
+      bots,
+      command && markdown ? { name: command.name, markdown } : undefined,
+    )
     const result = await lead.agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },

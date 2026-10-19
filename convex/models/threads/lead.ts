@@ -14,7 +14,14 @@ function guidelines(project: Project) {
     : ''
 }
 
-function leadInstructions(project: Project, bots: Array<Bot>) {
+/** A command the user ran with `/name`, and its markdown from storage. */
+export type RunCommand = { name: string; markdown: string }
+
+function leadInstructions(
+  project: Project,
+  bots: Array<Bot>,
+  command?: RunCommand,
+) {
   const team = bots.length
     ? `Your bots:
 ${bots.map((b) => `- ${b.name}: ${b.role}`).join('\n')}
@@ -23,7 +30,11 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-Keep replies concise and use markdown.${guidelines(project)}`
+Keep replies concise and use markdown.${guidelines(project)}${
+    command
+      ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
+      : ''
+  }`
 }
 
 function botInstructions(project: Project, bot: Bot) {
@@ -76,12 +87,16 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
 }
 
 /** The project's lead for one reply, with the project's current bots. */
-export function createLead(project: Project, bots: Array<Bot>) {
+export function createLead(
+  project: Project,
+  bots: Array<Bot>,
+  command?: RunCommand,
+) {
   return {
     agent: new Agent(components.agent, {
       name: project.name,
       languageModel,
-      instructions: leadInstructions(project, bots),
+      instructions: leadInstructions(project, bots, command),
       stopWhen: stepCountIs(6),
     }),
     tools: leadTools(project, bots),
