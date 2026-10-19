@@ -48,15 +48,18 @@ ${
   }`
 }
 
-function botInstructions(project: Project, bot: Bot) {
+function botInstructions(project: Project, bot: Bot, members: Array<Bot>) {
+  const team = members.length
+    ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
+    : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
-${bot.instructions}${guidelines(project)}`
+${bot.instructions}${team}${guidelines(project)}`
 }
 
 const BOT_CALLS_PER_REPLY = 6
 
-/** The tools the lead gets. `ask_bot` exists only when the project has bots. */
-function leadTools(project: Project, bots: Array<Bot>): ToolSet {
+/** `ask_bot` over the chat's members, for whoever is answering. None without members. */
+function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
   if (bots.length === 0) return {}
   const [first, ...rest] = bots
   let botCalls = 0
@@ -84,7 +87,7 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
           {
             projectId: project._id,
             kind: 'subagent',
-            title: `${project.name} → ${b.name}`,
+            title: `${from} → ${b.name}`,
             parentThreadId: ctx.threadId,
             botId: b._id,
             userId: project.ownerId,
@@ -93,7 +96,7 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
         const agent = new Agent(components.agent, {
           name: b.name,
           languageModel,
-          instructions: botInstructions(project, b),
+          instructions: botInstructions(project, b, []),
         })
         const { text } = await agent.generateText(
           ctx,
@@ -106,17 +109,20 @@ function leadTools(project: Project, bots: Array<Bot>): ToolSet {
   }
 }
 
-/** A bot answering the user directly in its own chat. */
-export function createBot(project: Project, bot: Bot) {
-  return new Agent(components.agent, {
-    name: bot.name,
-    languageModel,
-    instructions: botInstructions(project, bot),
-    stopWhen: stepCountIs(6),
-  })
+/** A bot answering the user directly in its own chat, with the chat's members. */
+export function createBot(project: Project, bot: Bot, members: Array<Bot>) {
+  return {
+    agent: new Agent(components.agent, {
+      name: bot.name,
+      languageModel,
+      instructions: botInstructions(project, bot, members),
+      stopWhen: stepCountIs(6),
+    }),
+    tools: askTools(project, members, bot.name),
+  }
 }
 
-/** The project's lead for one reply, with the project's current bots. */
+/** The project's lead for one reply, with the chat's members. */
 export function createLead(
   project: Project,
   bots: Array<Bot>,
@@ -129,6 +135,6 @@ export function createLead(
       instructions: leadInstructions(project, bots, options),
       stopWhen: stepCountIs(6),
     }),
-    tools: leadTools(project, bots),
+    tools: askTools(project, bots, project.name),
   }
 }

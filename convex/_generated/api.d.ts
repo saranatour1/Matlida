@@ -19,6 +19,7 @@ import type * as api_threads from "../api/threads.js";
 import type * as api_users from "../api/users.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_avatars from "../lib/avatars.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as models_bots_functions from "../models/bots/functions.js";
 import type * as models_bots_table from "../models/bots/table.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   "api/users": typeof api_users;
   http: typeof http;
   "lib/ai": typeof lib_ai;
+  "lib/avatars": typeof lib_avatars;
   "lib/functions": typeof lib_functions;
   "models/bots/functions": typeof models_bots_functions;
   "models/bots/table": typeof models_bots_table;

@@ -1,0 +1,88 @@
+import { useMutation, useQuery } from 'convex/react'
+import { UserPlusIcon } from 'lucide-react'
+import { api } from '../../convex/_generated/api'
+import type { Doc } from '../../convex/_generated/dataModel'
+import { Orb, defaultAvatar } from '~/components/orb'
+import { Button } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+
+/**
+ * Who the chat's assistant can hand work to. Without a saved list, the lead
+ * works with every bot and a bot works alone.
+ */
+export function ThreadMembers({
+  project,
+  bot,
+  threadId,
+}: {
+  project: Doc<'projects'>
+  bot?: Doc<'bots'>
+  threadId: string
+}) {
+  const thread = useQuery(api.api.threads.get, { threadId })
+  const bots = useQuery(api.api.bots.list, { projectId: project._id })
+  const setMembers = useMutation(api.api.threads.setMembers)
+  if (!thread || !bots) return null
+  const others = bots.filter((b) => b._id !== bot?._id)
+  const memberIds = thread.memberIds ?? (bot ? [] : others.map((b) => b._id))
+  const members = others.filter((b) => memberIds.includes(b._id))
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-6 pt-2 text-xs text-muted-foreground">
+      <span className="flex -space-x-1">
+        {members.map((m) => (
+          <Orb
+            key={m._id}
+            avatar={m.avatar ?? defaultAvatar(m.name)}
+            className="size-5 ring-2 ring-background"
+          />
+        ))}
+      </span>
+      <span className="truncate">
+        {members.length
+          ? `With ${members.map((m) => m.name).join(', ')}`
+          : 'No members'}
+      </span>
+      {others.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button variant="ghost" size="icon-sm" />}
+            aria-label="Members"
+            title="Members"
+          >
+            <UserPlusIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-48">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Members</DropdownMenuLabel>
+              {others.map((b) => (
+                <DropdownMenuCheckboxItem
+                  key={b._id}
+                  checked={memberIds.includes(b._id)}
+                  onCheckedChange={(checked) =>
+                    void setMembers({
+                      threadId,
+                      memberIds: checked
+                        ? [...memberIds, b._id]
+                        : memberIds.filter((id) => id !== b._id),
+                    })
+                  }
+                >
+                  <Orb avatar={b.avatar ?? defaultAvatar(b.name)} />
+                  {b.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  )
+}

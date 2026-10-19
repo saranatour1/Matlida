@@ -1,6 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
+import { AVATARS } from '../../lib/avatars'
 import {
   authedMutation,
   authedQuery,
@@ -69,6 +70,7 @@ const save = zAuthedMutation({
       .trim()
       .min(1, 'Describe what the bot does.')
       .max(2000, 'Descriptions can be at most 2000 characters.'),
+    avatar: z.enum(AVATARS).optional(),
   },
   handler: async (ctx, { projectId, id, ...bot }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)

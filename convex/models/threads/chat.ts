@@ -77,7 +77,7 @@ const context = internalQuery({
   returns: v.object({
     project: schema.doc('projects'),
     bot: v.union(schema.doc('bots'), v.null()),
-    bots: v.array(schema.doc('bots')),
+    members: v.array(schema.doc('bots')),
     command: v.union(schema.doc('commands'), v.null()),
   }),
   handler: async (ctx, { threadId, commandId }) => {
@@ -89,10 +89,15 @@ const context = internalQuery({
     if (!project) throw new Error(`No project for thread ${threadId}`)
     const command = commandId && (await ctx.db.get('commands', commandId))
     const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
+    const bots = await getBots(ctx, project._id)
     return {
       project,
       bot,
-      bots: await getBots(ctx, project._id),
+      members: thread.memberIds
+        ? bots.filter((b) => thread.memberIds?.includes(b._id))
+        : bot
+          ? []
+          : bots,
       command: command && command.projectId === project._id ? command : null,
     }
   },
@@ -110,19 +115,19 @@ const respond = internalAction({
     const {
       project,
       bot,
-      bots,
+      members,
       command,
     }: {
       project: Doc<'projects'>
       bot: Doc<'bots'> | null
-      bots: Array<Doc<'bots'>>
+      members: Array<Doc<'bots'>>
       command: Doc<'commands'> | null
     } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
     const markdown =
       command && (await (await ctx.storage.get(command.storageId))?.text())
     const { agent, tools } = bot
-      ? { agent: createBot(project, bot), tools: {} }
-      : createLead(project, bots, {
+      ? createBot(project, bot, members)
+      : createLead(project, members, {
           command:
             command && markdown ? { name: command.name, markdown } : undefined,
         })

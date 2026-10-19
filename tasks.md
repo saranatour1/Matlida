@@ -12,7 +12,7 @@
 ## Open
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
-- [ ] Orb avatars, settings, library and thread members
+- [x] Orb avatars, settings, library and thread members
 - [ ] Web search and research, plans, voice input
 - [ ] Right panel: environment, context, connectors, changes, costs
 - [ ] Reminders and phone calls through Photon

@@ -19,7 +19,8 @@ import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
-import { Route as AppPProjectIdCommandsRouteImport } from './routes/_app/p/$projectId/commands'
+import { Route as AppPProjectIdLibraryRouteImport } from './routes/_app/p/$projectId/library'
+import { Route as AppPProjectIdSettingsRouteImport } from './routes/_app/p/$projectId/settings'
 import { Route as AppPProjectIdTextingRouteImport } from './routes/_app/p/$projectId/texting'
 import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
@@ -71,9 +72,14 @@ const AppPProjectIdBotsRoute = AppPProjectIdBotsRouteImport.update({
   path: '/p/$projectId/bots',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppPProjectIdCommandsRoute = AppPProjectIdCommandsRouteImport.update({
-  id: '/p/$projectId/commands',
-  path: '/p/$projectId/commands',
+const AppPProjectIdLibraryRoute = AppPProjectIdLibraryRouteImport.update({
+  id: '/p/$projectId/library',
+  path: '/p/$projectId/library',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPProjectIdSettingsRoute = AppPProjectIdSettingsRouteImport.update({
+  id: '/p/$projectId/settings',
+  path: '/p/$projectId/settings',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppPProjectIdTextingRoute = AppPProjectIdTextingRouteImport.update({
@@ -96,7 +102,8 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
-  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
+  '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
@@ -109,7 +116,8 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
-  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
+  '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
@@ -125,7 +133,8 @@ export interface FileRoutesById {
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/_app/': typeof AppIndexRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
-  '/_app/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
+  '/_app/p/$projectId/library': typeof AppPProjectIdLibraryRoute
+  '/_app/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/_app/p/$projectId/texting': typeof AppPProjectIdTextingRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
@@ -140,7 +149,8 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
-    | '/p/$projectId/commands'
+    | '/p/$projectId/library'
+    | '/p/$projectId/settings'
     | '/p/$projectId/texting'
     | '/p/$projectId/'
     | '/p/$projectId/threads/$threadId'
@@ -153,7 +163,8 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
-    | '/p/$projectId/commands'
+    | '/p/$projectId/library'
+    | '/p/$projectId/settings'
     | '/p/$projectId/texting'
     | '/p/$projectId'
     | '/p/$projectId/threads/$threadId'
@@ -168,7 +179,8 @@ export interface FileRouteTypes {
     | '/_auth/verify-email'
     | '/_app/'
     | '/_app/p/$projectId/bots'
-    | '/_app/p/$projectId/commands'
+    | '/_app/p/$projectId/library'
+    | '/_app/p/$projectId/settings'
     | '/_app/p/$projectId/texting'
     | '/_app/p/$projectId/'
     | '/_app/p/$projectId/threads/$threadId'
@@ -251,11 +263,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdBotsRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/p/$projectId/commands': {
-      id: '/_app/p/$projectId/commands'
-      path: '/p/$projectId/commands'
-      fullPath: '/p/$projectId/commands'
-      preLoaderRoute: typeof AppPProjectIdCommandsRouteImport
+    '/_app/p/$projectId/library': {
+      id: '/_app/p/$projectId/library'
+      path: '/p/$projectId/library'
+      fullPath: '/p/$projectId/library'
+      preLoaderRoute: typeof AppPProjectIdLibraryRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/p/$projectId/settings': {
+      id: '/_app/p/$projectId/settings'
+      path: '/p/$projectId/settings'
+      fullPath: '/p/$projectId/settings'
+      preLoaderRoute: typeof AppPProjectIdSettingsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/p/$projectId/texting': {
@@ -278,7 +297,8 @@ declare module '@tanstack/react-router' {
 interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
-  AppPProjectIdCommandsRoute: typeof AppPProjectIdCommandsRoute
+  AppPProjectIdLibraryRoute: typeof AppPProjectIdLibraryRoute
+  AppPProjectIdSettingsRoute: typeof AppPProjectIdSettingsRoute
   AppPProjectIdTextingRoute: typeof AppPProjectIdTextingRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
   AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
@@ -287,7 +307,8 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
-  AppPProjectIdCommandsRoute: AppPProjectIdCommandsRoute,
+  AppPProjectIdLibraryRoute: AppPProjectIdLibraryRoute,
+  AppPProjectIdSettingsRoute: AppPProjectIdSettingsRoute,
   AppPProjectIdTextingRoute: AppPProjectIdTextingRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
   AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
