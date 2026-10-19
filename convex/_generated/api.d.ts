@@ -11,6 +11,7 @@
 import type * as api_auth from "../api/auth.js";
 import type * as api_bots from "../api/bots.js";
 import type * as api_calls from "../api/calls.js";
+import type * as api_channels from "../api/channels.js";
 import type * as api_chat from "../api/chat.js";
 import type * as api_commands from "../api/commands.js";
 import type * as api_plans from "../api/plans.js";
@@ -23,6 +24,7 @@ import type * as api_usage from "../api/usage.js";
 import type * as api_users from "../api/users.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_channels from "../lib/channels.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_models from "../lib/models.js";
 import type * as lib_portraits from "../lib/portraits.js";
@@ -32,6 +34,7 @@ import type * as models_bots_functions from "../models/bots/functions.js";
 import type * as models_bots_table from "../models/bots/table.js";
 import type * as models_calls_functions from "../models/calls/functions.js";
 import type * as models_calls_table from "../models/calls/table.js";
+import type * as models_channels_functions from "../models/channels/functions.js";
 import type * as models_commands_functions from "../models/commands/functions.js";
 import type * as models_commands_table from "../models/commands/table.js";
 import type * as models_plans_functions from "../models/plans/functions.js";
@@ -66,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "api/auth": typeof api_auth;
   "api/bots": typeof api_bots;
   "api/calls": typeof api_calls;
+  "api/channels": typeof api_channels;
   "api/chat": typeof api_chat;
   "api/commands": typeof api_commands;
   "api/plans": typeof api_plans;
@@ -78,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "api/users": typeof api_users;
   http: typeof http;
   "lib/ai": typeof lib_ai;
+  "lib/channels": typeof lib_channels;
   "lib/functions": typeof lib_functions;
   "lib/models": typeof lib_models;
   "lib/portraits": typeof lib_portraits;
@@ -87,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "models/bots/table": typeof models_bots_table;
   "models/calls/functions": typeof models_calls_functions;
   "models/calls/table": typeof models_calls_table;
+  "models/channels/functions": typeof models_channels_functions;
   "models/commands/functions": typeof models_commands_functions;
   "models/commands/table": typeof models_commands_table;
   "models/plans/functions": typeof models_plans_functions;

@@ -19,6 +19,7 @@ import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
+import { Route as AppPProjectIdConnectionsRouteImport } from './routes/_app/p/$projectId/connections'
 import { Route as AppPProjectIdLibraryRouteImport } from './routes/_app/p/$projectId/library'
 import { Route as AppPProjectIdMessagingRouteImport } from './routes/_app/p/$projectId/messaging'
 import { Route as AppPProjectIdSettingsRouteImport } from './routes/_app/p/$projectId/settings'
@@ -72,6 +73,12 @@ const AppPProjectIdBotsRoute = AppPProjectIdBotsRouteImport.update({
   path: '/p/$projectId/bots',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPProjectIdConnectionsRoute =
+  AppPProjectIdConnectionsRouteImport.update({
+    id: '/p/$projectId/connections',
+    path: '/p/$projectId/connections',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppPProjectIdLibraryRoute = AppPProjectIdLibraryRouteImport.update({
   id: '/p/$projectId/library',
   path: '/p/$projectId/library',
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
@@ -116,6 +124,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
@@ -133,6 +142,7 @@ export interface FileRoutesById {
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/_app/': typeof AppIndexRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/_app/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/_app/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/_app/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/_app/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
+    | '/p/$projectId/connections'
     | '/p/$projectId/library'
     | '/p/$projectId/messaging'
     | '/p/$projectId/settings'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
+    | '/p/$projectId/connections'
     | '/p/$projectId/library'
     | '/p/$projectId/messaging'
     | '/p/$projectId/settings'
@@ -179,6 +191,7 @@ export interface FileRouteTypes {
     | '/_auth/verify-email'
     | '/_app/'
     | '/_app/p/$projectId/bots'
+    | '/_app/p/$projectId/connections'
     | '/_app/p/$projectId/library'
     | '/_app/p/$projectId/messaging'
     | '/_app/p/$projectId/settings'
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdBotsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/connections': {
+      id: '/_app/p/$projectId/connections'
+      path: '/p/$projectId/connections'
+      fullPath: '/p/$projectId/connections'
+      preLoaderRoute: typeof AppPProjectIdConnectionsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/p/$projectId/library': {
       id: '/_app/p/$projectId/library'
       path: '/p/$projectId/library'
@@ -297,6 +317,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
+  AppPProjectIdConnectionsRoute: typeof AppPProjectIdConnectionsRoute
   AppPProjectIdLibraryRoute: typeof AppPProjectIdLibraryRoute
   AppPProjectIdMessagingRoute: typeof AppPProjectIdMessagingRoute
   AppPProjectIdSettingsRoute: typeof AppPProjectIdSettingsRoute
@@ -307,6 +328,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
+  AppPProjectIdConnectionsRoute: AppPProjectIdConnectionsRoute,
   AppPProjectIdLibraryRoute: AppPProjectIdLibraryRoute,
   AppPProjectIdMessagingRoute: AppPProjectIdMessagingRoute,
   AppPProjectIdSettingsRoute: AppPProjectIdSettingsRoute,

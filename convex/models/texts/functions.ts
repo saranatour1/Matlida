@@ -2,7 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { internalAction, internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
-import { MESSAGING_APPS } from '../../lib/models'
+import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
@@ -30,7 +30,10 @@ function newCode() {
 }
 
 /** A project's links: one per app, plus a pending code. */
-async function getLinks(ctx: Pick<QueryCtx, 'db'>, projectId: Id<'projects'>) {
+export async function getLinks(
+  ctx: Pick<QueryCtx, 'db'>,
+  projectId: Id<'projects'>,
+) {
   return await ctx.db
     .query('phoneLinks')
     .withIndex('by_project', (q) => q.eq('projectId', projectId))
@@ -211,7 +214,7 @@ async function chatFor(
   const threadId = await startThread(ctx, {
     projectId: project._id,
     kind: 'chat',
-    title: `${(bot ?? project).name} · ${MESSAGING_APPS[linked.platform ?? 'imessage'] ?? 'Messages'}`,
+    title: `${(bot ?? project).name} · ${messagingAppName(linked.platform ?? 'imessage')}`,
     botId: bot?._id,
     userId: linked.ownerId,
   })

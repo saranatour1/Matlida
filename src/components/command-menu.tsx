@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'convex/react'
 import {
   BotIcon,
   LibraryIcon,
+  PlugIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
@@ -196,6 +197,7 @@ export function CommandMenu({ project }: { project: Doc<'projects'> }) {
                       ['Library', '/p/$projectId/library', LibraryIcon],
                       ['Assistants', '/p/$projectId/bots', BotIcon],
                       ['Messaging', '/p/$projectId/messaging', SmartphoneIcon],
+                      ['Connections', '/p/$projectId/connections', PlugIcon],
                       ['Settings', '/p/$projectId/settings', SettingsIcon],
                     ] as const
                   ).map(([label, to, Icon]) => (

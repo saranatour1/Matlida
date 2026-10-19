@@ -28,6 +28,8 @@ const app = defineApp({
     SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
     /** The Telegram bot's token from @BotFather, for replies on Telegram. */
     TELEGRAM_BOT_TOKEN: v.optional(v.string()),
+    /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), verified with Resend for sending and receiving. Unset until email is set up. */
+    MAIL_DOMAIN: v.optional(v.string()),
   },
 })
 
