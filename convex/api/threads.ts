@@ -1,3 +1,3 @@
 import { threadsApi } from '../models/threads/functions'
 
-export const { list, get } = threadsApi
+export const { start, list, get } = threadsApi

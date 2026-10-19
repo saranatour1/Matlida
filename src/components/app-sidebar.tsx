@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Link, useSearch } from '@tanstack/react-router'
+import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
   BotIcon,
@@ -7,6 +7,7 @@ import {
   FolderIcon,
   LogOutIcon,
   MessageSquareIcon,
+  MessagesSquareIcon,
   PlusIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
@@ -71,6 +72,7 @@ export function AppSidebar() {
         </SidebarGroup>
         {project && <Bots project={project} />}
         {project && <Chats projectId={project._id} />}
+        {project && <SubThreads projectId={project._id} />}
       </SidebarContent>
       <Account />
     </Sidebar>
@@ -169,6 +171,43 @@ function Chats({ projectId }: { projectId: Id<'projects'> }) {
               >
                 <MessageSquareIcon />
                 <span className="truncate">{c.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+/** Where the lead handed work to a bot. */
+function SubThreads({ projectId }: { projectId: Id<'projects'> }) {
+  const threads = useQuery(api.api.threads.list, {
+    projectId,
+    kind: 'subagent',
+  })
+  const { threadId } = useParams({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  if (!threads?.length) return null
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Threads</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {threads.map((t) => (
+            <SidebarMenuItem key={t._id}>
+              <SidebarMenuButton
+                isActive={threadId === t.threadId}
+                render={
+                  <Link
+                    to="/p/$projectId/threads/$threadId"
+                    params={{ projectId, threadId: t.threadId }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <MessagesSquareIcon />
+                <span className="truncate">{t.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

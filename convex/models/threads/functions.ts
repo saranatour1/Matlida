@@ -1,6 +1,7 @@
 import { createThread } from '@convex-dev/agent'
 import { v } from 'convex/values'
 import { components } from '../../_generated/api'
+import { internalMutation } from '../../_generated/server'
 import { authedQuery } from '../../lib/functions'
 import { getOwnedProject } from '../projects/functions'
 import { threadsTable } from './table'
@@ -36,6 +37,16 @@ export async function getOwnedThread(
   return project?.ownerId === userId ? thread : null
 }
 
+/** Starts a thread from an action, such as a sub-thread for a bot. */
+const start = internalMutation({
+  args: {
+    ...threadsTable.validator.omit('threadId').fields,
+    userId: v.id('users'),
+  },
+  returns: v.string(),
+  handler: startThread,
+})
+
 const list = authedQuery({
   args: {
     projectId: v.id('projects'),
@@ -59,4 +70,4 @@ const get = authedQuery({
     await getOwnedThread(ctx, ctx.userId, threadId),
 })
 
-export const threadsApi = { list, get }
+export const threadsApi = { start, list, get }

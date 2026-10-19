@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
+import type { ChatUIMessage } from '~/components/chat-message'
 import { ChatMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -36,11 +37,12 @@ export function Chat({
   const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const lead = project.name
-  const { results: messages } = useUIMessages(
+  const { results } = useUIMessages(
     api.api.chat.listMessages,
     threadId ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
+  const messages = results as Array<ChatUIMessage>
   const last = messages.at(-1)
   const isBusy =
     last?.role === 'user' ||
@@ -50,7 +52,11 @@ export function Chat({
     isBusy &&
     !(
       last.role === 'assistant' &&
-      last.parts.some((p) => p.type === 'text' && p.text.trim() !== '')
+      last.parts.some(
+        (p) =>
+          (p.type === 'text' && p.text.trim() !== '') ||
+          p.type.startsWith('tool-'),
+      )
     )
 
   const [error, send] = React.useActionState(
