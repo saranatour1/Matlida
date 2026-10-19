@@ -1,8 +1,14 @@
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Link } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { FolderIcon, LogOutIcon, PlusIcon } from 'lucide-react'
+import {
+  FolderIcon,
+  LogOutIcon,
+  MessageSquareIcon,
+  PlusIcon,
+} from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -61,9 +67,55 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {project && <Chats projectId={project._id} />}
       </SidebarContent>
       <Account />
     </Sidebar>
+  )
+}
+
+function Chats({ projectId }: { projectId: Id<'projects'> }) {
+  const chats = useQuery(api.api.threads.list, { projectId, kind: 'chat' })
+  const { thread } = useSearch({ strict: false })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Chats</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId" params={{ projectId }} />}
+        aria-label="New chat"
+        title="New chat"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {chats?.length === 0 && (
+            <li className="px-2 text-xs text-muted-foreground">
+              No chats yet.
+            </li>
+          )}
+          {chats?.map((c) => (
+            <SidebarMenuItem key={c._id}>
+              <SidebarMenuButton
+                isActive={thread === c.threadId}
+                render={
+                  <Link
+                    to="/p/$projectId"
+                    params={{ projectId }}
+                    search={{ thread: c.threadId }}
+                  />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <MessageSquareIcon />
+                <span className="truncate">{c.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
 
