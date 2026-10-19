@@ -3,7 +3,10 @@ import { generateText } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { researchModel, searchModel } from '../../lib/ai'
+import { gatewayCost } from '../usage/functions'
 import type { Doc } from '../../_generated/dataModel'
+import type { ToolCtx } from '@convex-dev/agent'
+import type { LanguageModelUsage, ProviderMetadata } from 'ai'
 
 const vSteps = z
   .array(z.string().min(1))
@@ -13,33 +16,55 @@ const vSteps = z
 
 /** Tools every assistant gets: the web, and plans saved to the Library. */
 export function assistantTools(project: Doc<'projects'>) {
+  const record = async (
+    ctx: ToolCtx,
+    kind: 'search' | 'research',
+    label: string,
+    {
+      usage,
+      providerMetadata,
+    }: { usage: LanguageModelUsage; providerMetadata?: ProviderMetadata },
+  ) => {
+    if (!ctx.threadId) return
+    await ctx.runMutation(internal.api.usage.record, {
+      projectId: project._id,
+      threadId: ctx.threadId,
+      kind,
+      label,
+      aiCost: gatewayCost(providerMetadata),
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+    })
+  }
   return {
     web_search: createTool({
       description:
         'Search the web for current facts, news, prices or anything after your training. Returns a short sourced answer.',
       inputSchema: z.object({ query: z.string().min(1) }),
-      execute: async (_ctx, { query }, { abortSignal }) => {
-        const { text } = await generateText({
+      execute: async (ctx, { query }, { abortSignal }) => {
+        const result = await generateText({
           model: searchModel,
           prompt: query,
           abortSignal,
         })
-        return { answer: text }
+        await record(ctx, 'search', query, result)
+        return { answer: result.text }
       },
     }),
     research: createTool({
       description:
         'Research a question in depth across many web sources. Slower and costlier than web_search, so use it when the user asks for research or a comparison.',
       inputSchema: z.object({ question: z.string().min(1) }),
-      execute: async (_ctx, { question }, { abortSignal }) => {
-        const { text } = await generateText({
+      execute: async (ctx, { question }, { abortSignal }) => {
+        const result = await generateText({
           model: researchModel,
           system:
             'Write a thorough, well-organized research brief in markdown: key findings first, then details, then open questions.',
           prompt: question,
           abortSignal,
         })
-        return { report: text }
+        await record(ctx, 'research', question, result)
+        return { report: result.text }
       },
     }),
     save_plan: createTool({

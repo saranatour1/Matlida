@@ -183,3 +183,19 @@ test('members decide who an assistant can hand work to', async () => {
     }),
   ).rejects.toThrow('Only other assistants in this workspace can join.')
 })
+
+test("a reply records its model usage and action time, visible only to the chat's owner", async () => {
+  const { t, asAda, asBob, projectId } = await setup()
+  const threadId = await asAda.mutation(api.api.chat.sendMessage, {
+    projectId,
+    prompt: 'Hi there',
+  })
+  await finishReply(t)
+
+  const usage = await asAda.query(api.api.usage.forThread, { threadId })
+  expect(usage.map((u) => u.kind).sort()).toEqual(['compute', 'reply'])
+  expect(usage.find((u) => u.kind === 'reply')).toMatchObject({
+    label: 'Matilda',
+  })
+  expect(await asBob.query(api.api.usage.forThread, { threadId })).toEqual([])
+})
