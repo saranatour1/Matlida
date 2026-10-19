@@ -33,7 +33,7 @@ function AppLayout() {
       <CallProvider>
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset className="h-svh min-h-0">
+          <SidebarInset className="h-svh min-h-0 min-w-0">
             {!inChat && <Header />}
             <Outlet />
           </SidebarInset>

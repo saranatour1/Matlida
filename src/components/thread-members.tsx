@@ -39,8 +39,8 @@ export function ThreadMembers({
     <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground sm:min-w-0 sm:shrink">
       {members.length > 0 && (
         <>
-          <span className="flex -space-x-1">
-            {members.map((m) => (
+          <span className="flex items-center -space-x-1">
+            {members.slice(0, 3).map((m) => (
               <BotAvatar
                 key={m._id}
                 portrait={portraitOf(m)}
@@ -48,6 +48,9 @@ export function ThreadMembers({
               />
             ))}
           </span>
+          {members.length > 3 && (
+            <span className="sm:hidden">+{members.length - 3}</span>
+          )}
           <span className="hidden truncate sm:inline">
             with {members.map((m) => m.name).join(', ')}
           </span>

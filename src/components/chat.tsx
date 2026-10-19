@@ -104,7 +104,7 @@ export function Chat({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="flex min-h-0 w-full flex-1 flex-col">
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 px-4 py-3">
           <SidebarTrigger />
           <BotAvatar portrait={portraitOf(bot ?? project)} className="size-6" />
