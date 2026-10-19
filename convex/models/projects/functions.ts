@@ -52,7 +52,7 @@ const save = zAuthedMutation({
     guidelines: z
       .string()
       .trim()
-      .max(2000, 'Guidelines can be at most 2000 characters.'),
+      .max(8000, 'Guidelines can be at most 8000 characters.'),
     portrait: zPortrait.optional(),
   },
   handler: async (ctx, { id, ...project }) => {

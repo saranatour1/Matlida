@@ -7,6 +7,7 @@ import {
   authedQuery,
   zAuthedMutation,
 } from '../../lib/functions'
+import { removeComments } from '../comments/functions'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -68,7 +69,7 @@ const save = zAuthedMutation({
     instructions: z
       .string()
       .trim()
-      .max(2000, 'Descriptions can be at most 2000 characters.')
+      .max(8000, 'Instructions can be at most 8000 characters.')
       .transform(
         (text) =>
           text || 'Help with whatever the user asks. Keep answers short.',
@@ -121,6 +122,7 @@ const remove = authedMutation({
     const bot = await ctx.db.get('bots', id)
     if (!bot) throw new ConvexError('Bot not found.')
     await getOwnedProject(ctx, ctx.userId, bot.projectId)
+    await removeComments(ctx, bot.projectId, 'bot', id)
     await ctx.db.delete('bots', id)
   },
 })

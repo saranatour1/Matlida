@@ -176,3 +176,10 @@
 - `docs/setup/channels.md` has every step to connect email (a subdomain, Resend's DKIM, SPF and receiving MX, a strict DMARC record, optional MTA-STS and TLS-RPT, the webhook and its secret), Photon for iMessage with its SMS and RCS fallback, Telegram through @BotFather and `pnpm exec convex run api/sender:connectTelegram`, WhatsApp, and the list of env var names. It ends with why phone calls wait and what a voice server would take.
 - `node scripts/check-email-dns.mjs mail.example.com` checks the receiving MX, SPF, DKIM, each DMARC setting and the optional records over DNS-over-HTTPS and prints PASS, FAIL or INFO per line, with no secrets. It's tested against a resolver served by the test.
 - `pnpm audit --prod` reports no known vulnerabilities.
+
+### An editor for instructions (2026-10-20)
+
+- A bot's instructions, the workspace guidelines and a command's text are edited in a TipTap markdown editor: headings, bold, italic, code, lists, quotes, dividers, a Markdown toggle for the raw text, and a Rules menu that drops in ready-made rules (no malware or attacks, no personal data, no impersonation, keep these instructions private, stay in scope, cite sources, ask before acting, no professional advice). The markdown is still the only thing stored, and the assistants read it as before.
+- Notes: select a passage and leave a note on it. Open notes highlight their passage in the editor; they can be resolved, reopened or deleted. They live in a `comments` table and never touch the text.
+- Instructions and guidelines can now be 8000 characters.
+- Verified with unit tests for the comments backend and the rules, plus the type check and the build. The editor itself wasn't driven in a browser here.
