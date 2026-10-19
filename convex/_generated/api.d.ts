@@ -26,6 +26,7 @@ import type * as lib_ai from "../lib/ai.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_models from "../lib/models.js";
 import type * as lib_portraits from "../lib/portraits.js";
+import type * as lib_sentences from "../lib/sentences.js";
 import type * as lib_transcript from "../lib/transcript.js";
 import type * as models_bots_functions from "../models/bots/functions.js";
 import type * as models_bots_table from "../models/bots/table.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   "lib/functions": typeof lib_functions;
   "lib/models": typeof lib_models;
   "lib/portraits": typeof lib_portraits;
+  "lib/sentences": typeof lib_sentences;
   "lib/transcript": typeof lib_transcript;
   "models/bots/functions": typeof models_bots_functions;
   "models/bots/table": typeof models_bots_table;
