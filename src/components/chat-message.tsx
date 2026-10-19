@@ -3,10 +3,11 @@ import remarkGfm from 'remark-gfm'
 import type { UIMessage } from '@convex-dev/agent/react'
 import type { UIDataTypes } from 'ai'
 import { BotPart } from '~/components/bot-part'
+import { ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
 
-/** Mirrors the lead's tools in `convex/models/threads/lead.ts`. */
+/** Mirrors the assistants' tools in `convex/models/threads/lead.ts` and `tools.ts`. */
 export type ChatUIMessage = UIMessage<
   unknown,
   UIDataTypes,
@@ -14,6 +15,12 @@ export type ChatUIMessage = UIMessage<
     ask_bot: {
       input: { bot: string; task: string }
       output: { name: string; role: string; reply: string; threadId: string }
+    }
+    web_search: { input: { query: string }; output: { answer: string } }
+    research: { input: { question: string }; output: { report: string } }
+    save_plan: {
+      input: { title: string; steps: Array<string>; planId?: string }
+      output: { planId: string; saved: boolean }
     }
   }
 >
@@ -55,6 +62,10 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               ) : null
             case 'tool-ask_bot':
               return <BotPart key={part.toolCallId} part={part} />
+            case 'tool-web_search':
+            case 'tool-research':
+            case 'tool-save_plan':
+              return <ToolPart key={part.toolCallId} part={part} />
             default:
               return null
           }

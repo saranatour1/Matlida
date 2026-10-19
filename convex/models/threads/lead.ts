@@ -2,6 +2,7 @@ import { Agent, createTool, stepCountIs } from '@convex-dev/agent'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
+import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolSet } from 'ai'
 
@@ -118,7 +119,10 @@ export function createBot(project: Project, bot: Bot, members: Array<Bot>) {
       instructions: botInstructions(project, bot, members),
       stopWhen: stepCountIs(6),
     }),
-    tools: askTools(project, members, bot.name),
+    tools: {
+      ...assistantTools(project),
+      ...askTools(project, members, bot.name),
+    },
   }
 }
 
@@ -135,6 +139,9 @@ export function createLead(
       instructions: leadInstructions(project, bots, options),
       stopWhen: stepCountIs(6),
     }),
-    tools: askTools(project, bots, project.name),
+    tools: {
+      ...assistantTools(project),
+      ...askTools(project, bots, project.name),
+    },
   }
 }
