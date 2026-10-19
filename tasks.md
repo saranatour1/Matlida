@@ -28,4 +28,6 @@
 - [ ] Calls: barge-in, and streaming speech per sentence for lower latency
 
 - [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters
-- [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL
+- [x] Build for Cloudflare Workers (`wrangler.jsonc`, Cloudflare Vite plugin)
+- [ ] Set the Workers Builds settings and build variables from the README (production branch `master`, build command, `CONVEX_DEPLOY_KEY`, `PNPM_VERSION`, `VITE_SITE_URL`)
+- [ ] Set the production Convex env and OAuth callbacks before the first `master` deploy

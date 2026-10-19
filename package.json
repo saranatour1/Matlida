@@ -8,7 +8,7 @@
     "dev": "convex dev --start 'vite dev'",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && vite build",
-    "start": "node .output/server/index.mjs",
+    "preview": "vite preview",
     "format": "prettier --write .",
     "lint": "pnpm run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run"
@@ -51,6 +51,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.64.0",
     "@convex-dev/eslint-plugin": "^5.0.0",
     "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -65,7 +66,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vite": "^8.2.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.151.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
