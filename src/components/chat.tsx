@@ -7,12 +7,14 @@ import { api } from '../../convex/_generated/api'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { AssistantPanel } from '~/components/assistant-panel'
+import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
 import { ThreadMembers } from '~/components/thread-members'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
+import { SidebarTrigger } from '~/components/ui/sidebar'
 import {
   Empty,
   EmptyContent,
@@ -102,34 +104,45 @@ export function Chat({
 
   return (
     <div className="flex min-h-0 flex-1">
-      <div className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-2 right-12 z-10"
-          aria-label={`Call ${lead}`}
-          title={`Call ${lead}`}
-          onClick={onCall}
-        >
-          <PhoneIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-2 right-3 z-10"
-          aria-label={panel ? 'Hide details' : 'Show details'}
-          title={panel ? 'Hide details' : 'Show details'}
-          aria-pressed={panel}
-          render={
-            <Link
-              to="."
-              search={(prev) => ({ ...prev, panel: panel ? undefined : true })}
-            />
-          }
-          nativeButton={false}
-        >
-          <PanelRightIcon />
-        </Button>
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
+        <header className="@container flex items-center gap-2 px-4 py-3">
+          <SidebarTrigger />
+          <BotAvatar portrait={portraitOf(bot ?? project)} className="size-6" />
+          <h1 className="truncate text-sm font-medium">{lead}</h1>
+          {threadId && (
+            <ThreadMembers project={project} bot={bot} threadId={threadId} />
+          )}
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Call ${lead}`}
+              title={`Call ${lead}`}
+              onClick={onCall}
+            >
+              <PhoneIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={panel ? 'Hide details' : 'Show details'}
+              title={panel ? 'Hide details' : 'Show details'}
+              aria-pressed={panel}
+              render={
+                <Link
+                  to="."
+                  search={(prev) => ({
+                    ...prev,
+                    panel: panel ? undefined : true,
+                  })}
+                />
+              }
+              nativeButton={false}
+            >
+              <PanelRightIcon />
+            </Button>
+          </div>
+        </header>
         {!threadId ? (
           <div className="flex flex-1 items-center justify-center p-6">
             <Empty>
@@ -183,7 +196,6 @@ export function Chat({
           </div>
         ) : (
           <>
-            <ThreadMembers project={project} bot={bot} threadId={threadId} />
             <MessageScrollerProvider>
               <MessageScroller className="flex-1">
                 <MessageScrollerViewport>

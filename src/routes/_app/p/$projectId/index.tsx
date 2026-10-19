@@ -5,6 +5,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { portraitOf } from '~/components/bot-avatar'
 import { Chat } from '~/components/chat'
 import { NewAssistantDialog } from '~/components/new-assistant-dialog'
+import { SidebarTrigger } from '~/components/ui/sidebar'
 import { useCall } from '~/components/voice-call'
 import { useProject } from '~/hooks/use-project'
 import { decodeTemplate } from '~/lib/bot-template'
@@ -42,12 +43,17 @@ function ProjectPage() {
   if (project === undefined || (botId && bots === undefined)) return null
   if (project === null) {
     return (
-      <div className="p-6 text-sm">
-        Project not found.{' '}
-        <Link to="/" className="underline">
-          Back to projects
-        </Link>
-      </div>
+      <>
+        <header className="flex items-center gap-2 px-4 py-3">
+          <SidebarTrigger />
+        </header>
+        <div className="px-6 text-sm">
+          Project not found.{' '}
+          <Link to="/" className="underline">
+            Back to projects
+          </Link>
+        </div>
+      </>
     )
   }
   return (
