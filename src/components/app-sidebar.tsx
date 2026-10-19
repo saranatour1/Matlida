@@ -9,6 +9,7 @@ import {
   MessageSquareIcon,
   MessagesSquareIcon,
   PlusIcon,
+  SlashSquareIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
@@ -71,6 +72,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         {project && <Bots project={project} />}
+        {project && <Commands projectId={project._id} />}
         {project && <Chats projectId={project._id} />}
         {project && <SubThreads projectId={project._id} />}
       </SidebarContent>
@@ -126,6 +128,45 @@ function Bots({ project }: { project: Doc<'projects'> }) {
                   {b.name}{' '}
                   <span className="text-muted-foreground">· {b.role}</span>
                 </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function Commands({ projectId }: { projectId: Id<'projects'> }) {
+  const commands = useQuery(api.api.commands.list, { projectId })
+  const { setOpenMobile } = useSidebar()
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Commands</SidebarGroupLabel>
+      <SidebarGroupAction
+        render={<Link to="/p/$projectId/commands" params={{ projectId }} />}
+        aria-label="Add a command"
+        title="Add a command"
+      >
+        <PlusIcon />
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {commands?.length === 0 && (
+            <li className="px-2 text-xs text-muted-foreground">
+              No commands yet.
+            </li>
+          )}
+          {commands?.map((c) => (
+            <SidebarMenuItem key={c._id}>
+              <SidebarMenuButton
+                render={
+                  <Link to="/p/$projectId/commands" params={{ projectId }} />
+                }
+                onClick={() => setOpenMobile(false)}
+              >
+                <SlashSquareIcon />
+                <span className="truncate">/{c.name}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

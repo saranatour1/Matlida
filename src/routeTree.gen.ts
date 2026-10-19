@@ -19,6 +19,7 @@ import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
+import { Route as AppPProjectIdCommandsRouteImport } from './routes/_app/p/$projectId/commands'
 import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -69,6 +70,11 @@ const AppPProjectIdBotsRoute = AppPProjectIdBotsRouteImport.update({
   path: '/p/$projectId/bots',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPProjectIdCommandsRoute = AppPProjectIdCommandsRouteImport.update({
+  id: '/p/$projectId/commands',
+  path: '/p/$projectId/commands',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPProjectIdThreadsThreadIdRoute =
   AppPProjectIdThreadsThreadIdRouteImport.update({
     id: '/p/$projectId/threads/$threadId',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/_app/': typeof AppIndexRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
+  '/_app/p/$projectId/commands': typeof AppPProjectIdCommandsRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
+    | '/p/$projectId/commands'
     | '/p/$projectId/'
     | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/p/$projectId/bots'
+    | '/p/$projectId/commands'
     | '/p/$projectId'
     | '/p/$projectId/threads/$threadId'
   id:
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/_auth/verify-email'
     | '/_app/'
     | '/_app/p/$projectId/bots'
+    | '/_app/p/$projectId/commands'
     | '/_app/p/$projectId/'
     | '/_app/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
@@ -227,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdBotsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/commands': {
+      id: '/_app/p/$projectId/commands'
+      path: '/p/$projectId/commands'
+      fullPath: '/p/$projectId/commands'
+      preLoaderRoute: typeof AppPProjectIdCommandsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/p/$projectId/threads/$threadId': {
       id: '/_app/p/$projectId/threads/$threadId'
       path: '/p/$projectId/threads/$threadId'
@@ -240,6 +259,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
+  AppPProjectIdCommandsRoute: typeof AppPProjectIdCommandsRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
   AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
 }
@@ -247,6 +267,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
+  AppPProjectIdCommandsRoute: AppPProjectIdCommandsRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
   AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
 }
