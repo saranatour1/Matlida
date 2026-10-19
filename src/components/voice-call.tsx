@@ -8,17 +8,10 @@ import type { Portrait } from '../../convex/lib/portraits'
 import { BotAvatar } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'
+import { hear, startListening } from '~/lib/turn-taking'
 
 type Status =
   'idle' | 'starting' | 'listening' | 'hearing' | 'thinking' | 'speaking'
-
-/** Loudness (RMS) above which the microphone counts as someone talking. */
-const SPEECH_LEVEL = 0.035
-/** This much quiet after talking ends the turn. */
-const END_SILENCE_MS = 900
-const MAX_TURN_MS = 30_000
-/** A turn with no talking restarts after this, so recordings stay small. */
-const IDLE_RESTART_MS = 15_000
 
 /** Who the call is with. `threadId` fills in when the first turn starts a chat. */
 export type CallTarget = {
@@ -32,14 +25,26 @@ type Session = CallTarget & {
   audio: AudioContext
   analyser: AnalyserNode
   recorder?: MediaRecorder
-  playing?: AudioBufferSourceNode
+  /** The reply being spoken, and where it started, so it can pause. */
+  playing?: {
+    source: AudioBufferSourceNode
+    buffer: AudioBuffer
+    startedAt: number
+  }
+  /** A reply on hold while you talk over it. */
+  paused?: { buffer: AudioBuffer; offset: number }
   frame?: number
   /** The call's record in history, from its first turn or the answered ring. */
   callId?: Id<'calls'>
   ended: boolean
 }
 
-type Line = { who: 'you' | 'them'; text: string }
+type Line = {
+  who: 'you' | 'them'
+  text: string
+  /** You talked over this reply before it finished. */
+  cutOff?: boolean
+}
 
 /** What an assistant says first when it called you, still loading when the call starts. */
 type Opening = Promise<{
@@ -68,41 +73,50 @@ export function useVoiceCall({
   const turn = useAction(api.api.calls.turn)
   const end = useMutation(api.api.calls.end)
 
+  /**
+   * Records until your turn is done, deciding from the mic's loudness (see
+   * `hear`). It also runs while a reply plays, so talking over the assistant
+   * pauses it: an "mm-hm" lets it carry on, more makes it your turn.
+   */
   function listen(s: Session) {
     if (s.ended) return
     const recorder = new MediaRecorder(s.stream)
     const chunks: Array<Blob> = []
-    const began = performance.now()
-    let heardAt = 0
-    let lastVoice = 0
+    let state = startListening(performance.now())
+    let outcome: 'send' | 'resume' | 'restart' = 'restart'
     recorder.ondataavailable = (e) => chunks.push(e.data)
     recorder.onstop = () => {
       if (s.ended) return
-      if (heardAt) void send(s, new Blob(chunks, { type: recorder.mimeType }))
+      if (outcome === 'send') {
+        const cutOff = s.paused !== undefined
+        s.paused = undefined
+        void send(s, new Blob(chunks, { type: recorder.mimeType }), cutOff)
+      } else if (outcome === 'resume') resume(s)
       else listen(s)
     }
     recorder.start()
     s.recorder = recorder
-    setStatus('listening')
+    if (!s.playing) setStatus('listening')
     const samples = new Float32Array(s.analyser.fftSize)
     const tick = () => {
       if (s.ended || recorder.state !== 'recording') return
       s.analyser.getFloatTimeDomainData(samples)
       let sum = 0
       for (const x of samples) sum += x * x
-      const level = Math.sqrt(sum / samples.length)
-      const now = performance.now()
-      if (level > SPEECH_LEVEL) {
-        if (!heardAt) {
-          heardAt = now
-          setStatus('hearing')
-        }
-        lastVoice = now
+      const { next, event } = hear(state, {
+        level: Math.sqrt(sum / samples.length),
+        now: performance.now(),
+        replying: s.playing !== undefined,
+        paused: s.paused !== undefined,
+      })
+      state = next
+      if (event === 'hearing') setStatus('hearing')
+      if (event === 'pause') {
+        pause(s)
+        setStatus('hearing')
       }
-      const finished =
-        heardAt > 0 &&
-        (now - lastVoice > END_SILENCE_MS || now - heardAt > MAX_TURN_MS)
-      if (finished || (!heardAt && now - began > IDLE_RESTART_MS)) {
+      if (event === 'send' || event === 'resume' || event === 'restart') {
+        outcome = event
         recorder.stop()
         return
       }
@@ -111,8 +125,14 @@ export function useVoiceCall({
     s.frame = requestAnimationFrame(tick)
   }
 
-  async function send(s: Session, clip: Blob) {
+  async function send(s: Session, clip: Blob, cutOff: boolean) {
     setStatus('thinking')
+    if (cutOff) {
+      setLines((l) => {
+        const last = l.map((line) => line.who).lastIndexOf('them')
+        return l.map((line, i) => (i === last ? { ...line, cutOff } : line))
+      })
+    }
     try {
       const res = await fetch(await uploadUrl(), {
         method: 'POST',
@@ -127,6 +147,7 @@ export function useVoiceCall({
         storageId,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         callId: s.callId,
+        interrupted: cutOff || undefined,
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
@@ -152,22 +173,48 @@ export function useVoiceCall({
     }
   }
 
-  /** Plays a spoken reply, then listens again. */
+  /** Plays a spoken reply, listening the whole time. */
   async function play(s: Session, audioUrl: string) {
     const sound = await (await fetch(audioUrl)).arrayBuffer()
     const buffer = await s.audio.decodeAudioData(sound)
     // The user may have hung up while it loaded.
     if (session.current !== s) return
+    speak(s, buffer, 0)
+  }
+
+  function speak(s: Session, buffer: AudioBuffer, offset: number) {
     const source = s.audio.createBufferSource()
     source.buffer = buffer
     source.connect(s.audio.destination)
     source.onended = () => {
+      // Not when paused or hung up: those clear `playing` first.
+      if (s.playing?.source !== source) return
       s.playing = undefined
-      listen(s)
+      setStatus('listening')
     }
-    s.playing = source
+    s.playing = { source, buffer, startedAt: s.audio.currentTime - offset }
     setStatus('speaking')
-    source.start()
+    source.start(0, offset)
+    listen(s)
+  }
+
+  function pause(s: Session) {
+    const reply = s.playing
+    if (!reply) return
+    s.playing = undefined
+    s.paused = {
+      buffer: reply.buffer,
+      offset: s.audio.currentTime - reply.startedAt,
+    }
+    reply.source.stop()
+  }
+
+  /** Carries on with the paused reply from where it stopped. */
+  function resume(s: Session) {
+    const reply = s.paused
+    s.paused = undefined
+    if (reply) speak(s, reply.buffer, reply.offset)
+    else listen(s)
   }
 
   /**
@@ -213,7 +260,9 @@ export function useVoiceCall({
     if (s.callId) void end({ id: s.callId })
     if (s.frame) cancelAnimationFrame(s.frame)
     if (s.recorder?.state === 'recording') s.recorder.stop()
-    s.playing?.stop()
+    s.playing?.source.stop()
+    s.playing = undefined
+    s.paused = undefined
     for (const track of s.stream.getTracks()) track.stop()
     void s.audio.close()
     session.current = null
@@ -333,6 +382,9 @@ export function CallPanel() {
             }
           >
             {line.text}
+            {line.cutOff && (
+              <span className="text-muted-foreground"> (cut off)</span>
+            )}
           </li>
         ))}
         {call.error && (

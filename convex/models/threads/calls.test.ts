@@ -4,6 +4,7 @@ import { convexTest } from 'convex-test'
 import { expect, test, vi } from 'vitest'
 import { api, components, internal } from '../../_generated/api'
 import schema from '../../schema'
+import { languageModel } from '../../lib/ai'
 import { modules } from '../../test.setup'
 import type { Id } from '../../_generated/dataModel'
 import type * as Ai from 'ai'
@@ -269,4 +270,38 @@ test('answering a ring starts the call with its opening line', async () => {
       (l) => [l.who, l.text],
     ),
   ).toEqual([['them', "Hi, it's Matilda with your reminder. Stretch"]])
+})
+
+test('talking over a reply marks it cut off in the call history', async () => {
+  heard.text = 'Tell me a long story'
+  const { t, asAda, projectId, clip } = await setup()
+  const first = await asAda.action(api.api.calls.turn, {
+    projectId,
+    storageId: await clip(),
+  })
+  heard.text = 'Actually, stop'
+  await asAda.action(api.api.calls.turn, {
+    projectId,
+    threadId: first.threadId ?? undefined,
+    storageId: await clip(),
+    callId: first.callId ?? undefined,
+    interrupted: true,
+  })
+  const lines = await asAda.query(api.api.calls.transcript, {
+    id: first.callId ?? ('' as Id<'calls'>),
+  })
+  expect(lines.map((l) => [l.who, l.cutOff ?? false])).toEqual([
+    ['you', false],
+    ['them', true],
+    ['you', false],
+    ['them', false],
+  ])
+  expect(await t.query(internal.api.calls.dump, {})).toContain(
+    'Sure, talk soon. (you cut in)',
+  )
+  const prompts = (
+    languageModel as unknown as { doStreamCalls: Array<unknown> }
+  ).doStreamCalls.map((call) => JSON.stringify(call))
+  expect(prompts.at(-1)).toContain('talked over your last reply')
+  expect(prompts.at(-2)).not.toContain('talked over your last reply')
 })

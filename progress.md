@@ -119,3 +119,11 @@
 - The details panel has a Calls tab: an assistant's last 20 calls with time, length and first line, each opening to its transcript, Copy transcript, and a link to the chat.
 - A call's first turn keeps the URL's other params, so the details panel stays open. A stale call error clears once a turn succeeds.
 - Verified with unit tests (a call's lines across two turns, reply timings, a never-hung-up call ending at its last line, the answered ring's opening line, another user refused, the dump text) and on a local deployment with a seeded call: the Calls tab listed it and Copy transcript produced the dump's text. No live calls were placed.
+
+### Calls that take turns like people (2026-10-19)
+
+- Talking over the assistant pauses it. The mic keeps listening while a reply plays: a quarter second of talking pauses it, a short "mm-hm" (under 0.7 s, then 0.6 s quiet) lets it carry on from where it stopped, and more makes it your turn. Its own voice leaking into the mic needs a louder level (0.05 vs 0.035) to count.
+- Your turn ends after 1.2 s of quiet instead of 0.9 s, so a pause mid-sentence doesn't hand the turn over.
+- A reply you talked over is marked cut off in the live transcript, the Calls tab and the dump ("(you cut in)"), and the next reply is told you may have missed its end.
+- The rules live in one pure function, `hear` in `src/lib/turn-taking.ts`, with the thresholds as named constants to tune from real calls. Its tests feed simulated mic levels: a mid-sentence pause, a cough, echo, an "mm-hm", a real interruption, the 30 s cap and the idle restart.
+- Not verified on a live call, by the user's request. Echo cancellation is the risk: if the assistant pauses itself, raise `OVER_REPLY_LEVEL`.

@@ -36,6 +36,15 @@ export type ReplyOptions = {
   via?: Via
   /** The user's IANA time zone, so "at 5 tomorrow" means their 5. UTC when unknown. */
   timeZone?: string
+  /** On a call: the user talked over the last reply. */
+  cutOff?: boolean
+}
+
+/** How to write the reply, and whether the user missed the end of the last one. */
+function style(via: Via, cutOff?: boolean) {
+  return cutOff
+    ? `${STYLE[via]} The user just talked over your last reply, so they may not have heard the end of it. Answer what they said now, and don't repeat yourself unless they ask.`
+    : STYLE[via]
 }
 
 /** The current time in the user's zone, for reminders and anything date-relative. */
@@ -51,7 +60,7 @@ function now(timeZone = 'UTC') {
 function leadInstructions(
   project: Project,
   bots: Array<Bot>,
-  { command, via = 'chat', timeZone }: ReplyOptions,
+  { command, via = 'chat', timeZone, cutOff }: ReplyOptions,
 ) {
   const team = bots.length
     ? `Your bots:
@@ -61,7 +70,7 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-${STYLE[via]}${now(timeZone)}${guidelines(project)}${
+${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${
     command
       ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
       : ''
@@ -72,14 +81,14 @@ function botInstructions(
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  { via = 'chat', timeZone }: ReplyOptions = {},
+  { via = 'chat', timeZone, cutOff }: ReplyOptions = {},
 ) {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
 ${bot.instructions}${team}
-${STYLE[via]}${now(timeZone)}${guidelines(project)}`
+${style(via, cutOff)}${now(timeZone)}${guidelines(project)}`
 }
 
 const BOT_CALLS_PER_REPLY = 6
