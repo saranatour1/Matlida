@@ -292,7 +292,7 @@ export function LookPicker({
                 aria-checked={look.shape === shape}
                 aria-label={shape}
                 title={shape}
-                onClick={() => setLook({ ...look, shape })}
+                onClick={() => setLook((l) => ({ ...l, shape }))}
                 className="grid place-items-center rounded-xl p-1.5 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-muted aria-checked:ring-1 aria-checked:ring-foreground/40"
               >
                 <BotAvatar look={{ ...look, shape }} className="size-9" />
@@ -317,7 +317,7 @@ export function LookPicker({
                   aria-checked={look.mark === mark}
                   aria-label={mark}
                   title={mark}
-                  onClick={() => setLook({ ...look, mark })}
+                  onClick={() => setLook((l) => ({ ...l, mark }))}
                   className="grid place-items-center rounded-lg p-1.5 text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-muted aria-checked:text-foreground aria-checked:ring-1 aria-checked:ring-foreground/40"
                 >
                   <Icon className="size-4" />
@@ -341,7 +341,7 @@ export function LookPicker({
                 aria-checked={look.color === color}
                 aria-label={color}
                 title={color}
-                onClick={() => setLook({ ...look, color })}
+                onClick={() => setLook((l) => ({ ...l, color }))}
                 className="size-6 rounded-full outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring aria-checked:ring-2 aria-checked:ring-foreground"
                 style={{ background: HEX[color] }}
               />
