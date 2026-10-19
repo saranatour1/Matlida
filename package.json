@@ -4,6 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "check": "pnpm run lint && vite build",
     "dev": "convex dev --start 'vite dev'",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && vite build",
