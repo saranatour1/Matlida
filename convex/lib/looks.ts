@@ -3,9 +3,9 @@ import { v } from 'convex/values'
 import { z } from 'zod'
 
 /**
- * How an assistant looks: a body shape, a color and an emblem, drawn as a
- * glossy gem. The app draws them, so nobody uploads images. The trefoil and
- * swirl borrow from Convex's mark, the kite from Matilda's.
+ * How an assistant looks: a character with a head shape, a skin color and a
+ * costume, drawn on a tile. The app draws them, so nobody uploads images. The
+ * trefoil and swirl heads borrow from Convex's mark, the kite from Matilda's.
  */
 export const SHAPES = [
   'round',
@@ -38,37 +38,43 @@ export const COLORS = [
   'gray',
 ] as const
 
-/** The emblem on the body, a hint at what the assistant is for. */
-export const MARKS = [
-  'bolt',
-  'leaf',
-  'book',
-  'pen',
-  'globe',
-  'code',
-  'flask',
-  'compass',
-  'rocket',
-  'heart',
-  'calendar',
-  'chart',
+/** The costume a character wears: ears, a hat, glasses, a hood. */
+export const FIGURES = [
+  'plain',
+  'cat',
+  'bear',
+  'bunny',
+  'frog',
+  'horns',
+  'beanie',
+  'cap',
+  'bucket',
+  'beret',
+  'bandana',
+  'crown',
+  'shades',
+  'glasses',
+  'headphones',
+  'bow',
+  'sprout',
+  'hood',
 ] as const
 
 export type Shape = (typeof SHAPES)[number]
 export type Color = (typeof COLORS)[number]
-export type Mark = (typeof MARKS)[number]
-/** `mark` is optional so looks saved before emblems existed stay valid. */
-export type Look = { shape: Shape; color: Color; mark?: Mark }
+export type Figure = (typeof FIGURES)[number]
+/** `figure` is optional so looks saved before figures existed stay valid. */
+export type Look = { shape: Shape; color: Color; figure?: Figure }
 
 export const vLook = v.object({
   shape: literals(...SHAPES),
   color: literals(...COLORS),
-  mark: v.optional(literals(...MARKS)),
+  figure: v.optional(literals(...FIGURES)),
 })
 
 /** The same look as a Zod schema, for validating user input and template links. */
 export const zLook = z.object({
   shape: z.enum(SHAPES),
   color: z.enum(COLORS),
-  mark: z.enum(MARKS).optional(),
+  figure: z.enum(FIGURES).optional(),
 })

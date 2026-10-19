@@ -1,22 +1,7 @@
 import * as React from 'react'
 import { cn } from 'cn'
-import {
-  BookOpenIcon,
-  CalendarDaysIcon,
-  CodeIcon,
-  CompassIcon,
-  FlaskConicalIcon,
-  GlobeIcon,
-  HeartIcon,
-  LeafIcon,
-  PenLineIcon,
-  RocketIcon,
-  TrendingUpIcon,
-  ZapIcon,
-} from 'lucide-react'
-import { COLORS, MARKS, SHAPES } from '../../convex/lib/looks'
-import type { Color, Look, Mark, Shape } from '../../convex/lib/looks'
-import type { LucideIcon } from 'lucide-react'
+import { COLORS, FIGURES, SHAPES } from '../../convex/lib/looks'
+import type { Color, Figure, Look, Shape } from '../../convex/lib/looks'
 
 type Outline = Array<readonly [number, number]>
 
@@ -113,31 +98,14 @@ function shade(hex: string, amount: number) {
   return `rgb(${channel(n >> 16)} ${channel((n >> 8) & 255)} ${channel(n & 255)})`
 }
 
-/** Each color's light, body and deep stops, for the gradient. */
-const STOPS = Object.fromEntries(
-  COLORS.map((c) => [c, [shade(HEX[c], 0.45), HEX[c], shade(HEX[c], -0.25)]]),
-) as Record<Color, [string, string, string]>
+/** Bodies dark enough that the face needs to be light. */
+const DARK = new Set<Color>(['plum', 'blue'])
 
-/** Bodies too light for a white emblem. */
-const LIGHT = new Set<Color>(['white', 'gold'])
-
-const MARK_ICON: Record<Mark, LucideIcon> = {
-  bolt: ZapIcon,
-  leaf: LeafIcon,
-  book: BookOpenIcon,
-  pen: PenLineIcon,
-  globe: GlobeIcon,
-  code: CodeIcon,
-  flask: FlaskConicalIcon,
-  compass: CompassIcon,
-  rocket: RocketIcon,
-  heart: HeartIcon,
-  calendar: CalendarDaysIcon,
-  chart: TrendingUpIcon,
-}
-
-/** The outline of every shape, tilted, then fitted into a 100×100 box with a margin. */
-const PATHS = Object.fromEntries(
+/**
+ * The head outline of every shape, tilted, then fitted to fill the tile from
+ * y=22 down past the bottom edge, so it crops like a portrait.
+ */
+const HEADS = Object.fromEntries(
   SHAPES.map((shape) => {
     const tilt = (TILT[shape] * Math.PI) / 180
     const [cos, sin] = [Math.cos(tilt), Math.sin(tilt)]
@@ -152,9 +120,9 @@ const PATHS = Object.fromEntries(
       Math.min(...ys),
       Math.max(...ys),
     ]
-    const scale = 84 / Math.max(maxX - minX, maxY - minY)
+    const scale = 88 / Math.max(maxX - minX, maxY - minY)
     const dx = 50 - ((minX + maxX) / 2) * scale
-    const dy = 50 - ((minY + maxY) / 2) * scale
+    const dy = 22 - minY * scale
     const d = points
       .map(
         ([x, y], i) =>
@@ -165,24 +133,331 @@ const PATHS = Object.fromEntries(
   }),
 ) as Record<Shape, string>
 
+/** Which costume colors clash with which skins, so a red cap never sits on a red head. */
+function pick(color: Color, main: string, alt: string, clash: Array<Color>) {
+  return clash.includes(color) ? alt : main
+}
+
+const INK = '#1c1917'
+const EAR_PINK = '#f9a8d4'
+
+/** Costume layers drawn behind the head: ears, bumps, the hood. */
+function Behind({ figure, color }: { figure: Figure; color: Color }) {
+  const fur = shade(HEX[color], -0.18)
+  switch (figure) {
+    case 'cat':
+      return (
+        <>
+          <path d="M8 50 L14 4 L42 26 Z" fill={fur} />
+          <path d="M92 50 L86 4 L58 26 Z" fill={fur} />
+          <path d="M15 40 L18 14 L34 28 Z" fill={EAR_PINK} />
+          <path d="M85 40 L82 14 L66 28 Z" fill={EAR_PINK} />
+        </>
+      )
+    case 'bear':
+      return (
+        <>
+          <circle cx="20" cy="27" r="14" fill={fur} />
+          <circle cx="80" cy="27" r="14" fill={fur} />
+          <circle cx="21" cy="28" r="7" fill={EAR_PINK} />
+          <circle cx="79" cy="28" r="7" fill={EAR_PINK} />
+        </>
+      )
+    case 'bunny':
+      return (
+        <>
+          <ellipse
+            cx="33"
+            cy="14"
+            rx="9"
+            ry="24"
+            transform="rotate(-12 33 14)"
+            fill={fur}
+          />
+          <ellipse
+            cx="67"
+            cy="14"
+            rx="9"
+            ry="24"
+            transform="rotate(12 67 14)"
+            fill={fur}
+          />
+          <ellipse
+            cx="33"
+            cy="16"
+            rx="4"
+            ry="16"
+            transform="rotate(-12 33 16)"
+            fill={EAR_PINK}
+          />
+          <ellipse
+            cx="67"
+            cy="16"
+            rx="4"
+            ry="16"
+            transform="rotate(12 67 16)"
+            fill={EAR_PINK}
+          />
+        </>
+      )
+    case 'frog':
+      return (
+        <>
+          <circle cx="29" cy="30" r="15" fill={HEX[color]} />
+          <circle cx="71" cy="30" r="15" fill={HEX[color]} />
+        </>
+      )
+    case 'hood':
+      return (
+        <path
+          d="M-4 104 L-4 52 C-4 0 104 0 104 52 L104 104 Z"
+          fill={pick(color, '#3f3f46', '#57534e', ['gray'])}
+        />
+      )
+    default:
+      return null
+  }
+}
+
+/** Costume layers drawn over the head and face: hats, glasses, the bow. */
+function Over({ figure, color }: { figure: Figure; color: Color }) {
+  switch (figure) {
+    case 'horns':
+      return (
+        <g fill="#27272a">
+          <path d="M26 32 Q16 12 26 2 Q28 18 38 26 Z" />
+          <path d="M74 32 Q84 12 74 2 Q72 18 62 26 Z" />
+        </g>
+      )
+    case 'beanie': {
+      const wool = pick(color, '#1e3a8a', '#b45309', ['blue', 'plum'])
+      return (
+        <>
+          <path d="M8 50 C8 6 92 6 92 50 Z" fill={wool} />
+          <rect
+            x="5"
+            y="40"
+            width="90"
+            height="15"
+            rx="7.5"
+            fill={shade(wool, 0.18)}
+          />
+          <circle cx="50" cy="9" r="9" fill="#f5f5f4" />
+        </>
+      )
+    }
+    case 'cap': {
+      const cloth = pick(color, '#dc2626', '#2563eb', ['red', 'orange', 'pink'])
+      return (
+        <>
+          <path d="M10 48 C10 8 90 8 90 48 Z" fill={cloth} />
+          <path
+            d="M46 42 Q80 36 100 48 Q98 58 80 55 Q62 51 46 52 Z"
+            fill={shade(cloth, -0.22)}
+          />
+          <circle cx="50" cy="12" r="3.5" fill={shade(cloth, -0.22)} />
+        </>
+      )
+    }
+    case 'bucket': {
+      const canvas = pick(color, '#57534e', '#166534', ['sand', 'gray'])
+      return (
+        <>
+          <path d="M20 44 L27 12 Q50 4 73 12 L80 44 Z" fill={canvas} />
+          <ellipse cx="50" cy="45" rx="49" ry="10" fill={shade(canvas, -0.2)} />
+          <path
+            d="M22 36 Q50 30 78 36"
+            stroke={shade(canvas, 0.2)}
+            strokeWidth="3"
+            fill="none"
+          />
+        </>
+      )
+    }
+    case 'beret': {
+      const felt = pick(color, '#9f1239', '#14532d', ['red', 'plum', 'pink'])
+      return (
+        <>
+          <ellipse
+            cx="44"
+            cy="26"
+            rx="42"
+            ry="16"
+            transform="rotate(-10 44 26)"
+            fill={felt}
+          />
+          <rect x="42" y="6" width="5" height="9" rx="2.5" fill={felt} />
+        </>
+      )
+    }
+    case 'bandana': {
+      const cloth = pick(color, '#dc2626', '#0f766e', ['red', 'orange', 'pink'])
+      return (
+        <>
+          <path d="M8 50 C8 10 92 10 92 50 Q50 40 8 50 Z" fill={cloth} />
+          <path d="M88 42 L100 32 L99 52 Z" fill={shade(cloth, -0.2)} />
+          <path d="M88 46 L100 58 L91 61 Z" fill={shade(cloth, -0.2)} />
+          <g fill="#fff" opacity="0.7">
+            <circle cx="30" cy="30" r="2" />
+            <circle cx="50" cy="22" r="2" />
+            <circle cx="70" cy="30" r="2" />
+          </g>
+        </>
+      )
+    }
+    case 'crown': {
+      const gold = pick(color, '#f3b01c', '#e5e7eb', ['gold', 'orange', 'sand'])
+      return (
+        <g transform="rotate(12 60 22)">
+          <path
+            d="M42 32 L42 12 L50 21 L58 6 L66 21 L74 12 L74 32 Z"
+            fill={gold}
+          />
+          <circle cx="58" cy="25" r="3" fill="#ee342f" />
+        </g>
+      )
+    }
+    case 'shades':
+      return (
+        <g>
+          <rect x="12" y="52" width="76" height="17" rx="8" fill="#0a0a0a" />
+          <path
+            d="M20 56 L34 56"
+            stroke="#fff"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+        </g>
+      )
+    case 'glasses':
+      return (
+        <g stroke={INK} strokeWidth="3" fill="none">
+          <circle cx="37" cy="60" r="10.5" />
+          <circle cx="63" cy="60" r="10.5" />
+          <path d="M47.5 60 L52.5 60 M26.5 58 L8 54 M73.5 58 L92 54" />
+        </g>
+      )
+    case 'headphones':
+      return (
+        <>
+          <path
+            d="M10 62 C10 8 90 8 90 62"
+            stroke="#27272a"
+            strokeWidth="8"
+            fill="none"
+          />
+          <rect x="0" y="50" width="16" height="26" rx="7" fill="#3f3f46" />
+          <rect x="84" y="50" width="16" height="26" rx="7" fill="#3f3f46" />
+          <rect x="4" y="56" width="4" height="14" rx="2" fill="#ee342f" />
+          <rect x="92" y="56" width="4" height="14" rx="2" fill="#ee342f" />
+        </>
+      )
+    case 'bow': {
+      const ribbon = pick(color, '#ee342f', '#0d9488', [
+        'red',
+        'pink',
+        'orange',
+      ])
+      return (
+        <g>
+          <path d="M74 26 L57 14 Q53 26 57 38 Z" fill={ribbon} />
+          <path d="M74 26 L91 14 Q95 26 91 38 Z" fill={ribbon} />
+          <circle cx="74" cy="26" r="5.5" fill={shade(ribbon, -0.2)} />
+        </g>
+      )
+    }
+    case 'sprout': {
+      const leaf = pick(color, '#16a34a', '#f3b01c', ['green', 'teal'])
+      return (
+        <g>
+          <path
+            d="M50 24 Q50 15 50 8"
+            stroke={leaf}
+            strokeWidth="3"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <ellipse
+            cx="42"
+            cy="9"
+            rx="8"
+            ry="4.5"
+            transform="rotate(-25 42 9)"
+            fill={leaf}
+          />
+          <ellipse
+            cx="58"
+            cy="7"
+            rx="8"
+            ry="4.5"
+            transform="rotate(25 58 7)"
+            fill={leaf}
+          />
+        </g>
+      )
+    }
+    default:
+      return null
+  }
+}
+
+/** Matilda's face: round eyes with a light catch, blush and a small smile. */
+function Face({ figure, color }: { figure: Figure; color: Color }) {
+  const eye = DARK.has(color) ? '#fafafa' : INK
+  const shine = DARK.has(color) ? INK : '#fff'
+  // A frog's eyes sit up on its bumps.
+  const [ex, ey] = figure === 'frog' ? [21, 32] : [13, 60]
+  return (
+    <>
+      {[50 - ex - 11, 50 + ex + 11].map((cx) => (
+        <ellipse
+          key={cx}
+          cx={cx}
+          cy={ey + 10}
+          rx="6.5"
+          ry="3.8"
+          fill="#fb7185"
+          opacity="0.45"
+        />
+      ))}
+      {[50 - ex, 50 + ex].map((cx) => (
+        <g key={cx}>
+          <ellipse cx={cx} cy={ey} rx="5.4" ry="6.6" fill={eye} />
+          <circle cx={cx + 1.8} cy={ey - 2.3} r="1.9" fill={shine} />
+        </g>
+      ))}
+      <path
+        d="M45.5 71 Q50 75.5 54.5 71"
+        stroke={eye}
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </>
+  )
+}
+
 /** A stable look for an assistant that hasn't picked one. */
-export function defaultLook(name: string): Look {
+export function defaultLook(name: string): Required<Look> {
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
   return {
     shape: SHAPES[hash % SHAPES.length],
     color: COLORS[(hash >>> 8) % COLORS.length],
-    mark: MARKS[(hash >>> 16) % MARKS.length],
+    figure: FIGURES[(hash >>> 16) % FIGURES.length],
   }
 }
 
-/** An assistant's look, or its default. A look saved without an emblem gets one from the name. */
+/** An assistant's look, or its default. A look saved without a figure gets one from the name. */
 export function lookOf(a: { look?: Look; name: string }): Required<Look> {
-  const fallback = defaultLook(a.name) as Required<Look>
-  return a.look ? { ...a.look, mark: a.look.mark ?? fallback.mark } : fallback
+  const fallback = defaultLook(a.name)
+  return a.look
+    ? { ...a.look, figure: a.look.figure ?? fallback.figure }
+    : fallback
 }
 
-/** An assistant as a glossy body with its emblem: a gradient, a curved reflection and the mark. */
+/** An assistant as a character on a tile: head, face and costume. */
 export function BotAvatar({
   look,
   className,
@@ -191,8 +466,8 @@ export function BotAvatar({
   className?: string
 }) {
   const id = React.useId().replace(/[^a-zA-Z0-9]/g, '')
-  const [light, body, deep] = STOPS[look.color]
-  const d = PATHS[look.shape]
+  const figure = look.figure ?? 'plain'
+  const skin = HEX[look.color]
   return (
     <svg
       viewBox="0 0 100 100"
@@ -200,64 +475,36 @@ export function BotAvatar({
       className={cn('inline-block size-4 shrink-0', className)}
     >
       <defs>
-        <linearGradient id={`${id}fill`} x1="0.2" y1="0.05" x2="0.8" y2="1">
-          <stop offset="0" stopColor={light} />
-          <stop offset="0.5" stopColor={body} />
-          <stop offset="1" stopColor={deep} />
-        </linearGradient>
-        <clipPath id={`${id}clip`}>
-          <path d={d} />
+        <clipPath id={`${id}tile`}>
+          <rect width="100" height="100" rx="24" />
         </clipPath>
+        <linearGradient id={`${id}skin`} x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor={shade(skin, 0.18)} />
+          <stop offset="1" stopColor={shade(skin, -0.1)} />
+        </linearGradient>
       </defs>
-      <path d={d} fill={`url(#${id}fill)`} />
-      <g clipPath={`url(#${id}clip)`}>
-        <ellipse
-          cx="34"
-          cy="27"
-          rx="28"
-          ry="13"
-          transform="rotate(-28 34 27)"
-          fill="#fff"
-          opacity="0.32"
-        />
+      <g clipPath={`url(#${id}tile)`}>
+        <rect width="100" height="100" fill={shade(skin, -0.78)} />
+        <Behind figure={figure} color={look.color} />
+        <path d={HEADS[look.shape]} fill={`url(#${id}skin)`} />
+        <Face figure={figure} color={look.color} />
+        <Over figure={figure} color={look.color} />
       </g>
-      {look.mark && <Emblem mark={look.mark} color={look.color} />}
     </svg>
-  )
-}
-
-/** The emblem, centered and sized to read at every avatar size. */
-function Emblem({ mark, color }: { mark: Mark; color: Color }) {
-  const Icon = MARK_ICON[mark]
-  const light = LIGHT.has(color)
-  return (
-    <Icon
-      x="29"
-      y="29"
-      width="42"
-      height="42"
-      strokeWidth={2.6}
-      color={light ? 'rgb(0 0 0 / 0.6)' : '#fff'}
-      style={
-        light
-          ? undefined
-          : { filter: 'drop-shadow(0 1px 1px rgb(0 0 0 / 0.25))' }
-      }
-    />
   )
 }
 
 /** A random look, for a new assistant. */
 export function randomLook(): Required<Look> {
-  const pick = <T,>(list: ReadonlyArray<T>) =>
+  const any = <T,>(list: ReadonlyArray<T>) =>
     list[Math.floor(Math.random() * list.length)]
-  return { shape: pick(SHAPES), color: pick(COLORS), mark: pick(MARKS) }
+  return { shape: any(SHAPES), color: any(COLORS), figure: any(FIGURES) }
 }
 
 /**
- * A big preview beside the shapes, emblems and colors to pick from.
+ * A big preview beside the figures, shapes and colors to pick from.
  * `children` (name fields, say) sit under the preview. Submits as the
- * `shape`, `color` and `mark` form fields.
+ * `shape`, `color` and `figure` form fields.
  */
 export function LookPicker({
   defaultValue,
@@ -271,12 +518,35 @@ export function LookPicker({
     <div className="grid gap-6 sm:grid-cols-[11rem_1fr] sm:items-start">
       <input type="hidden" name="shape" value={look.shape} />
       <input type="hidden" name="color" value={look.color} />
-      <input type="hidden" name="mark" value={look.mark} />
+      <input type="hidden" name="figure" value={look.figure} />
       <div className="flex flex-col items-center gap-3">
         <BotAvatar look={look} className="size-28 drop-shadow-lg" />
         {children}
       </div>
       <div className="flex flex-col gap-4">
+        <div
+          role="radiogroup"
+          aria-label="Figure"
+          className="flex flex-col gap-2"
+        >
+          <span className="text-xs text-muted-foreground">Figure</span>
+          <div className="grid grid-cols-6 gap-1">
+            {FIGURES.map((figure) => (
+              <button
+                key={figure}
+                type="button"
+                role="radio"
+                aria-checked={look.figure === figure}
+                aria-label={figure}
+                title={figure}
+                onClick={() => setLook((l) => ({ ...l, figure }))}
+                className="grid place-items-center rounded-xl p-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-muted aria-checked:ring-1 aria-checked:ring-foreground/40"
+              >
+                <BotAvatar look={{ ...look, figure }} className="size-9" />
+              </button>
+            ))}
+          </div>
+        </div>
         <div
           role="radiogroup"
           aria-label="Shape"
@@ -298,32 +568,6 @@ export function LookPicker({
                 <BotAvatar look={{ ...look, shape }} className="size-9" />
               </button>
             ))}
-          </div>
-        </div>
-        <div
-          role="radiogroup"
-          aria-label="Emblem"
-          className="flex flex-col gap-2"
-        >
-          <span className="text-xs text-muted-foreground">Emblem</span>
-          <div className="grid grid-cols-6 gap-1">
-            {MARKS.map((mark) => {
-              const Icon = MARK_ICON[mark]
-              return (
-                <button
-                  key={mark}
-                  type="button"
-                  role="radio"
-                  aria-checked={look.mark === mark}
-                  aria-label={mark}
-                  title={mark}
-                  onClick={() => setLook((l) => ({ ...l, mark }))}
-                  className="grid place-items-center rounded-lg p-1.5 text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-checked:bg-muted aria-checked:text-foreground aria-checked:ring-1 aria-checked:ring-foreground/40"
-                >
-                  <Icon className="size-4" />
-                </button>
-              )
-            })}
           </div>
         </div>
         <div
@@ -353,11 +597,11 @@ export function LookPicker({
   )
 }
 
-/** The `shape`, `color` and `mark` fields a `LookPicker` submitted. The server validates them. */
+/** The `shape`, `color` and `figure` fields a `LookPicker` submitted. The server validates them. */
 export function lookFromForm(data: FormData): Required<Look> {
   return {
     shape: String(data.get('shape')) as Shape,
     color: String(data.get('color')) as Color,
-    mark: String(data.get('mark')) as Mark,
+    figure: String(data.get('figure')) as Figure,
   }
 }
