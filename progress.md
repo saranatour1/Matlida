@@ -201,3 +201,9 @@
 ### Grok and Muse in the model menu (2026-10-20)
 
 - The model menu and the bot and workspace forms also offer Grok 4.7 (`x-ai/grok-4.7`) and Meta's Muse Spark 1.3 (`meta/muse-spark-1.3`), both served by the Convex AI gateway.
+
+### One createAgent, and effort levels (2026-10-20)
+
+- `createAgent()` in `convex/models/threads/lead.ts` builds every assistant for a reply: the lead or a bot, on the chat's model (then its own, then the default) and effort, with its instructions, tools (`assistantTools` and `ask_bot`) and usage recording, and returns the `Agent`. It replaces `createLead`, `createBot` and the hand-built bot inside `ask_bot`; chat, texting and email all use it.
+- Effort is low, medium or high, picked like the model: the chat's pick, then the bot's or lead's own, then medium. It sets the steps a reply may take (4, 8 or 20), how many times it may ask a bot (2, 6 or 12), and the reasoning effort sent to the gateway (`reasoning_effort`). An effort menu sits next to the model menu in the message box, and the bot and workspace forms have an Effort field.
+- Verified with unit tests: effort from the default, the workspace, the chat's pick, back to the workspace's, and a new chat starting on one; only the owner can set it. Whether each model honors `reasoning_effort` through the gateway wasn't checked live.

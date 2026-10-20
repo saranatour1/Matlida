@@ -14,4 +14,8 @@ export const projectsTable = defineTable({
   portrait: v.optional(vPortrait),
   /** The gateway model the lead runs on. Unset means the app's default. */
   model: v.optional(v.string()),
+  /** How hard the lead works on a reply. Unset means medium. */
+  effort: v.optional(
+    v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+  ),
 }).index('by_owner', ['ownerId'])

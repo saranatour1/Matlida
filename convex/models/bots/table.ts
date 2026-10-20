@@ -11,5 +11,9 @@ export const botsTable = defineTable({
   instructions: v.string(),
   /** The gateway model it runs on. Unset means the app's default. */
   model: v.optional(v.string()),
+  /** How hard it works on a reply. Unset means medium. */
+  effort: v.optional(
+    v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+  ),
   portrait: v.optional(vPortrait),
 }).index('by_project_and_name', ['projectId', 'name'])

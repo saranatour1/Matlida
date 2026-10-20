@@ -15,7 +15,7 @@ import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { startThread } from '../threads/functions'
-import { createBot, createLead } from '../threads/lead'
+import { createAgent } from '../threads/lead'
 import { spectrum } from './spectrum'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../../_generated/server'
@@ -334,13 +334,15 @@ const answer = internalAction({
       return `You're talking to ${current}. You can message ${names}: start a message with @name to switch.`
     }
     if (!prompt) return `You're talking to ${current} now.`
-    const { agent, tools } = bot
-      ? createBot(project, bot, [], { via: 'text' })
-      : createLead(project, bots, { via: 'text' })
+    const agent = createAgent(project, {
+      bot,
+      members: bot ? [] : bots,
+      via: 'text',
+    })
     const reply = await agent.generateText(
       ctx,
       { threadId, userId: project.ownerId },
-      { prompt, tools },
+      { prompt },
     )
     // Every assistant shares this chat, so bots sign their replies.
     return bot ? `${bot.name}: ${reply.text}` : reply.text

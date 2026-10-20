@@ -24,7 +24,8 @@ import { findCommand } from '../commands/functions'
 import { getOwnedProject } from '../projects/functions'
 import { MODEL_ID } from '../../lib/models'
 import { getOwnedThread, startThread } from './functions'
-import { createBot, createLead } from './lead'
+import { createAgent } from './lead'
+import type { Effort } from '../../lib/models'
 import type { Via } from './lead'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { ActionCtx, MutationCtx } from '../../_generated/server'
@@ -52,6 +53,7 @@ export async function postMessage(
     threadId,
     prompt,
     model,
+    effort,
   }: {
     projectId: Id<'projects'>
     botId?: Id<'bots'>
@@ -59,6 +61,8 @@ export async function postMessage(
     prompt: string
     /** For a new chat: the model it starts on. */
     model?: string
+    /** For a new chat: the effort it starts on. */
+    effort?: Effort
   },
 ) {
   await getOwnedProject(ctx, userId, projectId)
@@ -84,6 +88,7 @@ export async function postMessage(
       botId,
       title: prompt.slice(0, 60),
       model,
+      effort,
       userId,
     }))
   const { messageId } = await saveMessage(ctx, components.agent, {
@@ -115,6 +120,8 @@ const sendMessage = zAuthedMutation({
       .max(80)
       .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
       .optional(),
+    /** For a new chat: the effort it starts on. */
+    effort: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, { timeZone, ...message }) => {
     const { threadId, promptMessageId, commandId } = await postMessage(
@@ -141,6 +148,13 @@ const context = internalQuery({
     command: v.union(schema.doc('commands'), v.null()),
     /** The chat's own model, when one was picked. */
     model: v.union(v.string(), v.null()),
+    /** The chat's own effort, when one was picked. */
+    effort: v.union(
+      v.literal('low'),
+      v.literal('medium'),
+      v.literal('high'),
+      v.null(),
+    ),
   }),
   handler: async (ctx, { threadId, commandId }) => {
     const thread = await ctx.db
@@ -162,6 +176,7 @@ const context = internalQuery({
           : bots,
       command: command && command.projectId === project._id ? command : null,
       model: thread.model ?? null,
+      effort: thread.effort ?? null,
     }
   },
 })
@@ -201,35 +216,35 @@ export async function runReply(
     members,
     command,
     model,
+    effort,
   }: {
     project: Doc<'projects'>
     bot: Doc<'bots'> | null
     members: Array<Doc<'bots'>>
     command: Doc<'commands'> | null
     model: string | null
+    effort: Effort | null
   } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
   const markdown =
     command && (await (await ctx.storage.get(command.storageId))?.text())
-  const { agent, tools } = bot
-    ? createBot(project, bot, members, {
-        timeZone,
-        via,
-        cutOff,
-        model: model ?? undefined,
-      })
-    : createLead(project, members, {
-        timeZone,
-        via,
-        cutOff,
-        model: model ?? undefined,
-        command:
-          command && markdown ? { name: command.name, markdown } : undefined,
-      })
+  const agent = createAgent(project, {
+    bot,
+    members,
+    timeZone,
+    via,
+    cutOff,
+    model: model ?? undefined,
+    effort: effort ?? undefined,
+    command:
+      !bot && command && markdown
+        ? { name: command.name, markdown }
+        : undefined,
+  })
   const started = Date.now()
   const result = await agent.streamText(
     ctx,
     { threadId, userId: project.ownerId },
-    { promptMessageId, tools },
+    { promptMessageId },
     { saveStreamDeltas: true },
   )
   if (onText) {
