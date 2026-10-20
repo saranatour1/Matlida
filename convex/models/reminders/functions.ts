@@ -9,9 +9,9 @@ import {
   internalQuery,
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
-import schema from '../../schema'
 import { addressOf } from '../../lib/handles'
-import { resend } from '../../lib/resend'
+import { sendEmail } from '../../lib/photon'
+import schema from '../../schema'
 import { getMailbox } from '../mailboxes/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getLink } from '../texts/functions'
@@ -279,14 +279,25 @@ const fire = internalAction({
     }
     let note: string | undefined
     if (reminder.via === 'email') {
-      if (mail) {
-        await resend.sendEmail(ctx, {
-          from: `"${reminder.from.replace(/["\\<>\r\n]/g, '')}" <${mail.from}>`,
-          to: mail.to,
-          subject: `Reminder: ${reminder.message.slice(0, 80)}`,
-          text: `${reminder.message}\n\n${reminder.from}`,
-          idempotencyKey: `reminder:${id}`,
-        })
+      const keys = {
+        projectId: env.PHOTON_PROJECT_ID,
+        apiKey: env.PHOTON_API_KEY,
+      }
+      if (mail && keys.projectId && keys.apiKey) {
+        try {
+          await sendEmail(
+            { projectId: keys.projectId, apiKey: keys.apiKey },
+            {
+              ...mail,
+              subject: `Reminder: ${reminder.message.slice(0, 80)}`,
+              text: `${reminder.message}\n\n${reminder.from}`,
+              key: `reminder:${id}`,
+            },
+          )
+        } catch (error) {
+          console.error(error)
+          note = "The email couldn't be sent, so it's only here."
+        }
       } else {
         note = "Email isn't set up, so it's only here."
       }

@@ -23,8 +23,6 @@
     "@convex-dev/rate-limiter": "0.4.2",
     "@convex-dev/react-query": "^0.1.0",
     "@convex-dev/resend": "^0.2.9",
-    "@convex-dev/workflow": "0.4.10",
-    "@convex-dev/workpool": "0.4.14",
     "@grpc/grpc-js": "^1.14.6",
     "@photon-ai/advanced-imessage": "^2.3.0",
     "@shadcn/react": "^0.3.1",

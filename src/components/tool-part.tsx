@@ -6,6 +6,7 @@ import {
   TelescopeIcon,
 } from 'lucide-react'
 import type { ChatUIMessage } from '~/components/chat-message'
+import type { Doc } from '../../convex/_generated/dataModel'
 import { Markdown } from '~/components/chat-message'
 import { Spinner } from '~/components/ui/spinner'
 
@@ -70,7 +71,13 @@ export function ToolPart({ part }: { part: Part }) {
   )
 }
 
-const VIA = { chat: 'here', text: 'by text', call: 'with a call' } as const
+// Keyed by the table's `via`, so a new way to remind fails the typecheck until it has words here.
+const VIA: Record<Doc<'reminders'>['via'], string> = {
+  chat: 'here',
+  text: 'by text',
+  email: 'by email',
+  call: 'with a call',
+}
 
 /** A reminder an assistant set, with when and how it will arrive. */
 export function ReminderPart({

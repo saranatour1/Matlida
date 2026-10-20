@@ -72,17 +72,12 @@ const claim = zAuthedMutation({
       throw new ConvexError('That handle is taken. Pick another.')
     }
     if (existing) {
+      // The email chats belong to the old workspace, so the new one starts its own.
+      const moved = existing.projectId !== projectId
       await ctx.db.patch('mailboxes', existing._id, {
         handle,
         projectId,
-        // Threads belong to the workspace that answered, so a move starts fresh ones.
-        ...(existing.projectId === projectId
-          ? {}
-          : {
-              threadId: undefined,
-              botThreads: undefined,
-              activeBotId: undefined,
-            }),
+        ...(moved && { threadId: undefined, inboxThreadId: undefined }),
       })
       return existing._id
     }
