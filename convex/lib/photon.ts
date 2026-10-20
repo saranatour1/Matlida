@@ -61,13 +61,13 @@ async function call(keys: PhotonKeys, path: string, init?: RequestInit) {
   return (await response.json()) as unknown
 }
 
-/** Emails received since `since` (ISO), oldest first. Items that aren't emails are skipped. */
-export async function listEmails(keys: PhotonKeys, since: string) {
-  const emails: Array<PhotonEmail> = []
+/** Every message received on `platform` since `since` (ISO), oldest first, unparsed. */
+async function listReceived(keys: PhotonKeys, platform: string, since: string) {
+  const items: Array<unknown> = []
   let pageToken: string | undefined
   do {
     const query = new URLSearchParams({
-      platform: 'email',
+      platform,
       direction: 'received',
       order: 'asc',
       pageSize: '100',
@@ -75,13 +75,41 @@ export async function listEmails(keys: PhotonKeys, since: string) {
       ...(pageToken ? { pageToken } : {}),
     })
     const page = zPage.parse(await call(keys, `/messages?${query}`))
-    for (const item of page.items) {
-      const email = zEmail.safeParse(item)
-      if (email.success) emails.push(email.data)
-    }
+    items.push(...page.items)
     pageToken = page.nextPageToken ?? undefined
   } while (pageToken)
+  return items
+}
+
+/** Emails received since `since` (ISO), oldest first. Items that aren't emails are skipped. */
+export async function listEmails(keys: PhotonKeys, since: string) {
+  const emails: Array<PhotonEmail> = []
+  for (const item of await listReceived(keys, 'email', since)) {
+    const email = zEmail.safeParse(item)
+    if (email.success) emails.push(email.data)
+  }
   return emails
+}
+
+const zReceivedText = z.object({
+  id: z.string(),
+  content: z.object({ type: z.literal('text'), text: z.string() }),
+  receivedBy: z.object({ id: z.string() }),
+  space: z.object({ id: z.string() }),
+})
+
+/** Text messages received on `platform` (a Telegram chat, for one) since `since`, oldest first. */
+export async function listTexts(
+  keys: PhotonKeys,
+  platform: string,
+  since: string,
+) {
+  const texts: Array<z.infer<typeof zReceivedText>> = []
+  for (const item of await listReceived(keys, platform, since)) {
+    const text = zReceivedText.safeParse(item)
+    if (text.success) texts.push(text.data)
+  }
+  return texts
 }
 
 /** The email's plain-text body: its text, or the plain part of a multipart email. */
@@ -102,6 +130,40 @@ async function emailUser(keys: PhotonKeys, address: string) {
     body: JSON.stringify({ handle: address, platform: 'email' }),
   })
   return zId.parse(user).id
+}
+
+/**
+ * Sends a text into a Photon space (a Telegram chat, for one) as `senderId`,
+ * the project's agent there. `key` makes a retry send once.
+ */
+export async function sendText(
+  keys: PhotonKeys,
+  {
+    spaceId,
+    senderId,
+    text,
+    key,
+  }: { spaceId: string; senderId: string; text: string; key: string },
+) {
+  await call(keys, '/messages', {
+    method: 'POST',
+    headers: { 'idempotency-key': key },
+    body: JSON.stringify({
+      spaceId,
+      senderId,
+      content: { type: 'text', format: 'plain', text },
+    }),
+  })
+}
+
+/** The Photon keys from the deployment, or null until they're set. */
+export function photonKeys(env: {
+  PHOTON_PROJECT_ID?: string
+  PHOTON_API_KEY?: string
+}): PhotonKeys | null {
+  return env.PHOTON_PROJECT_ID && env.PHOTON_API_KEY
+    ? { projectId: env.PHOTON_PROJECT_ID, apiKey: env.PHOTON_API_KEY }
+    : null
 }
 
 /**

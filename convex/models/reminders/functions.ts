@@ -10,7 +10,7 @@ import {
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
-import { sendEmail } from '../../lib/photon'
+import { photonKeys, sendEmail, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getMailbox } from '../mailboxes/functions'
 import { getOwnedProject } from '../projects/functions'
@@ -18,7 +18,7 @@ import { getLink } from '../texts/functions'
 import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
 import type { Id } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
+import type { ActionCtx, MutationCtx } from '../../_generated/server'
 
 const YEAR_MS = 366 * 24 * 60 * 60 * 1000
 /** How long a call reminder rings before it counts as missed. */
@@ -88,7 +88,11 @@ const delivery = internalQuery({
   returns: v.union(
     v.object({
       reminder: schema.doc('reminders'),
-      spaceId: v.union(v.string(), v.null()),
+      /** The linked chat a text reminder goes to, and Photon's agent there when it's linked through Photon's API. */
+      chat: v.union(
+        v.object({ spaceId: v.string(), agentId: v.optional(v.string()) }),
+        v.null(),
+      ),
       /** Where an email reminder goes and comes from, once the owner has an address. */
       mail: v.union(v.object({ to: v.string(), from: v.string() }), v.null()),
     }),
@@ -108,7 +112,10 @@ const delivery = internalQuery({
         : null
     return {
       reminder,
-      spaceId: link?.status === 'linked' ? link.spaceId : null,
+      chat:
+        link?.status === 'linked'
+          ? { spaceId: link.spaceId, agentId: link.agentId }
+          : null,
       mail,
     }
   },
@@ -234,6 +241,32 @@ const decline = authedMutation({
   },
 })
 
+/**
+ * Texts a linked chat: through Photon's platform API when the chat was
+ * linked there, otherwise through the Spectrum SDK's outbox.
+ */
+async function textChat(
+  ctx: ActionCtx,
+  chat: { spaceId: string; agentId?: string },
+  text: string,
+  key: string,
+) {
+  const keys = photonKeys(env)
+  if (chat.agentId && keys) {
+    await sendText(keys, {
+      spaceId: chat.spaceId,
+      senderId: chat.agentId,
+      text,
+      key,
+    })
+    return
+  }
+  await spectrum.send(ctx, {
+    spaceId: chat.spaceId,
+    content: { type: 'text', text },
+  })
+}
+
 /** Nobody picked up: texts the reminder when texting is linked, and posts it in the chat. */
 const miss = internalAction({
   args: { id: v.id('reminders') },
@@ -244,15 +277,14 @@ const miss = internalAction({
       status: 'ringing',
     })
     if (!found) return null
-    const { reminder, spaceId } = found
-    if (spaceId) {
-      await spectrum.send(ctx, {
-        spaceId,
-        content: {
-          type: 'text',
-          text: `Missed call from ${reminder.from}: ${reminder.message}`,
-        },
-      })
+    const { reminder, chat } = found
+    if (chat) {
+      await textChat(
+        ctx,
+        chat,
+        `Missed call from ${reminder.from}: ${reminder.message}`,
+        `missed:${id}`,
+      )
     }
     await ctx.runMutation(internal.api.reminders.markSent, {
       id,
@@ -272,28 +304,22 @@ const fire = internalAction({
       status: 'scheduled',
     })
     if (!found) return null
-    const { reminder, spaceId, mail } = found
+    const { reminder, chat, mail } = found
     if (reminder.via === 'call') {
       await ctx.runMutation(internal.api.reminders.ring, { id })
       return null
     }
     let note: string | undefined
     if (reminder.via === 'email') {
-      const keys = {
-        projectId: env.PHOTON_PROJECT_ID,
-        apiKey: env.PHOTON_API_KEY,
-      }
-      if (mail && keys.projectId && keys.apiKey) {
+      const keys = photonKeys(env)
+      if (mail && keys) {
         try {
-          await sendEmail(
-            { projectId: keys.projectId, apiKey: keys.apiKey },
-            {
-              ...mail,
-              subject: `Reminder: ${reminder.message.slice(0, 80)}`,
-              text: `${reminder.message}\n\n${reminder.from}`,
-              key: `reminder:${id}`,
-            },
-          )
+          await sendEmail(keys, {
+            ...mail,
+            subject: `Reminder: ${reminder.message.slice(0, 80)}`,
+            text: `${reminder.message}\n\n${reminder.from}`,
+            key: `reminder:${id}`,
+          })
         } catch (error) {
           console.error(error)
           note = "The email couldn't be sent, so it's only here."
@@ -303,14 +329,13 @@ const fire = internalAction({
       }
     }
     if (reminder.via === 'text') {
-      if (spaceId) {
-        await spectrum.send(ctx, {
-          spaceId,
-          content: {
-            type: 'text',
-            text: `Reminder from ${reminder.from}: ${reminder.message}`,
-          },
-        })
+      if (chat) {
+        await textChat(
+          ctx,
+          chat,
+          `Reminder from ${reminder.from}: ${reminder.message}`,
+          `reminder:${id}`,
+        )
       } else {
         note = "Texting isn't linked, so it's only here."
       }

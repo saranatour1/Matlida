@@ -188,3 +188,12 @@
 
 - `docs/setup/channels.md` covers every channel in order: email through Photon's Email channel (connect a domain, publish the DNS records Photon shows, an API key with `project:read` and `project:write`, the three env vars, claiming an address, trying it), texting through the Spectrum SDK with its webhook, Telegram, WhatsApp, and why phone calls wait.
 - It names the two mistakes found on dev: a `SPECTRUM_PROJECT_SECRET` set to the project id, and a webhook destination made on Photon's beta platform, whose format `/spectrum/webhook` rejects.
+
+### Telegram through Photon's platform API (2026-10-20)
+
+- `POST /photon/webhook` takes Photon's platform events, checks the Standard Webhooks signature (`webhook-*` or `svix-*` headers, 5-minute tolerance) against `PHOTON_WEBHOOK_SECRET` over the raw bytes, and logs only header names when a delivery is refused.
+- A Telegram text is recorded once by Photon's message id and answered by the same texting logic as before (`link <code>`, `@name`, the limits), then sent back through Photon's API as the project's agent in that chat. Linking stores that agent's id, so text reminders and missed-call texts to the chat go through Photon too.
+- An email event starts the email check at once instead of at the next minute.
+- Telegram on Connections now needs `PHOTON_PROJECT_ID`, `PHOTON_API_KEY` and `PHOTON_WEBHOOK_SECRET`.
+- Photon hasn't delivered a single event to `/photon/webhook` yet, so a cron reads Photon's message list for Telegram texts every minute, and every 3 seconds for 2 minutes after any message (one loop at a time, kept alive by a `telegramPolls` row). Each message goes through the same once-only record as the webhook. Live on dev: replies in 5 to 9 seconds during a chat, up to a minute for the first message.
+- Verified with unit tests, Photon's API mocked and deliveries signed in the test: an unlinked chat told how to link; linking, chatting and a text reminder through Photon; a repeated delivery answered once; forged, stale and unsigned deliveries refused with nothing recorded; the minute check answering once; the fast check catching the next message and stopping by itself. Tried live on Telegram: linking and chatting work.

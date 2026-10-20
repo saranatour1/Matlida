@@ -11,15 +11,15 @@ without it landing in your shell history, copy it and run
 
 ## Env vars, names only
 
-| Name                      | What it's for                                                   |
-| ------------------------- | --------------------------------------------------------------- |
-| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.    |
-| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it. |
-| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email.           |
-| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                  |
-| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                      |
-| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.              |
-| `TELEGRAM_BOT_TOKEN`      | Telegram: the token from @BotFather.                            |
+| Name                      | What it's for                                                      |
+| ------------------------- | ------------------------------------------------------------------ |
+| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.       |
+| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
+| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
+| `PHOTON_WEBHOOK_SECRET`   | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
+| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                     |
+| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                         |
+| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.                 |
 
 `SITE_URL` and the `AUTH_*` variables are in the README.
 
@@ -69,12 +69,20 @@ capped at 5 at once, then 20 an hour.
 
 ## Telegram
 
-1. Message @BotFather, send `/newbot`, and copy the token into
-   `TELEGRAM_BOT_TOKEN`.
-2. Add the Telegram provider to the Photon project.
-3. Point the bot's webhook at Photon once:
-   `pnpm exec convex run api/sender:connectTelegram`
-4. In the app, get a code on Messaging and send `link <code>` to the bot.
+1. Connect your Telegram bot to the project in the Photon beta dashboard
+   (create it with @BotFather and give Photon its token). The app never sees
+   the token.
+2. Point the project's webhook at
+   `https://<deployment>.convex.site/photon/webhook`, and set its signing
+   secret (`whsec_…`) as `PHOTON_WEBHOOK_SECRET`. `PHOTON_PROJECT_ID` and
+   `PHOTON_API_KEY` are the same as for email.
+3. In the app, get a code on Messaging and send `link <code>` to the bot.
+   Then message it; `@name` switches to a bot.
+
+Replies go out through Photon's API. Photon hasn't delivered events to the
+webhook yet, so the app also checks Photon for new Telegram messages every
+minute, and every 3 seconds for 2 minutes after any message: the first reply
+after a quiet spell can take up to a minute.
 
 ## WhatsApp
 
