@@ -221,3 +221,7 @@
 - The first kind is `run_plan`: the assistant saves a plan and calls `run_plan`; the chat shows the steps with Start and Don't start. On Start each step is done by the lead with its tools in the task's own thread (so each step sees the ones before it), retried on its own, and ticks the plan's checklist. Cancel stops it after the running step. When it ends, the chat gets "Done" or "Stopped" with the reason.
 - The details panel's Library tab lists the chat's tasks and their progress.
 - Verified with unit tests, the model mocked and the workflow run with convex-test: Start running both steps in order and ticking the plan; Don't start; cancel; a step that keeps failing; owner-only; and that a task can't start another plan.
+
+### DMARC in the setup guide (2026-10-20)
+
+- `matilda-is-a-bot.app` has no DMARC record. Photon's DNS list doesn't include one, so the guide now adds it as step 3: `v=DMARC1; p=none; adkim=s; aspf=r; fo=1; rua=…`. Strict DKIM, because Photon signs as the domain; relaxed SPF, because its return path is `bounce.<domain>`. Reports go to Cloudflare's DMARC Management rather than a handle on the domain. Start at `p=none`, then move to `quarantine` and `reject`.

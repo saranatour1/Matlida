@@ -36,20 +36,41 @@ records; the app checks Photon for new mail every minute.
    MX and SPF TXT, and the receiving MX. On Cloudflare, set the CNAMEs to
    DNS only. Photon checks them by itself; wait until the domain says
    Connected.
-3. **Create an API key** under API keys with `project:read` and
+3. **Add a DMARC record.** Photon doesn't list one, but without it nothing
+   tells other mail servers to refuse mail that forges your domain. Add a
+   TXT record at `_dmarc.<domain>`:
+
+   ```
+   v=DMARC1; p=none; adkim=s; aspf=r; fo=1; rua=mailto:<reports address>
+   ```
+
+   - `adkim=s`: Photon signs with DKIM as your domain, so strict DKIM
+     alignment passes.
+   - `aspf=r`: Photon's return path is `bounce.<domain>`, a subdomain, which
+     only aligns under relaxed SPF.
+   - `rua`: where daily reports go. On Cloudflare, Email > DMARC Management
+     adds the record with a Cloudflare reports address and shows the
+     reports. Don't point it at a handle on the same domain: Photon would
+     deliver the reports as mail, and `dmarc` is a reserved handle.
+
+   Start with `p=none`. Once a week of reports shows your mail passing, move
+   to `p=quarantine`, then `p=reject`.
+
+4. **Create an API key** under API keys with `project:read` and
    `project:write`, and copy the project id from Settings.
-4. **Set** `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY` on the
+5. **Set** `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY` on the
    deployment. Connections' Email row says what's still missing.
-5. **Claim an address** on Connections. Claiming needs a verified sign-in
+6. **Claim an address** on Connections. Claiming needs a verified sign-in
    email: it's the only address the assistants accept mail from as you, and
    the only one they write to.
-6. **Try it.** Email your address from your sign-in email. Within a minute it
+7. **Try it.** Email your address from your sign-in email. Within a minute it
    shows in the "Matilda · Email" chat and Matilda replies in the same
    thread. Mail from anyone else shows in the "Email inbox" chat and isn't
    answered.
 
 Photon doesn't pass on DKIM or DMARC results, so a forged From can get an
-answer. The reply only ever goes to your sign-in email, and answers are
+answer; DMARC on your sign-in email's domain (Gmail has it) is what makes
+forging it harder. The reply only ever goes to your sign-in email, and answers are
 capped at 5 at once, then 20 an hour.
 
 ## Texting: iMessage and SMS
