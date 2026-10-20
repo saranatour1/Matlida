@@ -22,6 +22,7 @@ import type * as api_plans from "../api/plans.js";
 import type * as api_projects from "../api/projects.js";
 import type * as api_reminders from "../api/reminders.js";
 import type * as api_sender from "../api/sender.js";
+import type * as api_tasks from "../api/tasks.js";
 import type * as api_texts from "../api/texts.js";
 import type * as api_threads from "../api/threads.js";
 import type * as api_usage from "../api/usage.js";
@@ -40,6 +41,7 @@ import type * as lib_portraits from "../lib/portraits.js";
 import type * as lib_sentences from "../lib/sentences.js";
 import type * as lib_transcript from "../lib/transcript.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
+import type * as lib_workflow from "../lib/workflow.js";
 import type * as models_bots_functions from "../models/bots/functions.js";
 import type * as models_bots_table from "../models/bots/table.js";
 import type * as models_calls_functions from "../models/calls/functions.js";
@@ -61,6 +63,8 @@ import type * as models_projects_functions from "../models/projects/functions.js
 import type * as models_projects_table from "../models/projects/table.js";
 import type * as models_reminders_functions from "../models/reminders/functions.js";
 import type * as models_reminders_table from "../models/reminders/table.js";
+import type * as models_tasks_functions from "../models/tasks/functions.js";
+import type * as models_tasks_table from "../models/tasks/table.js";
 import type * as models_texts_functions from "../models/texts/functions.js";
 import type * as models_texts_sender from "../models/texts/sender.js";
 import type * as models_texts_spectrum from "../models/texts/spectrum.js";
@@ -99,6 +103,7 @@ declare const fullApi: ApiFromModules<{
   "api/projects": typeof api_projects;
   "api/reminders": typeof api_reminders;
   "api/sender": typeof api_sender;
+  "api/tasks": typeof api_tasks;
   "api/texts": typeof api_texts;
   "api/threads": typeof api_threads;
   "api/usage": typeof api_usage;
@@ -117,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   "lib/sentences": typeof lib_sentences;
   "lib/transcript": typeof lib_transcript;
   "lib/webhooks": typeof lib_webhooks;
+  "lib/workflow": typeof lib_workflow;
   "models/bots/functions": typeof models_bots_functions;
   "models/bots/table": typeof models_bots_table;
   "models/calls/functions": typeof models_calls_functions;
@@ -138,6 +144,8 @@ declare const fullApi: ApiFromModules<{
   "models/projects/table": typeof models_projects_table;
   "models/reminders/functions": typeof models_reminders_functions;
   "models/reminders/table": typeof models_reminders_table;
+  "models/tasks/functions": typeof models_tasks_functions;
+  "models/tasks/table": typeof models_tasks_table;
   "models/texts/functions": typeof models_texts_functions;
   "models/texts/sender": typeof models_texts_sender;
   "models/texts/spectrum": typeof models_texts_spectrum;
@@ -187,6 +195,7 @@ export declare const components: {
   spectrum: import("@spectrum-ts/convex/_generated/component.js").ComponentApi<"spectrum">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;
   authEmail: import("@convex-dev/auth/components/email/_generated/component.js").ComponentApi<"authEmail">;

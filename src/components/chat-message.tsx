@@ -4,6 +4,7 @@ import type { UIMessage } from '@convex-dev/agent/react'
 import type { InferUITools, UIDataTypes } from 'ai'
 import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
+import { RunPlanPart } from '~/components/task-card'
 import { ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
@@ -63,6 +64,8 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <ToolPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
+            case 'tool-run_plan':
+              return <RunPlanPart key={part.toolCallId} part={part} />
             default:
               return null
           }

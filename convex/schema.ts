@@ -13,6 +13,7 @@ import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
+import { tasksTable } from './models/tasks/table'
 import {
   phoneLinksTable,
   photonMessagesTable,
@@ -38,6 +39,7 @@ export default defineSchema({
   plans: plansTable,
   usage: usageTable,
   reminders: remindersTable,
+  tasks: tasksTable,
   calls: callsTable,
   callLines: callLinesTable,
   liveTurns: liveTurnsTable,

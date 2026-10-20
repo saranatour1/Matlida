@@ -86,6 +86,24 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         return { planId: id, saved: true }
       },
     }),
+    run_plan: createTool({
+      description:
+        'Carry out a saved plan step by step as a task: you do each step with your tools, and the chat shows the steps live. It waits for the user to press Start. Use it when they ask you to run, carry out or work through a plan; save the plan with save_plan first.',
+      inputSchema: z.object({
+        planId: z.string().describe('From save_plan.'),
+      }),
+      execute: async (
+        ctx,
+        { planId },
+      ): Promise<{ taskId: string; waitingForStart: boolean }> => {
+        if (!ctx.threadId) throw new Error('Tasks need a chat.')
+        const taskId: string = await ctx.runMutation(
+          internal.api.tasks.startPlan,
+          { projectId: project._id, threadId: ctx.threadId, planId },
+        )
+        return { taskId, waitingForStart: true }
+      },
+    }),
     save_contact: createTool({
       description:
         'Save someone the user wants you to reach, like a friend or colleague, or add details to a saved contact with the same name. Ask the user for their email before messaging them.',
