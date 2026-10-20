@@ -18,19 +18,6 @@ import {
 } from '~/components/ui/input-group'
 import { VoiceButton } from '~/components/voice-button'
 
-/** Ways to start a message, in the "+" menu. Each fills the box for you to finish. */
-const STARTERS = [
-  { label: 'Write a plan', text: 'Make a plan for ' },
-  { label: 'Run a plan', text: 'Make a plan and run it step by step: ' },
-  {
-    label: 'Draft posts',
-    text: 'Draft posts for X, Reddit and Discord about ',
-  },
-  { label: 'Draft an email', text: 'Draft an email to ' },
-  { label: 'Draft a doc', text: 'Draft a doc about ' },
-  { label: 'Research', text: 'Research ' },
-]
-
 export function PromptForm({
   placeholder,
   isBusy,
@@ -42,8 +29,8 @@ export function PromptForm({
   placeholder: string
   isBusy: boolean
   onSubmit: (prompt: string) => void
-  /** `/name` commands the "+" menu can run. */
-  commands?: Array<{ name: string; description: string }>
+  /** Commands the "+" menu offers: the built-ins, then the workspace's own. */
+  commands?: Array<{ name: string; description: string; builtIn?: boolean }>
   /** Opens the dialog that writes a new command with AI. */
   onCreateCommand?: () => void
   /** Shown next to the send button, like the model menu. */
@@ -92,23 +79,19 @@ export function PromptForm({
               <PlusIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" side="top" className="min-w-60">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Start with</DropdownMenuLabel>
-                {STARTERS.map((s) => (
-                  <DropdownMenuItem key={s.label} onClick={() => start(s.text)}>
-                    {s.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuGroup>
-              {commands.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>Your commands</DropdownMenuLabel>
-                    {commands.map((c) => (
+              {(['built-in', 'yours'] as const).map((group) => {
+                const listed = commands.filter(
+                  (c) => Boolean(c.builtIn) === (group === 'built-in'),
+                )
+                return listed.length === 0 ? null : (
+                  <DropdownMenuGroup key={group}>
+                    <DropdownMenuLabel>
+                      {group === 'built-in' ? 'Commands' : 'Your commands'}
+                    </DropdownMenuLabel>
+                    {listed.map((c) => (
                       <DropdownMenuItem
                         key={c.name}
-                        onClick={() => !isBusy && onSubmit(`/${c.name}`)}
+                        onClick={() => start(`/${c.name} `)}
                       >
                         <span className="font-mono text-xs">/{c.name}</span>
                         <span className="truncate text-muted-foreground">
@@ -117,8 +100,8 @@ export function PromptForm({
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuGroup>
-                </>
-              )}
+                )
+              })}
               {onCreateCommand && (
                 <>
                   <DropdownMenuSeparator />

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import { languageModel } from '../../lib/ai'
+import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
 import { getOwnedProject } from '../projects/functions'
@@ -24,25 +25,41 @@ export async function getCommands(
     .take(MAX_COMMANDS)
 }
 
+/** The project's own command called `name`, or null. */
+export async function getCommand(
+  ctx: Pick<QueryCtx, 'db'>,
+  projectId: Id<'projects'>,
+  name: string,
+) {
+  return await ctx.db
+    .query('commands')
+    .withIndex('by_project_and_name', (q) =>
+      q.eq('projectId', projectId).eq('name', name),
+    )
+    .unique()
+}
+
 /**
- * The command a message runs when it starts with `/name`, or null for a plain
- * message. Throws a user-facing error when the project has no such command.
+ * The name of the command a message runs when it starts with `/name`, or
+ * null for a plain message: one of the project's, or a built-in. Throws a
+ * user-facing error when there's no such command.
  */
 export async function findCommand(
   ctx: Pick<QueryCtx, 'db'>,
   projectId: Id<'projects'>,
   prompt: string,
 ) {
-  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i.exec(prompt)?.[1]
+  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i
+    .exec(prompt)?.[1]
+    ?.toLowerCase()
   if (!name) return null
-  const command = await ctx.db
-    .query('commands')
-    .withIndex('by_project_and_name', (q) =>
-      q.eq('projectId', projectId).eq('name', name.toLowerCase()),
-    )
-    .unique()
-  if (!command) throw new ConvexError(`There's no /${name} command.`)
-  return command
+  if (
+    (await getCommand(ctx, projectId, name)) ||
+    BUILT_IN_COMMANDS.some((c) => c.name === name)
+  ) {
+    return name
+  }
+  throw new ConvexError(`There's no /${name} command.`)
 }
 
 const list = authedQuery({
@@ -160,7 +177,10 @@ const names = internalQuery({
   returns: v.array(v.string()),
   handler: async (ctx, { projectId, userId }) => {
     await getOwnedProject(ctx, userId, projectId)
-    return (await getCommands(ctx, projectId)).map((c) => c.name)
+    return [
+      ...(await getCommands(ctx, projectId)).map((c) => c.name),
+      ...BUILT_IN_COMMANDS.map((c) => c.name),
+    ]
   },
 })
 

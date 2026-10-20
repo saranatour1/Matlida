@@ -30,7 +30,7 @@ const post = internalMutation({
   returns: v.object({
     threadId: v.string(),
     promptMessageId: v.string(),
-    commandId: v.optional(v.id('commands')),
+    command: v.optional(v.string()),
   }),
   handler: async (ctx, { userId, ...message }) =>
     await postMessage(ctx, userId, message),

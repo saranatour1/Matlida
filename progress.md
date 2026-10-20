@@ -222,8 +222,9 @@
 - The details panel's Library tab lists the chat's tasks and their progress.
 - Verified with unit tests, the model mocked and the workflow run with convex-test: Start running both steps in order and ticking the plan; Don't start; cancel; a step that keeps failing; owner-only; and that a task can't start another plan.
 
-### A "+" menu to start things, and commands written by AI (2026-10-20)
+### Built-in commands, a "+" menu, and commands written by AI (2026-10-20)
 
-- The "+" in the message box always opens a menu: "Start with" (Write a plan, Run a plan, Draft posts, Draft an email, Draft a doc, Research) fills the box with the start of a prompt to finish; "Your commands" runs one as before; "Create a command with AI…" opens a dialog.
-- In the dialog you say what the command should do, `commands.draft` writes its name, description and instructions with the default model (`generateObject`), and you check and edit them before saving to the Library. The name is made a valid slug and unique in the workspace; nothing is saved until you press Save.
-- Verified with unit tests, the model mocked: the draft comes back with a cleaned-up name and nothing saved, a taken name gets a number, and another user is refused. The menu and dialog weren't driven in a browser.
+- Every workspace has built-in commands without saving them (`convex/lib/commands.ts`): `/plan`, `/run` (plan, then run it step by step), `/posts` (X, Reddit and Discord), `/email`, `/doc` and `/research`. Type `/name` and what it's about, like `/posts our launch week`. A Library command with the same name replaces a built-in.
+- Commands are now resolved by name when the reply runs (the workspace's first, then the built-ins), and bots follow them too, not just the lead.
+- The "+" in the message box lists the commands and your own; clicking one puts `/name ` in the box for you to finish. "Create a command with AI…" opens a dialog: say what it should do, `commands.draft` writes the name, description and instructions (`generateObject`), and you check and edit them before saving. The name is made a unique slug, built-ins included.
+- Verified with unit tests, the model mocked: a built-in runs without being saved, a Library command overrides it, a bot follows a command, the draft's name cleaned and made unique with nothing saved, and another user refused. The menu and dialog weren't driven in a browser.

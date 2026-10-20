@@ -79,3 +79,66 @@ test('an unknown /name is rejected before a chat starts', async () => {
     await asAda.query(api.api.threads.list, { projectId, kind: 'chat' }),
   ).toEqual([])
 })
+
+/** Sends `prompt` and runs the reply, returning what the model was sent. */
+async function send(
+  t: Awaited<ReturnType<typeof setup>>['t'],
+  run: () => Promise<unknown>,
+) {
+  calls.length = 0
+  await run()
+  vi.runAllTimers()
+  vi.useRealTimers()
+  await t.finishInProgressScheduledFunctions()
+  vi.useFakeTimers()
+  return JSON.stringify(calls)
+}
+
+test('built-in commands work in every workspace without being saved', async () => {
+  const { t, asAda, projectId } = await setup()
+  const sent = await send(t, () =>
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      prompt: '/posts our launch week',
+    }),
+  )
+  expect(sent).toContain('The user ran the /posts command.')
+  expect(sent).toContain('one for each of X, Reddit and Discord')
+})
+
+test('a Library command with the same name replaces the built-in', async () => {
+  const { t, asAda, projectId } = await setup()
+  await asAda.action(api.api.commands.save, {
+    projectId,
+    name: 'posts',
+    description: 'My posts.',
+    markdown: 'Only write for Mastodon.',
+  })
+  const sent = await send(t, () =>
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      prompt: '/posts our launch week',
+    }),
+  )
+  expect(sent).toContain('Only write for Mastodon.')
+  expect(sent).not.toContain('one for each of X, Reddit and Discord')
+})
+
+test('bots follow commands too', async () => {
+  const { t, asAda, projectId } = await setup()
+  const botId = await asAda.mutation(api.api.bots.save, {
+    projectId,
+    name: 'Ivy',
+    role: 'Writer',
+    instructions: 'You write.',
+  })
+  const sent = await send(t, () =>
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      botId,
+      prompt: '/standup now',
+    }),
+  )
+  expect(sent).toContain('You are Ivy')
+  expect(sent).toContain('List each bot with its top priority.')
+})

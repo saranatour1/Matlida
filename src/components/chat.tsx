@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
 import type { Effort } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
@@ -248,8 +249,13 @@ export function Chat({
             placeholder={`Message ${lead}…`}
             isBusy={isBusy}
             onSubmit={send}
-            commands={bot ? [] : (commands ?? [])}
-            onCreateCommand={bot ? undefined : () => setCreatingCommand(true)}
+            commands={[
+              ...BUILT_IN_COMMANDS.filter(
+                (b) => !commands?.some((c) => c.name === b.name),
+              ).map((b) => ({ ...b, builtIn: true })),
+              ...(commands ?? []),
+            ]}
+            onCreateCommand={() => setCreatingCommand(true)}
             tools={
               <>
                 <EffortMenu
