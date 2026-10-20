@@ -12,7 +12,11 @@ import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
-import { phoneLinksTable, photonMessagesTable } from './models/texts/table'
+import {
+  phoneLinksTable,
+  photonMessagesTable,
+  telegramPollsTable,
+} from './models/texts/table'
 import { threadsTable } from './models/threads/table'
 import { usageTable } from './models/usage/table'
 import { usersTable } from './models/users/table'
@@ -26,6 +30,7 @@ export default defineSchema({
   comments: commentsTable,
   phoneLinks: phoneLinksTable,
   photonMessages: photonMessagesTable,
+  telegramPolls: telegramPollsTable,
   mailboxes: mailboxesTable,
   emails: emailsTable,
   plans: plansTable,

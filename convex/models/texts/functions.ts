@@ -1,7 +1,12 @@
 import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
 import { internal } from '../../_generated/api'
-import { env, internalAction, internalMutation } from '../../_generated/server'
+import {
+  env,
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
@@ -406,6 +411,16 @@ const received = internalMutation({
       .unique()
     if (seen) return false
     await ctx.db.insert('photonMessages', { messageId })
+    // A chat is active: check every few seconds for a while, starting the loop unless it's running.
+    const until = Date.now() + FAST_FOR_MS
+    const poll = await ctx.db.query('telegramPolls').first()
+    if (!poll) await ctx.db.insert('telegramPolls', { until })
+    else await ctx.db.patch('telegramPolls', poll._id, { until })
+    if (!poll || poll.until < Date.now()) {
+      await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
+        fast: true,
+      })
+    }
     await ctx.scheduler.runAfter(0, internal.api.texts.replyOnPhoton, {
       messageId,
       ...message,
@@ -452,15 +467,28 @@ const replyOnPhoton = internalAction({
 /** How far back each Telegram check looks. Photon's list is eventually consistent, and `received` skips repeats. */
 const TELEGRAM_LOOKBACK_MS = 3 * 60_000
 
+/** While a Telegram chat is active, the check runs this often, for this long after the last message. */
+const FAST_POLL_MS = 3_000
+const FAST_FOR_MS = 2 * 60_000
+
+/** Until when the fast Telegram check should keep going, or 0. */
+const pollingUntil = internalQuery({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) =>
+    (await ctx.db.query('telegramPolls').first())?.until ?? 0,
+})
+
 /**
- * Checks Photon for Telegram texts every minute, from `crons.ts`, in case its
- * webhook doesn't deliver them. Each goes through `received`, which answers a
- * message once however it arrived.
+ * Checks Photon for Telegram texts: every minute from `crons.ts`, and every
+ * few seconds (`fast`) while a chat is active, since Photon's webhook doesn't
+ * deliver them. Each goes through `received`, which answers a message once
+ * however it arrived.
  */
 const poll = internalAction({
-  args: {},
+  args: { fast: v.optional(v.boolean()) },
   returns: v.null(),
-  handler: async (ctx) => {
+  handler: async (ctx, { fast }) => {
     const keys = photonKeys(env)
     if (!keys) return null
     const since = new Date(Date.now() - TELEGRAM_LOOKBACK_MS).toISOString()
@@ -472,6 +500,17 @@ const poll = internalAction({
         agentId: message.receivedBy.id,
         text: message.content.text,
       })
+    }
+    if (fast) {
+      const until: number = await ctx.runQuery(
+        internal.api.texts.pollingUntil,
+        {},
+      )
+      if (Date.now() < until) {
+        await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
+          fast: true,
+        })
+      }
     }
     return null
   },
@@ -497,5 +536,6 @@ export const textsApi = {
   respond,
   received,
   replyOnPhoton,
+  pollingUntil,
   poll,
 }

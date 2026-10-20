@@ -11,5 +11,6 @@ export const {
   respond,
   received,
   replyOnPhoton,
+  pollingUntil,
   poll,
 } = textsApi

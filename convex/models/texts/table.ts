@@ -42,6 +42,9 @@ export const phoneLinksTable = defineTable(
   .index('by_code', ['code'])
   .index('by_spaceId', ['spaceId'])
 
+/** Until when the fast Telegram check keeps running. One row, kept fresh while a chat is active. */
+export const telegramPollsTable = defineTable({ until: v.number() })
+
 /** Messages that came in through `/photon/webhook`, by Photon's id, so each is answered once. */
 export const photonMessagesTable = defineTable({
   messageId: v.string(),

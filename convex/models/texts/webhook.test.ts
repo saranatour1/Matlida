@@ -238,3 +238,24 @@ test('the minute check answers a Telegram text the webhook never delivered, once
     },
   ])
 })
+
+test('while a chat is active the check runs every few seconds, then stops', async () => {
+  const { t } = await setup()
+  const message = (id: string, text: string) => ({
+    id,
+    content: { type: 'text', text },
+    receivedBy: { id: 'agent-bot' },
+    space: { id: 'tg-chat-1' },
+  })
+  listed = [message('m1', 'hello?')]
+  await t.action(internal.api.texts.poll, {})
+  // The next message shows up before the next minute's check.
+  listed = [message('m1', 'hello?'), message('m2', 'still there?')]
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(sent.map((s) => s.key)).toEqual(['reply:m1', 'reply:m2'])
+  // The loop ended by itself: nothing is left scheduled.
+  const scheduled = await t.run((ctx) =>
+    ctx.db.system.query('_scheduled_functions').take(100),
+  )
+  expect(scheduled.filter((f) => f.state.kind === 'pending')).toEqual([])
+})
