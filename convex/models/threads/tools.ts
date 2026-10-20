@@ -86,9 +86,49 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         return { planId: id, saved: true }
       },
     }),
+    save_contact: createTool({
+      description:
+        'Save someone the user wants you to reach, like a friend or colleague, or add details to a saved contact with the same name. Ask the user for their email before messaging them.',
+      inputSchema: z.object({
+        name: z.string().trim().min(1).max(80),
+        email: z.email().optional(),
+        phone: z
+          .string()
+          .regex(
+            /^\+[1-9]\d{6,14}$/,
+            'Use international format, like +14155550123.',
+          )
+          .optional(),
+        note: z.string().max(200).optional(),
+      }),
+      execute: async (ctx, contact) => {
+        const id: string = await ctx.runMutation(internal.api.contacts.save, {
+          projectId: project._id,
+          ...contact,
+        })
+        return { contactId: id, saved: true }
+      },
+    }),
+    find_contact: createTool({
+      description:
+        "Look up the user's saved contacts by name, to see if you have someone's email.",
+      inputSchema: z.object({ name: z.string().trim().min(1) }),
+      execute: async (ctx, { name }) => {
+        const found: Array<Doc<'contacts'>> = await ctx.runQuery(
+          internal.api.contacts.find,
+          { projectId: project._id, name },
+        )
+        return found.map((c) => ({
+          name: c.name,
+          email: c.email ?? null,
+          phone: c.phone ?? null,
+          note: c.note ?? null,
+        }))
+      },
+    }),
     set_reminder: createTool({
       description:
-        'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that.',
+        'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
       inputSchema: z.object({
         message: z
           .string()
@@ -103,23 +143,78 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         via: z
           .enum(['chat', 'text', 'call', 'email'])
           .describe(
-            'chat unless they asked to be texted (text), emailed (email) or called (call).',
+            'chat unless they asked to be texted (text), emailed (email) or called (call). email when `to` is set.',
+          ),
+        to: z
+          .string()
+          .optional()
+          .describe(
+            "A saved contact's name, to message them instead of the user.",
+          ),
+        say: z
+          .string()
+          .max(1000)
+          .optional()
+          .describe(
+            "With `to`: the message, written to them in the second person, saying who it's from. Like: Hi Luke, Sara asked me to remind you to check on your car insurance.",
           ),
       }),
-      execute: async (ctx, { message, at, via }) => {
+      execute: async (ctx, { message, at, via, to, say }) => {
         const dueAt = Date.parse(at)
         if (Number.isNaN(dueAt))
           throw new Error(`Couldn't read the time "${at}".`)
         if (!ctx.threadId) throw new Error('Reminders need a chat.')
-        await ctx.runMutation(internal.api.reminders.schedule, {
-          projectId: project._id,
-          threadId: ctx.threadId,
-          from,
-          message,
-          dueAt,
+        let contact: Doc<'contacts'> | undefined
+        if (to) {
+          const found: Array<Doc<'contacts'>> = await ctx.runQuery(
+            internal.api.contacts.find,
+            { projectId: project._id, name: to },
+          )
+          contact =
+            found.find((c) => c.name.toLowerCase() === to.toLowerCase()) ??
+            (found.length === 1 ? found[0] : undefined)
+          if (!contact) {
+            throw new Error(
+              found.length
+                ? `Several contacts match "${to}": ${found.map((c) => c.name).join(', ')}. Ask which one.`
+                : `There's no contact named "${to}". Ask the user for their email and save them with save_contact first.`,
+            )
+          }
+          if (via !== 'email') {
+            throw new Error(
+              `Calling or texting other people isn't available yet. Offer to email ${contact.name} instead.`,
+            )
+          }
+          if (!contact.email) {
+            throw new Error(
+              `There's no email for ${contact.name}. Ask the user for it and save it with save_contact.`,
+            )
+          }
+          if (!say) throw new Error('Write the message to them in `say`.')
+        }
+        const reminderId: string = await ctx.runMutation(
+          internal.api.reminders.schedule,
+          {
+            projectId: project._id,
+            threadId: ctx.threadId,
+            from,
+            message,
+            dueAt,
+            via,
+            contactId: contact?._id,
+            toName: contact?.name,
+            say: contact ? say : undefined,
+          },
+        )
+        return {
+          scheduled: !contact,
+          /** True when it waits for the user's OK in the chat. */
+          pending: Boolean(contact),
+          reminderId,
+          to: contact?.name ?? null,
+          at: new Date(dueAt).toISOString(),
           via,
-        })
-        return { scheduled: true, at: new Date(dueAt).toISOString(), via }
+        }
       },
     }),
   }

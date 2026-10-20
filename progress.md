@@ -207,3 +207,10 @@
 - `createAgent()` in `convex/models/threads/lead.ts` builds every assistant for a reply: the lead or a bot, on the chat's model (then its own, then the default) and effort, with its instructions, tools (`assistantTools` and `ask_bot`) and usage recording, and returns the `Agent`. It replaces `createLead`, `createBot` and the hand-built bot inside `ask_bot`; chat, texting and email all use it.
 - Effort is low, medium or high, picked like the model: the chat's pick, then the bot's or lead's own, then medium. It sets the steps a reply may take (4, 8 or 20), how many times it may ask a bot (2, 6 or 12), and the reasoning effort sent to the gateway (`reasoning_effort`). An effort menu sits next to the model menu in the message box, and the bot and workspace forms have an Effort field.
 - Verified with unit tests: effort from the default, the workspace, the chat's pick, back to the workspace's, and a new chat starting on one; only the owner can set it. Whether each model honors `reasoning_effort` through the gateway wasn't checked live.
+
+### Contacts, and messages to other people (2026-10-20)
+
+- Assistants keep contacts (`contacts`): `save_contact` and `find_contact` tools, saved by name, updated when the same name comes back, found by the start of a name.
+- `set_reminder` takes `to` (a contact) and `say` (the message, written to them): "tell Luke tomorrow to check his car insurance" schedules an email to Luke from your assistant address, signed as an automated message from your assistant. It waits as `pending` with Send and Cancel in the chat, and goes out only once you confirm. Calling or texting other people isn't available; the tool tells the assistant to offer email instead. At most 10 messages to contacts at once, then 20 a day per workspace.
+- The chat's tool types now come from `assistantTools` itself (`InferUITools`), so a tool's output can't drift from what the chat shows.
+- Verified with unit tests, Photon's API mocked: contacts saved once per name and found by prefix; a message held until confirmed, then emailed with the exact text and noted in the chat; cancel; another user refused; no email; the limit.

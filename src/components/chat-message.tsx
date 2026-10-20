@@ -1,30 +1,21 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { UIMessage } from '@convex-dev/agent/react'
-import type { UIDataTypes } from 'ai'
+import type { InferUITools, UIDataTypes } from 'ai'
+import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
 import { ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
 
-/** Mirrors the assistants' tools in `convex/models/threads/lead.ts` and `tools.ts`. */
+/** The assistants' tools, typed from `assistantTools` itself, plus `ask_bot` from `lead.ts`. */
 export type ChatUIMessage = UIMessage<
   unknown,
   UIDataTypes,
-  {
+  InferUITools<ReturnType<typeof assistantTools>> & {
     ask_bot: {
       input: { bot: string; task: string }
       output: { name: string; role: string; reply: string; threadId: string }
-    }
-    web_search: { input: { query: string }; output: { answer: string } }
-    research: { input: { question: string }; output: { report: string } }
-    set_reminder: {
-      input: { message: string; at: string; via: 'chat' | 'text' | 'call' }
-      output: { scheduled: boolean; at: string; via: 'chat' | 'text' | 'call' }
-    }
-    save_plan: {
-      input: { title: string; steps: Array<string>; planId?: string }
-      output: { planId: string; saved: boolean }
     }
   }
 >

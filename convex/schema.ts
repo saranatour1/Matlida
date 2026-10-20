@@ -7,6 +7,7 @@ import {
 } from './models/calls/table'
 import { commandsTable } from './models/commands/table'
 import { commentsTable } from './models/comments/table'
+import { contactsTable } from './models/contacts/table'
 import { emailsTable } from './models/emails/table'
 import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
@@ -28,6 +29,7 @@ export default defineSchema({
   bots: botsTable,
   commands: commandsTable,
   comments: commentsTable,
+  contacts: contactsTable,
   phoneLinks: phoneLinksTable,
   photonMessages: photonMessagesTable,
   telegramPolls: telegramPollsTable,
