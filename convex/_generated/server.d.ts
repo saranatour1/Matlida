@@ -40,6 +40,7 @@ type Env = {
   readonly MAIL_DOMAIN: string | undefined;
   readonly PHOTON_API_KEY: string | undefined;
   readonly PHOTON_PROJECT_ID: string | undefined;
+  readonly PHOTON_WEBHOOK_SECRET: string | undefined;
   readonly RESEND_API_KEY: string | undefined;
   readonly SITE_URL: string;
   readonly SPECTRUM_PROJECT_ID: string | undefined;

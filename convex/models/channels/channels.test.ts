@@ -43,12 +43,7 @@ test('with nothing set up, messaging needs the deployment and the tools are on',
   const byId = await statuses()
   expect(byId.telegram).toMatchObject({
     status: 'needs_setup',
-    missing: [
-      'SPECTRUM_PROJECT_ID',
-      'SPECTRUM_PROJECT_SECRET',
-      'SPECTRUM_WEBHOOK_SECRET',
-      'TELEGRAM_BOT_TOKEN',
-    ],
+    missing: ['PHOTON_PROJECT_ID', 'PHOTON_API_KEY', 'PHOTON_WEBHOOK_SECRET'],
   })
   expect(byId.email).toMatchObject({
     status: 'needs_setup',
@@ -81,7 +76,7 @@ test('a linked app is connected, the others are ready, and no value leaks', asyn
   expect(byId.imessage.status).toBe('ready')
   expect(byId.telegram).toMatchObject({
     status: 'needs_setup',
-    missing: ['TELEGRAM_BOT_TOKEN'],
+    missing: ['PHOTON_PROJECT_ID', 'PHOTON_API_KEY', 'PHOTON_WEBHOOK_SECRET'],
   })
   expect(JSON.stringify(byId)).not.toMatch(
     /project-value|secret-value|webhook-value/,

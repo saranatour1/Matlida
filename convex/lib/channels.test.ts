@@ -10,6 +10,12 @@ const photonEnv = [
   'SPECTRUM_WEBHOOK_SECRET',
 ] as const
 
+const telegramEnv = [
+  'PHOTON_PROJECT_ID',
+  'PHOTON_API_KEY',
+  'PHOTON_WEBHOOK_SECRET',
+] as const
+
 function channel(id: Channel['id']) {
   const found = CHANNELS.find((c) => c.id === id)
   if (!found) throw new Error(`No channel ${id}`)
@@ -25,19 +31,19 @@ test('a Photon app needs the deployment set up, then a linked chat', () => {
   expect(channelStatus(channel('telegram'), nothing)).toEqual({
     status: 'needs_setup',
     detail:
-      'Set SPECTRUM_PROJECT_ID, SPECTRUM_PROJECT_SECRET, SPECTRUM_WEBHOOK_SECRET, TELEGRAM_BOT_TOKEN on the Convex deployment.',
-    missing: [...photonEnv, 'TELEGRAM_BOT_TOKEN'],
+      'Set PHOTON_PROJECT_ID, PHOTON_API_KEY, PHOTON_WEBHOOK_SECRET on the Convex deployment.',
+    missing: [...telegramEnv],
   })
   expect(
     channelStatus(channel('telegram'), {
       ...nothing,
-      env: [...photonEnv, 'TELEGRAM_BOT_TOKEN'],
+      env: [...telegramEnv],
     }),
   ).toMatchObject({ status: 'ready', missing: [] })
   expect(
     channelStatus(channel('telegram'), {
       ...nothing,
-      env: [...photonEnv, 'TELEGRAM_BOT_TOKEN'],
+      env: [...telegramEnv],
       linked: ['telegram'],
     }),
   ).toMatchObject({ status: 'connected' })
