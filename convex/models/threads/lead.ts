@@ -79,25 +79,30 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${
-    command
-      ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
-      : ''
-  }`
+${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(
+    command,
+  )}`
+}
+
+/** The command the user ran, for the instructions. */
+function ranCommand(command?: RunCommand) {
+  return command
+    ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
+    : ''
 }
 
 function botInstructions(
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  { via = 'chat', timeZone, cutOff }: ReplyOptions = {},
+  { command, via = 'chat', timeZone, cutOff }: ReplyOptions = {},
 ) {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
 ${bot.instructions}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}`
+${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
 }
 
 /** The gateway model for `id`, or the default when it's unset or the default itself. */

@@ -1,10 +1,14 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
+import { generateObject } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { internalMutation } from '../../_generated/server'
+import { internalMutation, internalQuery } from '../../_generated/server'
+import { languageModel } from '../../lib/ai'
+import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
+import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -22,25 +26,41 @@ export async function getCommands(
     .take(MAX_COMMANDS)
 }
 
+/** The project's own command called `name`, or null. */
+export async function getCommand(
+  ctx: Pick<QueryCtx, 'db'>,
+  projectId: Id<'projects'>,
+  name: string,
+) {
+  return await ctx.db
+    .query('commands')
+    .withIndex('by_project_and_name', (q) =>
+      q.eq('projectId', projectId).eq('name', name),
+    )
+    .unique()
+}
+
 /**
- * The command a message runs when it starts with `/name`, or null for a plain
- * message. Throws a user-facing error when the project has no such command.
+ * The name of the command a message runs when it starts with `/name`, or
+ * null for a plain message: one of the project's, or a built-in. Throws a
+ * user-facing error when there's no such command.
  */
 export async function findCommand(
   ctx: Pick<QueryCtx, 'db'>,
   projectId: Id<'projects'>,
   prompt: string,
 ) {
-  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i.exec(prompt)?.[1]
+  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i
+    .exec(prompt)?.[1]
+    ?.toLowerCase()
   if (!name) return null
-  const command = await ctx.db
-    .query('commands')
-    .withIndex('by_project_and_name', (q) =>
-      q.eq('projectId', projectId).eq('name', name.toLowerCase()),
-    )
-    .unique()
-  if (!command) throw new ConvexError(`There's no /${name} command.`)
-  return command
+  if (
+    (await getCommand(ctx, projectId, name)) ||
+    BUILT_IN_COMMANDS.some((c) => c.name === name)
+  ) {
+    return name
+  }
+  throw new ConvexError(`There's no /${name} command.`)
 }
 
 const list = authedQuery({
@@ -152,4 +172,97 @@ const remove = authedMutation({
   },
 })
 
-export const commandsApi = { list, get, save, write, remove }
+/** The project's command names, once its owner is checked. For `draft`. */
+const names = internalQuery({
+  args: { projectId: v.id('projects'), userId: v.id('users') },
+  returns: v.array(v.string()),
+  handler: async (ctx, { projectId, userId }) => {
+    await getOwnedProject(ctx, userId, projectId)
+    return [
+      ...(await getCommands(ctx, projectId)).map((c) => c.name),
+      ...BUILT_IN_COMMANDS.map((c) => c.name),
+    ]
+  },
+})
+
+const zDraft = z.object({
+  name: z
+    .string()
+    .describe(
+      'A short slug: lowercase letters, numbers and dashes, like weekly-update.',
+    ),
+  description: z
+    .string()
+    .describe('One line saying what it does, under 120 characters.'),
+  markdown: z
+    .string()
+    .describe(
+      'The instructions the assistant follows when the command runs, in markdown: the goal, the steps, the output format, and which tools to use (web_search, research, save_plan, run_plan, set_reminder). Write to the assistant, in the second person.',
+    ),
+})
+
+/**
+ * Writes a command from what the user wants it to do, for them to check and
+ * save. Nothing is saved here. The name is made unique in the project.
+ */
+const draft = zAuthedAction({
+  args: {
+    projectId: zid('projects'),
+    idea: z
+      .string()
+      .trim()
+      .min(3, 'Say what the command should do.')
+      .max(2000, 'Keep the idea under 2000 characters.'),
+  },
+  handler: async (
+    ctx,
+    { projectId, idea },
+  ): Promise<z.infer<typeof zDraft>> => {
+    const taken: Array<string> = await ctx.runQuery(
+      internal.api.commands.names,
+      { projectId, userId: ctx.userId },
+    )
+    const { object } = await generateObject({
+      model: languageModel,
+      schema: zDraft,
+      system:
+        'You write slash commands for an AI assistant app. A command is a reusable prompt the user runs as /name, optionally followed by details. Make it specific, short and practical.',
+      prompt: `The user wants a command that: ${idea}\n\nExisting command names: ${taken.join(', ') || 'none'}.`,
+    })
+    let name =
+      object.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 28) || 'command'
+    for (let n = 2; taken.includes(name); n++) {
+      name = `${name.replace(/-\d+$/, '')}-${n}`
+    }
+    return {
+      name,
+      description: object.description.trim().slice(0, 200),
+      markdown: object.markdown.trim(),
+    }
+  },
+})
+
+/** The project's command called `name`, as a list of at most one. For the `save_command` tool. */
+const byName = internalQuery({
+  args: { projectId: v.id('projects'), name: v.string() },
+  returns: v.array(schema.doc('commands')),
+  handler: async (ctx, { projectId, name }) => {
+    const command = await getCommand(ctx, projectId, name)
+    return command ? [command] : []
+  },
+})
+
+export const commandsApi = {
+  list,
+  get,
+  save,
+  write,
+  remove,
+  names,
+  draft,
+  byName,
+}
