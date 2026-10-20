@@ -15,7 +15,8 @@ import {
   XIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import { MESSAGING_APPS, MODELS } from '../../convex/lib/models'
+import { CHANNELS } from '../../convex/lib/channels'
+import { MODELS } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
@@ -67,12 +68,7 @@ export function AssistantPanel({
   const reminders = useQuery(api.api.reminders.list, {
     projectId: project._id,
   })
-  const links = useQuery(api.api.texts.links, { projectId: project._id })
-  const apps = (links ?? []).flatMap((l) =>
-    l.status === 'linked'
-      ? [MESSAGING_APPS[l.platform ?? 'imessage'] ?? l.platform]
-      : [],
-  )
+  const channels = useQuery(api.api.channels.list, { projectId: project._id })
 
   const rows = usage ?? []
   const aiCost = rows.reduce((sum, r) => sum + r.aiCost, 0)
@@ -157,26 +153,40 @@ export function AssistantPanel({
             )}
           </Section>
           <Section title="Connectors">
-            <Connector name="Web search" detail={MODELS.search} on />
-            <Connector name="Research" detail={MODELS.research} on />
-            <Connector name="Voice input" detail={MODELS.transcription} on />
-            <Connector name="Voice replies" detail={MODELS.speech} on />
-            <Connector
-              name="Messaging"
-              detail={apps.length ? apps.join(', ') : 'Photon'}
-              on={apps.length > 0}
-              action={
-                apps.length === 0 && (
-                  <Link
-                    to="/p/$projectId/messaging"
-                    params={{ projectId: project._id }}
-                    className="underline"
-                  >
-                    Set up
-                  </Link>
-                )
-              }
-            />
+            {CHANNELS.map((channel) => {
+              const status = channels?.find((s) => s.id === channel.id)
+              return (
+                <Connector
+                  key={channel.id}
+                  name={channel.name}
+                  detail={status?.detail ?? ''}
+                  on={status?.status === 'connected'}
+                  action={
+                    (status?.status === 'ready' ||
+                      status?.status === 'needs_setup') && (
+                      <Link
+                        to={
+                          status.status === 'ready' && channel.via === 'photon'
+                            ? '/p/$projectId/messaging'
+                            : '/p/$projectId/connections'
+                        }
+                        params={{ projectId: project._id }}
+                        className="underline"
+                      >
+                        {status.status === 'ready' ? 'Link' : 'Set up'}
+                      </Link>
+                    )
+                  }
+                />
+              )
+            })}
+            <Link
+              to="/p/$projectId/connections"
+              params={{ projectId: project._id }}
+              className="text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              All connections
+            </Link>
           </Section>
           <Section title="Environment">
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">

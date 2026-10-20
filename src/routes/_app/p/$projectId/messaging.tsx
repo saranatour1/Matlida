@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
-import { MESSAGING_APPS } from '../../../../../convex/lib/models'
+import { messagingAppName } from '../../../../../convex/lib/channels'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
@@ -53,7 +53,16 @@ function Messaging() {
           Link a chat on iMessage, WhatsApp or Telegram, then message{' '}
           {project.name} there. Start a message with @name to talk to another
           assistant, or send &ldquo;who&rdquo; to see who&rsquo;s here. Each
-          assistant&rsquo;s messages also show up in a chat here.
+          assistant&rsquo;s messages also show up in a chat here. Every other
+          channel is on{' '}
+          <Link
+            to="/p/$projectId/connections"
+            params={{ projectId: project._id }}
+            className="underline"
+          >
+            Connections
+          </Link>
+          .
         </p>
       </div>
 
@@ -63,7 +72,7 @@ function Messaging() {
             <div key={link._id} className="flex items-center gap-3 p-4">
               <span className="size-2 rounded-full bg-emerald-500" />
               <p className="flex-1">
-                {MESSAGING_APPS[link.platform ?? 'imessage'] ?? link.platform}{' '}
+                {messagingAppName(link.platform ?? 'imessage')}{' '}
                 <span className="text-muted-foreground">linked</span>
               </p>
               <Button

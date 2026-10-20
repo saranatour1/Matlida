@@ -140,3 +140,11 @@
 - The first piece is cut at the first sentence end so speech starts fast. Later pieces gather sentences to about 80 characters, for fewer, smoother clips. Live turns and their audio are deleted after 10 minutes.
 - Talking over the assistant works across pieces, and now also while it's still thinking. The call history records `firstMs`, the time to the first words, and the dump shows it: `first words in 1.4 s, all of it in 5.2 s`.
 - Verified with unit tests: the splitter (a short first piece, gathering, decimals, new lines, long runs, nothing lost while streaming) and the turn (two sentences voiced as two pieces in order into the live turn, another user can't read it, timings in the dump). The browser playback is untested on a live call, by the user's request; read real timings with `npx convex run api/calls:dump`.
+
+### Connections (2026-10-20)
+
+- One registry lists every channel: Email, iMessage (which also reaches SMS and RCS phones through Photon's fallback), Telegram, WhatsApp, Phone calls (coming soon), and the assistants' tools (web search, research, voice input, voice replies). It lives in `convex/lib/channels.ts` as a union on `via`, so adding a channel is one entry.
+- `channels.list` computes each channel's status for a workspace from existing data: connected, ready to link, needs deployment setup, or coming soon. It says which env vars are missing by name and never sends a value.
+- `/p/$projectId/connections` shows the list in two groups. The details panel's Connectors section reads the same query, the Messaging page reads the registry's names and keeps the `link <code>` flow, and the command menu and Settings link to the page.
+- `MAIL_DOMAIN` is declared (optional) for the email channel, which later PRs fill in.
+- Verified with unit tests: the pure status rules, the query's statuses with and without env vars and a linked app, that no env value appears in the result, and that another user is refused. Not run against a deployment: this environment only had access to the shared dev deployment, which is off limits.
