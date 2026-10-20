@@ -1,9 +1,10 @@
 import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
 import { internal } from '../../_generated/api'
-import { internalAction, internalMutation } from '../../_generated/server'
+import { env, internalAction, internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
+import { photonKeys, sendText } from '../../lib/photon'
 import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
@@ -94,9 +95,14 @@ const unlink = authedMutation({
  * time, and it replaces the project's earlier link on the same app.
  */
 const claim = internalMutation({
-  args: { code: v.string(), spaceId: v.string(), platform: v.string() },
+  args: {
+    code: v.string(),
+    spaceId: v.string(),
+    platform: v.string(),
+    agentId: v.optional(v.string()),
+  },
   returns: v.union(v.string(), v.null()),
-  handler: async (ctx, { code, spaceId, platform }) => {
+  handler: async (ctx, { code, spaceId, platform, agentId }) => {
     const pending = await ctx.db
       .query('phoneLinks')
       .withIndex('by_code', (q) => q.eq('code', code.toUpperCase()))
@@ -122,6 +128,7 @@ const claim = internalMutation({
       projectId: pending.projectId,
       spaceId,
       platform,
+      agentId,
     })
     const project = await ctx.db.get('projects', pending.projectId)
     return project?.name ?? null
@@ -269,9 +276,17 @@ async function chatFor(
  * its limit while unlinked, or guessing codes.
  */
 const answer = internalAction({
-  args: { spaceId: v.string(), platform: v.string(), text: v.string() },
+  args: {
+    spaceId: v.string(),
+    platform: v.string(),
+    text: v.string(),
+    agentId: v.optional(v.string()),
+  },
   returns: v.string(),
-  handler: async (ctx, { spaceId, platform, text }): Promise<string> => {
+  handler: async (
+    ctx,
+    { spaceId, platform, text, agentId },
+  ): Promise<string> => {
     const code = /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
     const admitted: boolean = await ctx.runMutation(internal.api.texts.admit, {
       spaceId,
@@ -281,7 +296,7 @@ const answer = internalAction({
       if (!admitted) return ''
       const name: string | null = await ctx.runMutation(
         internal.api.texts.claim,
-        { code, spaceId, platform },
+        { code, spaceId, platform, agentId },
       )
       return name
         ? `Linked to ${name}. Message me anytime, start with @name to talk to another assistant, or send "who" to see who's here.`
@@ -370,6 +385,70 @@ const respond = internalAction({
   },
 })
 
+/**
+ * Records a message from `/photon/webhook` once, and schedules its answer.
+ * False when it was already recorded: Photon retries a delivery it isn't
+ * sure arrived.
+ */
+const received = internalMutation({
+  args: {
+    messageId: v.string(),
+    spaceId: v.string(),
+    platform: v.string(),
+    agentId: v.string(),
+    text: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, { messageId, ...message }) => {
+    const seen = await ctx.db
+      .query('photonMessages')
+      .withIndex('by_messageId', (q) => q.eq('messageId', messageId))
+      .unique()
+    if (seen) return false
+    await ctx.db.insert('photonMessages', { messageId })
+    await ctx.scheduler.runAfter(0, internal.api.texts.replyOnPhoton, {
+      messageId,
+      ...message,
+    })
+    return true
+  },
+})
+
+/** Answers a message from Photon's platform API in its chat, as the project's agent there. */
+const replyOnPhoton = internalAction({
+  args: {
+    messageId: v.string(),
+    spaceId: v.string(),
+    platform: v.string(),
+    agentId: v.string(),
+    text: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { messageId, spaceId, platform, agentId, text }) => {
+    const keys = photonKeys(env)
+    if (!keys) return null
+    const reply: string = await ctx
+      .runAction(internal.api.texts.answer, {
+        spaceId,
+        platform,
+        text,
+        agentId,
+      })
+      .catch((error: unknown) => {
+        console.error(error)
+        return 'Sorry, something went wrong. Try again in a minute.'
+      })
+    if (!reply) return null
+    await sendText(keys, {
+      spaceId,
+      senderId: agentId,
+      text: reply,
+      key: `reply:${messageId}`,
+    })
+    return null
+  },
+})
+
 /** The text of an inbound Photon message, or '' for anything else (photos, reactions). */
 function textOf(message: unknown) {
   const content = (message as { content?: { type?: unknown; text?: unknown } })
@@ -388,4 +467,6 @@ export const textsApi = {
   admit,
   answer,
   respond,
+  received,
+  replyOnPhoton,
 }

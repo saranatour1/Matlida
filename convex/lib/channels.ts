@@ -70,8 +70,9 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     name: 'Telegram',
     via: 'photon',
     platform: 'telegram',
-    description: 'Message your Telegram bot, through Photon.',
-    env: [...PHOTON_ENV, 'TELEGRAM_BOT_TOKEN'],
+    description:
+      "Message your Telegram bot. It's connected in Photon's dashboard, and messages arrive at /photon/webhook.",
+    env: ['PHOTON_PROJECT_ID', 'PHOTON_API_KEY', 'PHOTON_WEBHOOK_SECRET'],
   },
   {
     id: 'whatsapp',

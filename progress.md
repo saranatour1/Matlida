@@ -183,3 +183,11 @@
 - Pick a model per bot and for the lead in their forms, from eight gateway models (Claude Sonnet 5, Opus 5, Haiku 4.5; GPT-5, GPT-5 mini; Gemini 2.5 Pro, Flash; DeepSeek V3.2) or any gateway id typed by hand. A menu in the chat header switches the chat itself to any model, and the chat's history stays; "Assistant's own" goes back. A new chat can start on a model.
 - Usage rows record the model, and Costs shows it per step. The details panel's Model line shows the chat's effective model.
 - Verified with unit tests: a bot and the lead reply on their own models and the default otherwise; a chat switching models keeps its history and records each model in usage; a new chat starting on a model; bad ids refused and another user unable to switch.
+
+### Telegram through Photon's platform API (2026-10-20)
+
+- `POST /photon/webhook` takes Photon's platform events, checks the Standard Webhooks signature (`webhook-*` or `svix-*` headers, 5-minute tolerance) against `PHOTON_WEBHOOK_SECRET` over the raw bytes, and logs only header names when a delivery is refused.
+- A Telegram text is recorded once by Photon's message id and answered by the same texting logic as before (`link <code>`, `@name`, the limits), then sent back through Photon's API as the project's agent in that chat. Linking stores that agent's id, so text reminders and missed-call texts to the chat go through Photon too.
+- An email event starts the email check at once instead of at the next minute.
+- Telegram on Connections now needs `PHOTON_PROJECT_ID`, `PHOTON_API_KEY` and `PHOTON_WEBHOOK_SECRET`.
+- Verified with unit tests, Photon's API mocked and deliveries signed in the test: an unlinked chat told how to link; linking, chatting and a text reminder through Photon; a repeated delivery answered once; forged, stale and unsigned deliveries refused with nothing recorded. Not yet tried against Photon: the signature scheme is inferred from the `whsec_` secret.

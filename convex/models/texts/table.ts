@@ -29,9 +29,20 @@ export const phoneLinksTable = defineTable(
       ),
       /** Who messages go to, picked with `@name`. Unset means the lead. */
       activeBotId: v.optional(v.id('bots')),
+      /**
+       * The project's agent in this chat on Photon's platform API. Set for
+       * chats linked through `/photon/webhook`; their texts go out through
+       * that API instead of the Spectrum SDK.
+       */
+      agentId: v.optional(v.string()),
     }),
   ),
 )
   .index('by_project', ['projectId'])
   .index('by_code', ['code'])
   .index('by_spaceId', ['spaceId'])
+
+/** Messages that came in through `/photon/webhook`, by Photon's id, so each is answered once. */
+export const photonMessagesTable = defineTable({
+  messageId: v.string(),
+}).index('by_messageId', ['messageId'])

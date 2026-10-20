@@ -9,4 +9,6 @@ export const {
   admit,
   answer,
   respond,
+  received,
+  replyOnPhoton,
 } = textsApi

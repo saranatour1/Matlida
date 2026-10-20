@@ -105,6 +105,40 @@ async function emailUser(keys: PhotonKeys, address: string) {
 }
 
 /**
+ * Sends a text into a Photon space (a Telegram chat, for one) as `senderId`,
+ * the project's agent there. `key` makes a retry send once.
+ */
+export async function sendText(
+  keys: PhotonKeys,
+  {
+    spaceId,
+    senderId,
+    text,
+    key,
+  }: { spaceId: string; senderId: string; text: string; key: string },
+) {
+  await call(keys, '/messages', {
+    method: 'POST',
+    headers: { 'idempotency-key': key },
+    body: JSON.stringify({
+      spaceId,
+      senderId,
+      content: { type: 'text', format: 'plain', text },
+    }),
+  })
+}
+
+/** The Photon keys from the deployment, or null until they're set. */
+export function photonKeys(env: {
+  PHOTON_PROJECT_ID?: string
+  PHOTON_API_KEY?: string
+}): PhotonKeys | null {
+  return env.PHOTON_PROJECT_ID && env.PHOTON_API_KEY
+    ? { projectId: env.PHOTON_PROJECT_ID, apiKey: env.PHOTON_API_KEY }
+    : null
+}
+
+/**
  * Starts a new email from `from` (an address on the connected domain) to `to`.
  * `key` makes retries safe: the same key reuses the thread and the message.
  */
