@@ -54,6 +54,10 @@ And in the app's environment when deploying:
 | --------------- | ---------------------------------------------------------------- |
 | `VITE_SITE_URL` | Public URL, so the `og:image` link is absolute for link previews |
 
+### Models
+
+Every assistant runs on `anthropic/claude-sonnet-5` through the Convex AI gateway unless you pick another in its form, and any chat can switch models from the menu in its header without losing its history. The list is in `convex/lib/models.ts`; any id from the gateway catalog can be typed in.
+
 ## Scripts
 
 | Command       | Does                              |

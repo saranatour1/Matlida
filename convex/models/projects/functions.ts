@@ -1,6 +1,7 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
+import { MODEL_ID } from '../../lib/models'
 import { zPortrait } from '../../lib/portraits'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import type { Id } from '../../_generated/dataModel'
@@ -54,6 +55,12 @@ const save = zAuthedMutation({
       .trim()
       .max(8000, 'Guidelines can be at most 8000 characters.'),
     portrait: zPortrait.optional(),
+    model: z
+      .string()
+      .trim()
+      .max(80)
+      .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
+      .optional(),
   },
   handler: async (ctx, { id, ...project }) => {
     if (id) {

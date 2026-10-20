@@ -11,6 +11,7 @@ import {
   portraitOf,
 } from '~/components/bot-avatar'
 import { MarkdownEditor } from '~/components/markdown-editor'
+import { ModelSelect, modelFromForm } from '~/components/model-select'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { useProject } from '~/hooks/use-project'
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/_app/p/$projectId/bots')({
 
 type BotValues = Pick<
   Doc<'bots'>,
-  'name' | 'role' | 'instructions' | 'portrait'
+  'name' | 'role' | 'instructions' | 'portrait' | 'model'
 >
 
 function Bots() {
@@ -212,6 +213,7 @@ function BotForm({
         role: String(data.get('role')),
         instructions: String(data.get('instructions')),
         portrait: portraitFromForm(data),
+        model: modelFromForm(data),
       }
       try {
         await save({ projectId, id: bot?._id, ...values })
@@ -262,6 +264,7 @@ function BotForm({
           name: values?.name ?? '',
         })}
       />
+      <ModelSelect name="model" defaultValue={values?.model} />
       <div className="flex flex-col gap-1.5 text-sm">
         What it does and how it thinks
         <MarkdownEditor
