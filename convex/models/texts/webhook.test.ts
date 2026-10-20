@@ -259,3 +259,28 @@ test('while a chat is active the check runs every few seconds, then stops', asyn
   )
   expect(scheduled.filter((f) => f.state.kind === 'pending')).toEqual([])
 })
+
+test('a burst of texts is limited as it is recorded, so parallel replies never race on the limit', async () => {
+  const { t, asAda, projectId, deliver } = await setup()
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await deliver('m0', `link ${code}`)
+  sent.length = 0
+  // 16 texts in one check, answered side by side.
+  listed = Array.from({ length: 16 }, (_, i) => ({
+    id: `b${i}`,
+    content: { type: 'text', text: `hello ${i}` },
+    receivedBy: { id: 'agent-bot' },
+    space: { id: 'tg-chat-1' },
+  }))
+  await t.action(internal.api.texts.poll, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  const replies = sent.map((s) => s.text)
+  expect(replies.filter((r) => r === 'Hi from Matilda.')).toHaveLength(15)
+  expect(
+    replies.filter(
+      (r) =>
+        r ===
+        "You're sending a lot of messages. Give me a few minutes and try again.",
+    ),
+  ).toHaveLength(1)
+})
