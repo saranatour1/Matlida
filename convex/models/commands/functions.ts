@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
+import { removeComments } from '../comments/functions'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -145,6 +146,7 @@ const remove = authedMutation({
     const command = await ctx.db.get('commands', id)
     if (!command) throw new ConvexError('Command not found.')
     await getOwnedProject(ctx, ctx.userId, command.projectId)
+    await removeComments(ctx, command.projectId, 'command', id)
     await ctx.db.delete('commands', id)
     await ctx.storage.delete(command.storageId)
   },

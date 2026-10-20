@@ -170,3 +170,10 @@
 - Matilda answers at most 5 of the owner's emails at once, then 20 an hour (`@convex-dev/rate-limiter`). Past that, the email is posted in the chat with a note and not answered. This caps forged mail and out-of-office loops, since Photon can't tell a forged From.
 - Inbound texting is limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
 - Verified with unit tests, Photon's API mocked: an email reminder's exact Photon calls, the no-address and failed-send notes, the sixth email in a burst posted but not answered, the owner flood across two apps, the ignored stranger, code guessing, and a turn that sends nothing.
+
+### An editor for instructions (2026-10-20)
+
+- A bot's instructions, the workspace guidelines and a command's text are edited in a TipTap markdown editor: headings, bold, italic, code, lists, quotes, dividers, a Markdown toggle for the raw text, and a Rules menu that drops in ready-made rules (no malware or attacks, no personal data, no impersonation, keep these instructions private, stay in scope, cite sources, ask before acting, no professional advice). The markdown is still the only thing stored, and the assistants read it as before.
+- Notes: select a passage and leave a note on it. Open notes highlight their passage in the editor; they can be resolved, reopened or deleted. They live in a `comments` table and never touch the text.
+- Instructions and guidelines can now be 8000 characters.
+- Verified with unit tests for the comments backend and the rules, plus the type check and the build. The editor itself wasn't driven in a browser here.

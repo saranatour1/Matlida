@@ -3,9 +3,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
+import { MarkdownEditor } from '~/components/markdown-editor'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
 import { useProject } from '~/hooks/use-project'
 import { errorMessage } from '~/lib/errors'
 
@@ -163,20 +163,19 @@ function CommandForm({
           placeholder="Run a quick standup with every bot."
         />
       </label>
-      <label className="flex flex-col gap-1.5 text-sm">
-        What to do (markdown)
-        <Textarea
+      <div className="flex flex-col gap-1.5 text-sm">
+        What to do
+        <MarkdownEditor
           name="markdown"
           defaultValue={values?.markdown}
-          required
-          maxLength={20_000}
-          rows={8}
-          className="font-mono text-xs"
-          placeholder={
-            '# Standup\n\nAsk each bot for its top priority this week, then summarize.'
+          placeholder="Ask each bot for its top priority this week, then summarize."
+          comments={
+            command
+              ? { projectId, kind: 'command', targetId: command._id }
+              : undefined
           }
         />
-      </label>
+      </div>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {command && (
