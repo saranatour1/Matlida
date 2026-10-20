@@ -221,3 +221,9 @@
 - The first kind is `run_plan`: the assistant saves a plan and calls `run_plan`; the chat shows the steps with Start and Don't start. On Start each step is done by the lead with its tools in the task's own thread (so each step sees the ones before it), retried on its own, and ticks the plan's checklist. Cancel stops it after the running step. When it ends, the chat gets "Done" or "Stopped" with the reason.
 - The details panel's Library tab lists the chat's tasks and their progress.
 - Verified with unit tests, the model mocked and the workflow run with convex-test: Start running both steps in order and ticking the plan; Don't start; cancel; a step that keeps failing; owner-only; and that a task can't start another plan.
+
+### Texting limit taken once, as a message is recorded (2026-10-20)
+
+- `convex insights` showed `api/texts.js:admit` retrying on OCC conflicts on the rate limiter's table: several Telegram messages picked up together were answered side by side, and each reply took a token from the same `inboundText` bucket at the same moment. Retries succeeded; nothing was lost.
+- `texts.received` now takes the token while it records the message, one at a time, and passes the result to the reply. Photon replies no longer call `admit`; the Spectrum SDK route still does.
+- Verified with a unit test: 16 texts in one check get 15 answers and one "slow down", with the limit taken as they're recorded.
