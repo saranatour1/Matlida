@@ -147,27 +147,36 @@ type Linked = Extract<Doc<'phoneLinks'>, { status: 'linked' }>
  * from a linked chat count against its owner, so one person can't run up
  * the model from several apps; anything else counts against the chat.
  */
+async function admitText(
+  ctx: MutationCtx,
+  spaceId: string,
+  kind: 'message' | 'link',
+) {
+  if (kind === 'link') {
+    const tries = await rateLimiter.limit(ctx, 'linkAttempt', {
+      key: `space:${spaceId}`,
+    })
+    return tries.ok
+  }
+  const linked = await ctx.db
+    .query('phoneLinks')
+    .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
+    .unique()
+  const key =
+    linked?.status === 'linked' ? `user:${linked.ownerId}` : `space:${spaceId}`
+  const texts = await rateLimiter.limit(ctx, 'inboundText', { key })
+  return texts.ok
+}
+
+/** Whether a link code is what `text` sends. */
+const linkCode = (text: string) =>
+  /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
+
 const admit = internalMutation({
   args: { spaceId: v.string(), kind: literals('message', 'link') },
   returns: v.boolean(),
-  handler: async (ctx, { spaceId, kind }) => {
-    if (kind === 'link') {
-      const tries = await rateLimiter.limit(ctx, 'linkAttempt', {
-        key: `space:${spaceId}`,
-      })
-      return tries.ok
-    }
-    const linked = await ctx.db
-      .query('phoneLinks')
-      .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
-      .unique()
-    const key =
-      linked?.status === 'linked'
-        ? `user:${linked.ownerId}`
-        : `space:${spaceId}`
-    const texts = await rateLimiter.limit(ctx, 'inboundText', { key })
-    return texts.ok
-  },
+  handler: async (ctx, { spaceId, kind }) =>
+    await admitText(ctx, spaceId, kind),
 })
 
 /**
@@ -286,17 +295,21 @@ const answer = internalAction({
     platform: v.string(),
     text: v.string(),
     agentId: v.optional(v.string()),
+    /** Set when the limit was already checked as the message was recorded. */
+    admitted: v.optional(v.boolean()),
   },
   returns: v.string(),
   handler: async (
     ctx,
-    { spaceId, platform, text, agentId },
+    { spaceId, platform, text, agentId, admitted: checked },
   ): Promise<string> => {
-    const code = /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
-    const admitted: boolean = await ctx.runMutation(internal.api.texts.admit, {
-      spaceId,
-      kind: code ? 'link' : 'message',
-    })
+    const code = linkCode(text)
+    const admitted: boolean =
+      checked ??
+      (await ctx.runMutation(internal.api.texts.admit, {
+        spaceId,
+        kind: code ? 'link' : 'message',
+      }))
     if (code) {
       if (!admitted) return ''
       const name: string | null = await ctx.runMutation(
@@ -423,8 +436,16 @@ const received = internalMutation({
         fast: true,
       })
     }
+    // The limit is taken here, one message at a time, not in the replies that
+    // run side by side, so two quick messages don't conflict on the same bucket.
+    const admitted = await admitText(
+      ctx,
+      message.spaceId,
+      linkCode(message.text) ? 'link' : 'message',
+    )
     await ctx.scheduler.runAfter(0, internal.api.texts.replyOnPhoton, {
       messageId,
+      admitted,
       ...message,
     })
     return true
@@ -439,9 +460,13 @@ const replyOnPhoton = internalAction({
     platform: v.string(),
     agentId: v.string(),
     text: v.string(),
+    admitted: v.boolean(),
   },
   returns: v.null(),
-  handler: async (ctx, { messageId, spaceId, platform, agentId, text }) => {
+  handler: async (
+    ctx,
+    { messageId, spaceId, platform, agentId, text, admitted },
+  ) => {
     const keys = photonKeys(env)
     if (!keys) return null
     const reply: string = await ctx
@@ -450,6 +475,7 @@ const replyOnPhoton = internalAction({
         platform,
         text,
         agentId,
+        admitted,
       })
       .catch((error: unknown) => {
         console.error(error)

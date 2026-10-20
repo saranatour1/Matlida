@@ -228,3 +228,9 @@
 - Commands are now resolved by name when the reply runs (the workspace's first, then the built-ins), and bots follow them too, not just the lead.
 - The "+" in the message box lists the commands and your own; clicking one puts `/name ` in the box for you to finish. Typing `/` in the box opens the same list, like Discord: it filters as you type, ↑ and ↓ move, Tab, Enter or a click picks, Esc closes; once a command is typed, a line above the box says what it does, or that there's no such command. "Create a command with AI…" opens a dialog: say what it should do, `commands.draft` writes the name, description and instructions (`generateObject`), and you check and edit them before saving. The name is made a unique slug, built-ins included.
 - Verified with unit tests, the model mocked: a built-in runs without being saved, a Library command overrides it, a bot follows a command, the draft's name cleaned and made unique with nothing saved, and another user refused. The menu and dialog weren't driven in a browser.
+
+### Texting limit taken once, as a message is recorded (2026-10-20)
+
+- `convex insights` showed `api/texts.js:admit` retrying on OCC conflicts on the rate limiter's table: several Telegram messages picked up together were answered side by side, and each reply took a token from the same `inboundText` bucket at the same moment. Retries succeeded; nothing was lost.
+- `texts.received` now takes the token while it records the message, one at a time, and passes the result to the reply. Photon replies no longer call `admit`; the Spectrum SDK route still does.
+- Verified with a unit test: 16 texts in one check get 15 answers and one "slow down", with the limit taken as they're recorded.
