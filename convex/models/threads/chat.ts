@@ -20,7 +20,8 @@ import {
 } from '../../lib/functions'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
-import { findCommand } from '../commands/functions'
+import { findCommand, getCommand } from '../commands/functions'
+import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { getOwnedProject } from '../projects/functions'
 import { MODEL_ID } from '../../lib/models'
 import { getOwnedThread, startThread } from './functions'
@@ -95,7 +96,11 @@ export async function postMessage(
     threadId: id,
     prompt,
   })
-  return { threadId: id, promptMessageId: messageId, commandId: command?._id }
+  return {
+    threadId: id,
+    promptMessageId: messageId,
+    command: command ?? undefined,
+  }
 }
 
 /**
@@ -124,7 +129,7 @@ const sendMessage = zAuthedMutation({
     effort: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, { timeZone, ...message }) => {
-    const { threadId, promptMessageId, commandId } = await postMessage(
+    const { threadId, promptMessageId, command } = await postMessage(
       ctx,
       ctx.userId,
       message,
@@ -132,7 +137,7 @@ const sendMessage = zAuthedMutation({
     await ctx.scheduler.runAfter(0, internal.api.chat.respond, {
       threadId,
       promptMessageId,
-      commandId,
+      command,
       timeZone,
     })
     return threadId
@@ -140,12 +145,20 @@ const sendMessage = zAuthedMutation({
 })
 
 const context = internalQuery({
-  args: { threadId: v.string(), commandId: v.optional(v.id('commands')) },
+  args: { threadId: v.string(), command: v.optional(v.string()) },
   returns: v.object({
     project: schema.doc('projects'),
     bot: v.union(schema.doc('bots'), v.null()),
     members: v.array(schema.doc('bots')),
-    command: v.union(schema.doc('commands'), v.null()),
+    /** The command the message ran, with its markdown or where it's stored. */
+    command: v.union(
+      v.object({
+        name: v.string(),
+        markdown: v.optional(v.string()),
+        storageId: v.optional(v.id('_storage')),
+      }),
+      v.null(),
+    ),
     /** The chat's own model, when one was picked. */
     model: v.union(v.string(), v.null()),
     /** The chat's own effort, when one was picked. */
@@ -156,14 +169,15 @@ const context = internalQuery({
       v.null(),
     ),
   }),
-  handler: async (ctx, { threadId, commandId }) => {
+  handler: async (ctx, { threadId, command: name }) => {
     const thread = await ctx.db
       .query('threads')
       .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
       .unique()
     const project = thread && (await ctx.db.get('projects', thread.projectId))
     if (!project) throw new Error(`No project for thread ${threadId}`)
-    const command = commandId && (await ctx.db.get('commands', commandId))
+    const stored = name ? await getCommand(ctx, thread.projectId, name) : null
+    const builtIn = BUILT_IN_COMMANDS.find((c) => c.name === name)
     const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
     const bots = await getBots(ctx, project._id)
     return {
@@ -174,7 +188,11 @@ const context = internalQuery({
         : bot
           ? []
           : bots,
-      command: command && command.projectId === project._id ? command : null,
+      command: stored
+        ? { name: stored.name, storageId: stored.storageId }
+        : builtIn
+          ? { name: builtIn.name, markdown: builtIn.markdown }
+          : null,
       model: thread.model ?? null,
       effort: thread.effort ?? null,
     }
@@ -190,7 +208,7 @@ export async function runReply(
   {
     threadId,
     promptMessageId,
-    commandId,
+    command: commandName,
     timeZone,
     via,
     cutOff,
@@ -198,7 +216,8 @@ export async function runReply(
   }: {
     threadId: string
     promptMessageId: string
-    commandId?: Id<'commands'>
+    /** The command the message ran, by name. */
+    command?: string
     timeZone?: string
     via?: Via
     /** On a call: the user talked over the last reply. */
@@ -221,12 +240,21 @@ export async function runReply(
     project: Doc<'projects'>
     bot: Doc<'bots'> | null
     members: Array<Doc<'bots'>>
-    command: Doc<'commands'> | null
+    command: {
+      name: string
+      markdown?: string
+      storageId?: Id<'_storage'>
+    } | null
     model: string | null
     effort: Effort | null
-  } = await ctx.runQuery(internal.api.chat.context, { threadId, commandId })
+  } = await ctx.runQuery(internal.api.chat.context, {
+    threadId,
+    command: commandName,
+  })
   const markdown =
-    command && (await (await ctx.storage.get(command.storageId))?.text())
+    command?.markdown ??
+    (command?.storageId &&
+      (await (await ctx.storage.get(command.storageId))?.text()))
   const agent = createAgent(project, {
     bot,
     members,
@@ -235,10 +263,7 @@ export async function runReply(
     cutOff,
     model: model ?? undefined,
     effort: effort ?? undefined,
-    command:
-      !bot && command && markdown
-        ? { name: command.name, markdown }
-        : undefined,
+    command: command && markdown ? { name: command.name, markdown } : undefined,
   })
   const started = Date.now()
   const result = await agent.streamText(
@@ -269,7 +294,7 @@ const respond = internalAction({
   args: {
     threadId: v.string(),
     promptMessageId: v.string(),
-    commandId: v.optional(v.id('commands')),
+    command: v.optional(v.string()),
     timeZone: v.optional(v.string()),
   },
   returns: v.null(),

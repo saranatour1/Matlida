@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
 import type { Effort } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
@@ -34,6 +35,7 @@ import {
   MessageScrollerViewport,
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
+import { CommandDialog } from '~/components/command-dialog'
 
 /**
  * A chat with one of the project's assistants: `bot`, or the lead when unset.
@@ -61,6 +63,7 @@ export function Chat({
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
+  const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
@@ -246,7 +249,13 @@ export function Chat({
             placeholder={`Message ${lead}…`}
             isBusy={isBusy}
             onSubmit={send}
-            commands={bot ? [] : (commands ?? [])}
+            commands={[
+              ...BUILT_IN_COMMANDS.filter(
+                (b) => !commands?.some((c) => c.name === b.name),
+              ).map((b) => ({ ...b, builtIn: true })),
+              ...(commands ?? []),
+            ]}
+            onCreateCommand={() => setCreatingCommand(true)}
             tools={
               <>
                 <EffortMenu
@@ -264,6 +273,12 @@ export function Chat({
               </>
             }
           />
+          {creatingCommand && (
+            <CommandDialog
+              projectId={project._id}
+              onClose={() => setCreatingCommand(false)}
+            />
+          )}
         </div>
       </div>
       {panel && (
