@@ -34,19 +34,19 @@ pnpm dev
 
 Set these on the Convex deployment (`npx convex env set NAME value`):
 
-| Name                                                                        | What it's for                                                                 |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `SITE_URL`                                                                  | The app's URL, used in email links and OAuth redirects                        |
-| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                                             | Key pair Convex Auth signs session tokens with                                |
-| `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                                         | Sending verification and reset emails                                         |
-| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET`                        | Google sign-in                                                                |
-| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET`                        | GitHub sign-in                                                                |
-| `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `SPECTRUM_WEBHOOK_SECRET` | Messaging on iMessage and WhatsApp through Photon. Optional                   |
-| `TELEGRAM_BOT_TOKEN`                                                        | Messaging on Telegram, with the token from @BotFather. Optional               |
-| `PHOTON_PROJECT_ID`, `PHOTON_API_KEY`                                       | Email through Photon's platform API (beta). Optional                          |
-| `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, connected in Photon. Optional |
+| Name                                                                        | What it's for                                                                                  |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `SITE_URL`                                                                  | The app's URL, used in email links and OAuth redirects                                         |
+| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                                             | Key pair Convex Auth signs session tokens with                                                 |
+| `RESEND_API_KEY`, `AUTH_EMAIL_FROM`                                         | Sending verification and reset emails                                                          |
+| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET`                        | Google sign-in                                                                                 |
+| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET`                        | GitHub sign-in                                                                                 |
+| `SPECTRUM_PROJECT_ID`, `SPECTRUM_PROJECT_SECRET`, `SPECTRUM_WEBHOOK_SECRET` | Messaging on iMessage and WhatsApp through Photon. Optional                                    |
+| `PHOTON_WEBHOOK_SECRET`                                                     | Signs Photon's events to `/photon/webhook`: Telegram, and email arriving (`whsec_…`). Optional |
+| `PHOTON_PROJECT_ID`, `PHOTON_API_KEY`                                       | Email through Photon's platform API (beta). Optional                                           |
+| `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, connected in Photon. Optional                  |
 
-To message on Telegram, add the bot in Photon, set `TELEGRAM_BOT_TOKEN`, then run `npx convex run api/sender:connectTelegram` once to point the bot at Photon. WhatsApp needs only the number added in Photon.
+To message on Telegram, connect the bot in Photon's dashboard, point the project's webhook at `/photon/webhook`, and set its signing secret as `PHOTON_WEBHOOK_SECRET`. WhatsApp needs only the number added in Photon. The full setup for email and every messaging app is in [docs/setup/channels.md](docs/setup/channels.md).
 
 And in the app's environment when deploying:
 
