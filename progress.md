@@ -154,5 +154,5 @@
 - Each user claims a handle on Connections and gets `handle@MAIL_DOMAIN`, answered by the workspace it was claimed in. Claiming the same handle from another workspace moves it there, and Release frees it. `mailboxes` holds one row per user.
 - Handles are 3 to 32 of `a-z0-9._-` with no dot at either end or doubled, and role names (postmaster, abuse, admin, noreply, mailer-daemon, support and the rest of the list in `convex/lib/handles.ts`) are refused. Claiming needs a verified sign-in email, which is the only address the assistants will write to.
 - The Email row on Connections shows the address, the reply-to address and the claim form, and the registry's status for email is now connected, ready, or ready with "answers in another workspace".
-- Email goes through Photon's Email channel (beta platform API), not Resend: the Email row needs `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY`. Resend stays for sign-in emails only.
+- Email goes through Photon's Email channel (beta platform API): the Email row needs `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY`.
 - Verified with unit tests: normalization and each refusal reason, reserved and duplicate handles, renaming freeing the old handle, no verified email, no mail domain, the move between workspaces, release, and another user's workspace refused.
