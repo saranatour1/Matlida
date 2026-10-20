@@ -11,6 +11,18 @@ export const BUILT_IN_COMMANDS = [
       'Work out what the user wants made from what they wrote after /create, and make it with the right tool, without asking which: a plan (save_plan, or save_plan then run_plan if they want it done), posts, an email or a document (write the draft in your reply), research (research), a reminder or a message to someone (set_reminder, with save_contact first if needed), or a reusable command (save_command). If it could mean two very different things, ask one short question. Say in one line what you made.',
   },
   {
+    name: 'chart',
+    description: 'Show numbers as a chart',
+    markdown:
+      'Show what the user asked for after /chart as a chart with show_chart. Use their numbers, or look them up with web_search and name the source; never make numbers up. Pick the kind: line for change over time, bar to compare, area for totals over time, pie for parts of a whole. Add one or two lines on what it shows.',
+  },
+  {
+    name: 'preview',
+    description: 'Draft a post and preview it as it would look',
+    markdown:
+      'Draft the post the user describes after /preview and show it with preview_post on each platform they name, or LinkedIn when they name none. Keep within each platform’s length, and write it the way people post there. Nothing is posted; offer to adjust it.',
+  },
+  {
     name: 'plan',
     description: 'Make a plan and save it to the Library',
     markdown:
@@ -26,7 +38,7 @@ export const BUILT_IN_COMMANDS = [
     name: 'posts',
     description: 'Draft posts for X, Reddit and Discord',
     markdown:
-      "Draft posts about what the user wrote after /posts, one for each of X, Reddit and Discord, under a heading each. X: at most 280 characters, or a short thread numbered 1/, 2/. Reddit: a title and a body in a plain, non-promotional tone, and a suggested subreddit. Discord: friendly, under 2000 characters, markdown allowed. Use web_search first if it needs current facts. Don't post anything; offer to adjust the tone or length.",
+      "Draft posts about what the user wrote after /posts, one for each of X, Reddit and Discord, under a heading each. X: at most 280 characters, or a short thread numbered 1/, 2/. Reddit: a title and a body in a plain, non-promotional tone, and a suggested subreddit. Discord: friendly, under 2000 characters, markdown allowed. Use web_search first if it needs current facts. Show each one with preview_post so the user sees it as it would look. Don't post anything; offer to adjust the tone or length.",
   },
   {
     name: 'email',

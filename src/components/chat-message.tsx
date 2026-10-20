@@ -1,13 +1,20 @@
+import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { UIMessage } from '@convex-dev/agent/react'
 import type { InferUITools, UIDataTypes } from 'ai'
 import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
+import { PostPreviewPart } from '~/components/post-preview-part'
 import { RunPlanPart } from '~/components/task-card'
 import { ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
+
+// Recharts is big, so it loads with the first chart.
+const ChartPart = React.lazy(() =>
+  import('~/components/chart-part').then((m) => ({ default: m.ChartPart })),
+)
 
 /** The assistants' tools, typed from `assistantTools` itself, plus `ask_bot` from `lead.ts`. */
 export type ChatUIMessage = UIMessage<
@@ -66,6 +73,14 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':
               return <RunPlanPart key={part.toolCallId} part={part} />
+            case 'tool-show_chart':
+              return (
+                <React.Suspense key={part.toolCallId}>
+                  <ChartPart part={part} />
+                </React.Suspense>
+              )
+            case 'tool-preview_post':
+              return <PostPreviewPart key={part.toolCallId} part={part} />
             default:
               return null
           }
