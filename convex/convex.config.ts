@@ -15,9 +15,9 @@ const app = defineApp({
     AUTH_JWKS: v.string(),
     /** The app's origin, e.g. http://localhost:3000. Email links and OAuth redirects point here. */
     SITE_URL: v.string(),
-    RESEND_API_KEY: v.string(),
+    RESEND_API_KEY: v.string().optional(),
     /** e.g. "Matilda <auth@example.com>", on a domain verified with Resend. */
-    AUTH_EMAIL_FROM: v.string(),
+    AUTH_EMAIL_FROM: v.string().optional(),
     AUTH_GOOGLE_CLIENT_ID: v.string(),
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
