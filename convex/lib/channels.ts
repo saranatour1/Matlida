@@ -54,7 +54,7 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     via: 'email',
     description:
       'Email an assistant from your sign-in address and get a reply by email.',
-    env: ['MAIL_DOMAIN', 'RESEND_API_KEY'],
+    env: ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'],
   },
   {
     id: 'imessage',

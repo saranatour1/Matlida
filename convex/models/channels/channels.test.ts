@@ -52,7 +52,7 @@ test('with nothing set up, messaging needs the deployment and the tools are on',
   })
   expect(byId.email).toMatchObject({
     status: 'needs_setup',
-    missing: ['MAIL_DOMAIN', 'RESEND_API_KEY'],
+    missing: ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'],
   })
   expect(byId.phone.status).toBe('coming_soon')
   expect(byId.web_search).toMatchObject({

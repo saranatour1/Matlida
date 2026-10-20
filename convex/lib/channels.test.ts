@@ -54,9 +54,9 @@ test('a Photon app needs the deployment set up, then a linked chat', () => {
 test('email is connected once an address is claimed', () => {
   expect(channelStatus(channel('email'), nothing)).toMatchObject({
     status: 'needs_setup',
-    missing: ['MAIL_DOMAIN', 'RESEND_API_KEY'],
+    missing: ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'],
   })
-  const env = ['MAIL_DOMAIN', 'RESEND_API_KEY'] as const
+  const env = ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'] as const
   expect(channelStatus(channel('email'), { ...nothing, env })).toMatchObject({
     status: 'ready',
   })

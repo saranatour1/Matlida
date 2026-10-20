@@ -38,6 +38,8 @@ type Env = {
   readonly AUTH_JWKS: string;
   readonly AUTH_PRIVATE_KEY: string;
   readonly MAIL_DOMAIN: string | undefined;
+  readonly PHOTON_API_KEY: string | undefined;
+  readonly PHOTON_PROJECT_ID: string | undefined;
   readonly RESEND_API_KEY: string;
   readonly SITE_URL: string;
   readonly SPECTRUM_PROJECT_ID: string | undefined;
