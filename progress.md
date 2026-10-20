@@ -183,3 +183,7 @@
 - Pick a model per bot and for the lead in their forms, from eight gateway models (Claude Sonnet 5, Opus 5, Haiku 4.5; GPT-5, GPT-5 mini; Gemini 2.5 Pro, Flash; DeepSeek V3.2) or any gateway id typed by hand. A menu in the chat header switches the chat itself to any model, and the chat's history stays; "Assistant's own" goes back. A new chat can start on a model.
 - Usage rows record the model, and Costs shows it per step. The details panel's Model line shows the chat's effective model.
 - Verified with unit tests: a bot and the lead reply on their own models and the default otherwise; a chat switching models keeps its history and records each model in usage; a new chat starting on a model; bad ids refused and another user unable to switch.
+
+### Grok and Muse in the model menu (2026-10-20)
+
+- The model menu and the bot and workspace forms also offer Grok 4.7 (`x-ai/grok-4.7`) and Meta's Muse Spark 1.3 (`meta/muse-spark-1.3`), both served by the Convex AI gateway.

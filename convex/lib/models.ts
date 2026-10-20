@@ -84,6 +84,18 @@ export const CHAT_MODELS: ReadonlyArray<{
     maker: 'DeepSeek',
     note: 'Open weights, good value.',
   },
+  {
+    id: 'x-ai/grok-4.7',
+    name: 'Grok 4.7',
+    maker: 'xAI',
+    note: 'xAI’s latest.',
+  },
+  {
+    id: 'meta/muse-spark-1.3',
+    name: 'Muse Spark 1.3',
+    maker: 'Meta',
+    note: 'Meta’s Muse.',
+  },
 ]
 
 /** A gateway model id, `provider/model`, with an optional `~` for a rolling alias. */
