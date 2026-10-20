@@ -221,3 +221,9 @@
 - The first kind is `run_plan`: the assistant saves a plan and calls `run_plan`; the chat shows the steps with Start and Don't start. On Start each step is done by the lead with its tools in the task's own thread (so each step sees the ones before it), retried on its own, and ticks the plan's checklist. Cancel stops it after the running step. When it ends, the chat gets "Done" or "Stopped" with the reason.
 - The details panel's Library tab lists the chat's tasks and their progress.
 - Verified with unit tests, the model mocked and the workflow run with convex-test: Start running both steps in order and ticking the plan; Don't start; cancel; a step that keeps failing; owner-only; and that a task can't start another plan.
+
+### A "+" menu to start things, and commands written by AI (2026-10-20)
+
+- The "+" in the message box always opens a menu: "Start with" (Write a plan, Run a plan, Draft posts, Draft an email, Draft a doc, Research) fills the box with the start of a prompt to finish; "Your commands" runs one as before; "Create a command with AI…" opens a dialog.
+- In the dialog you say what the command should do, `commands.draft` writes its name, description and instructions with the default model (`generateObject`), and you check and edit them before saving to the Library. The name is made a valid slug and unique in the workspace; nothing is saved until you press Save.
+- Verified with unit tests, the model mocked: the draft comes back with a cleaned-up name and nothing saved, a taken name gets a number, and another user is refused. The menu and dialog weren't driven in a browser.

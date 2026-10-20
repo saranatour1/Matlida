@@ -1,8 +1,10 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
+import { generateObject } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { internalMutation } from '../../_generated/server'
+import { internalMutation, internalQuery } from '../../_generated/server'
+import { languageModel } from '../../lib/ai'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
 import { getOwnedProject } from '../projects/functions'
@@ -152,4 +154,75 @@ const remove = authedMutation({
   },
 })
 
-export const commandsApi = { list, get, save, write, remove }
+/** The project's command names, once its owner is checked. For `draft`. */
+const names = internalQuery({
+  args: { projectId: v.id('projects'), userId: v.id('users') },
+  returns: v.array(v.string()),
+  handler: async (ctx, { projectId, userId }) => {
+    await getOwnedProject(ctx, userId, projectId)
+    return (await getCommands(ctx, projectId)).map((c) => c.name)
+  },
+})
+
+const zDraft = z.object({
+  name: z
+    .string()
+    .describe(
+      'A short slug: lowercase letters, numbers and dashes, like weekly-update.',
+    ),
+  description: z
+    .string()
+    .describe('One line saying what it does, under 120 characters.'),
+  markdown: z
+    .string()
+    .describe(
+      'The instructions the assistant follows when the command runs, in markdown: the goal, the steps, the output format, and which tools to use (web_search, research, save_plan, run_plan, set_reminder). Write to the assistant, in the second person.',
+    ),
+})
+
+/**
+ * Writes a command from what the user wants it to do, for them to check and
+ * save. Nothing is saved here. The name is made unique in the project.
+ */
+const draft = zAuthedAction({
+  args: {
+    projectId: zid('projects'),
+    idea: z
+      .string()
+      .trim()
+      .min(3, 'Say what the command should do.')
+      .max(2000, 'Keep the idea under 2000 characters.'),
+  },
+  handler: async (
+    ctx,
+    { projectId, idea },
+  ): Promise<z.infer<typeof zDraft>> => {
+    const taken: Array<string> = await ctx.runQuery(
+      internal.api.commands.names,
+      { projectId, userId: ctx.userId },
+    )
+    const { object } = await generateObject({
+      model: languageModel,
+      schema: zDraft,
+      system:
+        'You write slash commands for an AI assistant app. A command is a reusable prompt the user runs as /name, optionally followed by details. Make it specific, short and practical.',
+      prompt: `The user wants a command that: ${idea}\n\nExisting command names: ${taken.join(', ') || 'none'}.`,
+    })
+    let name =
+      object.name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 28) || 'command'
+    for (let n = 2; taken.includes(name); n++) {
+      name = `${name.replace(/-\d+$/, '')}-${n}`
+    }
+    return {
+      name,
+      description: object.description.trim().slice(0, 200),
+      markdown: object.markdown.trim(),
+    }
+  },
+})
+
+export const commandsApi = { list, get, save, write, remove, names, draft }

@@ -34,6 +34,7 @@ import {
   MessageScrollerViewport,
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
+import { CommandDialog } from '~/components/command-dialog'
 
 /**
  * A chat with one of the project's assistants: `bot`, or the lead when unset.
@@ -61,6 +62,7 @@ export function Chat({
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
+  const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
@@ -247,6 +249,7 @@ export function Chat({
             isBusy={isBusy}
             onSubmit={send}
             commands={bot ? [] : (commands ?? [])}
+            onCreateCommand={bot ? undefined : () => setCreatingCommand(true)}
             tools={
               <>
                 <EffortMenu
@@ -264,6 +267,12 @@ export function Chat({
               </>
             }
           />
+          {creatingCommand && (
+            <CommandDialog
+              projectId={project._id}
+              onClose={() => setCreatingCommand(false)}
+            />
+          )}
         </div>
       </div>
       {panel && (
