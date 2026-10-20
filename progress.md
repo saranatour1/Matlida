@@ -170,3 +170,8 @@
 - Matilda answers at most 5 of the owner's emails at once, then 20 an hour (`@convex-dev/rate-limiter`). Past that, the email is posted in the chat with a note and not answered. This caps forged mail and out-of-office loops, since Photon can't tell a forged From.
 - Inbound texting is limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
 - Verified with unit tests, Photon's API mocked: an email reminder's exact Photon calls, the no-address and failed-send notes, the sixth email in a burst posted but not answered, the owner flood across two apps, the ignored stranger, code guessing, and a turn that sends nothing.
+
+### Setup guide (2026-10-20)
+
+- `docs/setup/channels.md` covers every channel in order: email through Photon's Email channel (connect a domain, publish the DNS records Photon shows, an API key with `project:read` and `project:write`, the three env vars, claiming an address, trying it), texting through the Spectrum SDK with its webhook, Telegram, WhatsApp, and why phone calls wait.
+- It names the two mistakes found on dev: a `SPECTRUM_PROJECT_SECRET` set to the project id, and a webhook destination made on Photon's beta platform, whose format `/spectrum/webhook` rejects.
