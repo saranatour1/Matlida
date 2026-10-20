@@ -30,7 +30,9 @@
 - [x] Email: mail to your address shows in the app, and Matilda answers yours
 - [x] Email: reminders by email, and a limit on answered emails
 - [ ] Email: @name routing to bots, and Matilda emailing you from the app
+- [x] A TipTap markdown editor for instructions, with ready-made rules and notes
 - [x] Setup guide for email, Photon, Telegram and WhatsApp
+- [x] Several models: per bot, per lead and per chat, with the chat's history kept
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

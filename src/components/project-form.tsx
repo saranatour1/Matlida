@@ -8,6 +8,8 @@ import {
   portraitFromForm,
   portraitOf,
 } from '~/components/bot-avatar'
+import { MarkdownEditor } from '~/components/markdown-editor'
+import { ModelSelect, modelFromForm } from '~/components/model-select'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -15,7 +17,7 @@ import { errorMessage } from '~/lib/errors'
 
 type ProjectValues = Pick<
   Doc<'projects'>,
-  'name' | 'brief' | 'guidelines' | 'portrait'
+  'name' | 'brief' | 'guidelines' | 'portrait' | 'model'
 >
 type FormState = { error?: string; values?: ProjectValues }
 
@@ -30,6 +32,7 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
         brief: String(data.get('brief')),
         guidelines: String(data.get('guidelines')),
         portrait: portraitFromForm(data),
+        model: modelFromForm(data),
       }
       try {
         const id = await save({ id: project?._id, ...values })
@@ -64,6 +67,7 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           name: values?.name ?? 'Matilda',
         })}
       />
+      <ModelSelect name="model" defaultValue={values?.model} />
       <label className="flex flex-col gap-1.5 text-sm">
         Brief
         <Textarea
@@ -73,15 +77,23 @@ export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
           placeholder="A small coffee roastery selling online. This quarter: launch subscriptions."
         />
       </label>
-      <label className="flex flex-col gap-1.5 text-sm">
+      <div className="flex flex-col gap-1.5 text-sm">
         Guidelines (the lead and every bot always follow these)
-        <Textarea
+        <MarkdownEditor
           name="guidelines"
           defaultValue={values?.guidelines}
-          maxLength={2000}
           placeholder="Answer in British English. Never promise delivery dates. Keep budgets under $5k unless asked."
+          comments={
+            project
+              ? {
+                  projectId: project._id,
+                  kind: 'project',
+                  targetId: project._id,
+                }
+              : undefined
+          }
         />
-      </label>
+      </div>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {project && (

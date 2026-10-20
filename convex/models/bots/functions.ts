@@ -1,12 +1,14 @@
 import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
+import { MODEL_ID } from '../../lib/models'
 import { zPortrait } from '../../lib/portraits'
 import {
   authedMutation,
   authedQuery,
   zAuthedMutation,
 } from '../../lib/functions'
+import { removeComments } from '../comments/functions'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -68,12 +70,18 @@ const save = zAuthedMutation({
     instructions: z
       .string()
       .trim()
-      .max(2000, 'Descriptions can be at most 2000 characters.')
+      .max(8000, 'Instructions can be at most 8000 characters.')
       .transform(
         (text) =>
           text || 'Help with whatever the user asks. Keep answers short.',
       ),
     portrait: zPortrait.optional(),
+    model: z
+      .string()
+      .trim()
+      .max(80)
+      .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
+      .optional(),
   },
   handler: async (ctx, { projectId, id, ...bot }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)
@@ -121,6 +129,7 @@ const remove = authedMutation({
     const bot = await ctx.db.get('bots', id)
     if (!bot) throw new ConvexError('Bot not found.')
     await getOwnedProject(ctx, ctx.userId, bot.projectId)
+    await removeComments(ctx, bot.projectId, 'bot', id)
     await ctx.db.delete('bots', id)
   },
 })

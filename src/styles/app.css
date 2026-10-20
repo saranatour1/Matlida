@@ -170,3 +170,12 @@
     background-color: --alpha(var(--color-foreground) / 35%);
   }
 }
+
+/* The instructions editor: TipTap's content area, and the passages notes quote. */
+.ProseMirror:focus {
+  outline: none;
+}
+.comment-quote {
+  background-color: color-mix(in oklab, oklch(0.86 0.17 95) 45%, transparent);
+  border-radius: 0.2em;
+}

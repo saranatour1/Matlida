@@ -10,9 +10,10 @@ import {
   portraitFromForm,
   portraitOf,
 } from '~/components/bot-avatar'
+import { MarkdownEditor } from '~/components/markdown-editor'
+import { ModelSelect, modelFromForm } from '~/components/model-select'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
 import { useProject } from '~/hooks/use-project'
 import { BOT_TEMPLATES } from '~/lib/bot-templates'
 import { errorMessage } from '~/lib/errors'
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/_app/p/$projectId/bots')({
 
 type BotValues = Pick<
   Doc<'bots'>,
-  'name' | 'role' | 'instructions' | 'portrait'
+  'name' | 'role' | 'instructions' | 'portrait' | 'model'
 >
 
 function Bots() {
@@ -212,6 +213,7 @@ function BotForm({
         role: String(data.get('role')),
         instructions: String(data.get('instructions')),
         portrait: portraitFromForm(data),
+        model: modelFromForm(data),
       }
       try {
         await save({ projectId, id: bot?._id, ...values })
@@ -262,16 +264,18 @@ function BotForm({
           name: values?.name ?? '',
         })}
       />
-      <label className="flex flex-col gap-1.5 text-sm">
+      <ModelSelect name="model" defaultValue={values?.model} />
+      <div className="flex flex-col gap-1.5 text-sm">
         What it does and how it thinks
-        <Textarea
+        <MarkdownEditor
           name="instructions"
           defaultValue={values?.instructions}
-          required
-          maxLength={2000}
           placeholder="You dig into questions and summarize what matters."
+          comments={
+            bot ? { projectId, kind: 'bot', targetId: bot._id } : undefined
+          }
         />
-      </label>
+      </div>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex justify-end gap-2">
         {bot && (

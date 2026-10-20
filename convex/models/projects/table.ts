@@ -12,4 +12,6 @@ export const projectsTable = defineTable({
   guidelines: v.optional(v.string()),
   /** The lead's portrait. */
   portrait: v.optional(vPortrait),
+  /** The gateway model the lead runs on. Unset means the app's default. */
+  model: v.optional(v.string()),
 }).index('by_owner', ['ownerId'])

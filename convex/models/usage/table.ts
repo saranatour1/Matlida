@@ -10,6 +10,8 @@ export const usageTable = defineTable({
   kind: literals('reply', 'search', 'research', 'compute', 'voice'),
   /** Who or what did it: an assistant's name, a search query. */
   label: v.string(),
+  /** The gateway model, for model steps. */
+  model: v.optional(v.string()),
   /** AI gateway cost in US dollars. */
   aiCost: v.number(),
   inputTokens: v.number(),
