@@ -60,17 +60,23 @@ v=DMARC1; p=reject; adkim=s; aspf=s; rua=mailto:dmarc@example.com; fo=1
 ```
 
 - `p=reject`: mail that fails DMARC is refused by receivers. The app refuses
-  it too (an email is answered only when Resend saw DMARC pass with an
-  aligned DKIM signature), so this is belt and braces.
+  it too: an email is answered only when Resend reports an aligned DKIM
+  pass and DMARC `pass` or `gray` (`gray` means the sender's domain
+  publishes no policy, as Gmail does). So this is belt and braces.
 - `adkim=s`: Resend signs with `d=mail.example.com`, which aligns strictly.
 - `aspf=s`: Resend's return path is `send.mail.example.com`, a subdomain,
   which does not align strictly. That's fine: DMARC passes when either DKIM
   or SPF aligns, and DKIM does. Keep `aspf=s` so a forged return path on
   your exact domain can't pass on SPF alone.
-- `rua=`: a mailbox you read. If it's on another domain than
-  `mail.example.com`, that domain must also publish
-  `mail.example.com._report._dmarc.<that domain>` TXT `v=DMARC1` to accept
-  the reports.
+- `rua=`: a mailbox you read. Any address at `example.com` or one of its
+  subdomains needs nothing more. An address in another organization, say
+  `reports.example.net`, must also publish
+  `mail.example.com._report._dmarc.reports.example.net` TXT `v=DMARC1` to
+  accept the reports.
+
+If `mail.example.com` has no record of its own, receivers apply
+`_dmarc.example.com` to it, with its `sp=` tag (or `p=` without one). The
+checker reads it the same way.
 
 Resend's own guidance is to start at `p=none` and tighten once reports look
 clean. Since this domain sends only the assistants' mail through Resend, you
@@ -142,9 +148,11 @@ email id and Message-ID.
    with `@Ivy` to reach a bot.
 3. If nothing comes back, the Convex logs say why by id and reason:
    `Inbound email <id> rejected: <reason>`. `from_mismatch` means the mail
-   didn't come from your verified sign-in address; `dmarc_fail` or
-   `dkim_unaligned` mean your sending provider doesn't sign for your
-   address; `unknown_mailbox` means the handle isn't claimed;
+   didn't come from your verified sign-in address; `dmarc_fail` means
+   DMARC failed outright; `dkim_unaligned` means your sending provider
+   doesn't sign with your address's domain (a domain with no DMARC policy
+   is fine as long as DKIM aligns); `unknown_mailbox` means the handle
+   isn't claimed;
    `rate_limited` means more than a burst of 5 and 20 an hour.
 
 ## 9. Photon: iMessage and SMS

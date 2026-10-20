@@ -10,12 +10,16 @@
 // Options: --return-path=<label> when Resend's return path isn't "send",
 // --resolver=google to use Google's resolver instead of Cloudflare's, or
 // --resolver=<url> for any resolver that speaks the DNS JSON format.
+//
+// Exit codes: 0 when every required record is in place, 1 when one fails,
+// 2 when a lookup couldn't run (resolver or network trouble) or no domain
+// was given.
 
 const args = process.argv.slice(2)
 const flags = Object.fromEntries(
   args
     .filter((a) => a.startsWith('--'))
-    .map((a) => a.slice(2).split('=', 2))
+    .map((a) => splitOnce(a.slice(2), '='))
     .map(([key, value]) => [key, value ?? true]),
 )
 const domain = (
@@ -38,9 +42,32 @@ const resolver =
       ? flags.resolver
       : 'https://cloudflare-dns.com/dns-query'
 
+/** `key=value` split at the first `=` only, so values may contain `=`. */
+function splitOnce(text, separator) {
+  const at = text.indexOf(separator)
+  return at === -1 ? [text] : [text.slice(0, at), text.slice(at + 1)]
+}
+
+/**
+ * The organizational domain, which DMARC falls back to and compares report
+ * addresses by: the registrable part, such as example.com for
+ * mail.example.com or example.co.uk for mail.example.co.uk. Approximates the
+ * public suffix list with the common two-label suffixes.
+ */
+function organizationalDomain(name) {
+  const labels = name.split('.')
+  if (labels.length <= 2) return name
+  const [tld, second] = [labels.at(-1), labels.at(-2)]
+  const twoLabelSuffix =
+    /^(co|com|net|org|gov|edu|ac|ne|or|mil)$/.test(second) && tld.length === 2
+  return labels.slice(twoLabelSuffix ? -3 : -2).join('.')
+}
+
 /** One DoH lookup. Returns the record data strings, or throws on a resolver error. */
 async function lookup(name, type) {
-  const url = `${resolver}?name=${encodeURIComponent(name)}&type=${type}`
+  const url = new URL(resolver)
+  url.searchParams.set('name', name)
+  url.searchParams.set('type', type)
   const response = await fetch(url, {
     headers: { accept: 'application/dns-json' },
   })
@@ -89,22 +116,37 @@ function tags(record) {
       .split(';')
       .map((part) => part.trim())
       .filter(Boolean)
-      .map((part) => part.split('=', 2).map((s) => s.trim()))
+      .map((part) => splitOnce(part, '=').map((s) => s.trim()))
       .map(([key, value]) => [key.toLowerCase(), value ?? '']),
   )
 }
 
+/** The DMARC records among TXT data. */
+function dmarcRecords(data) {
+  return txt(data).filter((r) => r.toLowerCase().startsWith('v=dmarc1'))
+}
+
+const isResendInbound = (host) =>
+  /^inbound-smtp\.[a-z0-9-]+\.amazonaws\.com$/.test(host)
+
 let failed = false
+let errored = false
 function report(level, check, detail) {
   if (level === 'FAIL') failed = true
+  if (level === 'ERROR') errored = true
   console.log(`${level.padEnd(4)} ${check}: ${detail}`)
 }
 
+/** Runs one check; a resolver or network error is reported apart from a bad record. */
 async function check(name, run) {
   try {
     await run()
   } catch (error) {
-    report('FAIL', name, error instanceof Error ? error.message : String(error))
+    report(
+      'ERROR',
+      name,
+      `could not look it up (${error instanceof Error ? error.message : String(error)})`,
+    )
   }
 }
 
@@ -118,14 +160,22 @@ await check('Receiving MX', async () => {
       'Receiving MX',
       `no MX record on ${domain}; add Resend's inbound MX`,
     )
-  const [first] = records
-  const isResend = /^inbound-smtp\.[a-z0-9-]+\.amazonaws\.com$/.test(first.host)
-  if (isResend)
+  const lowest = records.filter((m) => m.priority === records[0].priority)
+  const resend = lowest.find((m) => isResendInbound(m.host))
+  const others = lowest.filter((m) => !isResendInbound(m.host))
+  if (resend && others.length === 0)
     return report(
       'PASS',
       'Receiving MX',
-      `${first.priority} ${first.host} has the lowest priority`,
+      `${resend.priority} ${resend.host} has the lowest priority`,
     )
+  if (resend)
+    return report(
+      'FAIL',
+      'Receiving MX',
+      `${others.map((m) => `${m.priority} ${m.host}`).join(', ')} shares the lowest priority with ${resend.host}, so receivers split your mail between them; give Resend's MX the lowest priority on its own`,
+    )
+  const [first] = records
   report(
     'FAIL',
     'Receiving MX',
@@ -184,50 +234,62 @@ await check('DKIM', async () => {
 
 await check('DMARC', async () => {
   const host = `_dmarc.${domain}`
-  const records = txt(await lookup(host, 'TXT')).filter((r) =>
-    r.toLowerCase().startsWith('v=dmarc1'),
-  )
+  const organization = organizationalDomain(domain)
+  let records = dmarcRecords(await lookup(host, 'TXT'))
+  let inherited = false
+  if (records.length === 0 && organization !== domain) {
+    // Receivers fall back to the organizational domain's record, whose sp=
+    // tag (or p= without one) covers subdomains.
+    records = dmarcRecords(await lookup(`_dmarc.${organization}`, 'TXT'))
+    inherited = records.length > 0
+  }
   if (records.length === 0)
     return report('FAIL', 'DMARC', `no v=DMARC1 TXT on ${host}`)
   if (records.length > 1)
     return report(
       'FAIL',
       'DMARC',
-      `${records.length} DMARC records on ${host}; there must be exactly one`,
+      `${records.length} DMARC records on ${inherited ? `_dmarc.${organization}` : host}; there must be exactly one`,
     )
   const t = tags(records[0])
-  report('PASS', 'DMARC', `${host} TXT "${records[0]}"`)
-  const policy = (t.p ?? 'none').toLowerCase()
+  report(
+    'PASS',
+    'DMARC',
+    inherited
+      ? `no record on ${host}; _dmarc.${organization} TXT "${records[0]}" applies to its subdomains`
+      : `${host} TXT "${records[0]}"`,
+  )
+  const policy = ((inherited ? (t.sp ?? t.p) : t.p) ?? 'none').toLowerCase()
+  const policyTag = inherited && t.sp ? 'sp' : 'p'
   report(
     policy === 'reject' ? 'PASS' : 'FAIL',
     'DMARC policy',
     policy === 'reject'
-      ? 'p=reject'
-      : `p=${policy}; use p=reject so spoofed mail is refused`,
+      ? `${policyTag}=reject`
+      : `${policyTag}=${policy}; use ${policyTag}=reject so spoofed mail is refused`,
   )
-  report(
-    (t.adkim ?? 'r').toLowerCase() === 's' ? 'PASS' : 'FAIL',
-    'DMARC DKIM alignment',
-    `adkim=${t.adkim ?? 'r (default)'}; set adkim=s`,
-  )
-  report(
-    (t.aspf ?? 'r').toLowerCase() === 's' ? 'PASS' : 'FAIL',
-    'DMARC SPF alignment',
-    `aspf=${t.aspf ?? 'r (default)'}; set aspf=s`,
-  )
+  for (const [tag, name] of [
+    ['adkim', 'DMARC DKIM alignment'],
+    ['aspf', 'DMARC SPF alignment'],
+  ]) {
+    const strict = (t[tag] ?? 'r').toLowerCase() === 's'
+    report(
+      strict ? 'PASS' : 'FAIL',
+      name,
+      strict ? `${tag}=s` : `${tag}=${t[tag] ?? 'r (default)'}; set ${tag}=s`,
+    )
+  }
   const rua = t.rua ?? ''
   if (/^mailto:[^\s@,]+@[^\s@,]+/i.test(rua)) {
     report('PASS', 'DMARC reports', `rua=${rua}`)
     const reportDomain = rua.split('@')[1]?.split(/[,!]/)[0]?.toLowerCase()
-    if (
-      reportDomain &&
-      reportDomain !== domain &&
-      !domain.endsWith(`.${reportDomain}`)
-    ) {
-      const authorization = txt(
+    // Reports to another organization need that organization's consent
+    // record. Any address in your own organization needs nothing.
+    if (reportDomain && organizationalDomain(reportDomain) !== organization) {
+      const authorization = dmarcRecords(
         await lookup(`${domain}._report._dmarc.${reportDomain}`, 'TXT'),
       )
-      if (authorization.some((r) => r.toLowerCase().startsWith('v=dmarc1'))) {
+      if (authorization.length > 0) {
         report(
           'PASS',
           'DMARC report authorization',
@@ -269,8 +331,10 @@ await check('TLS-RPT', async () => {
 })
 
 console.log(
-  failed
-    ? '\nSome checks failed. See docs/setup/channels.md.'
-    : '\nAll required records are in place.',
+  errored
+    ? '\nSome lookups could not run. Check the resolver and your network, then run again.'
+    : failed
+      ? '\nSome checks failed. See docs/setup/channels.md.'
+      : '\nAll required records are in place.',
 )
-process.exit(failed ? 1 : 0)
+process.exit(errored ? 2 : failed ? 1 : 0)

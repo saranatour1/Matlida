@@ -47,6 +47,34 @@ const zones = {
   '_dmarc.weak.example/TXT': [
     { type: 16, data: '"v=DMARC1; p=none; rua=mailto:dmarc@weak.example"' },
   ],
+  // A subdomain with no DMARC record of its own, covered by the
+  // organization's record, reporting to a mailbox in the same organization.
+  'mail.org.example/MX': [
+    { type: 15, data: '10 inbound-smtp.eu-west-1.amazonaws.com.' },
+  ],
+  'send.mail.org.example/TXT': [
+    { type: 16, data: '"v=spf1 include:amazonses.com ~all"' },
+  ],
+  'send.mail.org.example/MX': [
+    { type: 15, data: '10 feedback-smtp.eu-west-1.amazonses.com.' },
+  ],
+  'resend._domainkey.mail.org.example/TXT': [
+    {
+      type: 16,
+      data: '"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDsC4Lh8xils=="',
+    },
+  ],
+  '_dmarc.org.example/TXT': [
+    {
+      type: 16,
+      data: '"v=DMARC1; p=quarantine; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc@reports.org.example"',
+    },
+  ],
+  // Resend's MX tied with another at the lowest priority.
+  'tie.example/MX': [
+    { type: 15, data: '10 mail.tie.example.' },
+    { type: 15, data: '10 inbound-smtp.us-east-1.amazonaws.com.' },
+  ],
 }
 
 let server
@@ -68,15 +96,16 @@ beforeAll(async () => {
 
 afterAll(() => server.close())
 
-async function check(domain) {
+async function check(domain, through = resolver) {
   try {
     const { stdout } = await run(process.execPath, [
       'scripts/check-email-dns.mjs',
       domain,
-      `--resolver=${resolver}`,
+      `--resolver=${through}`,
     ])
     return { code: 0, lines: stdout.trim().split('\n') }
   } catch (error) {
+    if (typeof error.stdout !== 'string') throw error
     return { code: error.code, lines: error.stdout.trim().split('\n') }
   }
 }
@@ -97,6 +126,8 @@ test('a fully set up domain passes every required check', async () => {
     ),
   )
   expect(lines).toContain('PASS DMARC policy: p=reject')
+  expect(lines).toContain('PASS DMARC DKIM alignment: adkim=s')
+  expect(lines).toContain('PASS DMARC SPF alignment: aspf=s')
   expect(lines).toContain(
     'PASS DMARC report authorization: reports.example accepts reports for good.example',
   )
@@ -128,6 +159,48 @@ test('a weak setup fails with the record to fix on each line', async () => {
     'FAIL DMARC SPF alignment: aspf=r (default); set aspf=s',
   )
   expect(lines).toContain('PASS DMARC reports: rua=mailto:dmarc@weak.example')
+})
+
+test("a subdomain is covered by its organization's DMARC record and reports stay in house", async () => {
+  const { code, lines } = await check('mail.org.example')
+  expect(code).toBe(0)
+  expect(lines.filter((l) => l.startsWith('FAIL'))).toEqual([])
+  expect(lines).toContain(
+    'PASS DMARC: no record on _dmarc.mail.org.example; _dmarc.org.example TXT "v=DMARC1; p=quarantine; sp=reject; adkim=s; aspf=s; rua=mailto:dmarc@reports.org.example" applies to its subdomains',
+  )
+  expect(lines).toContain('PASS DMARC policy: sp=reject')
+  expect(lines.some((l) => l.includes('report authorization'))).toBe(false)
+})
+
+test('an MX tied with Resend at the lowest priority fails', async () => {
+  const { code, lines } = await check('tie.example')
+  expect(code).toBe(1)
+  expect(lines).toContain(
+    "FAIL Receiving MX: 10 mail.tie.example shares the lowest priority with inbound-smtp.us-east-1.amazonaws.com, so receivers split your mail between them; give Resend's MX the lowest priority on its own",
+  )
+})
+
+test('a resolver URL with its own query string still works', async () => {
+  const { code } = await check(
+    'good.example',
+    `${resolver}?ct=application/dns-json`,
+  )
+  expect(code).toBe(0)
+})
+
+test('a resolver that cannot be reached is an error, not a failed record', async () => {
+  const { code, lines } = await check(
+    'good.example',
+    'http://127.0.0.1:9/dns-query',
+  )
+  expect(code).toBe(2)
+  expect(lines.filter((l) => l.startsWith('FAIL'))).toEqual([])
+  expect(lines).toContainEqual(
+    expect.stringMatching(/^ERROR Receiving MX: could not look it up \(/),
+  )
+  expect(lines.at(-1)).toBe(
+    'Some lookups could not run. Check the resolver and your network, then run again.',
+  )
 })
 
 test('without a domain it prints usage and exits 2', async () => {
