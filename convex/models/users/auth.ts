@@ -29,8 +29,9 @@ const {
   emailSender: {
     kind: 'resend',
     sendEmail: components.resend.lib.sendEmail,
-    apiKey: env.RESEND_API_KEY,
-    from: env.AUTH_EMAIL_FROM,
+    // ponytail: optional so a deployment runs without them; sign-up and reset emails fail until they're set.
+    apiKey: env.RESEND_API_KEY ?? '',
+    from: env.AUTH_EMAIL_FROM ?? '',
   },
   urls: {
     signUp: `${siteUrl}/verify-email`,
