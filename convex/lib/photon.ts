@@ -93,6 +93,53 @@ export function plainText(content: PhotonEmail['content']) {
   return part?.text ?? ''
 }
 
+const zId = z.object({ id: z.string() })
+
+/** Photon's user for an email address, created on first use. */
+async function emailUser(keys: PhotonKeys, address: string) {
+  const user = await call(keys, '/users', {
+    method: 'POST',
+    body: JSON.stringify({ handle: address, platform: 'email' }),
+  })
+  return zId.parse(user).id
+}
+
+/**
+ * Starts a new email from `from` (an address on the connected domain) to `to`.
+ * `key` makes retries safe: the same key reuses the thread and the message.
+ */
+export async function sendEmail(
+  keys: PhotonKeys,
+  {
+    from,
+    to,
+    subject,
+    text,
+    key,
+  }: { from: string; to: string; subject: string; text: string; key: string },
+) {
+  const senderId = await emailUser(keys, from)
+  const recipientId = await emailUser(keys, to)
+  const space = await call(keys, '/spaces', {
+    method: 'POST',
+    headers: { 'idempotency-key': key },
+    body: JSON.stringify({
+      platform: 'email',
+      participantIds: [senderId, recipientId],
+    }),
+  })
+  await call(keys, '/messages', {
+    method: 'POST',
+    headers: { 'idempotency-key': key },
+    body: JSON.stringify({
+      spaceId: zId.parse(space).id,
+      senderId,
+      content: { type: 'text', format: 'plain', text },
+      email: { subject, to: [{ address: to }] },
+    }),
+  })
+}
+
 /**
  * Replies to `email` in its thread, to `to` only. Photon builds the threading
  * headers from `parentMessageId`; `to` overrides the recipients it would

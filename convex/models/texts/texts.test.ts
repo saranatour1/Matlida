@@ -1,4 +1,5 @@
 import agentTest from '@convex-dev/agent/test'
+import rateLimiterTest from '@convex-dev/rate-limiter/test'
 import spectrumTest from '@spectrum-ts/convex/test'
 import { convexTest } from 'convex-test'
 import { createFunctionHandle } from 'convex/server'
@@ -78,6 +79,7 @@ async function setup() {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   spectrumTest.register(t)
+  rateLimiterTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', {}),
     await ctx.db.insert('users', {}),
@@ -200,6 +202,78 @@ test('a failed reply still texts back and closes the turn', async () => {
   expect(log.mock.calls.flat().map(String)).toContainEqual(
     expect.stringContaining('Gateway is down'),
   )
+})
+
+test('a linked owner who floods is asked to slow down, from any app', async () => {
+  const { asAda, projectId, text } = await setup()
+  vi.useFakeTimers()
+  for (const [spaceId, platform] of [
+    ['tg-1', 'telegram'],
+    ['wa-1', 'whatsapp_business'],
+  ] as const) {
+    const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+    await text(spaceId, `link ${code}`, platform)
+  }
+  // Both chats count against the same owner: 15 in a row, then a pause.
+  for (let i = 0; i < 15; i++) {
+    expect(await text(i % 2 ? 'tg-1' : 'wa-1', `hi ${i}`)).toBe(
+      'Hi from Matilda.',
+    )
+  }
+  expect(await text('tg-1', 'one more')).toBe(
+    "You're sending a lot of messages. Give me a few minutes and try again.",
+  )
+  expect(calls).toHaveLength(15)
+})
+
+test('an unlinked chat that floods is answered a few times, then ignored', async () => {
+  const { text } = await setup()
+  vi.useFakeTimers()
+  for (let i = 0; i < 15; i++) {
+    expect(await text('stranger', `hello ${i}`)).toBe(
+      "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows.",
+    )
+  }
+  expect(await text('stranger', 'hello again')).toBe('')
+})
+
+test('guessing link codes is cut off, silently', async () => {
+  const { asAda, projectId, text } = await setup()
+  vi.useFakeTimers()
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  for (let i = 0; i < 5; i++) {
+    expect(await text('guess', `link AAAAA${i}`)).toBe(
+      "That code didn't match. Get a new one on the Messaging page in Matilda.",
+    )
+  }
+  // Even the right code waits now; the user gets a fresh one later.
+  expect(await text('guess', `link ${code}`)).toBe('')
+  expect(await asAda.query(api.api.texts.links, { projectId })).toMatchObject([
+    { status: 'pending', code },
+  ])
+})
+
+test('an ignored message sends nothing back and still closes the turn', async () => {
+  const { t, text } = await setup()
+  vi.useFakeTimers()
+  for (let i = 0; i < 15; i++) await text('stranger', `hello ${i}`)
+  await t.run(async (ctx) => {
+    await ctx.runMutation(components.spectrum.inbound.enqueue, {
+      spaceId: 'stranger',
+      messageId: 'text-16',
+      platform: 'iMessage',
+      content: { type: 'text', text: 'hello again' },
+      mode: 'collapse',
+      onBatch: await createFunctionHandle(internal.api.texts.respond),
+    })
+  })
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(delivered).toEqual([])
+  expect(
+    await t.query(components.spectrum.inbound.listMessages, {
+      spaceId: 'stranger',
+    }),
+  ).toMatchObject([{ messageId: 'text-16', status: 'handled' }])
 })
 
 test('only the owner can start or read a link', async () => {

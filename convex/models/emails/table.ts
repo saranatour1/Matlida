@@ -13,10 +13,18 @@ export const emailsTable = defineTable({
   receivedAt: v.number(),
   /**
    * `answering` then `answered` or `failed`: from the mailbox owner, replied to.
+   * `limited`: from the owner, but over the limit on answers, so only posted.
    * `shown`: from anyone else, posted in the owner's inbox chat.
    * `ignored`: no one has claimed the address.
    */
-  status: literals('answering', 'answered', 'failed', 'shown', 'ignored'),
+  status: literals(
+    'answering',
+    'answered',
+    'failed',
+    'limited',
+    'shown',
+    'ignored',
+  ),
 })
   .index('by_messageId', ['messageId'])
   .index('by_receivedAt', ['receivedAt'])

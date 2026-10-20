@@ -7,6 +7,7 @@ import {
   internalMutation,
   internalQuery,
 } from '../../_generated/server'
+import { rateLimiter } from '../../lib/limits'
 import { stripQuotes } from '../../lib/mail'
 import { listEmails, plainText, replyByEmail } from '../../lib/photon'
 import schema from '../../schema'
@@ -114,6 +115,31 @@ const receive = internalMutation({
       !!owner.email &&
       args.from.toLowerCase() === owner.email.toLowerCase()
     if (fromOwner && owner.email) {
+      // Photon can't tell a forged From from a real one, and an out-of-office
+      // reply could loop, so answers per owner are capped.
+      const limit = await rateLimiter.limit(ctx, 'inboundEmail', {
+        key: `user:${owner._id}`,
+      })
+      if (!limit.ok) {
+        const threadId = await chatFor(ctx, mailbox, 'threadId')
+        await saveMessage(ctx, components.agent, {
+          threadId,
+          message: {
+            role: 'user',
+            content: [args.subject, args.text].filter(Boolean).join('\n\n'),
+          },
+        })
+        await saveMessage(ctx, components.agent, {
+          threadId,
+          message: {
+            role: 'assistant',
+            content:
+              '_Not answered by email: too many emails in a short time. Try again in a few minutes._',
+          },
+        })
+        await record('limited')
+        return null
+      }
       await record('answering')
       return {
         project,

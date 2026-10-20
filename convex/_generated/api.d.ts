@@ -30,6 +30,7 @@ import type * as lib_ai from "../lib/ai.js";
 import type * as lib_channels from "../lib/channels.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_handles from "../lib/handles.js";
+import type * as lib_limits from "../lib/limits.js";
 import type * as lib_mail from "../lib/mail.js";
 import type * as lib_models from "../lib/models.js";
 import type * as lib_photon from "../lib/photon.js";
@@ -98,6 +99,7 @@ declare const fullApi: ApiFromModules<{
   "lib/channels": typeof lib_channels;
   "lib/functions": typeof lib_functions;
   "lib/handles": typeof lib_handles;
+  "lib/limits": typeof lib_limits;
   "lib/mail": typeof lib_mail;
   "lib/models": typeof lib_models;
   "lib/photon": typeof lib_photon;
@@ -168,6 +170,7 @@ export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   spectrum: import("@spectrum-ts/convex/_generated/component.js").ComponentApi<"spectrum">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;
   authEmail: import("@convex-dev/auth/components/email/_generated/component.js").ComponentApi<"authEmail">;

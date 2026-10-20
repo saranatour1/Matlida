@@ -1,4 +1,5 @@
 import agentTest from '@convex-dev/agent/test'
+import rateLimiterTest from '@convex-dev/rate-limiter/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
@@ -84,6 +85,7 @@ function email(
 async function setup() {
   const t = convexTest(schema, modules)
   agentTest.register(t)
+  rateLimiterTest.register(t)
   const ada = await t.run((ctx) =>
     ctx.db.insert('users', { email: 'ada@example.com' }),
   )
@@ -204,6 +206,28 @@ test("a reply that can't be sent says so in the chat", async () => {
     "_This reply couldn't be sent by email._",
   ])
   expect(await statuses()).toEqual(['failed'])
+})
+
+test('past 5 emails at once, yours are posted but not answered', async () => {
+  const { poll, chat, statuses } = await setup()
+  received = Array.from({ length: 6 }, (_, i) =>
+    email(`m${i}`, 'ada@example.com', `Question ${i}`),
+  )
+  await poll()
+
+  expect(sent).toHaveLength(5)
+  expect((await chat('Matilda · Email'))?.slice(-2)).toEqual([
+    'Today\n\nQuestion 5',
+    '_Not answered by email: too many emails in a short time. Try again in a few minutes._',
+  ])
+  expect(await statuses()).toEqual([
+    'answered',
+    'answered',
+    'answered',
+    'answered',
+    'answered',
+    'limited',
+  ])
 })
 
 test('nothing is checked until Photon is set up', async () => {
