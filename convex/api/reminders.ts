@@ -2,8 +2,11 @@ import { remindersApi } from '../models/reminders/functions'
 
 export const {
   schedule,
+  confirm,
+  state,
   list,
   cancel,
+  allowContactMessage,
   delivery,
   markSent,
   fire,

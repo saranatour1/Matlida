@@ -201,3 +201,10 @@
 ### Grok and Muse in the model menu (2026-10-20)
 
 - The model menu and the bot and workspace forms also offer Grok 4.7 (`x-ai/grok-4.7`) and Meta's Muse Spark 1.3 (`meta/muse-spark-1.3`), both served by the Convex AI gateway.
+
+### Contacts, and messages to other people (2026-10-20)
+
+- Assistants keep contacts (`contacts`): `save_contact` and `find_contact` tools, saved by name, updated when the same name comes back, found by the start of a name.
+- `set_reminder` takes `to` (a contact) and `say` (the message, written to them): "tell Luke tomorrow to check his car insurance" schedules an email to Luke from your assistant address, signed as an automated message from your assistant. It waits as `pending` with Send and Cancel in the chat, and goes out only once you confirm. Calling or texting other people isn't available; the tool tells the assistant to offer email instead. At most 10 messages to contacts at once, then 20 a day per workspace.
+- The chat's tool types now come from `assistantTools` itself (`InferUITools`), so a tool's output can't drift from what the chat shows.
+- Verified with unit tests, Photon's API mocked: contacts saved once per name and found by prefix; a message held until confirmed, then emailed with the exact text and noted in the chat; cancel; another user refused; no email; the limit.

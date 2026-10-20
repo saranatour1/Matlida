@@ -15,6 +15,7 @@ import type * as api_channels from "../api/channels.js";
 import type * as api_chat from "../api/chat.js";
 import type * as api_commands from "../api/commands.js";
 import type * as api_comments from "../api/comments.js";
+import type * as api_contacts from "../api/contacts.js";
 import type * as api_emails from "../api/emails.js";
 import type * as api_mailboxes from "../api/mailboxes.js";
 import type * as api_plans from "../api/plans.js";
@@ -48,6 +49,8 @@ import type * as models_commands_functions from "../models/commands/functions.js
 import type * as models_commands_table from "../models/commands/table.js";
 import type * as models_comments_functions from "../models/comments/functions.js";
 import type * as models_comments_table from "../models/comments/table.js";
+import type * as models_contacts_functions from "../models/contacts/functions.js";
+import type * as models_contacts_table from "../models/contacts/table.js";
 import type * as models_emails_functions from "../models/emails/functions.js";
 import type * as models_emails_table from "../models/emails/table.js";
 import type * as models_mailboxes_functions from "../models/mailboxes/functions.js";
@@ -89,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   "api/chat": typeof api_chat;
   "api/commands": typeof api_commands;
   "api/comments": typeof api_comments;
+  "api/contacts": typeof api_contacts;
   "api/emails": typeof api_emails;
   "api/mailboxes": typeof api_mailboxes;
   "api/plans": typeof api_plans;
@@ -122,6 +126,8 @@ declare const fullApi: ApiFromModules<{
   "models/commands/table": typeof models_commands_table;
   "models/comments/functions": typeof models_comments_functions;
   "models/comments/table": typeof models_comments_table;
+  "models/contacts/functions": typeof models_contacts_functions;
+  "models/contacts/table": typeof models_contacts_table;
   "models/emails/functions": typeof models_emails_functions;
   "models/emails/table": typeof models_emails_table;
   "models/mailboxes/functions": typeof models_mailboxes_functions;

@@ -10,6 +10,7 @@ import {
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
+import { rateLimiter } from '../../lib/limits'
 import { photonKeys, sendEmail, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getMailbox } from '../mailboxes/functions'
@@ -17,7 +18,7 @@ import { getOwnedProject } from '../projects/functions'
 import { getLink } from '../texts/functions'
 import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
-import type { Id } from '../../_generated/dataModel'
+import type { Doc, Id } from '../../_generated/dataModel'
 import type { ActionCtx, MutationCtx } from '../../_generated/server'
 
 const YEAR_MS = 366 * 24 * 60 * 60 * 1000
@@ -33,6 +34,9 @@ const schedule = internalMutation({
     'message',
     'dueAt',
     'via',
+    'contactId',
+    'toName',
+    'say',
   ),
   returns: v.id('reminders'),
   handler: async (ctx, reminder) => {
@@ -43,17 +47,51 @@ const schedule = internalMutation({
     if (reminder.dueAt > now + YEAR_MS) {
       throw new Error('Reminders can be at most a year out.')
     }
+    // A message to someone else waits for the owner's OK in the chat.
+    if (reminder.contactId) {
+      return await ctx.db.insert('reminders', {
+        ...reminder,
+        status: 'pending',
+      })
+    }
     const id = await ctx.db.insert('reminders', {
       ...reminder,
       status: 'scheduled',
     })
-    const scheduledId = await ctx.scheduler.runAt(
-      reminder.dueAt,
-      internal.api.reminders.fire,
-      { id },
-    )
-    await ctx.db.patch('reminders', id, { scheduledId })
+    await start(ctx, id, reminder.dueAt)
     return id
+  },
+})
+
+async function start(ctx: MutationCtx, id: Id<'reminders'>, dueAt: number) {
+  const scheduledId = await ctx.scheduler.runAt(
+    dueAt,
+    internal.api.reminders.fire,
+    { id },
+  )
+  await ctx.db.patch('reminders', id, { status: 'scheduled', scheduledId })
+}
+
+/** The owner's OK for a message to a contact. Sends it when due, or now if that's passed. */
+const confirm = authedMutation({
+  args: { id: v.id('reminders') },
+  handler: async (ctx, { id }) => {
+    const reminder = await ctx.db.get('reminders', id)
+    if (!reminder) throw new ConvexError('Reminder not found.')
+    await getOwnedProject(ctx, ctx.userId, reminder.projectId)
+    if (reminder.status !== 'pending') return
+    await start(ctx, id, Math.max(reminder.dueAt, Date.now()))
+  },
+})
+
+/** A reminder's status, for its card in the chat. */
+const state = authedQuery({
+  args: { id: v.id('reminders') },
+  handler: async (ctx, { id }) => {
+    const reminder = await ctx.db.get('reminders', id)
+    if (!reminder) return null
+    await getOwnedProject(ctx, ctx.userId, reminder.projectId)
+    return reminder.status
   },
 })
 
@@ -77,7 +115,7 @@ const cancel = authedMutation({
     const reminder = await ctx.db.get('reminders', id)
     if (!reminder) throw new ConvexError('Reminder not found.')
     await getOwnedProject(ctx, ctx.userId, reminder.projectId)
-    if (reminder.status !== 'scheduled') return
+    if (reminder.status !== 'scheduled' && reminder.status !== 'pending') return
     if (reminder.scheduledId) await ctx.scheduler.cancel(reminder.scheduledId)
     await ctx.db.patch('reminders', id, { status: 'cancelled' })
   },
@@ -95,6 +133,11 @@ const delivery = internalQuery({
       ),
       /** Where an email reminder goes and comes from, once the owner has an address. */
       mail: v.union(v.object({ to: v.string(), from: v.string() }), v.null()),
+      /** For a message to a contact: their email, and the owner's name to sign it with. */
+      contact: v.union(
+        v.object({ email: v.union(v.string(), v.null()), owner: v.string() }),
+        v.null(),
+      ),
     }),
     v.null(),
   ),
@@ -110,8 +153,17 @@ const delivery = internalQuery({
       owner?.email && mailbox && env.MAIL_DOMAIN
         ? { to: owner.email, from: addressOf(mailbox.handle, env.MAIL_DOMAIN) }
         : null
+    const contact = reminder.contactId
+      ? await ctx.db.get('contacts', reminder.contactId)
+      : null
     return {
       reminder,
+      contact: reminder.contactId
+        ? {
+            email: contact?.email ?? null,
+            owner: owner?.name ?? owner?.email ?? 'your contact',
+          }
+        : null,
       chat:
         link?.status === 'linked'
           ? { spaceId: link.spaceId, agentId: link.agentId }
@@ -131,11 +183,14 @@ async function deliver(ctx: MutationCtx, id: Id<'reminders'>, note?: string) {
     return null
   }
   await ctx.db.patch('reminders', id, { status: 'sent', note })
+  const content = reminder.contactId
+    ? `📨 **To ${reminder.toName ?? 'your contact'}:** ${reminder.say ?? reminder.message}`
+    : `⏰ **Reminder:** ${reminder.message}`
   await saveMessage(ctx, components.agent, {
     threadId: reminder.threadId,
     message: {
       role: 'assistant',
-      content: `⏰ **Reminder:** ${reminder.message}${note ? `\n\n_${note}_` : ''}`,
+      content: `${content}${note ? `\n\n_${note}_` : ''}`,
     },
   })
   return reminder
@@ -294,6 +349,48 @@ const miss = internalAction({
   },
 })
 
+/**
+ * Emails a contact the reminder's message, from the owner's assistant address
+ * and signed as an automated message. Returns a note for the chat when it
+ * couldn't, or null.
+ */
+async function emailContact(
+  ctx: ActionCtx,
+  reminder: Doc<'reminders'>,
+  contact: { email: string | null; owner: string },
+  from: string | null,
+) {
+  const keys = photonKeys(env)
+  if (!contact.email) return "There's no email for them, so it wasn't sent."
+  if (!from || !keys) return "Email isn't set up, so it wasn't sent."
+  const allowed: boolean = await ctx.runMutation(
+    internal.api.reminders.allowContactMessage,
+    { projectId: reminder.projectId },
+  )
+  if (!allowed) return 'Too many messages to contacts today, so it wasn’t sent.'
+  try {
+    await sendEmail(keys, {
+      from,
+      to: contact.email,
+      subject: `A message from ${contact.owner}`,
+      text: `${reminder.say ?? reminder.message}\n\n${reminder.from}, ${contact.owner}'s assistant. This message was sent automatically.`,
+      key: `reminder:${reminder._id}`,
+    })
+    return undefined
+  } catch (error) {
+    console.error(error)
+    return "The email couldn't be sent."
+  }
+}
+
+/** Whether the workspace may message another contact now. */
+const allowContactMessage = internalMutation({
+  args: { projectId: v.id('projects') },
+  returns: v.boolean(),
+  handler: async (ctx, { projectId }) =>
+    (await rateLimiter.limit(ctx, 'contactMessage', { key: projectId })).ok,
+})
+
 /** Delivers a due reminder: a ring, a text or an email when asked for, and always a chat message. */
 const fire = internalAction({
   args: { id: v.id('reminders') },
@@ -304,7 +401,14 @@ const fire = internalAction({
       status: 'scheduled',
     })
     if (!found) return null
-    const { reminder, chat, mail } = found
+    const { reminder, chat, mail, contact } = found
+    if (contact) {
+      await ctx.runMutation(internal.api.reminders.markSent, {
+        id,
+        note: await emailContact(ctx, reminder, contact, mail?.from ?? null),
+      })
+      return null
+    }
     if (reminder.via === 'call') {
       await ctx.runMutation(internal.api.reminders.ring, { id })
       return null
@@ -347,8 +451,11 @@ const fire = internalAction({
 
 export const remindersApi = {
   schedule,
+  confirm,
+  state,
   list,
   cancel,
+  allowContactMessage,
   delivery,
   markSent,
   fire,

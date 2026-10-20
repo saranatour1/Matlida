@@ -9,4 +9,11 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   inboundText: { kind: 'token bucket', rate: 60, period: HOUR, capacity: 15 },
   /** `link <code>` tries from one chat: 5, then 10 an hour, so a code can't be guessed. */
   linkAttempt: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 5 },
+  /** Messages one workspace can send to its contacts: 10 at once, then 20 a day. */
+  contactMessage: {
+    kind: 'token bucket',
+    rate: 20,
+    period: 24 * HOUR,
+    capacity: 10,
+  },
 })
