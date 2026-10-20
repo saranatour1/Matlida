@@ -222,6 +222,13 @@
 - The details panel's Library tab lists the chat's tasks and their progress.
 - Verified with unit tests, the model mocked and the workflow run with convex-test: Start running both steps in order and ticking the plan; Don't start; cancel; a step that keeps failing; owner-only; and that a task can't start another plan.
 
+### Built-in commands, a "+" menu, and commands written by AI (2026-10-20)
+
+- Every workspace has built-in commands without saving them (`convex/lib/commands.ts`): `/create` (say what you want made, and the assistant picks the tool: a plan, a run, posts, an email or doc, research, a reminder or message, or a new command through the new `save_command` tool), `/plan`, `/run` (plan, then run it step by step), `/posts` (X, Reddit and Discord), `/email`, `/doc` and `/research`. Type `/name` and what it's about, like `/posts our launch week`. A Library command with the same name replaces a built-in.
+- Commands are now resolved by name when the reply runs (the workspace's first, then the built-ins), and bots follow them too, not just the lead.
+- The "+" in the message box lists the commands and your own; clicking one puts `/name ` in the box for you to finish. Typing `/` in the box opens the same list, like Discord: it filters as you type, ↑ and ↓ move, Tab, Enter or a click picks, Esc closes; once a command is typed, a line above the box says what it does, or that there's no such command. "Create a command with AI…" opens a dialog: say what it should do, `commands.draft` writes the name, description and instructions (`generateObject`), and you check and edit them before saving. The name is made a unique slug, built-ins included.
+- Verified with unit tests, the model mocked: a built-in runs without being saved, a Library command overrides it, a bot follows a command, the draft's name cleaned and made unique with nothing saved, and another user refused. The menu and dialog weren't driven in a browser.
+
 ### Texting limit taken once, as a message is recorded (2026-10-20)
 
 - `convex insights` showed `api/texts.js:admit` retrying on OCC conflicts on the rate limiter's table: several Telegram messages picked up together were answered side by side, and each reply took a token from the same `inboundText` bucket at the same moment. Retries succeeded; nothing was lost.
