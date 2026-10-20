@@ -163,3 +163,10 @@
 - `emails` records each Photon message id and its outcome (answered, failed, shown, ignored), never the text, so each email is handled once. A reply that can't be sent says so in the chat.
 - It polls because Photon's beta webhooks don't document their signature yet. Photon doesn't pass on DKIM or DMARC results, so a forged From can make Matilda answer, but the reply only ever goes to the owner.
 - Verified with unit tests, Photon's API mocked: the owner's email answered with the right recipients, threading and idempotency key, quoted history cut, a second check skipping it; a stranger's email shown and unanswered; spam; unclaimed addresses; a failed send; and nothing running before Photon is set up.
+
+### Email reminders and limits on answers and texting (2026-10-20)
+
+- `set_reminder` takes `via: 'email'`: when it's due, the reminder is emailed to the owner's verified address from their assistant address, through Photon (a new thread per reminder, keyed by the reminder so retries send once), and still posts in the chat. Without an address, or when Photon refuses, it only posts, with a note.
+- Matilda answers at most 5 of the owner's emails at once, then 20 an hour (`@convex-dev/rate-limiter`). Past that, the email is posted in the chat with a note and not answered. This caps forged mail and out-of-office loops, since Photon can't tell a forged From.
+- Inbound texting is limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
+- Verified with unit tests, Photon's API mocked: an email reminder's exact Photon calls, the no-address and failed-send notes, the sixth email in a burst posted but not answered, the owner flood across two apps, the ignored stranger, code guessing, and a turn that sends nothing.

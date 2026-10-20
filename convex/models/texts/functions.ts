@@ -1,7 +1,9 @@
+import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { internalAction, internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
+import { rateLimiter } from '../../lib/limits'
 import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
@@ -129,6 +131,34 @@ const claim = internalMutation({
 type Linked = Extract<Doc<'phoneLinks'>, { status: 'linked' }>
 
 /**
+ * Whether a chat may send another message or try another code. Messages
+ * from a linked chat count against its owner, so one person can't run up
+ * the model from several apps; anything else counts against the chat.
+ */
+const admit = internalMutation({
+  args: { spaceId: v.string(), kind: literals('message', 'link') },
+  returns: v.boolean(),
+  handler: async (ctx, { spaceId, kind }) => {
+    if (kind === 'link') {
+      const tries = await rateLimiter.limit(ctx, 'linkAttempt', {
+        key: `space:${spaceId}`,
+      })
+      return tries.ok
+    }
+    const linked = await ctx.db
+      .query('phoneLinks')
+      .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
+      .unique()
+    const key =
+      linked?.status === 'linked'
+        ? `user:${linked.ownerId}`
+        : `space:${spaceId}`
+    const texts = await rateLimiter.limit(ctx, 'inboundText', { key })
+    return texts.ok
+  },
+})
+
+/**
  * Who a message from `spaceId` goes to. A message starting with `@name`
  * switches to that assistant for this and later messages. Starts the
  * assistant's chat for this link if needed. Null when the chat isn't linked.
@@ -233,13 +263,22 @@ async function chatFor(
   return threadId
 }
 
-/** What to send back to a message from `spaceId`. Links the chat, or lets its assistant answer. */
+/**
+ * What to send back to a message from `spaceId`. Links the chat, or lets its
+ * assistant answer. Empty when nothing should be sent: a chat that's over
+ * its limit while unlinked, or guessing codes.
+ */
 const answer = internalAction({
   args: { spaceId: v.string(), platform: v.string(), text: v.string() },
   returns: v.string(),
   handler: async (ctx, { spaceId, platform, text }): Promise<string> => {
     const code = /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
+    const admitted: boolean = await ctx.runMutation(internal.api.texts.admit, {
+      spaceId,
+      kind: code ? 'link' : 'message',
+    })
     if (code) {
+      if (!admitted) return ''
       const name: string | null = await ctx.runMutation(
         internal.api.texts.claim,
         { code, spaceId, platform },
@@ -259,7 +298,12 @@ const answer = internalAction({
       text,
     })
     if (!linked) {
-      return "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
+      return admitted
+        ? "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
+        : ''
+    }
+    if (!admitted) {
+      return "You're sending a lot of messages. Give me a few minutes and try again."
     }
     const { project, bots, bot, threadId, prompt } = linked
     const names = [project.name, ...bots.map((b) => b.name)].join(', ')
@@ -312,7 +356,7 @@ const respond = internalAction({
             return 'Sorry, something went wrong. Try again in a minute.'
           })
         // A newer text may have superseded this turn while the lead was thinking.
-        if (await spectrum.isCancelled(ctx, args)) return null
+        if (!reply || (await spectrum.isCancelled(ctx, args))) return null
         await spectrum.send(ctx, {
           spaceId: args.spaceId,
           chainId: args.chainId,
@@ -341,6 +385,7 @@ export const textsApi = {
   unlink,
   claim,
   forSpace,
+  admit,
   answer,
   respond,
 }
