@@ -8,6 +8,7 @@ import { languageModel } from '../../lib/ai'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
+import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
@@ -245,4 +246,23 @@ const draft = zAuthedAction({
   },
 })
 
-export const commandsApi = { list, get, save, write, remove, names, draft }
+/** The project's command called `name`, as a list of at most one. For the `save_command` tool. */
+const byName = internalQuery({
+  args: { projectId: v.id('projects'), name: v.string() },
+  returns: v.array(schema.doc('commands')),
+  handler: async (ctx, { projectId, name }) => {
+    const command = await getCommand(ctx, projectId, name)
+    return command ? [command] : []
+  },
+})
+
+export const commandsApi = {
+  list,
+  get,
+  save,
+  write,
+  remove,
+  names,
+  draft,
+  byName,
+}

@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
@@ -141,4 +141,29 @@ test('bots follow commands too', async () => {
   )
   expect(sent).toContain('You are Ivy')
   expect(sent).toContain('List each bot with its top priority.')
+})
+
+test('/create works out what to make, with save_command among its tools', async () => {
+  const { t, asAda, projectId } = await setup()
+  const sent = await send(t, () =>
+    asAda.mutation(api.api.chat.sendMessage, {
+      projectId,
+      prompt: '/create a weekly update command for the team',
+    }),
+  )
+  expect(sent).toContain('The user ran the /create command.')
+  expect(sent).toContain('a reusable command (save_command)')
+  expect(sent).toContain('"save_command"')
+})
+
+test('save_command finds the command it replaces by name', async () => {
+  const { t, projectId } = await setup()
+  const found = await t.query(internal.api.commands.byName, {
+    projectId,
+    name: 'standup',
+  })
+  expect(found.map((c) => c.name)).toEqual(['standup'])
+  expect(
+    await t.query(internal.api.commands.byName, { projectId, name: 'nope' }),
+  ).toEqual([])
 })

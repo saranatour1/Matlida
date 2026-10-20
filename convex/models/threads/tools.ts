@@ -104,6 +104,42 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         return { taskId, waitingForStart: true }
       },
     }),
+    save_command: createTool({
+      description:
+        'Save a reusable command the user can run as /name, or replace their command with the same name. The markdown is the instructions you follow when it runs, written to you.',
+      inputSchema: z.object({
+        name: z
+          .string()
+          .regex(
+            /^[a-z0-9][a-z0-9-]{0,31}$/,
+            'Use up to 32 lowercase letters, numbers and dashes.',
+          ),
+        description: z.string().min(1).max(200),
+        markdown: z.string().min(1).max(20_000),
+      }),
+      execute: async (ctx, { markdown, ...command }) => {
+        const storageId = await ctx.storage.store(
+          new Blob([markdown], { type: 'text/markdown' }),
+        )
+        const existing: Array<Doc<'commands'>> = await ctx.runQuery(
+          internal.api.commands.byName,
+          { projectId: project._id, name: command.name },
+        )
+        try {
+          await ctx.runMutation(internal.api.commands.write, {
+            projectId: project._id,
+            id: existing[0]?._id,
+            userId: project.ownerId,
+            storageId,
+            ...command,
+          })
+        } catch (error) {
+          await ctx.storage.delete(storageId)
+          throw error
+        }
+        return { saved: true, run: `/${command.name}` }
+      },
+    }),
     save_contact: createTool({
       description:
         'Save someone the user wants you to reach, like a friend or colleague, or add details to a saved contact with the same name. Ask the user for their email before messaging them.',

@@ -5,6 +5,12 @@
  */
 export const BUILT_IN_COMMANDS = [
   {
+    name: 'create',
+    description: 'Say what you want made, and it works out how',
+    markdown:
+      'Work out what the user wants made from what they wrote after /create, and make it with the right tool, without asking which: a plan (save_plan, or save_plan then run_plan if they want it done), posts, an email or a document (write the draft in your reply), research (research), a reminder or a message to someone (set_reminder, with save_contact first if needed), or a reusable command (save_command). If it could mean two very different things, ask one short question. Say in one line what you made.',
+  },
+  {
     name: 'plan',
     description: 'Make a plan and save it to the Library',
     markdown:
