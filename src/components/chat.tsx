@@ -118,12 +118,6 @@ export function Chat({
             <ThreadMembers project={project} bot={bot} threadId={threadId} />
           )}
           <div className="ml-auto flex items-center gap-1">
-            <ModelMenu
-              threadId={threadId}
-              model={threadId ? thread?.model : startModel}
-              own={bot ? bot.model : project.model}
-              onPick={setStartModel}
-            />
             <Button
               variant="ghost"
               size="icon-sm"
@@ -249,6 +243,14 @@ export function Chat({
             isBusy={isBusy}
             onSubmit={send}
             commands={bot ? [] : (commands ?? [])}
+            tools={
+              <ModelMenu
+                threadId={threadId}
+                model={threadId ? thread?.model : startModel}
+                own={bot ? bot.model : project.model}
+                onPick={setStartModel}
+              />
+            }
           />
         </div>
       </div>

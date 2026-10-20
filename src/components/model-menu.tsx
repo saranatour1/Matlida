@@ -2,7 +2,6 @@ import { useMutation } from 'convex/react'
 import { CpuIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { CHAT_MODELS, MODELS, modelName } from '../../convex/lib/models'
-import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { InputGroupButton } from '~/components/ui/input-group'
 
 /**
  * Picks the model a chat replies with. On an open chat it's saved on the
@@ -42,14 +42,20 @@ export function ModelMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="h-7 gap-1" />}
+        render={
+          <InputGroupButton
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 px-2.5"
+          />
+        }
         aria-label="Model"
         title="Model"
       >
-        <CpuIcon className="size-3.5 text-muted-foreground" />
-        <span className="hidden text-xs @md:inline">{modelName(current)}</span>
+        <CpuIcon className="text-muted-foreground" />
+        <span className="max-w-32 truncate text-xs">{modelName(current)}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-64">
+      <DropdownMenuContent align="end" side="top" className="min-w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>
             Model for this chat

@@ -22,12 +22,15 @@ export function PromptForm({
   isBusy,
   onSubmit,
   commands = [],
+  tools,
 }: {
   placeholder: string
   isBusy: boolean
   onSubmit: (prompt: string) => void
   /** `/name` commands the "+" menu can run. */
   commands?: Array<{ name: string; description: string }>
+  /** Shown next to the send button, like the model menu. */
+  tools?: React.ReactNode
 }) {
   const textarea = React.useRef<HTMLTextAreaElement>(null)
   const [voiceError, setVoiceError] = React.useState<string>()
@@ -94,12 +97,13 @@ export function PromptForm({
               el.focus()
             }}
           />
+          <div className="ml-auto" />
+          {tools}
           <InputGroupButton
             type="submit"
             size="icon-sm"
             variant="default"
             aria-label="Send message"
-            className="ml-auto"
             disabled={isBusy}
           >
             <ArrowUpIcon />
