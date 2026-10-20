@@ -4,7 +4,6 @@ import { internal } from '../../_generated/api'
 import { internalAction, internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
-import { addressee } from '../../lib/addressee'
 import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
@@ -190,10 +189,7 @@ const forSpace = internalMutation({
     let botId = linked.activeBotId
     let prompt = text.trim()
     if (prompt.startsWith('@')) {
-      const named = addressee(prompt, [
-        { name: project.name, bot: null },
-        ...bots.map((bot) => ({ name: bot.name, bot })),
-      ])
+      const named = addressee(prompt, project, bots)
       if (!named) return { project, bots, bot: null, threadId: null, prompt }
       botId = named.bot?._id
       prompt = named.rest
@@ -206,6 +202,33 @@ const forSpace = internalMutation({
     return { project, bots, bot, threadId, prompt }
   },
 })
+
+/** The assistant a message starting with `@name` is for, longest name first, and the rest of it. */
+function addressee(
+  text: string,
+  project: Doc<'projects'>,
+  bots: Array<Doc<'bots'>>,
+) {
+  const people = [
+    { name: project.name, bot: null },
+    ...bots.map((bot) => ({ name: bot.name, bot })),
+  ]
+  people.sort((a, b) => b.name.length - a.name.length)
+  const lower = text.toLowerCase()
+  for (const person of people) {
+    const tag = `@${person.name.toLowerCase()}`
+    if (
+      lower.startsWith(tag) &&
+      !/[\p{L}\p{N}]/u.test(text.charAt(tag.length))
+    ) {
+      return {
+        bot: person.bot,
+        rest: text.slice(tag.length).replace(/^[\s,:]+/, ''),
+      }
+    }
+  }
+  return null
+}
 
 /** This link's chat with `bot` (the lead when null), started on first use. */
 async function chatFor(

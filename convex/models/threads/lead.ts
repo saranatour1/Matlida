@@ -22,13 +22,13 @@ function guidelines(project: Project) {
 export type RunCommand = { name: string; markdown: string }
 
 /** Where the reply goes, which decides how it's written. */
-export type Via = 'chat' | 'text' | 'voice' | 'email'
+export type Via = 'chat' | 'text' | 'email' | 'voice'
 
 const STYLE: Record<Via, string> = {
   chat: 'Keep replies concise and use markdown.',
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
-    'You are replying by email: plain text with no markdown, in short paragraphs, only as long as the answer needs. No greeting line or sign-off; the email has them.',
+    'You are replying by email: plain text with no markdown, short paragraphs, no subject line and no signature.',
   voice:
     'You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more.',
 }

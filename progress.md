@@ -154,28 +154,22 @@
 - Each user claims a handle on Connections and gets `handle@MAIL_DOMAIN`, answered by the workspace it was claimed in. Claiming the same handle from another workspace moves it there, and Release frees it. `mailboxes` holds one row per user.
 - Handles are 3 to 32 of `a-z0-9._-` with no dot at either end or doubled, and role names (postmaster, abuse, admin, noreply, mailer-daemon, support and the rest of the list in `convex/lib/handles.ts`) are refused. Claiming needs a verified sign-in email, which is the only address the assistants will write to.
 - The Email row on Connections shows the address, the reply-to address and the claim form, and the registry's status for email is now connected, ready, or ready with "answers in another workspace".
+- Email goes through Photon's Email channel (beta platform API): the Email row needs `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY`.
 - Verified with unit tests: normalization and each refusal reason, reserved and duplicate handles, renaming freeing the old handle, no verified email, no mail domain, the move between workspaces, release, and another user's workspace refused.
 
-### Email answered by an assistant (2026-10-20)
+### Email in the app, answered by Matilda (2026-10-20)
 
-- Mail to `handle@MAIL_DOMAIN` arrives through Resend's `email.received` webhook at `POST /resend/inbound`. The route verifies the Svix signature over the raw bytes (5-minute tolerance), records the email's ids, and starts a workflow on `@convex-dev/workflow`: fetch the facts, verify, reply, send, with retries per step.
-- An email is answered only when it's from the mailbox owner's verified sign-in email and Resend's receiving server saw an aligned DKIM pass with DMARC pass (or gray, for domains with no policy or `p=none`, like Gmail). Machine mail (out-of-office, bounces) is never answered, and our replies say `Auto-Submitted: auto-replied` so auto-responders stay quiet. Everything else is rejected with a reason code (`from_mismatch`, `dmarc_fail`, `dkim_unaligned`, `no_auth_results`, `auto_submitted`, `unknown_mailbox`, `duplicate`, `rate_limited`) and gets no reply; mail to an unclaimed handle is dropped at the webhook. Redeliveries are caught by `email_id` and by Message-ID, the workflow journal is deleted when it ends, and a daily cron forgets sent mail after a week.
-- `@name` at the start of the subject or the first line picks the assistant and sticks, like texting. Each assistant answers in its own "Name · Email" chat. Only the plain-text part is read, quoted history is cut, attachments are ignored, and the reply goes to the owner only, from the assistant's name at the owner's address, threaded with In-Reply-To and References.
-- Per-owner rate limit with `@convex-dev/rate-limiter`: a burst of 5, then 20 an hour.
-- Verified with unit tests and mocks for the model, Resend's API and the sender: a bad, old or missing signature and malformed bodies refused; a replay handled once; each spoof rejected with no reply and no model call; the owner's mail answered in its thread with the right headers; `@name` routing that sticks; quoted text cut and HTML-only mail answered with a fixed line; the rate limit; and that every send in every test went to the owner. Nothing ran against a deployment.
+- Every minute a cron asks Photon for new email to the users' addresses. Mail from the owner's verified sign-in address goes to a "Matilda · Email" chat, and Matilda answers by email in the same thread, to that address only. Everyone else's mail is posted in a separate "Email inbox" chat and isn't answered, so a stranger's text never reaches Matilda's own conversation. Spam is shown in the inbox and never answered; mail to an unclaimed address is ignored.
+- `emails` records each Photon message id and its outcome (answered, failed, shown, ignored), never the text, so each email is handled once. A reply that can't be sent says so in the chat.
+- It polls because Photon's beta webhooks don't document their signature yet. Photon doesn't pass on DKIM or DMARC results, so a forged From can make Matilda answer, but the reply only ever goes to the owner.
+- Verified with unit tests, Photon's API mocked: the owner's email answered with the right recipients, threading and idempotency key, quoted history cut, a second check skipping it; a stranger's email shown and unanswered; spam; unclaimed addresses; a failed send; and nothing running before Photon is set up.
 
-### Email reminders and texting limits (2026-10-20)
+### Email reminders and limits on answers and texting (2026-10-20)
 
-- `set_reminder` takes `via: 'email'`: the reminder is emailed to you from the assistant at your handle, and still posts in the chat. Without an address it only posts, with a note.
-- Inbound texting is rate limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
-- The Photon webhook's checks are now pinned by tests: forged, stale, tampered and unsigned deliveries are refused with nothing stored, and a replay is acknowledged once.
-- Verified with unit tests (Resend and the model mocked): an email reminder's exact send, the no-address note, the owner flood across two apps, the ignored stranger, code guessing, a turn that sends nothing, and the webhook cases above.
-
-### Setup guide and DNS checker (2026-10-20)
-
-- `docs/setup/channels.md` has every step to connect email (a subdomain, Resend's DKIM, SPF and receiving MX, a strict DMARC record, optional MTA-STS and TLS-RPT, the webhook and its secret), Photon for iMessage with its SMS and RCS fallback, Telegram through @BotFather and `pnpm exec convex run api/sender:connectTelegram`, WhatsApp, and the list of env var names. It ends with why phone calls wait and what a voice server would take.
-- `node scripts/check-email-dns.mjs mail.example.com` checks the receiving MX, SPF, DKIM, each DMARC setting and the optional records over DNS-over-HTTPS and prints PASS, FAIL or INFO per line, with no secrets. It's tested against a resolver served by the test.
-- `pnpm audit --prod` reports no known vulnerabilities.
+- `set_reminder` takes `via: 'email'`: when it's due, the reminder is emailed to the owner's verified address from their assistant address, through Photon (a new thread per reminder, keyed by the reminder so retries send once), and still posts in the chat. Without an address, or when Photon refuses, it only posts, with a note.
+- Matilda answers at most 5 of the owner's emails at once, then 20 an hour (`@convex-dev/rate-limiter`). Past that, the email is posted in the chat with a note and not answered. This caps forged mail and out-of-office loops, since Photon can't tell a forged From.
+- Inbound texting is limited per owner (a burst of 15, then 60 an hour across all linked apps); a linked owner over the limit is asked to slow down, an unlinked chat over its own limit gets nothing back. `link <code>` allows 5 tries per chat, then 10 an hour, silently, so codes can't be guessed.
+- Verified with unit tests, Photon's API mocked: an email reminder's exact Photon calls, the no-address and failed-send notes, the sixth email in a burst posted but not answered, the owner flood across two apps, the ignored stranger, code guessing, and a turn that sends nothing.
 
 ### An editor for instructions (2026-10-20)
 

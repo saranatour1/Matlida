@@ -7,7 +7,7 @@ import {
 } from './models/calls/table'
 import { commandsTable } from './models/commands/table'
 import { commentsTable } from './models/comments/table'
-import { inboundEmailsTable } from './models/inbound/table'
+import { emailsTable } from './models/emails/table'
 import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
@@ -26,7 +26,7 @@ export default defineSchema({
   comments: commentsTable,
   phoneLinks: phoneLinksTable,
   mailboxes: mailboxesTable,
-  inboundEmails: inboundEmailsTable,
+  emails: emailsTable,
   plans: plansTable,
   usage: usageTable,
   reminders: remindersTable,

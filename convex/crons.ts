@@ -3,13 +3,8 @@ import { internal } from './_generated/api'
 
 const crons = cronJobs()
 
-// The Resend component keeps every email it sent, replies to the users'
-// assistant addresses included. A week is enough to debug delivery.
-crons.interval(
-  'forget old mail',
-  { hours: 24 },
-  internal.api.inbound.forgetOldMail,
-  {},
-)
+// ponytail: checks every minute because Photon's beta webhooks don't document
+// their signature yet. Move to its webhook once they do, for instant replies.
+crons.interval('check email', { minutes: 1 }, internal.api.emails.poll)
 
 export default crons
