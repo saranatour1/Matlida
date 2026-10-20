@@ -13,7 +13,7 @@ import { listEmails, plainText, replyByEmail } from '../../lib/photon'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { startThread } from '../threads/functions'
-import { createLead } from '../threads/lead'
+import { createAgent } from '../threads/lead'
 import { emailsTable } from './table'
 import type { Doc } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
@@ -234,7 +234,8 @@ const poll = internalAction({
 
       let status: 'answered' | 'failed' = 'answered'
       try {
-        const { agent, tools } = createLead(turn.project, turn.bots, {
+        const agent = createAgent(turn.project, {
+          members: turn.bots,
           via: 'email',
         })
         const reply = await agent.generateText(
@@ -243,7 +244,6 @@ const poll = internalAction({
           {
             prompt:
               [subject, text].filter(Boolean).join('\n\n') || '(empty email)',
-            tools,
           },
         )
         await replyByEmail(

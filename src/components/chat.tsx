@@ -4,11 +4,13 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import type { Effort } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
+import { EffortMenu } from '~/components/effort-menu'
 import { ModelMenu } from '~/components/model-menu'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -58,6 +60,7 @@ export function Chat({
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
+  const [startEffort, setStartEffort] = React.useState<Effort>()
   const lead = bot?.name ?? project.name
   const { results } = useUIMessages(
     api.api.chat.listMessages,
@@ -90,6 +93,7 @@ export function Chat({
           threadId,
           prompt,
           model: threadId ? undefined : startModel,
+          effort: threadId ? undefined : startEffort,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         if (!threadId) {
@@ -244,12 +248,20 @@ export function Chat({
             onSubmit={send}
             commands={bot ? [] : (commands ?? [])}
             tools={
-              <ModelMenu
-                threadId={threadId}
-                model={threadId ? thread?.model : startModel}
-                own={bot ? bot.model : project.model}
-                onPick={setStartModel}
-              />
+              <>
+                <EffortMenu
+                  threadId={threadId}
+                  effort={threadId ? thread?.effort : startEffort}
+                  own={bot ? bot.effort : project.effort}
+                  onPick={setStartEffort}
+                />
+                <ModelMenu
+                  threadId={threadId}
+                  model={threadId ? thread?.model : startModel}
+                  own={bot ? bot.model : project.model}
+                  onPick={setStartModel}
+                />
+              </>
             }
           />
         </div>

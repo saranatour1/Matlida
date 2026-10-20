@@ -82,6 +82,7 @@ const save = zAuthedMutation({
       .max(80)
       .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
       .optional(),
+    effort: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, { projectId, id, ...bot }) => {
     await getOwnedProject(ctx, ctx.userId, projectId)

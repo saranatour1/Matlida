@@ -1,12 +1,14 @@
 import { Agent, createTool, stepCountIs } from '@convex-dev/agent'
 import { z } from 'zod'
+import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { chatModel, languageModel } from '../../lib/ai'
-import { MODELS } from '../../lib/models'
+import { EFFORTS, MODELS } from '../../lib/models'
 import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
 import type { UsageHandler } from '@convex-dev/agent'
+import type { Effort } from '../../lib/models'
 import type { ToolSet } from 'ai'
 
 type Project = Doc<'projects'>
@@ -39,6 +41,8 @@ export type ReplyOptions = {
   via?: Via
   /** The chat's model, chosen in the chat. It wins over the assistant's own. */
   model?: string
+  /** The chat's effort, chosen in the chat. It wins over the assistant's own. */
+  effort?: Effort
   /** The user's IANA time zone, so "at 5 tomorrow" means their 5. UTC when unknown. */
   timeZone?: string
   /** On a call: the user talked over the last reply. */
@@ -96,11 +100,17 @@ ${bot.instructions}${team}
 ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}`
 }
 
-const BOT_CALLS_PER_REPLY = 6
-
 /** The gateway model for `id`, or the default when it's unset or the default itself. */
-function modelFor(id: string | undefined) {
-  return !id || id === MODELS.chat ? languageModel : chatModel(id)
+function modelFor(id: string, effort: Effort) {
+  return wrapLanguageModel({
+    model: id === MODELS.chat ? languageModel : chatModel(id),
+    // The gateway sends this on as the request's `reasoning_effort`.
+    middleware: defaultSettingsMiddleware({
+      settings: {
+        providerOptions: { convexGateway: { reasoningEffort: effort } },
+      },
+    }),
+  })
 }
 
 /** Records each model step's tokens and cost, charged to `chargeTo` or the agent's own thread. */
@@ -125,14 +135,19 @@ function recordUsage(
   }
 }
 
-/** `ask_bot` over the chat's members, for whoever is answering. None without members. */
-function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
+/** `ask_bot` over the chat's members, for whoever is answering, at most `budget` times a reply. None without members. */
+function askTools(
+  project: Project,
+  bots: Array<Bot>,
+  from: string,
+  budget: number,
+): ToolSet {
   if (bots.length === 0) return {}
   const [first, ...rest] = bots
   let botCalls = 0
   return {
     ask_bot: createTool({
-      description: `Hand one of your bots a task or question and get its reply. Call it several times in the same step to ask several bots in parallel. You can call it at most ${BOT_CALLS_PER_REPLY} times per reply.`,
+      description: `Hand one of your bots a task or question and get its reply. Call it several times in the same step to ask several bots in parallel. You can call it at most ${budget} times per reply.`,
       inputSchema: z.object({
         bot: z.enum([first.name, ...rest.map((b) => b.name)]),
         task: z
@@ -143,7 +158,7 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
       }),
       execute: async (ctx, { bot, task }, { abortSignal }) => {
         botCalls++
-        if (botCalls > BOT_CALLS_PER_REPLY) {
+        if (botCalls > budget) {
           throw new Error(
             'Bot budget for this reply is used up; answer with what you have.',
           )
@@ -160,12 +175,10 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
             userId: project.ownerId,
           },
         )
-        const model = b.model ?? MODELS.chat
-        const agent = new Agent(components.agent, {
-          name: b.name,
-          languageModel: modelFor(model),
-          instructions: botInstructions(project, b, []),
-          usageHandler: recordUsage(project, model, ctx.threadId),
+        const agent = createAgent(project, {
+          bot: b,
+          chargeTo: ctx.threadId,
+          tools: false,
         })
         const { text } = await agent.generateText(
           ctx,
@@ -178,47 +191,46 @@ function askTools(project: Project, bots: Array<Bot>, from: string): ToolSet {
   }
 }
 
-/** A bot answering the user directly in its own chat, with the chat's members. */
-export function createBot(
-  project: Project,
-  bot: Bot,
-  members: Array<Bot>,
-  options: ReplyOptions = {},
-) {
-  const model = options.model ?? bot.model ?? MODELS.chat
-  return {
-    agent: new Agent(components.agent, {
-      name: bot.name,
-      languageModel: modelFor(model),
-      instructions: botInstructions(project, bot, members, options),
-      stopWhen: stepCountIs(6),
-      usageHandler: recordUsage(project, model),
-    }),
-    tools: {
-      ...assistantTools(project, bot.name),
-      ...askTools(project, members, bot.name),
-    },
-  }
+/** Who answers one reply, and how. See `createAgent`. */
+export type AgentOptions = ReplyOptions & {
+  /** The bot answering. Unset means the project's lead. */
+  bot?: Bot | null
+  /** The bots it can hand work to with `ask_bot`. */
+  members?: Array<Bot>
+  /** For a bot asked by another assistant: whose chat its usage is charged to. */
+  chargeTo?: string
+  /** False for a bot asked by another assistant: it only answers, with no tools. */
+  tools?: boolean
 }
 
-/** The project's lead for one reply, with the chat's members. */
-export function createLead(
+/**
+ * The agent for one reply: the project's lead, or `bot`. Its model is the
+ * chat's pick, then the assistant's own, then the default. It comes with its
+ * instructions, its tools (`assistantTools` and `ask_bot` over `members`) and
+ * usage recording, so callers only run it.
+ */
+export function createAgent(
   project: Project,
-  bots: Array<Bot>,
-  options: ReplyOptions = {},
+  { bot, members = [], chargeTo, tools = true, ...options }: AgentOptions = {},
 ) {
-  const model = options.model ?? project.model ?? MODELS.chat
-  return {
-    agent: new Agent(components.agent, {
-      name: project.name,
-      languageModel: modelFor(model),
-      instructions: leadInstructions(project, bots, options),
-      stopWhen: stepCountIs(6),
-      usageHandler: recordUsage(project, model),
-    }),
-    tools: {
-      ...assistantTools(project, project.name),
-      ...askTools(project, bots, project.name),
-    },
-  }
+  const model =
+    options.model ?? (bot ? bot.model : project.model) ?? MODELS.chat
+  const effort =
+    options.effort ?? (bot ? bot.effort : project.effort) ?? 'medium'
+  const name = bot?.name ?? project.name
+  return new Agent(components.agent, {
+    name,
+    languageModel: modelFor(model, effort),
+    instructions: bot
+      ? botInstructions(project, bot, members, options)
+      : leadInstructions(project, members, options),
+    tools: tools
+      ? {
+          ...assistantTools(project, name),
+          ...askTools(project, members, name, EFFORTS[effort].botCalls),
+        }
+      : {},
+    stopWhen: tools ? stepCountIs(EFFORTS[effort].steps) : undefined,
+    usageHandler: recordUsage(project, model, chargeTo),
+  })
 }

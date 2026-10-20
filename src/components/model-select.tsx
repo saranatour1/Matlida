@@ -1,4 +1,5 @@
-import { CHAT_MODELS, MODELS } from '../../convex/lib/models'
+import { CHAT_MODELS, EFFORTS, MODELS } from '../../convex/lib/models'
+import type { Effort } from '../../convex/lib/models'
 import { Input } from '~/components/ui/input'
 
 /**
@@ -48,4 +49,39 @@ export function modelFromForm(data: FormData, name = 'model') {
   const custom = String(data.get(`${name}Custom`) ?? '').trim()
   const picked = custom || String(data.get(name) ?? '')
   return picked && picked !== MODELS.chat ? picked : undefined
+}
+
+/** Picks how hard an assistant works on a reply, for a form. Read it back with `effortFromForm`. */
+export function EffortSelect({
+  name,
+  defaultValue,
+}: {
+  name: string
+  defaultValue?: Effort
+}) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm">
+      Effort
+      <select
+        name={name}
+        defaultValue={defaultValue ?? 'medium'}
+        className="h-9 rounded-md border bg-transparent px-3 text-sm"
+      >
+        {(Object.keys(EFFORTS) as Array<Effort>).map((e) => (
+          <option key={e} value={e}>
+            {EFFORTS[e].name} · {EFFORTS[e].note}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+/** The effort a form picked with `EffortSelect`, or undefined for medium. */
+export function effortFromForm(
+  data: FormData,
+  name = 'effort',
+): Effort | undefined {
+  const picked = data.get(name)
+  return picked === 'low' || picked === 'high' ? picked : undefined
 }
