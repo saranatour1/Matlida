@@ -48,7 +48,7 @@ beforeEach(() => {
       expect(url).toBe(
         'https://api.photon.codes/v1/projects/pho_prj_test/messages',
       )
-      const body = JSON.parse(init?.body as string) as {
+      const body = JSON.parse(init.body as string) as {
         spaceId: string
         senderId: string
         content: { text: string }
@@ -57,7 +57,7 @@ beforeEach(() => {
         spaceId: body.spaceId,
         senderId: body.senderId,
         text: body.content.text,
-        key: (init?.headers as Record<string, string>)['idempotency-key'],
+        key: (init.headers as Record<string, string>)['idempotency-key'],
       })
       return Promise.resolve(Response.json({ id: 'sent' }))
     }),
