@@ -27,7 +27,8 @@
 - [x] Message assistants over iMessage, WhatsApp and Telegram through Photon
 - [x] Connections page: one registry of every channel and its status
 - [x] Email: a personal address per user, claimed on Connections
-- [ ] Email: inbound mail answered by an assistant, and email reminders
+- [x] Email: mail to your address shows in the app, and Matilda answers yours
+- [ ] Email: reminders by email, @name routing, and a rate limit on answers
 - [ ] Setup guide for email, Photon, Telegram and WhatsApp, with a DNS checker
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window

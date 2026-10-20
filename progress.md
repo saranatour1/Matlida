@@ -156,3 +156,10 @@
 - The Email row on Connections shows the address, the reply-to address and the claim form, and the registry's status for email is now connected, ready, or ready with "answers in another workspace".
 - Email goes through Photon's Email channel (beta platform API): the Email row needs `MAIL_DOMAIN`, `PHOTON_PROJECT_ID` and `PHOTON_API_KEY`.
 - Verified with unit tests: normalization and each refusal reason, reserved and duplicate handles, renaming freeing the old handle, no verified email, no mail domain, the move between workspaces, release, and another user's workspace refused.
+
+### Email in the app, answered by Matilda (2026-10-20)
+
+- Every minute a cron asks Photon for new email to the users' addresses. Mail from the owner's verified sign-in address goes to a "Matilda · Email" chat, and Matilda answers by email in the same thread, to that address only. Everyone else's mail is posted in a separate "Email inbox" chat and isn't answered, so a stranger's text never reaches Matilda's own conversation. Spam is shown in the inbox and never answered; mail to an unclaimed address is ignored.
+- `emails` records each Photon message id and its outcome (answered, failed, shown, ignored), never the text, so each email is handled once. A reply that can't be sent says so in the chat.
+- It polls because Photon's beta webhooks don't document their signature yet. Photon doesn't pass on DKIM or DMARC results, so a forged From can make Matilda answer, but the reply only ever goes to the owner.
+- Verified with unit tests, Photon's API mocked: the owner's email answered with the right recipients, threading and idempotency key, quoted history cut, a second check skipping it; a stranger's email shown and unanswered; spam; unclaimed addresses; a failed send; and nothing running before Photon is set up.
