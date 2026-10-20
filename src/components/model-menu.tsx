@@ -6,6 +6,7 @@ import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -49,29 +50,31 @@ export function ModelMenu({
         <span className="hidden text-xs @md:inline">{modelName(current)}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-64">
-        <DropdownMenuLabel>
-          Model for this chat
-          <span className="block text-xs font-normal text-muted-foreground">
-            Switching keeps the chat's history.
-          </span>
-        </DropdownMenuLabel>
-        {CHAT_MODELS.map((m) => (
-          <DropdownMenuItem
-            key={m.id}
-            onClick={() => pick(m.id)}
-            data-checked={m.id === current}
-          >
-            <span className="flex flex-col">
-              {m.name}
-              <span className="text-xs text-muted-foreground">
-                {m.maker} · {m.note}
-              </span>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            Model for this chat
+            <span className="block text-xs font-normal text-muted-foreground">
+              Switching keeps the chat's history.
             </span>
-          </DropdownMenuItem>
-        ))}
-        {!CHAT_MODELS.some((m) => m.id === current) && (
-          <DropdownMenuItem data-checked>{current}</DropdownMenuItem>
-        )}
+          </DropdownMenuLabel>
+          {CHAT_MODELS.map((m) => (
+            <DropdownMenuItem
+              key={m.id}
+              onClick={() => pick(m.id)}
+              data-checked={m.id === current}
+            >
+              <span className="flex flex-col">
+                {m.name}
+                <span className="text-xs text-muted-foreground">
+                  {m.maker} · {m.note}
+                </span>
+              </span>
+            </DropdownMenuItem>
+          ))}
+          {!CHAT_MODELS.some((m) => m.id === current) && (
+            <DropdownMenuItem data-checked>{current}</DropdownMenuItem>
+          )}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => pick(undefined)}>
           <span className="flex flex-col">
