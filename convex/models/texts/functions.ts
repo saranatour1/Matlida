@@ -4,7 +4,7 @@ import { internal } from '../../_generated/api'
 import { env, internalAction, internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
-import { photonKeys, sendText } from '../../lib/photon'
+import { listTexts, photonKeys, sendText } from '../../lib/photon'
 import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
@@ -449,6 +449,34 @@ const replyOnPhoton = internalAction({
   },
 })
 
+/** How far back each Telegram check looks. Photon's list is eventually consistent, and `received` skips repeats. */
+const TELEGRAM_LOOKBACK_MS = 3 * 60_000
+
+/**
+ * Checks Photon for Telegram texts every minute, from `crons.ts`, in case its
+ * webhook doesn't deliver them. Each goes through `received`, which answers a
+ * message once however it arrived.
+ */
+const poll = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const keys = photonKeys(env)
+    if (!keys) return null
+    const since = new Date(Date.now() - TELEGRAM_LOOKBACK_MS).toISOString()
+    for (const message of await listTexts(keys, 'telegram', since)) {
+      await ctx.runMutation(internal.api.texts.received, {
+        messageId: message.id,
+        spaceId: message.space.id,
+        platform: 'telegram',
+        agentId: message.receivedBy.id,
+        text: message.content.text,
+      })
+    }
+    return null
+  },
+})
+
 /** The text of an inbound Photon message, or '' for anything else (photos, reactions). */
 function textOf(message: unknown) {
   const content = (message as { content?: { type?: unknown; text?: unknown } })
@@ -469,4 +497,5 @@ export const textsApi = {
   respond,
   received,
   replyOnPhoton,
+  poll,
 }

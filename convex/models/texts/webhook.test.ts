@@ -26,15 +26,25 @@ const sent: Array<{
   key: string
 }> = []
 
+/** What Photon's message list returns to the Telegram check. */
+let listed: Array<unknown> = []
+
 beforeEach(() => {
   vi.useFakeTimers()
   sent.length = 0
+  listed = []
   vi.stubEnv('PHOTON_PROJECT_ID', 'pho_prj_test')
   vi.stubEnv('PHOTON_API_KEY', 'pho_sk_test')
   vi.stubEnv('PHOTON_WEBHOOK_SECRET', SECRET)
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method !== 'POST') {
+        expect(url).toMatch(
+          /^https:\/\/api\.photon\.codes\/v1\/projects\/pho_prj_test\/messages\?platform=telegram&direction=received/,
+        )
+        return Promise.resolve(Response.json({ items: listed }))
+      }
       expect(url).toBe(
         'https://api.photon.codes/v1/projects/pho_prj_test/messages',
       )
@@ -200,4 +210,31 @@ test('forged, stale or unsigned deliveries are refused and never answered', asyn
   expect(await t.run((ctx) => ctx.db.query('photonMessages').take(10))).toEqual(
     [],
   )
+})
+
+test('the minute check answers a Telegram text the webhook never delivered, once', async () => {
+  const { t } = await setup()
+  listed = [
+    {
+      id: 'm1',
+      platform: 'telegram',
+      status: 'received',
+      content: { type: 'text', text: 'hello?' },
+      receivedBy: { id: 'agent-bot' },
+      space: { id: 'tg-chat-1' },
+    },
+    { id: 'm2', content: { type: 'attachment' }, space: { id: 'tg-chat-1' } },
+  ]
+  await t.action(internal.api.texts.poll, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await t.action(internal.api.texts.poll, {})
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(sent).toEqual([
+    {
+      spaceId: 'tg-chat-1',
+      senderId: 'agent-bot',
+      text: "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows.",
+      key: 'reply:m1',
+    },
+  ])
 })
