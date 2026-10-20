@@ -151,6 +151,19 @@ const setModel = zAuthedMutation({
   },
 })
 
+/** Picks how hard this chat's replies work from now on. Null goes back to the assistant's own. */
+const setEffort = zAuthedMutation({
+  args: {
+    threadId: z.string(),
+    effort: z.enum(['low', 'medium', 'high']).nullable(),
+  },
+  handler: async (ctx, { threadId, effort }) => {
+    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
+    if (!thread) throw new ConvexError('Chat not found.')
+    await ctx.db.patch('threads', thread._id, { effort: effort ?? undefined })
+  },
+})
+
 export const threadsApi = {
   start,
   list,
@@ -159,4 +172,5 @@ export const threadsApi = {
   startGroup,
   get,
   setModel,
+  setEffort,
 }

@@ -8,4 +8,5 @@ export const {
   startGroup,
   get,
   setModel,
+  setEffort,
 } = threadsApi

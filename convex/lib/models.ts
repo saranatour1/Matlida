@@ -106,3 +106,30 @@ export function modelName(id: string | undefined) {
   const known = CHAT_MODELS.find((m) => m.id === (id ?? MODELS.chat))
   return known?.name ?? id ?? MODELS.chat
 }
+
+/**
+ * How hard an assistant works on one reply: the steps it may take, the bots
+ * it may ask, and the model's reasoning effort. Medium unless picked.
+ */
+export const EFFORTS = {
+  low: {
+    name: 'Low',
+    note: 'Quick answers, few steps.',
+    steps: 4,
+    botCalls: 2,
+  },
+  medium: {
+    name: 'Medium',
+    note: 'The default.',
+    steps: 8,
+    botCalls: 6,
+  },
+  high: {
+    name: 'High',
+    note: 'Thinks longer, more steps and bots.',
+    steps: 20,
+    botCalls: 12,
+  },
+} as const
+
+export type Effort = keyof typeof EFFORTS

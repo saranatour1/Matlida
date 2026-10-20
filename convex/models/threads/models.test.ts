@@ -2,6 +2,7 @@ import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
+import { languageModel } from '../../lib/ai'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -49,6 +50,7 @@ async function setup() {
     threadId?: string
     botId?: Awaited<ReturnType<typeof asAda.mutation<typeof api.api.bots.save>>>
     model?: string
+    effort?: 'low' | 'medium' | 'high'
     prompt: string
   }) => {
     const threadId = await asAda.mutation(api.api.chat.sendMessage, {
@@ -187,4 +189,51 @@ test('a bot asked by the lead answers on its own model', async () => {
   expect(bots[0].model).toBe('openai/gpt-5-mini')
   expect(threadId).toBeTruthy()
   void internal
+})
+
+/** The reasoning effort each streamed reply asked the default model for, in order. */
+function effortsAsked() {
+  const calls = (
+    languageModel as unknown as {
+      doStreamCalls: Array<{
+        providerOptions?: { convexGateway?: { reasoningEffort?: string } }
+      }>
+    }
+  ).doStreamCalls
+  return calls.map((c) => c.providerOptions?.convexGateway?.reasoningEffort)
+}
+
+test("effort is medium by default, then the assistant's own, then the chat's pick", async () => {
+  const { asAda, projectId, chat } = await setup()
+  const before = effortsAsked().length
+  const { threadId } = await chat({ prompt: 'Hi' })
+  await asAda.mutation(api.api.projects.save, {
+    id: projectId,
+    name: 'Matilda',
+    brief: '',
+    guidelines: '',
+    effort: 'high',
+  })
+  await chat({ threadId, prompt: 'Think hard' })
+  await asAda.mutation(api.api.threads.setEffort, { threadId, effort: 'low' })
+  await chat({ threadId, prompt: 'Quick one' })
+  await asAda.mutation(api.api.threads.setEffort, { threadId, effort: null })
+  await chat({ threadId, prompt: 'Back to normal' })
+  const fresh = await chat({ effort: 'low', prompt: 'New chat, low' })
+  expect(fresh.texts).toContain('Hello from the default.')
+  expect(effortsAsked().slice(before)).toEqual([
+    'medium',
+    'high',
+    'low',
+    'high',
+    'low',
+  ])
+})
+
+test("only the chat's owner can set its effort", async () => {
+  const { asBob, chat } = await setup()
+  const { threadId } = await chat({ prompt: 'Hi' })
+  await expect(
+    asBob.mutation(api.api.threads.setEffort, { threadId, effort: 'high' }),
+  ).rejects.toThrow('Chat not found.')
 })

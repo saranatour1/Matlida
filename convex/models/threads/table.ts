@@ -21,6 +21,10 @@ export const threadsTable = defineTable({
   parentThreadId: v.optional(v.string()),
   /** A model picked for this chat. It wins over the assistant's own, and the history stays. */
   model: v.optional(v.string()),
+  /** An effort picked for this chat. It wins over the assistant's own. */
+  effort: v.optional(
+    v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
+  ),
 })
   .index('by_project_and_kind', ['projectId', 'kind'])
   .index('by_project_and_bot', ['projectId', 'botId', 'kind'])
