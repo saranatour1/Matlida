@@ -30,6 +30,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { CallHistory } from '~/components/call-history'
+import { TASK_STATUS } from '~/components/task-card'
 
 /**
  * Convex bills action time by memory used: 64 MB actions at $0.30 per GB-hour
@@ -65,6 +66,10 @@ export function AssistantPanel({
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
+  const tasks = useQuery(
+    api.api.tasks.forThread,
+    threadId ? { threadId } : 'skip',
+  )
   const reminders = useQuery(api.api.reminders.list, {
     projectId: project._id,
   })
@@ -216,6 +221,28 @@ export function AssistantPanel({
                         dateStyle: 'short',
                         timeStyle: 'short',
                       })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Section title="Tasks">
+            {!tasks?.length ? (
+              <p className="text-muted-foreground">No tasks in this chat.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {tasks.map((task) => (
+                  <li
+                    key={task._id}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <ListChecksIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate">{task.title}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {TASK_STATUS[task.status]} ·{' '}
+                      {task.steps.filter((s) => s.status === 'done').length}/
+                      {task.steps.length}
                     </span>
                   </li>
                 ))}

@@ -8,6 +8,7 @@ import authGoogle from '@convex-dev/auth/components/google/convex.config.js'
 import authPassword from '@convex-dev/auth/components/password/convex.config.js'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
+import workflow from '@convex-dev/workflow/convex.config.js'
 import spectrum from '@spectrum-ts/convex/convex.config.js'
 
 const app = defineApp({
@@ -43,6 +44,7 @@ app.use(agent)
 app.use(spectrum)
 app.use(resend)
 app.use(rateLimiter)
+app.use(workflow)
 app.use(auth, {
   httpPrefix: '/auth',
   env: {
