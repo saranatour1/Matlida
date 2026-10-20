@@ -30,7 +30,7 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
-  readonly AUTH_EMAIL_FROM: string;
+  readonly AUTH_EMAIL_FROM: string | undefined;
   readonly AUTH_GITHUB_CLIENT_ID: string;
   readonly AUTH_GITHUB_CLIENT_SECRET: string;
   readonly AUTH_GOOGLE_CLIENT_ID: string;
@@ -38,7 +38,9 @@ type Env = {
   readonly AUTH_JWKS: string;
   readonly AUTH_PRIVATE_KEY: string;
   readonly MAIL_DOMAIN: string | undefined;
-  readonly RESEND_API_KEY: string;
+  readonly PHOTON_API_KEY: string | undefined;
+  readonly PHOTON_PROJECT_ID: string | undefined;
+  readonly RESEND_API_KEY: string | undefined;
   readonly SITE_URL: string;
   readonly SPECTRUM_PROJECT_ID: string | undefined;
   readonly SPECTRUM_PROJECT_SECRET: string | undefined;

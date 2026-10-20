@@ -26,7 +26,8 @@
 - [x] Details panel is full screen on phones
 - [x] Message assistants over iMessage, WhatsApp and Telegram through Photon
 - [x] Connections page: one registry of every channel and its status
-- [ ] Email: a personal address per user, inbound mail answered by an assistant, email reminders
+- [x] Email: a personal address per user, claimed on Connections
+- [ ] Email: inbound mail answered by an assistant, and email reminders
 - [ ] Setup guide for email, Photon, Telegram and WhatsApp, with a DNS checker
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window

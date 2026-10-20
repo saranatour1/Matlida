@@ -6,6 +6,7 @@ import {
   liveTurnsTable,
 } from './models/calls/table'
 import { commandsTable } from './models/commands/table'
+import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
@@ -21,6 +22,7 @@ export default defineSchema({
   bots: botsTable,
   commands: commandsTable,
   phoneLinks: phoneLinksTable,
+  mailboxes: mailboxesTable,
   plans: plansTable,
   usage: usageTable,
   reminders: remindersTable,
