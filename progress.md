@@ -356,3 +356,7 @@
 - The call panel has a volume bar above Mute and Hang up: Quieter, a slider from silent to 150%, Louder, and the level. Replies play through a gain node, so a change applies to what's playing now, smoothed so it doesn't click.
 - The level is saved on this browser and kept in step across tabs; it starts each call where you left it.
 - Verified with a unit test of the clamping (0 to 150%, whole percents) and pnpm check. Not tried on a live call.
+
+### Models as an object map (2026-10-22)
+
+- `CHAT_MODELS` is now an object keyed by gateway id (`{ 'anthropic/claude-sonnet-5': { name, maker, note }, … }`), typed with `satisfies Record<string, ChatModel>`. `isListedModel` checks own keys only, and `modelName` looks a name up by id. The model menu and the model field iterate it with `Object.entries`.

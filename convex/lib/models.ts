@@ -27,86 +27,77 @@ export function voiceFor(name: string): (typeof VOICES)[number] {
   return VOICES[1 + (hash % (VOICES.length - 1))]
 }
 
+/** A chat model the app offers, as the menus show it. */
+export type ChatModel = { name: string; maker: string; note: string }
+
 /**
- * Chat models the app offers, all served by the Convex AI gateway
- * (docs.convex.dev/ai-gateway/models). Any other gateway id works too, typed
- * in by hand; the gateway refuses ids it doesn't serve.
+ * Chat models the app offers, by gateway id, all served by the Convex AI
+ * gateway (docs.convex.dev/ai-gateway/models). Any other gateway id works
+ * too, typed in by hand; the gateway refuses ids it doesn't serve.
  */
-export const CHAT_MODELS: ReadonlyArray<{
-  id: string
-  name: string
-  maker: string
-  note: string
-}> = [
-  {
-    id: 'anthropic/claude-sonnet-5',
+export const CHAT_MODELS = {
+  'anthropic/claude-sonnet-5': {
     name: 'Claude Sonnet 5',
     maker: 'Anthropic',
     note: 'The default: fast and careful.',
   },
-  {
-    id: 'anthropic/claude-opus-5',
+  'anthropic/claude-opus-5': {
     name: 'Claude Opus 5',
     maker: 'Anthropic',
     note: 'Deeper thinking, slower and dearer.',
   },
-  {
-    id: 'anthropic/claude-haiku-4.5',
+  'anthropic/claude-haiku-4.5': {
     name: 'Claude Haiku 4.5',
     maker: 'Anthropic',
     note: 'Quick and cheap, for simple work.',
   },
-  {
-    id: 'openai/gpt-5',
+  'openai/gpt-5': {
     name: 'GPT-5',
     maker: 'OpenAI',
     note: 'OpenAI’s flagship.',
   },
-  {
-    id: 'openai/gpt-5-mini',
+  'openai/gpt-5-mini': {
     name: 'GPT-5 mini',
     maker: 'OpenAI',
     note: 'Smaller and faster.',
   },
-  {
-    id: 'google/gemini-2.5-pro',
+  'google/gemini-2.5-pro': {
     name: 'Gemini 2.5 Pro',
     maker: 'Google',
     note: 'Long context, strong on documents.',
   },
-  {
-    id: 'google/gemini-2.5-flash',
+  'google/gemini-2.5-flash': {
     name: 'Gemini 2.5 Flash',
     maker: 'Google',
     note: 'Fast and cheap.',
   },
-  {
-    id: 'deepseek/deepseek-v3.2',
+  'deepseek/deepseek-v3.2': {
     name: 'DeepSeek V3.2',
     maker: 'DeepSeek',
     note: 'Open weights, good value.',
   },
-  {
-    id: 'x-ai/grok-4.7',
-    name: 'Grok 4.7',
-    maker: 'xAI',
-    note: 'xAI’s latest.',
-  },
-  {
-    id: 'meta/muse-spark-1.3',
+  'x-ai/grok-4.7': { name: 'Grok 4.7', maker: 'xAI', note: 'xAI’s latest.' },
+  'meta/muse-spark-1.3': {
     name: 'Muse Spark 1.3',
     maker: 'Meta',
     note: 'Meta’s Muse.',
   },
-]
+} satisfies Record<string, ChatModel>
+
+export type ChatModelId = keyof typeof CHAT_MODELS
+
+/** Whether `id` is one of the chat models the menus list. */
+export function isListedModel(id: string | undefined): id is ChatModelId {
+  return id !== undefined && Object.hasOwn(CHAT_MODELS, id)
+}
 
 /** A gateway model id, `provider/model`, with an optional `~` for a rolling alias. */
 export const MODEL_ID = /^~?[a-z0-9-]+\/[a-z0-9._:-]+$/i
 
 /** The model's name when it's one we list, else its id. */
 export function modelName(id: string | undefined) {
-  const known = CHAT_MODELS.find((m) => m.id === (id ?? MODELS.chat))
-  return known?.name ?? id ?? MODELS.chat
+  const model = id ?? MODELS.chat
+  return isListedModel(model) ? CHAT_MODELS[model].name : model
 }
 
 /**
