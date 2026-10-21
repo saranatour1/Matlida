@@ -65,6 +65,12 @@ export const BUILT_IN_COMMANDS = [
       'Make the picture the user describes after /image with generate_image. Turn their words into a detailed prompt (subject, style, setting, light and mood), keeping anything they spelled out exactly, and pick the shape that suits it. If they gave nothing to go on, ask what to make in one short question. After it shows, offer one or two tweaks in a line.',
   },
   {
+    name: 'video',
+    description: 'Make a short video',
+    markdown:
+      'Make the video the user describes after /video with generate_video. Turn their words into a detailed prompt (subject, action, camera movement, setting, light and mood), keeping anything they spelled out exactly, and pick wide or tall. If they gave nothing to go on, ask what to make in one short question. Say it takes a few minutes and shows up in the chat when it is ready.',
+  },
+  {
     name: 'shop',
     description: 'Find things to buy, and buy them',
     markdown:

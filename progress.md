@@ -403,3 +403,11 @@
 - No table: the tool returns the stored file's URL, and the card shows it.
 - Verified with pnpm check, the tests (the tool is offered in the chat but not in texts or calls) and one picture made on `dev/matilda`: a 1536x1024 PNG of 2.5 MB in 30 seconds, then deleted. The gateway sent no usage for it, so its cost shows as $0.
 
+### Videos (2026-10-22)
+
+- A `generate_video` tool makes an 8-second clip with Veo 3.1 Fast through the Convex AI gateway (`MODELS.video`), wide or tall. It returns at once: a `videos` row tracks it while an action makes the clip in the background and saves it in Convex storage. That action runs in Node (`models/videos/make.ts`): on dev, the default runtime ran out of its 64 MB holding the video.
+- The chat card follows the row live: "Making the video", then a player, or why it failed. Only the workspace's owner can see it.
+- Pictures and videos work on calls too, from the call panel or hands-free in the chat: the reply goes to the assistant's chat, so the card shows there beside the call (`showsVia` in `everyday.ts`). Other cards still stay out of calls, and all of them stay out of texts and email. Fast voice has no tools, so it can't make them.
+- `/video` turns what you describe into a detailed prompt and says it takes a few minutes.
+- Safe to run again: if the action dies, a check 12 minutes later (past the action limit) marks the video failed. A file that arrives late still lands, and nothing undoes a finished video.
+- The Models page lists it under "Images and video". Each video is a `media` row on the chat's costs.

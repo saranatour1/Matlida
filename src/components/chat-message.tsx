@@ -23,6 +23,7 @@ import { TimeZonesPart } from '~/components/time-zones-part'
 import { TimelinePart } from '~/components/timeline-part'
 import { TimerPart } from '~/components/timer-part'
 import { TodayPart } from '~/components/today-part'
+import { VideoPart } from '~/components/video-part'
 import { WatchPart } from '~/components/watch-part'
 import { RunPlanPart } from '~/components/task-card'
 import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
@@ -148,6 +149,8 @@ function renderPart(part: Part, index: number) {
       return <PostPreviewsPart key={part.toolCallId} part={part} />
     case 'tool-generate_image':
       return <ImagePart key={part.toolCallId} part={part} />
+    case 'tool-generate_video':
+      return <VideoPart key={part.toolCallId} part={part} />
     default:
       return null
   }

@@ -169,6 +169,21 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         return { url: await ctx.storage.getUrl(storageId), prompt }
       },
     }),
+    generate_video: createTool({
+      description:
+        'Make an 8-second video from a description. It takes a few minutes in the background and shows in the chat when ready, so say so and carry on. Write a detailed prompt: subject, action, camera movement, setting, light and mood.',
+      inputSchema: z.object({
+        prompt: z.string().min(1).max(4000),
+        shape: z.enum(['wide', 'tall']).default('wide'),
+      }),
+      execute: async (ctx, video) => {
+        const videoId: string = await ctx.runMutation(
+          internal.api.videos.start,
+          { projectId: project._id, threadId: ctx.threadId ?? '', ...video },
+        )
+        return { videoId, prompt: video.prompt }
+      },
+    }),
     research: createTool({
       description:
         'Research a question in depth across many web sources. Slower and costlier than web_search, so use it when the user asks for research or a comparison.',
