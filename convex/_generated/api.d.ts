@@ -32,6 +32,7 @@ import type * as lib_ai from "../lib/ai.js";
 import type * as lib_channels from "../lib/channels.js";
 import type * as lib_commands from "../lib/commands.js";
 import type * as lib_decide from "../lib/decide.js";
+import type * as lib_everyday from "../lib/everyday.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_handles from "../lib/handles.js";
 import type * as lib_limits from "../lib/limits.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   "lib/channels": typeof lib_channels;
   "lib/commands": typeof lib_commands;
   "lib/decide": typeof lib_decide;
+  "lib/everyday": typeof lib_everyday;
   "lib/functions": typeof lib_functions;
   "lib/handles": typeof lib_handles;
   "lib/limits": typeof lib_limits;

@@ -9,7 +9,12 @@ import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
 import { PostPreviewPart } from '~/components/post-preview-part'
 import { RecipePart } from '~/components/recipe-part'
+import { SplitPart } from '~/components/split-part'
 import { TablePart } from '~/components/table-part'
+import { TimeZonesPart } from '~/components/time-zones-part'
+import { TimelinePart } from '~/components/timeline-part'
+import { TimerPart } from '~/components/timer-part'
+import { TodayPart } from '~/components/today-part'
 import { RunPlanPart } from '~/components/task-card'
 import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
@@ -81,6 +86,16 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <TablePart key={part.toolCallId} part={part} />
             case 'tool-show_recipe':
               return <RecipePart key={part.toolCallId} part={part} />
+            case 'tool-get_today':
+              return <TodayPart key={part.toolCallId} part={part} />
+            case 'tool-show_timeline':
+              return <TimelinePart key={part.toolCallId} part={part} />
+            case 'tool-split_costs':
+              return <SplitPart key={part.toolCallId} part={part} />
+            case 'tool-compare_times':
+              return <TimeZonesPart key={part.toolCallId} part={part} />
+            case 'tool-start_timer':
+              return <TimerPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':
