@@ -269,7 +269,7 @@ export function everydayTools(project: Doc<'projects'>) {
 }
 
 /** Tools that only show a card, which texts, calls and emails can't show. */
-export const CARD_TOOLS = new Set([
+const CARD_TOOLS = new Set([
   'show_chart',
   'preview_post',
   'preview_posts',
@@ -281,4 +281,14 @@ export const CARD_TOOLS = new Set([
   'show_cart',
   'setup_news',
   'generate_image',
+  'generate_video',
 ])
+
+/** Cards a call still gets: you talk from the chat, or beside it, so the picture or video shows there. */
+const CALL_CARDS = new Set(['generate_image', 'generate_video'])
+
+/** Whether `tool` belongs in a reply that goes out `via` (unset means the chat). */
+export function showsVia(tool: string, via?: string) {
+  if (!via || via === 'chat' || !CARD_TOOLS.has(tool)) return true
+  return via === 'voice' && CALL_CARDS.has(tool)
+}

@@ -15,6 +15,7 @@ test('cards show in the app, and texts and calls answer in words instead', () =>
       'start_timer',
       'get_today',
       'generate_image',
+      'generate_video',
     ]),
   )
   for (const via of ['text', 'voice'] as const) {
@@ -27,6 +28,13 @@ test('cards show in the app, and texts and calls answer in words instead', () =>
     expect(tools).not.toContain('show_chart')
     expect(tools).not.toContain('show_timeline')
     expect(tools).not.toContain('start_timer')
-    expect(tools).not.toContain('generate_image')
   }
+})
+
+test('calls can make pictures and videos, which show in the chat beside them, and texts can’t', () => {
+  expect(toolsFor('voice')).toEqual(
+    expect.arrayContaining(['generate_image', 'generate_video']),
+  )
+  expect(toolsFor('text')).not.toContain('generate_image')
+  expect(toolsFor('text')).not.toContain('generate_video')
 })

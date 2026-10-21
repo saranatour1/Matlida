@@ -30,6 +30,7 @@ import {
 import { threadsTable } from './models/threads/table'
 import { usageTable } from './models/usage/table'
 import { usersTable } from './models/users/table'
+import { videosTable } from './models/videos/table'
 
 export default defineSchema({
   users: usersTable,
@@ -57,4 +58,5 @@ export default defineSchema({
   calls: callsTable,
   callLines: callLinesTable,
   liveTurns: liveTurnsTable,
+  videos: videosTable,
 })

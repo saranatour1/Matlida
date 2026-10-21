@@ -12,6 +12,7 @@ export const MODELS = {
   /** TypeSafe's Jev, for `decide`: typed picks with probabilities. */
   decide: '~typesafe/jev-latest',
   image: 'openai/gpt-image-1',
+  video: 'google/veo-3.1-fast',
 } as const
 
 export type Job = keyof typeof MODELS
@@ -83,6 +84,13 @@ export const JOBS = {
     model: 'GPT Image 1',
     maker: 'OpenAI',
     note: '/image: pictures from a description, saved in your Convex storage.',
+  },
+  video: {
+    group: 'Images and video',
+    name: 'Videos',
+    model: 'Veo 3.1 Fast',
+    maker: 'Google',
+    note: '/video: 8-second clips from a description, made in the background and saved in your Convex storage.',
   },
 } satisfies Record<
   Job,

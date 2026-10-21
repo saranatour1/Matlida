@@ -29,6 +29,8 @@ import type * as api_texts from "../api/texts.js";
 import type * as api_threads from "../api/threads.js";
 import type * as api_usage from "../api/usage.js";
 import type * as api_users from "../api/users.js";
+import type * as api_videoMake from "../api/videoMake.js";
+import type * as api_videos from "../api/videos.js";
 import type * as api_voice from "../api/voice.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
@@ -98,6 +100,9 @@ import type * as models_usage_table from "../models/usage/table.js";
 import type * as models_users_auth from "../models/users/auth.js";
 import type * as models_users_functions from "../models/users/functions.js";
 import type * as models_users_table from "../models/users/table.js";
+import type * as models_videos_functions from "../models/videos/functions.js";
+import type * as models_videos_make from "../models/videos/make.js";
+import type * as models_videos_table from "../models/videos/table.js";
 
 import type {
   ApiFromModules,
@@ -127,6 +132,8 @@ declare const fullApi: ApiFromModules<{
   "api/threads": typeof api_threads;
   "api/usage": typeof api_usage;
   "api/users": typeof api_users;
+  "api/videoMake": typeof api_videoMake;
+  "api/videos": typeof api_videos;
   "api/voice": typeof api_voice;
   crons: typeof crons;
   http: typeof http;
@@ -196,6 +203,9 @@ declare const fullApi: ApiFromModules<{
   "models/users/auth": typeof models_users_auth;
   "models/users/functions": typeof models_users_functions;
   "models/users/table": typeof models_users_table;
+  "models/videos/functions": typeof models_videos_functions;
+  "models/videos/make": typeof models_videos_make;
+  "models/videos/table": typeof models_videos_table;
 }>;
 
 /**

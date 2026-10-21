@@ -24,6 +24,9 @@ export const transcriptionModel = convexGateway.transcriptionModel(
 /** Pictures for `generate_image`. */
 export const imageModel = convexGateway.imageModel(MODELS.image)
 
+/** Clips for `generate_video`. */
+export const videoModel = convexGateway.videoModel(MODELS.video)
+
 export const speechModel = convexGateway.speechModel(MODELS.speech)
 
 /** Jev, through the gateway's decisions endpoint (alpha), for `decide`. */
