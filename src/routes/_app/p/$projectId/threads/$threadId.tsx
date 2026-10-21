@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_app/p/$projectId/threads/$threadId')({
   component: Thread,
 })
 
-/** A sub-thread, where the lead handed work to a bot, or the Email inbox. Read-only, but emails can be replied to. */
+/** Read-only view of a sub-thread, where the lead handed work to a bot. Old inbox emails can still be replied to. */
 function Thread() {
   const { projectId, threadId } = Route.useParams()
   const thread = useQuery(api.api.threads.get, { threadId })

@@ -47,10 +47,9 @@ export function EmailAddress({ project }: { project: Doc<'projects'> }) {
     return (
       <div className="mt-2 flex flex-col gap-2 text-xs">
         <p>
-          Write to <span className="font-medium">{mailbox.address}</span> from{' '}
-          {mine.email} and it shows in {project.name}&rsquo;s chat with a draft
-          reply. Mail from anyone else goes to the Email inbox. Nothing is sent
-          until you press Reply.
+          Write to <span className="font-medium">{mailbox.address}</span> from
+          anywhere and it shows in {project.name}&rsquo;s chat with a draft
+          reply. Nothing is sent until you press Reply.
         </p>
         <div className="flex items-center gap-2">
           <Button

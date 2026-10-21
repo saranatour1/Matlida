@@ -185,18 +185,17 @@ test('your own email gets a draft in the chat, and goes out only when you reply'
   expect(sent).toHaveLength(1)
 })
 
-test("someone else's email shows in your inbox with a draft, and only you can reply", async () => {
+test("someone else's email shows in the lead's chat with a draft, and only you can reply", async () => {
   const { t, asAda, poll, chat, statuses, inbox } = await setup()
   received = [email('m1', 'bob@example.org', 'Lunch?', { name: 'Bob' })]
   await poll()
 
   expect(sent).toEqual([])
-  expect(await chat('Email inbox')).toEqual([
+  expect(await chat('Matilda')).toEqual([
     '📨 **Bob <bob@example.org>**\n**Today**\n\nLunch?',
   ])
-  expect(await chat('Matilda')).toBeNull()
   expect(await statuses()).toEqual(['shown'])
-  const [mail] = await inbox('Email inbox')
+  const [mail] = await inbox('Matilda')
   expect(mail).toMatchObject({
     from: 'bob@example.org',
     draft: 'Hi from Matilda.',
@@ -222,10 +221,10 @@ test('spam from your own address is shown, not drafted', async () => {
 
   expect(sent).toEqual([])
   expect(calls).toHaveLength(0)
-  expect(await chat('Email inbox')).toEqual([
+  expect(await chat('Matilda')).toEqual([
     '📨 **Ada <ada@example.com>** _(marked as spam)_\n**Today**\n\nClick here',
   ])
-  expect(await inbox('Email inbox')).toMatchObject([{ draft: '' }])
+  expect(await inbox('Matilda')).toMatchObject([{ draft: '' }])
 })
 
 test('mail to an address nobody claimed is ignored', async () => {
@@ -237,7 +236,6 @@ test('mail to an address nobody claimed is ignored', async () => {
   await poll()
 
   expect(sent).toEqual([])
-  expect(await chat('Email inbox')).toBeNull()
   expect(await statuses()).toEqual(['ignored', 'ignored'])
 })
 

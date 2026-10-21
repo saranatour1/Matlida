@@ -252,6 +252,6 @@
 ### Only Matilda answers email and texts, and you reply to email yourself (2026-10-21)
 
 - Texts on iMessage, WhatsApp and Telegram only ever go to the lead, in her one chat. `@name` no longer switches to a bot, and "who" is gone.
-- Email no longer replies on its own. Your own email shows in the lead's chat with her draft reply under it; anyone else's goes to the Email inbox, drafted with no tools and no chat history. Under each email, Reply opens the draft to edit, and Send mails it in the email's thread, to its sender only, once. The sent reply shows in the chat.
+- Email no longer replies on its own. All email shows in the lead's chat: yours as your message, anyone else's as a quoted email, each with a draft reply. Others' email is drafted with no tools and no chat history. The Email inbox chat and its sidebar link are gone. Under each email, Reply opens the draft to edit, and Send mails it in the email's thread, to its sender only, once. The sent reply shows in the chat.
 - `emails` rows now keep what a reply needs: the chat and message it was posted as, the sender, subject, Photon thread and mailbox user, the draft and when you replied.
 - Verified with unit tests: drafts for yours and others' email with nothing sent, your edited reply sent to the sender only and only once, nobody else can reply, a failed send stays unreplied, spam and over-the-limit email not drafted, and texts to the lead even with `@name`. The Reply dialog wasn't driven in a browser.

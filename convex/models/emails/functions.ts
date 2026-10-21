@@ -21,11 +21,9 @@ import {
   ensureMainThread,
   getMembers,
   getOwnedThread,
-  startThread,
 } from '../threads/functions'
 import { createAgent } from '../threads/lead'
 import type { Doc } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
 
 /** Photon's message list is eventually consistent, so each check looks back this far and skips what's recorded. */
 const LOOKBACK_MS = 10 * 60_000
@@ -44,19 +42,6 @@ const latest = internalQuery({
   },
 })
 
-/** The mailbox's inbox chat, where everyone else's mail is posted, started on first use. */
-async function inboxFor(ctx: MutationCtx, mailbox: Doc<'mailboxes'>) {
-  if (mailbox.inboxThreadId) return mailbox.inboxThreadId
-  const threadId = await startThread(ctx, {
-    projectId: mailbox.projectId,
-    kind: 'chat',
-    title: 'Email inbox',
-    userId: mailbox.userId,
-  })
-  await ctx.db.patch('mailboxes', mailbox._id, { inboxThreadId: threadId })
-  return threadId
-}
-
 /** What `poll` needs to draft a reply to one email. */
 const zTurn = v.object({
   project: schema.doc('projects'),
@@ -68,16 +53,15 @@ const zTurn = v.object({
       promptMessageId: v.string(),
     }),
   ),
-  /** The inbox chat, for anyone else's, whose draft is charged to it. */
+  /** For anyone else's: the lead's chat, which the draft is charged to. */
   inboxThreadId: v.optional(v.string()),
 })
 type Turn = typeof zTurn.type
 
 /**
- * Records one email, once, and posts it. Mail from the mailbox owner's
- * verified address goes to the lead's chat; anyone else's to the owner's
- * inbox chat, so it never reaches the lead's own conversation. Returns what
- * `poll` needs to draft a reply, or null when there's no draft to write.
+ * Records one email, once, and posts it in the lead's chat: yours as your
+ * message, anyone else's as a quoted email. Returns what `poll` needs to
+ * draft a reply, or null when there's no draft to write.
  */
 const receive = internalMutation({
   args: {
@@ -123,9 +107,7 @@ const receive = internalMutation({
       !args.spam &&
       !!owner.email &&
       args.from.toLowerCase() === owner.email.toLowerCase()
-    const threadId = fromOwner
-      ? await ensureMainThread(ctx, project, null)
-      : await inboxFor(ctx, mailbox)
+    const threadId = await ensureMainThread(ctx, project, null)
     const sender = args.fromName ? `${args.fromName} <${args.from}>` : args.from
     const { messageId: chatMessageId } = await saveMessage(
       ctx,

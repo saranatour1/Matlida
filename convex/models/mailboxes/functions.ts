@@ -40,7 +40,6 @@ const mine = authedQuery({
         _id: mailbox._id,
         handle: mailbox.handle,
         projectId: mailbox.projectId,
-        inboxThreadId: mailbox.inboxThreadId ?? null,
         address: domain ? addressOf(mailbox.handle, domain) : null,
       },
     }

@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   ChevronsUpDownIcon,
   LogOutIcon,
-  MailIcon,
   PlusIcon,
   SettingsIcon,
 } from 'lucide-react'
@@ -157,7 +156,6 @@ function Assistants({ project }: { project: Doc<'projects'> }) {
               portrait={portraitOf(b)}
             />
           ))}
-          <EmailInbox projectId={project._id} />
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
@@ -211,32 +209,6 @@ function Assistant({
             Message {name}
           </span>
         </span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  )
-}
-
-/** Email from people other than you, posted unanswered. Shown once some arrives. */
-function EmailInbox({ projectId }: { projectId: Id<'projects'> }) {
-  const mine = useQuery(api.api.mailboxes.mine)
-  const { threadId } = useParams({ strict: false })
-  const { setOpenMobile } = useSidebar()
-  const inbox = mine?.mailbox
-  if (inbox?.projectId !== projectId || !inbox.inboxThreadId) return null
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        isActive={threadId === inbox.inboxThreadId}
-        render={
-          <Link
-            to="/p/$projectId/threads/$threadId"
-            params={{ projectId, threadId: inbox.inboxThreadId }}
-          />
-        }
-        onClick={() => setOpenMobile(false)}
-      >
-        <MailIcon />
-        Email inbox
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
