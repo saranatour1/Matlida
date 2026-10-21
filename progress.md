@@ -378,3 +378,11 @@
 - The volume bar's speaker icon now mutes the assistant and brings it back to the level it had; the slider and the level stay.
 - The audio chat turn moved to `convex/models/threads/voice.ts` (`speakWith`, `voice.prepare`, `voice.save`).
 - Verified with unit tests (Fast voice turn in pieces, a silent Fast voice turn saving nothing) and pnpm check. Not tried in the browser.
+
+### Commands are safe to run twice (2026-10-22)
+
+- Saving a command converges: each command keeps a SHA-256 of its markdown, so saving the same name, description and markdown again (a retry after a lost response, a double click, the model calling `save_command` twice) changes nothing and returns the same command, dropping the duplicate file. A different command can't take a name that's in use.
+- `save_command` now looks its name up inside the same transaction as the write (`replace`), so two saves of one name can't both think it's new. The Library's Save and the tool share `saveCommand`.
+- Removing a command that's already gone does nothing, instead of failing.
+- A run that stops between storing the markdown and saving the command leaves a file nothing points to. An hourly sweep (`commands.sweepFiles`) deletes files from one to two hours ago that no command keeps, judged by whether any command points to the file, so it holds wherever a run stopped. Commands are the only files kept past an hour.
+- Verified with unit tests (same save twice, new and edited; a name clash; replacing by name three times; removing twice; the sweep deleting leftovers, keeping commands and new files, and finding nothing the second time) and one run of the sweep on `dev/matilda`.

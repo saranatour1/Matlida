@@ -5,6 +5,7 @@ import { internal } from '../../_generated/api'
 import { decisionModel, researchModel, searchModel } from '../../lib/ai'
 import { decide } from '../../lib/decide'
 import { fetchNews } from '../../lib/news'
+import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
@@ -251,26 +252,14 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         description: z.string().min(1).max(200),
         markdown: z.string().min(1).max(20_000),
       }),
-      execute: async (ctx, { markdown, ...command }) => {
-        const storageId = await ctx.storage.store(
-          new Blob([markdown], { type: 'text/markdown' }),
-        )
-        const existing: Array<Doc<'commands'>> = await ctx.runQuery(
-          internal.api.commands.byName,
-          { projectId: project._id, name: command.name },
-        )
-        try {
-          await ctx.runMutation(internal.api.commands.write, {
-            projectId: project._id,
-            id: existing[0]?._id,
-            userId: project.ownerId,
-            storageId,
-            ...command,
-          })
-        } catch (error) {
-          await ctx.storage.delete(storageId)
-          throw error
-        }
+      execute: async (ctx, command) => {
+        // Replaces their command with this name, or adds it; saving the same again changes nothing.
+        await saveCommand(ctx, {
+          ...command,
+          projectId: project._id,
+          userId: project.ownerId,
+          replace: true,
+        })
         return { saved: true, run: `/${command.name}` }
       },
     }),
