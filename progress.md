@@ -428,3 +428,9 @@
 
 - Copy on every message (yours and replies, just the words, not the cards) and on every code block, shown on hover on desktop and always on phones. Drafts and post previews use the same `CopyButton`, which says Copied for a moment and announces it to screen readers.
 
+### Diagrams in Excalidraw (2026-10-22)
+
+- A `draw_diagram` tool: the assistant writes the diagram as Mermaid, and the chat shows it on an Excalidraw canvas you can edit, with PNG and .excalidraw downloads (open the file on excalidraw.com to keep going there). `/draw` asks for one.
+- Excalidraw and the Mermaid parser load with the first diagram, not with the app. `@excalidraw/mermaid-to-excalidraw` is pinned at 2.2.2, since 2.3.0 is a day old.
+- Cards only show in the app, so texts and calls don't get it.
+

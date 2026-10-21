@@ -8,6 +8,7 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { CopyButton } from '~/components/copy-button'
+import { DiagramPart } from '~/components/diagram-part'
 import { DraftsPart } from '~/components/drafts-part'
 import { ImagePart } from '~/components/image-part'
 import { NewsPart, NewsSetupPart } from '~/components/news-part'
@@ -179,6 +180,8 @@ function renderPart(part: Part, index: number) {
       return <ReminderPart key={part.toolCallId} part={part} />
     case 'tool-run_plan':
       return <RunPlanPart key={part.toolCallId} part={part} />
+    case 'tool-draw_diagram':
+      return <DiagramPart key={part.toolCallId} part={part} />
     case 'tool-show_chart':
       return (
         <React.Suspense key={part.toolCallId}>
