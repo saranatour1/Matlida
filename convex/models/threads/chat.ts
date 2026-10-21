@@ -19,12 +19,11 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { getBots } from '../bots/functions'
 import { findCommand, getCommand } from '../commands/functions'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { getOwnedProject } from '../projects/functions'
 import { MODEL_ID } from '../../lib/models'
-import { getOwnedThread, startThread } from './functions'
+import { ensureMainThread, getMembers, getOwnedThread } from './functions'
 import { createAgent } from './lead'
 import type { Effort } from '../../lib/models'
 import type { Via } from './lead'
@@ -42,8 +41,8 @@ export const zTimeZone = z.string().refine((tz) => {
 }, 'Unknown time zone.')
 
 /**
- * Saves the user's message to a chat with `botId` (the lead when unset),
- * starting the chat on the first message. Checks that it's all `userId`'s.
+ * Saves the user's message to the one thread of `botId` (the lead when
+ * unset), starting it on the first message. Checks that it's all `userId`'s.
  */
 export async function postMessage(
   ctx: MutationCtx,
@@ -51,14 +50,12 @@ export async function postMessage(
   {
     projectId,
     botId,
-    threadId,
     prompt,
     model,
     effort,
   }: {
     projectId: Id<'projects'>
     botId?: Id<'bots'>
-    threadId?: string
     prompt: string
     /** For a new chat: the model it starts on. */
     model?: string
@@ -66,32 +63,13 @@ export async function postMessage(
     effort?: Effort
   },
 ) {
-  await getOwnedProject(ctx, userId, projectId)
-  if (botId && (await ctx.db.get('bots', botId))?.projectId !== projectId) {
+  const project = await getOwnedProject(ctx, userId, projectId)
+  const bot = botId ? await ctx.db.get('bots', botId) : null
+  if (botId && bot?.projectId !== projectId) {
     throw new ConvexError('Assistant not found.')
   }
-  if (threadId) {
-    const thread = await getOwnedThread(ctx, userId, threadId)
-    if (
-      thread?.projectId !== projectId ||
-      thread.kind !== 'chat' ||
-      thread.botId !== botId
-    ) {
-      throw new ConvexError('Chat not found.')
-    }
-  }
   const command = await findCommand(ctx, projectId, prompt)
-  const id =
-    threadId ??
-    (await startThread(ctx, {
-      projectId,
-      kind: 'chat',
-      botId,
-      title: prompt.slice(0, 60),
-      model,
-      effort,
-      userId,
-    }))
+  const id = await ensureMainThread(ctx, project, bot, { model, effort })
   const { messageId } = await saveMessage(ctx, components.agent, {
     threadId: id,
     prompt,
@@ -110,7 +88,6 @@ export async function postMessage(
 const sendMessage = zAuthedMutation({
   args: {
     projectId: zid('projects'),
-    threadId: z.string().optional(),
     botId: zid('bots').optional(),
     timeZone: zTimeZone.optional(),
     prompt: z
@@ -179,15 +156,10 @@ const context = internalQuery({
     const stored = name ? await getCommand(ctx, thread.projectId, name) : null
     const builtIn = BUILT_IN_COMMANDS.find((c) => c.name === name)
     const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
-    const bots = await getBots(ctx, project._id)
     return {
       project,
       bot,
-      members: thread.memberIds
-        ? bots.filter((b) => thread.memberIds?.includes(b._id))
-        : bot
-          ? []
-          : bots,
+      members: await getMembers(ctx, thread),
       command: stored
         ? { name: stored.name, storageId: stored.storageId }
         : builtIn

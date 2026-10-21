@@ -124,7 +124,7 @@ function Transcript({
           <Link
             to="/p/$projectId"
             params={{ projectId: call.projectId }}
-            search={{ thread: call.threadId, bot: botId, panel: true }}
+            search={{ bot: botId, panel: true }}
             className="underline hover:text-foreground"
           >
             Open the chat

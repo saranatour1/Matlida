@@ -31,9 +31,8 @@ function Thread() {
           <h1 className="text-lg font-semibold">{thread?.title ?? 'Thread'}</h1>
           {thread?.parentThreadId && (
             <Link
-              to="/p/$projectId"
-              params={{ projectId }}
-              search={{ thread: thread.parentThreadId }}
+              to="/p/$projectId/threads/$threadId"
+              params={{ projectId, threadId: thread.parentThreadId }}
               className="text-sm text-muted-foreground underline hover:text-foreground"
             >
               Open the chat it came from

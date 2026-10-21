@@ -152,7 +152,7 @@ test('a linked chat talks to the lead in its own chat, in plain text', async () 
     projectId,
     kind: 'chat',
   })
-  expect(chat).toMatchObject({ title: 'Matilda · iMessage' })
+  expect(chat).toMatchObject({ title: 'Matilda' })
   const { page } = await asAda.query(api.api.chat.listMessages, {
     threadId: chat.threadId,
     paginationOpts: { numItems: 10, cursor: null },
@@ -338,8 +338,8 @@ test('@name talks to that assistant until you switch back', async () => {
     kind: 'chat',
   })
   expect(chats.map((c) => [c.title, c.botId]).sort()).toEqual([
-    ['Ivy · Telegram', ivyId],
-    ['Matilda · Telegram', undefined],
+    ['Ivy', ivyId],
+    ['Matilda', undefined],
   ])
 })
 

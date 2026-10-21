@@ -11,6 +11,8 @@ export const botsTable = defineTable({
   instructions: v.string(),
   /** The gateway model it runs on. Unset means the app's default. */
   model: v.optional(v.string()),
+  /** The bot's one thread: the app, Telegram and calls all talk there. */
+  threadId: v.optional(v.string()),
   /** How hard it works on a reply. Unset means medium. */
   effort: v.optional(
     v.union(v.literal('low'), v.literal('medium'), v.literal('high')),

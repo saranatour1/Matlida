@@ -18,9 +18,8 @@ import {
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import schema from '../../schema'
-import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
-import { getOwnedThread, startThread } from '../threads/functions'
+import { getMembers, getOwnedThread, startThread } from '../threads/functions'
 import { createAgent } from '../threads/lead'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { MutationCtx } from '../../_generated/server'
@@ -173,7 +172,12 @@ const stepContext = internalQuery({
     const task = await ctx.db.get('tasks', taskId)
     const project = task && (await ctx.db.get('projects', task.projectId))
     if (!task || !project) throw new Error(`Task ${taskId} is gone.`)
-    return { task, project, bots: await getBots(ctx, project._id) }
+    // The steps can hand work to the bots in the chat that started the task.
+    const chat = await ctx.db
+      .query('threads')
+      .withIndex('by_threadId', (q) => q.eq('threadId', task.threadId))
+      .unique()
+    return { task, project, bots: await getMembers(ctx, chat) }
   },
 })
 

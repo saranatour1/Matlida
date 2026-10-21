@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -44,11 +44,19 @@ test('the lead hands work to a bot in a sub-thread of the chat', async () => {
     brief: '',
     guidelines: '',
   })
-  await asAda.mutation(api.api.bots.save, {
+  const ivy = await asAda.mutation(api.api.bots.save, {
     projectId,
     name: 'Ivy',
     role: 'Researcher',
     instructions: 'You find sources.',
+  })
+  // Ivy joins the lead's chat before the first message.
+  await t.mutation(internal.api.threads.start, {
+    projectId,
+    kind: 'chat',
+    title: 'Matilda',
+    userId: ada,
+    memberIds: [ivy],
   })
 
   const chatId = await asAda.mutation(api.api.chat.sendMessage, {

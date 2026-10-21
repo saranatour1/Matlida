@@ -76,7 +76,7 @@ function leadInstructions(
 ${bots.map((b) => `- ${b.name}: ${b.role}`).join('\n')}
 
 For anything beyond small talk, hand the work to the relevant bots with ask_bot. Ask several in parallel when the topic spans their areas. Then combine what they said into one clear answer, crediting them by name.`
-    : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
+    : 'No bots are in this chat, so answer yourself. The user can add bots to it from the chat header.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
 ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(

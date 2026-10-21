@@ -31,7 +31,7 @@ export function ThreadMembers({
   const setMembers = useMutation(api.api.threads.setMembers)
   if (!thread || !bots) return null
   const others = bots.filter((b) => b._id !== bot?._id)
-  const memberIds = thread.memberIds ?? (bot ? [] : others.map((b) => b._id))
+  const memberIds = thread.memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
 
   return (

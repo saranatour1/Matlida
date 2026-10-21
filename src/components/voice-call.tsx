@@ -418,11 +418,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const [caller, setCaller] = React.useState<Caller>()
   const call = useVoiceCall({
-    onThread: ({ projectId, botId, threadId }) =>
+    onThread: ({ projectId, botId }) =>
       void navigate({
         to: '/p/$projectId',
         params: { projectId },
-        search: (prev) => ({ ...prev, thread: threadId, bot: botId }),
+        search: (prev) => ({ ...prev, bot: botId }),
       }),
   })
   function startCall(target: CallTarget, who: Caller, opening?: Opening) {

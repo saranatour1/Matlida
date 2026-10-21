@@ -241,3 +241,10 @@
 - `preview_post` lays a post out roughly as LinkedIn, X, Reddit or Discord show it, with the character count against the platform's limit, flagged in red when it's over. It posts nothing.
 - New built-in commands: `/chart` (chart what you ask for, from your numbers or looked up with a source, never invented) and `/preview` (draft a post and preview it, LinkedIn when no platform is named). `/posts` now previews each draft too.
 - Verified with unit tests: the chart schema accepts a good chart and refuses mismatched values or a multi-series pie, and the commands name their tools. The components weren't driven in a browser.
+
+### One chat per assistant, and no members by default (2026-10-21)
+
+- Matilda and each bot have one chat (`projects.threadId`, `bots.threadId`). The app, Telegram, email and calls all talk there; `threads.main` finds it, and the first message starts it. A workspace from before keeps its newest chat as the one chat; older chats stay in the database but leave the sidebar. Email from other people still goes to the Email inbox, now a sidebar link.
+- No bots are members of a chat until you add them from the chat header. Before, the lead's chats had every bot. Tasks hand steps only to the chat's members.
+- Gone: "New chat", the per-assistant chat lists in the sidebar, "New group chat" in search, and `?thread=` links.
+- Verified with unit tests: one chat per assistant that messages keep going to, the newest old chat reused but not email's, no members by default, Telegram and email into the one chat. The UI wasn't driven in a browser.

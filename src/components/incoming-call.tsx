@@ -59,7 +59,7 @@ export function IncomingCall() {
           void navigate({
             to: '/p/$projectId',
             params: { projectId: ring.projectId },
-            search: { thread: ring.threadId, bot: ring.botId },
+            search: { bot: ring.botId },
           })
         }}
       >
