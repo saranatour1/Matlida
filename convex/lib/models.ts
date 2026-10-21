@@ -11,6 +11,7 @@ export const MODELS = {
   audioChat: 'openai/gpt-audio-mini',
   /** TypeSafe's Jev, for `decide`: typed picks with probabilities. */
   decide: '~typesafe/jev-latest',
+  image: 'openai/gpt-image-1',
 } as const
 
 export type Job = keyof typeof MODELS
@@ -75,6 +76,13 @@ export const JOBS = {
     model: 'GPT Audio mini',
     maker: 'OpenAI',
     note: 'Hears you and answers in voice in one step, when Fast voice is on. No tools.',
+  },
+  image: {
+    group: 'Images and video',
+    name: 'Images',
+    model: 'GPT Image 1',
+    maker: 'OpenAI',
+    note: '/image: pictures from a description, saved in your Convex storage.',
   },
 } satisfies Record<
   Job,
