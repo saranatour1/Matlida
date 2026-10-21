@@ -386,3 +386,11 @@
 - Removing a command that's already gone does nothing, instead of failing.
 - A run that stops between storing the markdown and saving the command leaves a file nothing points to. An hourly sweep (`commands.sweepFiles`) deletes files from one to two hours ago that no command keeps, judged by whether any command points to the file, so it holds wherever a run stopped. Commands are the only files kept past an hour.
 - Verified with unit tests (same save twice, new and edited; a name clash; replacing by name three times; removing twice; the sweep deleting leftovers, keeping commands and new files, and finding nothing the second time) and one run of the sweep on `dev/matilda`.
+
+### Models by job, and quick summaries (2026-10-22)
+
+- `MODELS` in `convex/lib/models.ts` is the one map of job to gateway model: replies, quick summaries, decisions, web search, research, hearing you, speaking on calls and Fast voice. `JOBS` gives each job its name, the model's name and maker, where you meet it, and its group. The audio chat model moved there from `lib/audio.ts`.
+- A Models page (`/p/:projectId/models`, linked from Settings and search) shows the jobs by group, each with the model's name, maker, id and what it's used for, and the workspace's own chat model when one is picked. It reads the map directly, with no backend call.
+- Quick summaries: a `quick_summary` tool on Gemini 2.5 Flash (fast and cheap) that `/tldr` now uses.
+- `useUpload()` uploads a file to Convex storage in one call; the mic button and calls use it instead of fetching an upload URL themselves.
+- Verified with pnpm check, the tests (every tool a command names exists) and one live summary through the gateway in 0.9 seconds.

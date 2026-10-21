@@ -200,7 +200,7 @@ export const BUILT_IN_COMMANDS = [
     name: 'tldr',
     description: 'Summarize text or a link',
     markdown:
-      'Summarize what the user pasted or linked after /tldr; read a link with web_search. Reply with a one-line TL;DR in bold, then at most five key points, then any dates, numbers or action items. No preamble.',
+      'Summarize what the user pasted or linked after /tldr with quick_summary. For a link, read it with web_search first and summarize what that found. Reply with the summary as it comes back, with no preamble.',
   },
   {
     name: 'compare',

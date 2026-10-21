@@ -2,7 +2,12 @@ import { createTool } from '@convex-dev/agent'
 import { generateText } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { decisionModel, researchModel, searchModel } from '../../lib/ai'
+import {
+  decisionModel,
+  researchModel,
+  searchModel,
+  summaryModel,
+} from '../../lib/ai'
 import { decide } from '../../lib/decide'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
@@ -96,6 +101,29 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           date: Date.now(),
           sections: sections.map(({ topic, stories }) => ({ topic, stories })),
         }
+      },
+    }),
+    quick_summary: createTool({
+      description:
+        'Summarize text quickly and cheaply with a fast model: a pasted article, an email thread, what web_search found. Returns a bold one-line TL;DR, key points, and any dates, numbers or action items.',
+      inputSchema: z.object({
+        text: z.string().min(1).max(100_000),
+        focus: z
+          .string()
+          .max(200)
+          .optional()
+          .describe('What the user cares about, if they said.'),
+      }),
+      execute: async (ctx, { text, focus }, { abortSignal }) => {
+        const result = await generateText({
+          model: summaryModel,
+          system:
+            'Summarize for a busy reader: a one-line TL;DR in bold, then at most five short key points, then any dates, numbers or action items. Markdown. No preamble. Only what the text says.',
+          prompt: focus ? `Focus on: ${focus}\n\n${text}` : text,
+          abortSignal,
+        })
+        await record(ctx, 'search', 'Quick summary', result)
+        return { summary: result.text }
       },
     }),
     research: createTool({
