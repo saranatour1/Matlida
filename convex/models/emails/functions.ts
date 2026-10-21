@@ -11,8 +11,11 @@ import { rateLimiter } from '../../lib/limits'
 import { stripQuotes } from '../../lib/mail'
 import { listEmails, plainText, replyByEmail } from '../../lib/photon'
 import schema from '../../schema'
-import { getBots } from '../bots/functions'
-import { startThread } from '../threads/functions'
+import {
+  ensureMainThread,
+  getMembers,
+  startThread,
+} from '../threads/functions'
 import { createAgent } from '../threads/lead'
 import { emailsTable } from './table'
 import type { Doc } from '../../_generated/dataModel'
@@ -35,25 +38,16 @@ const latest = internalQuery({
   },
 })
 
-/** The mailbox's email chat (`threadId`) or inbox chat (`inboxThreadId`), started on first use. */
-async function chatFor(
-  ctx: MutationCtx,
-  mailbox: Doc<'mailboxes'>,
-  which: 'threadId' | 'inboxThreadId',
-) {
-  const existing = mailbox[which]
-  if (existing) return existing
-  const project = await ctx.db.get('projects', mailbox.projectId)
+/** The mailbox's inbox chat, where everyone else's mail is posted, started on first use. */
+async function inboxFor(ctx: MutationCtx, mailbox: Doc<'mailboxes'>) {
+  if (mailbox.inboxThreadId) return mailbox.inboxThreadId
   const threadId = await startThread(ctx, {
     projectId: mailbox.projectId,
     kind: 'chat',
-    title:
-      which === 'threadId'
-        ? `${project?.name ?? 'Matilda'} · Email`
-        : 'Email inbox',
+    title: 'Email inbox',
     userId: mailbox.userId,
   })
-  await ctx.db.patch('mailboxes', mailbox._id, { [which]: threadId })
+  await ctx.db.patch('mailboxes', mailbox._id, { inboxThreadId: threadId })
   return threadId
 }
 
@@ -76,7 +70,7 @@ const receive = internalMutation({
   returns: v.union(
     v.object({
       project: schema.doc('projects'),
-      bots: v.array(schema.doc('bots')),
+      members: v.array(schema.doc('bots')),
       threadId: v.string(),
       owner: v.string(),
     }),
@@ -121,7 +115,7 @@ const receive = internalMutation({
         key: `user:${owner._id}`,
       })
       if (!limit.ok) {
-        const threadId = await chatFor(ctx, mailbox, 'threadId')
+        const threadId = await ensureMainThread(ctx, project, null)
         await saveMessage(ctx, components.agent, {
           threadId,
           message: {
@@ -141,17 +135,23 @@ const receive = internalMutation({
         return null
       }
       await record('answering')
+      // Your email goes to the lead's one thread, the same as the app.
+      const threadId = await ensureMainThread(ctx, project, null)
+      const thread = await ctx.db
+        .query('threads')
+        .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
+        .unique()
       return {
         project,
-        bots: await getBots(ctx, project._id),
-        threadId: await chatFor(ctx, mailbox, 'threadId'),
+        members: await getMembers(ctx, thread),
+        threadId,
         owner: owner.email,
       }
     }
 
     const sender = args.fromName ? `${args.fromName} <${args.from}>` : args.from
     await saveMessage(ctx, components.agent, {
-      threadId: await chatFor(ctx, mailbox, 'inboxThreadId'),
+      threadId: await inboxFor(ctx, mailbox),
       message: {
         role: 'assistant',
         content: `📨 **${sender}**${args.spam ? ' _(marked as spam)_' : ''}\n**${args.subject || '(no subject)'}**\n\n${args.text || '_(no text)_'}`,
@@ -217,7 +217,7 @@ const poll = internalAction({
       const text = stripQuotes(plainText(email.content))
       const turn: {
         project: Doc<'projects'>
-        bots: Array<Doc<'bots'>>
+        members: Array<Doc<'bots'>>
         threadId: string
         owner: string
       } | null = await ctx.runMutation(internal.api.emails.receive, {
@@ -235,7 +235,7 @@ const poll = internalAction({
       let status: 'answered' | 'failed' = 'answered'
       try {
         const agent = createAgent(turn.project, {
-          members: turn.bots,
+          members: turn.members,
           via: 'email',
         })
         const reply = await agent.generateText(

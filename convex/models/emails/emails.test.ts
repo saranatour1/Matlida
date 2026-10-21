@@ -143,7 +143,7 @@ test('your own email is answered by email, to you only, in its thread', async ()
     },
   ])
   expect(JSON.stringify(calls)).toContain('You are replying by email')
-  expect(await chat('Matilda · Email')).toEqual([
+  expect(await chat('Matilda')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',
   ])
@@ -164,7 +164,7 @@ test("someone else's email shows in your inbox chat and isn't answered", async (
   expect(await chat('Email inbox')).toEqual([
     '📨 **Bob <bob@example.org>**\n**Today**\n\nLunch?',
   ])
-  expect(await chat('Matilda · Email')).toBeNull()
+  expect(await chat('Matilda')).toBeNull()
   expect(await statuses()).toEqual(['shown'])
 })
 
@@ -200,7 +200,7 @@ test("a reply that can't be sent says so in the chat", async () => {
   received = [email('m1', 'ada@example.com', 'What is on today?')]
   await poll()
 
-  expect(await chat('Matilda · Email')).toEqual([
+  expect(await chat('Matilda')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',
     "_This reply couldn't be sent by email._",
@@ -216,7 +216,7 @@ test('past 5 emails at once, yours are posted but not answered', async () => {
   await poll()
 
   expect(sent).toHaveLength(5)
-  expect((await chat('Matilda · Email'))?.slice(-2)).toEqual([
+  expect((await chat('Matilda'))?.slice(-2)).toEqual([
     'Today\n\nQuestion 5',
     '_Not answered by email: too many emails in a short time. Try again in a few minutes._',
   ])

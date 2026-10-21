@@ -10,11 +10,10 @@ import {
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
-import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
 import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
-import { startThread } from '../threads/functions'
+import { ensureMainThread, getMembers } from '../threads/functions'
 import { createAgent } from '../threads/lead'
 import { spectrum } from './spectrum'
 import type { Doc, Id } from '../../_generated/dataModel'
@@ -140,8 +139,6 @@ const claim = internalMutation({
   },
 })
 
-type Linked = Extract<Doc<'phoneLinks'>, { status: 'linked' }>
-
 /**
  * Whether a chat may send another message or try another code. Messages
  * from a linked chat count against its owner, so one person can't run up
@@ -191,6 +188,8 @@ const forSpace = internalMutation({
       project: schema.doc('projects'),
       bots: v.array(schema.doc('bots')),
       bot: v.union(schema.doc('bots'), v.null()),
+      /** Who the assistant can hand work to in its thread. */
+      members: v.array(schema.doc('bots')),
       /** Null when `@name` matched no one here. */
       threadId: v.union(v.string(), v.null()),
       /** The message without its `@name`. */
@@ -211,7 +210,9 @@ const forSpace = internalMutation({
     let prompt = text.trim()
     if (prompt.startsWith('@')) {
       const named = addressee(prompt, project, bots)
-      if (!named) return { project, bots, bot: null, threadId: null, prompt }
+      if (!named) {
+        return { project, bots, bot: null, members: [], threadId: null, prompt }
+      }
       botId = named.bot?._id
       prompt = named.rest
       if (botId !== linked.activeBotId) {
@@ -219,8 +220,14 @@ const forSpace = internalMutation({
       }
     }
     const bot = bots.find((b) => b._id === botId) ?? null
-    const threadId = await chatFor(ctx, linked, project, bot)
-    return { project, bots, bot, threadId, prompt }
+    // Texts go to the assistant's one thread, the same as in the app.
+    const threadId = await ensureMainThread(ctx, project, bot)
+    const thread = await ctx.db
+      .query('threads')
+      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
+      .unique()
+    const members = await getMembers(ctx, thread)
+    return { project, bots, bot, members, threadId, prompt }
   },
 })
 
@@ -249,39 +256,6 @@ function addressee(
     }
   }
   return null
-}
-
-/** This link's chat with `bot` (the lead when null), started on first use. */
-async function chatFor(
-  ctx: MutationCtx,
-  linked: Linked,
-  project: Doc<'projects'>,
-  bot: Doc<'bots'> | null,
-) {
-  const existing = bot
-    ? linked.botThreads?.find((t) => t.botId === bot._id)?.threadId
-    : linked.threadId
-  if (existing) return existing
-  const threadId = await startThread(ctx, {
-    projectId: project._id,
-    kind: 'chat',
-    title: `${(bot ?? project).name} · ${messagingAppName(linked.platform ?? 'imessage')}`,
-    botId: bot?._id,
-    userId: linked.ownerId,
-  })
-  await ctx.db.patch(
-    'phoneLinks',
-    linked._id,
-    bot
-      ? {
-          botThreads: [
-            ...(linked.botThreads ?? []),
-            { botId: bot._id, threadId },
-          ],
-        }
-      : { threadId },
-  )
-  return threadId
 }
 
 /**
@@ -324,6 +298,7 @@ const answer = internalAction({
       project: Doc<'projects'>
       bots: Array<Doc<'bots'>>
       bot: Doc<'bots'> | null
+      members: Array<Doc<'bots'>>
       threadId: string | null
       prompt: string
     } | null = await ctx.runMutation(internal.api.texts.forSpace, {
@@ -338,7 +313,7 @@ const answer = internalAction({
     if (!admitted) {
       return "You're sending a lot of messages. Give me a few minutes and try again."
     }
-    const { project, bots, bot, threadId, prompt } = linked
+    const { project, bots, bot, members, threadId, prompt } = linked
     const names = [project.name, ...bots.map((b) => b.name)].join(', ')
     const current = (bot ?? project).name
     if (!threadId)
@@ -349,7 +324,7 @@ const answer = internalAction({
     if (!prompt) return `You're talking to ${current} now.`
     const agent = createAgent(project, {
       bot,
-      members: bot ? [] : bots,
+      members,
       via: 'text',
     })
     const reply = await agent.generateText(

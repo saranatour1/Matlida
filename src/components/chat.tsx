@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
@@ -38,27 +38,29 @@ import { errorMessage } from '~/lib/errors'
 import { CommandDialog } from '~/components/command-dialog'
 
 /**
- * A chat with one of the project's assistants: `bot`, or the lead when unset.
- * Without `threadId`, the first message starts one.
+ * The one chat with one of the project's assistants: `bot`, or the lead when
+ * unset. The first message starts it.
  */
 export function Chat({
   project,
   bot,
-  threadId,
   panel,
   onCall,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
-  threadId?: string
   /** Whether the right sidebar is open. It lives in the URL as `?panel=true`. */
   panel?: boolean
   /** Starts a voice call with this chat's assistant. */
   onCall: () => void
 }) {
-  const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
+  const threadId =
+    useQuery(api.api.threads.main, {
+      projectId: project._id,
+      botId: bot?._id,
+    }) ?? undefined
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
@@ -90,22 +92,14 @@ export function Chat({
   const [error, send] = React.useActionState(
     async (_previous: string | undefined, prompt: string) => {
       try {
-        const id = await sendMessage({
+        await sendMessage({
           projectId: project._id,
           botId: bot?._id,
-          threadId,
           prompt,
           model: threadId ? undefined : startModel,
           effort: threadId ? undefined : startEffort,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
-        if (!threadId) {
-          void navigate({
-            to: '/p/$projectId',
-            params: { projectId: project._id },
-            search: { thread: id, bot: bot?._id, panel },
-          })
-        }
         return undefined
       } catch (e) {
         return errorMessage(e, 'Could not send your message. Try again.')

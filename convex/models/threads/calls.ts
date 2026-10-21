@@ -24,7 +24,6 @@ const post = internalMutation({
     userId: v.id('users'),
     projectId: v.id('projects'),
     botId: v.optional(v.id('bots')),
-    threadId: v.optional(v.string()),
     prompt: v.string(),
   },
   returns: v.object({
@@ -127,7 +126,8 @@ const turn = zAuthedAction({
       }
     }
     await live({ heard: heard.text })
-    const { callId: _, ...message } = where
+    // The reply goes to the assistant's one thread, whatever the call started on.
+    const { callId: _, threadId: __, ...message } = where
     const posted = await ctx.runMutation(internal.api.calls.post, {
       userId: ctx.userId,
       ...message,

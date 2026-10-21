@@ -44,6 +44,86 @@ export async function getOwnedThread(
   return project?.ownerId === userId ? thread : null
 }
 
+/**
+ * An assistant's one thread: the bot's, or the lead's when `bot` is null.
+ * Before one was recorded, its newest chat, leaving out the chats Telegram,
+ * iMessage, WhatsApp and email used to get of their own and the email inbox.
+ * Null when it has never been talked to.
+ */
+export async function getMainThread(
+  ctx: Pick<QueryCtx, 'db'>,
+  project: Doc<'projects'>,
+  bot: Doc<'bots'> | null,
+) {
+  const recorded = bot ? bot.threadId : project.threadId
+  if (recorded) return recorded
+  const links = await ctx.db
+    .query('phoneLinks')
+    .withIndex('by_project', (q) => q.eq('projectId', project._id))
+    .take(10)
+  const mailbox = await ctx.db
+    .query('mailboxes')
+    .withIndex('by_user', (q) => q.eq('userId', project.ownerId))
+    .unique()
+  const channelThreads = new Set([
+    ...links.flatMap((l) =>
+      l.status === 'linked'
+        ? [l.threadId, ...(l.botThreads ?? []).map((t) => t.threadId)]
+        : [],
+    ),
+    mailbox?.threadId,
+    mailbox?.inboxThreadId,
+  ])
+  const chats = await ctx.db
+    .query('threads')
+    .withIndex('by_project_and_bot', (q) =>
+      q
+        .eq('projectId', project._id)
+        .eq('botId', bot?._id)
+        .eq('kind', 'chat'),
+    )
+    .order('desc')
+    .take(20)
+  return chats.find((c) => !channelThreads.has(c.threadId))?.threadId ?? null
+}
+
+/**
+ * An assistant's one thread, recorded on it, and started on first use with
+ * `model` and `effort` when given.
+ */
+export async function ensureMainThread(
+  ctx: MutationCtx,
+  project: Doc<'projects'>,
+  bot: Doc<'bots'> | null,
+  start: Pick<NewThread, 'model' | 'effort'> = {},
+) {
+  const threadId =
+    (await getMainThread(ctx, project, bot)) ??
+    (await startThread(ctx, {
+      projectId: project._id,
+      kind: 'chat',
+      botId: bot?._id,
+      title: (bot ?? project).name,
+      userId: project.ownerId,
+      ...start,
+    }))
+  if (bot && !bot.threadId) await ctx.db.patch('bots', bot._id, { threadId })
+  if (!bot && !project.threadId) {
+    await ctx.db.patch('projects', project._id, { threadId })
+  }
+  return threadId
+}
+
+/** The bots in a thread, who its assistant can hand work to. None until you add them. */
+export async function getMembers(
+  ctx: Pick<QueryCtx, 'db'>,
+  thread: Doc<'threads'> | null,
+) {
+  if (!thread?.memberIds?.length) return []
+  const bots = await getBots(ctx, thread.projectId)
+  return bots.filter((b) => thread.memberIds?.includes(b._id))
+}
+
 /** Starts a thread from an action, such as a sub-thread for a bot. */
 const start = internalMutation({
   args: {
@@ -71,18 +151,14 @@ const list = authedQuery({
   },
 })
 
-/** One assistant's recent chats: a bot's, or the lead's when `botId` is unset. */
-const listForBot = authedQuery({
+/** An assistant's one thread, or null before its first message. `botId` unset means the lead. */
+const main = authedQuery({
   args: { projectId: v.id('projects'), botId: v.optional(v.id('bots')) },
   handler: async (ctx, { projectId, botId }) => {
-    await getOwnedProject(ctx, ctx.userId, projectId)
-    return await ctx.db
-      .query('threads')
-      .withIndex('by_project_and_bot', (q) =>
-        q.eq('projectId', projectId).eq('botId', botId),
-      )
-      .order('desc')
-      .take(20)
+    const project = await getOwnedProject(ctx, ctx.userId, projectId)
+    const bot = botId ? await ctx.db.get('bots', botId) : null
+    if (botId && bot?.projectId !== projectId) return null
+    return await getMainThread(ctx, project, bot)
   },
 })
 
@@ -101,29 +177,6 @@ const setMembers = authedMutation({
       throw new ConvexError('Only other assistants in this workspace can join.')
     }
     await ctx.db.patch('threads', thread._id, { memberIds })
-  },
-})
-
-/** Starts a chat where the lead works with the bots you picked. */
-const startGroup = authedMutation({
-  args: { projectId: v.id('projects'), memberIds: v.array(v.id('bots')) },
-  handler: async (ctx, { projectId, memberIds }) => {
-    const project = await getOwnedProject(ctx, ctx.userId, projectId)
-    const bots = await getBots(ctx, projectId)
-    const members = bots.filter((b) => memberIds.includes(b._id))
-    if (members.length === 0 || members.length !== memberIds.length) {
-      throw new ConvexError('Pick at least one assistant from this workspace.')
-    }
-    return await startThread(ctx, {
-      projectId,
-      kind: 'chat',
-      title: `${project.name}, ${members.map((m) => m.name).join(', ')}`.slice(
-        0,
-        60,
-      ),
-      memberIds: members.map((m) => m._id),
-      userId: ctx.userId,
-    })
   },
 })
 
@@ -167,9 +220,8 @@ const setEffort = zAuthedMutation({
 export const threadsApi = {
   start,
   list,
-  listForBot,
+  main,
   setMembers,
-  startGroup,
   get,
   setModel,
   setEffort,

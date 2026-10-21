@@ -46,7 +46,7 @@ async function finishReply(t: ReturnType<typeof convexTest>) {
   await t.finishInProgressScheduledFunctions()
 }
 
-test('a first message starts a chat and the lead replies in it', async () => {
+test("a first message starts the lead's one chat and the lead replies in it", async () => {
   const { t, asAda, projectId } = await setup()
 
   const threadId = await asAda.mutation(api.api.chat.sendMessage, {
@@ -67,7 +67,7 @@ test('a first message starts a chat and the lead replies in it', async () => {
   ])
   expect(
     await asAda.query(api.api.threads.list, { projectId, kind: 'chat' }),
-  ).toMatchObject([{ threadId, title: 'Hi there', kind: 'chat' }])
+  ).toMatchObject([{ threadId, title: 'Matilda', kind: 'chat' }])
 })
 
 test("another user can't read or post to the chat", async () => {
@@ -88,7 +88,7 @@ test("another user can't read or post to the chat", async () => {
   ).rejects.toThrow('Project not found.')
 })
 
-test('a chat with a bot is listed under that bot, not the lead', async () => {
+test('each assistant has one chat, and messages keep going to it', async () => {
   const { t, asAda, projectId } = await setup()
   const botId = await asAda.mutation(api.api.bots.save, {
     projectId,
@@ -97,26 +97,61 @@ test('a chat with a bot is listed under that bot, not the lead', async () => {
     instructions: 'Find things out.',
   })
 
-  const threadId = await asAda.mutation(api.api.chat.sendMessage, {
+  const rexThread = await asAda.mutation(api.api.chat.sendMessage, {
     projectId,
     botId,
     prompt: 'Look into this',
   })
   await finishReply(t)
+  vi.useFakeTimers()
+  const leadThread = await asAda.mutation(api.api.chat.sendMessage, {
+    projectId,
+    prompt: 'Hi',
+  })
 
+  expect(leadThread).not.toEqual(rexThread)
   expect(
-    await asAda.query(api.api.threads.listForBot, { projectId, botId }),
-  ).toMatchObject([{ threadId, botId, kind: 'chat' }])
-  expect(await asAda.query(api.api.threads.listForBot, { projectId })).toEqual(
-    [],
-  )
-  await expect(
-    asAda.mutation(api.api.chat.sendMessage, {
+    await asAda.mutation(api.api.chat.sendMessage, {
       projectId,
-      threadId,
-      prompt: 'Lead, are you there?',
+      botId,
+      prompt: 'And this',
     }),
-  ).rejects.toThrow('Chat not found.')
+  ).toEqual(rexThread)
+  expect(await asAda.query(api.api.threads.main, { projectId, botId })).toEqual(
+    rexThread,
+  )
+  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(
+    leadThread,
+  )
+})
+
+test("the newest old chat becomes the one chat, and email's chats don't", async () => {
+  const { t, asAda, projectId } = await setup()
+  const userId = (await t.run((ctx) => ctx.db.query('users').first()))!._id
+  const start = (title: string) =>
+    t.mutation(internal.api.threads.start, {
+      projectId,
+      kind: 'chat',
+      title,
+      userId,
+    })
+  const older = await start('Older')
+  const newer = await start('Newer')
+  const emailChat = await start('Email')
+  await t.run((ctx) =>
+    ctx.db.insert('mailboxes', {
+      userId,
+      projectId,
+      handle: 'ada',
+      threadId: emailChat,
+    }),
+  )
+
+  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(newer)
+  expect(
+    await asAda.mutation(api.api.chat.sendMessage, { projectId, prompt: 'Hi' }),
+  ).toEqual(newer)
+  expect(older).not.toEqual(newer)
 })
 
 test("a bot from another workspace can't be messaged", async () => {
@@ -142,7 +177,7 @@ test("a bot from another workspace can't be messaged", async () => {
   ).rejects.toThrow('Assistant not found.')
 })
 
-test('members decide who an assistant can hand work to', async () => {
+test('no bots are members until you add them', async () => {
   const { t, asAda, projectId } = await setup()
   const [rex, ivy] = await Promise.all(
     ['Rex', 'Ivy'].map((name) =>
@@ -168,7 +203,7 @@ test('members decide who an assistant can hand work to', async () => {
       (m) => m.name,
     )
 
-  expect((await membersOf(leadThread)).sort()).toEqual(['Ivy', 'Rex'])
+  expect(await membersOf(leadThread)).toEqual([])
   expect(await membersOf(rexThread)).toEqual([])
 
   await asAda.mutation(api.api.threads.setMembers, {
@@ -198,35 +233,4 @@ test("a reply records its model usage and action time, visible only to the chat'
     label: 'Matilda',
   })
   expect(await asBob.query(api.api.usage.forThread, { threadId })).toEqual([])
-})
-
-test('a group chat starts with the picked bots as members, from this workspace only', async () => {
-  const { t, asAda, projectId } = await setup()
-  const [rex, ivy] = await Promise.all(
-    ['Rex', 'Ivy'].map((name) =>
-      asAda.mutation(api.api.bots.save, {
-        projectId,
-        name,
-        role: 'Helper',
-        instructions: 'Help.',
-      }),
-    ),
-  )
-  const threadId = await asAda.mutation(api.api.threads.startGroup, {
-    projectId,
-    memberIds: [rex, ivy],
-  })
-
-  expect(
-    (await t.query(internal.api.chat.context, { threadId })).members
-      .map((m) => m.name)
-      .sort(),
-  ).toEqual(['Ivy', 'Rex'])
-  expect(await asAda.query(api.api.threads.get, { threadId })).toMatchObject({
-    title: 'Matilda, Ivy, Rex',
-    kind: 'chat',
-  })
-  await expect(
-    asAda.mutation(api.api.threads.startGroup, { projectId, memberIds: [] }),
-  ).rejects.toThrow('Pick at least one assistant from this workspace.')
 })

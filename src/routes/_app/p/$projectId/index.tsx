@@ -12,7 +12,6 @@ import { decodeTemplate } from '~/lib/bot-template'
 
 export const Route = createFileRoute('/_app/p/$projectId/')({
   validateSearch: z.object({
-    thread: z.string().optional(),
     bot: z.string().optional(),
     panel: z.boolean().optional(),
     /** Opens the New assistant dialog. */
@@ -24,14 +23,14 @@ export const Route = createFileRoute('/_app/p/$projectId/')({
 })
 
 /**
- * A chat with one of the project's assistants. `?bot=<id>` picks a bot (the
- * lead otherwise), `?thread=<id>` opens a chat, no thread starts a new one.
+ * The chat with one of the project's assistants. `?bot=<id>` picks a bot (the
+ * lead otherwise). Each has one chat.
  * `?new=true` or `?template=<link>` opens the New assistant dialog over it.
  */
 function ProjectPage() {
   const project = useProject()
   const search = Route.useSearch()
-  const { thread, bot: botId, panel } = search
+  const { bot: botId, panel } = search
   const navigate = Route.useNavigate()
   const template = decodeTemplate(search.template)
   const bots = useQuery(
@@ -59,14 +58,13 @@ function ProjectPage() {
   return (
     <>
       <Chat
-        key={`${botId ?? 'lead'}/${thread ?? 'new'}`}
+        key={botId ?? 'lead'}
         project={project}
         bot={bot}
-        threadId={thread}
         panel={panel}
         onCall={() =>
           startCall(
-            { projectId: project._id, botId: bot?._id, threadId: thread },
+            { projectId: project._id, botId: bot?._id },
             {
               name: (bot ?? project).name,
               portrait: portraitOf(bot ?? project),

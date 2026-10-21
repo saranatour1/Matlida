@@ -64,7 +64,6 @@ test('a failed reply shows as failed and the next message still gets one', async
 
   await asAda.mutation(api.api.chat.sendMessage, {
     projectId,
-    threadId,
     prompt: 'Try again',
   })
   await finishReply(t)
