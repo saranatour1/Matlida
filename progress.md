@@ -288,3 +288,14 @@
 - New built-in commands: `/todo`, `/shopping`, `/meals`, `/recipe`, `/pack`, `/rewrite`, `/reply`, `/translate`, `/tldr`, `/compare`, `/workout`, `/explain`. `/create` can make lists too.
 - Texts, calls and emails don't get the card-only tools, so they answer in words.
 - Verified with unit tests: lists by name, sections, ticking, clearing and ownership; a card adding to your list; every tool a built-in command names exists; cards left out of texts and calls; recipe amounts. The cards weren't clicked through in a browser (signed out).
+
+### Everyday commands, part 2: today, time and money (2026-10-21)
+
+- New cards and tools in `convex/models/threads/everyday.ts`:
+  - **Today** (`get_today`, data from `projects.today`): what needs you (messages waiting for your OK, tasks to start, emails from the last three days nobody replied to), reminders in the next 24 hours, what's running, and lists with things left.
+  - **Timeline** (`show_timeline`): a day in time blocks or a trip day by day, grouped.
+  - **Settle up** (`split_costs`): who pays whom, and each person's paid and share. The math is in `convex/lib/everyday.ts`, in cents, with the fewest payments.
+  - **Time zones** (`compare_times`): the time in each place, and a 24-hour strip per place with working hours filled and the hours everyone overlaps ringed. Done with `Intl` in code; zones are checked as real IANA zones.
+  - **Focus timer** (`start_timer`): a ring counting down from when it was set, so a reload keeps time.
+- New built-in commands: `/today`, `/dayplan`, `/trip`, `/split`, `/meet`, `/focus` and `/convert`.
+- Verified with unit tests: splitting (odd cents, subsets, fewest payments, nobody owing), time zones (local times, day shift, overlaps, bad zones), the Today data (only what's due, yours, unreplied and open), and timeline and timer kept out of texts and calls. The cards weren't clicked through in a browser (signed out).

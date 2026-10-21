@@ -59,6 +59,48 @@ export const BUILT_IN_COMMANDS = [
       'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
+    name: 'today',
+    description: 'Your day at a glance',
+    markdown:
+      'Call get_today and brief the user in two to four lines: first what needs them (messages waiting for their OK, tasks to start, emails to answer), then what is coming up, then their lists. The card shows the details, so pick what matters and end with one suggestion for what to do first.',
+  },
+  {
+    name: 'dayplan',
+    description: 'Plan your day in time blocks',
+    markdown:
+      'Plan the rest of the user\'s day after /dayplan. Call get_today for what is due, then lay out time blocks from now to the end of their day with show_timeline (when like "9:00–10:30", a short title, a detail if useful): fixed times they mention kept, the hardest work first, breaks included. Offer to set reminders for the key blocks with set_reminder.',
+  },
+  {
+    name: 'trip',
+    description: 'A day-by-day trip plan',
+    markdown:
+      'Plan the trip after /trip day by day, with morning, afternoon and evening. Check opening hours, travel times and prices with web_search where it matters; never make them up. Show it with show_timeline, grouped by day (like "Day 1 · Sat 14 Nov"). Offer /pack for a packing list.',
+  },
+  {
+    name: 'split',
+    description: 'Split a bill: who owes whom',
+    markdown:
+      'Split the costs the user describes after /split with split_costs: everyone involved, and each cost with who paid and who shares it (everyone unless they say otherwise). If who paid is unclear, ask in one short question. Never do the math yourself. Say in one line who pays whom; the card shows the rest.',
+  },
+  {
+    name: 'meet',
+    description: 'Find a time across time zones',
+    markdown:
+      "Find a time for the people and places after /meet with compare_times, using each place's IANA time zone (like Europe/London) and the time they suggest, or now. Say the best window in each place's local time in one or two lines. If no hour has everyone in working hours, say so and suggest the least bad one.",
+  },
+  {
+    name: 'focus',
+    description: 'Start a focus timer',
+    markdown:
+      'Start a focus timer for what the user says after /focus with start_timer, 25 minutes unless they give a time. Say in one line what to focus on, and offer a break reminder with set_reminder.',
+  },
+  {
+    name: 'convert',
+    description: 'Convert units, currencies and sizes',
+    markdown:
+      'Convert what the user asks after /convert: units, cooking measures, clothing sizes or currencies. For currencies, get the current rate with web_search and say its date and source. Answer in bold first, then the rate or formula in one line.',
+  },
+  {
     name: 'todo',
     description: 'Add to your to-do list',
     markdown:
