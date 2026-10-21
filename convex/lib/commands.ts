@@ -59,6 +59,12 @@ export const BUILT_IN_COMMANDS = [
       'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
+    name: 'draw',
+    description: 'Draw a diagram in Excalidraw',
+    markdown:
+      'Draw what the user describes after /draw with draw_diagram: pick the Mermaid kind that fits (a flowchart for steps and decisions, a sequenceDiagram for who talks to whom, a classDiagram for how things relate) and keep labels to a few words. If they gave nothing to go on, ask what to draw in one short question. After it shows, say in one line that they can edit it on the canvas and download it.',
+  },
+  {
     name: 'image',
     description: 'Make a picture',
     markdown:

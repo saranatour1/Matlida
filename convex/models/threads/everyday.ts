@@ -242,6 +242,19 @@ export function everydayTools(project: Doc<'projects'>) {
       }),
       execute: (_ctx, setup) => Promise.resolve(setup),
     }),
+    draw_diagram: createTool({
+      description:
+        'Draw a diagram on an Excalidraw canvas in the chat, which the user can edit and download: a flowchart, a sequence of steps, a mind map, an org chart or how a system fits together. Write it as Mermaid (flowchart, sequenceDiagram or classDiagram work best). Keep labels short.',
+      inputSchema: z.object({
+        title: z.string().min(1).max(80),
+        mermaid: z
+          .string()
+          .min(1)
+          .max(10_000)
+          .describe('The diagram in Mermaid syntax, with no code fence.'),
+      }),
+      execute: (_ctx, diagram) => Promise.resolve(diagram),
+    }),
     show_recipe: createTool({
       description:
         'Show a recipe as a card the user can scale to more or fewer servings and add to their Shopping list. Give amounts as numbers for the servings stated.',
@@ -282,6 +295,7 @@ const CARD_TOOLS = new Set([
   'setup_news',
   'generate_image',
   'generate_video',
+  'draw_diagram',
 ])
 
 /** Cards a call still gets: you talk from the chat, or beside it, so the picture or video shows there. */
