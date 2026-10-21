@@ -6,6 +6,7 @@ export const {
   settle,
   poll,
   forThread,
+  search,
   forReply,
   replied,
   reply,

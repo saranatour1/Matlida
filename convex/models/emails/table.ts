@@ -33,6 +33,8 @@ export const emailsTable = defineTable({
   /** The sender's address, where a reply goes. */
   from: v.optional(v.string()),
   subject: v.optional(v.string()),
+  /** Subject and text, without quoted replies, for `find_emails`. */
+  text: v.optional(v.string()),
   /** Photon's email thread and the mailbox's Photon user, which a reply is sent in and from. */
   spaceId: v.optional(v.string()),
   mailboxUserId: v.optional(v.string()),
@@ -44,3 +46,7 @@ export const emailsTable = defineTable({
   .index('by_messageId', ['messageId'])
   .index('by_receivedAt', ['receivedAt'])
   .index('by_threadId', ['threadId'])
+  .searchIndex('search_text', {
+    searchField: 'text',
+    filterFields: ['userId', 'from'],
+  })

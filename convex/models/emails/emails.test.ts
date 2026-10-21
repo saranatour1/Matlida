@@ -154,7 +154,7 @@ test('your own email gets a draft in the chat, and goes out only when you reply'
   await poll()
 
   expect(sent).toEqual([])
-  expect(JSON.stringify(calls)).toContain('You are replying by email')
+  expect(JSON.stringify(calls)).toContain('You are drafting a reply to an email')
   expect(await chat('Matilda')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',
@@ -236,6 +236,7 @@ test('mail to an address nobody claimed is ignored', async () => {
   await poll()
 
   expect(sent).toEqual([])
+  expect(await chat('Matilda')).toBeNull()
   expect(await statuses()).toEqual(['ignored', 'ignored'])
 })
 
@@ -273,6 +274,34 @@ test('past 5 emails at once, yours are posted but not drafted', async () => {
     'answered',
     'limited',
   ])
+})
+
+test("find_emails searches your earlier emails, not anyone else's", async () => {
+  const { t, poll } = await setup()
+  received = [
+    email('m1', 'bob@example.org', 'Lunch on Friday at the noodle place?'),
+    email('m2', 'ada@example.com', 'Remind me about the noodle order'),
+    email('m3', 'carol@example.org', 'Invoice attached'),
+  ]
+  await poll()
+  const ada = (await t.run((ctx) => ctx.db.query('users').first()))!._id
+  const eve = await t.run((ctx) => ctx.db.insert('users', {}))
+  const search = (userId: typeof ada, query: string, from?: string) =>
+    t.query(internal.api.emails.search, { userId, query, from })
+
+  expect((await search(ada, 'noodle')).map((e) => e.from).sort()).toEqual([
+    'ada@example.com',
+    'bob@example.org',
+  ])
+  expect(await search(ada, 'noodle', 'Bob@Example.org')).toMatchObject([
+    {
+      from: 'bob@example.org',
+      subject: 'Today',
+      text: 'Today\n\nLunch on Friday at the noodle place?',
+      replied: false,
+    },
+  ])
+  expect(await search(eve, 'noodle')).toEqual([])
 })
 
 test('nothing is checked until Photon is set up', async () => {

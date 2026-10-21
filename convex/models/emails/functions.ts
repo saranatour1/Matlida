@@ -22,7 +22,7 @@ import {
   getMembers,
   getOwnedThread,
 } from '../threads/functions'
-import { createAgent } from '../threads/lead'
+import { READ_ONLY_TOOLS, createAgent } from '../threads/lead'
 import type { Doc } from '../../_generated/dataModel'
 
 /** Photon's message list is eventually consistent, so each check looks back this far and skips what's recorded. */
@@ -140,6 +140,7 @@ const receive = internalMutation({
       chatMessageId,
       from: args.from.toLowerCase(),
       subject: args.subject,
+      text: [args.subject, args.text].filter(Boolean).join('\n\n'),
       spaceId: args.spaceId,
       mailboxUserId: args.mailboxUserId,
     })
@@ -249,6 +250,7 @@ const poll = internalAction({
         if (turn.owner) {
           const agent = createAgent(turn.project, {
             members: turn.owner.members,
+            tools: READ_ONLY_TOOLS,
             via: 'email',
           })
           const reply = await agent.generateText(
@@ -258,9 +260,10 @@ const poll = internalAction({
           )
           draft = reply.text
         } else {
-          // Someone else's words: drafted with no tools and no chat history.
+          // Someone else's words: drafted with no chat history, and only
+          // able to look up earlier emails.
           const agent = createAgent(turn.project, {
-            tools: false,
+            tools: ['find_emails'],
             via: 'email',
             chargeTo: turn.inboxThreadId,
           })
@@ -305,6 +308,40 @@ const forThread = authedQuery({
         draft: r.draft ?? '',
         repliedAt: r.repliedAt ?? null,
       }))
+  },
+})
+
+/** `userId`'s emails matching `query`, best first, optionally only from `from`. For `find_emails`. */
+const search = internalQuery({
+  args: {
+    userId: v.id('users'),
+    query: v.string(),
+    from: v.optional(v.string()),
+  },
+  returns: v.array(
+    v.object({
+      from: v.string(),
+      subject: v.string(),
+      receivedAt: v.number(),
+      text: v.string(),
+      replied: v.boolean(),
+    }),
+  ),
+  handler: async (ctx, { userId, query, from }) => {
+    const rows = await ctx.db
+      .query('emails')
+      .withSearchIndex('search_text', (q) => {
+        const mine = q.search('text', query).eq('userId', userId)
+        return from ? mine.eq('from', from.toLowerCase()) : mine
+      })
+      .take(10)
+    return rows.map((r) => ({
+      from: r.from ?? '',
+      subject: r.subject ?? '',
+      receivedAt: r.receivedAt,
+      text: (r.text ?? '').slice(0, 2000),
+      replied: !!r.repliedAt,
+    }))
   },
 })
 
@@ -373,6 +410,7 @@ export const emailsApi = {
   settle,
   poll,
   forThread,
+  search,
   forReply,
   replied,
   reply,
