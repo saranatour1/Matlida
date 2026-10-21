@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { AccountForm } from '~/components/account-form'
 import { ProjectForm } from '~/components/project-form'
+import { ShoppingDetailsForm } from '~/components/shopping-details-form'
 import { useProject } from '~/hooks/use-project'
 
 export const Route = createFileRoute('/_app/p/$projectId/settings')({
@@ -33,6 +34,7 @@ function Settings() {
             </Link>
           </p>
         </section>
+        <ShoppingDetailsForm />
         <AccountForm />
       </div>
     </div>

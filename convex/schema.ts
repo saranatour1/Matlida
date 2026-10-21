@@ -13,6 +13,7 @@ import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
+import { cartItemsTable, shoppingDetailsTable } from './models/shopping/table'
 import { tasksTable } from './models/tasks/table'
 import {
   phoneLinksTable,
@@ -41,6 +42,8 @@ export default defineSchema({
   plans: plansTable,
   usage: usageTable,
   reminders: remindersTable,
+  shoppingDetails: shoppingDetailsTable,
+  cartItems: cartItemsTable,
   tasks: tasksTable,
   calls: callsTable,
   callLines: callLinesTable,

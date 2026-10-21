@@ -299,3 +299,13 @@
   - **Focus timer** (`start_timer`): a ring counting down from when it was set, so a reload keeps time.
 - New built-in commands: `/today`, `/dayplan`, `/trip`, `/split`, `/meet`, `/focus` and `/convert`.
 - Verified with unit tests: splitting (odd cents, subsets, fewest payments, nobody owing), time zones (local times, day shift, overlaps, bad zones), the Today data (only what's due, yours, unreplied and open), and timeline and timer kept out of texts and calls. The cards weren't clicked through in a browser (signed out).
+
+### Shopping: find things, fill a cart, buy at the store (2026-10-21)
+
+- Researched how an assistant can buy for someone: OpenAI and Stripe's Agentic Commerce Protocol, Google and Shopify's Universal Commerce Protocol, Stripe's Link wallet for agents (US and Canada only, with a spend request the user approves) and Shopify's agent docs. Shopify's Global Catalog searches every Shopify store and works anonymously at a low rate; its cart links take the buyer's email and shipping address. Paying on the user's behalf needs Shopify's trusted-agent tier or Link, so the user pays on the store's checkout for now.
+- `convex/lib/shopify.ts`: `searchProducts`, `productOptions` and `lookupVariant` over the Global Catalog, and `checkoutLink`, which builds a store's cart link with the user's details.
+- Shopping details in Settings (`shoppingDetails`): name, email, address, a two-letter country code and notes on sizes and preferences. Searches only show what ships to that country, and the assistants read the notes. No card details.
+- Tools: `find_products` (a card of product tiles with price, list price, rating, store and Add to cart), `product_options` (sizes and colors), `add_to_cart` and `show_cart` (a live cart by store, with quantities, totals, "Buy at {store}", which opens that store's checkout with the details filled in, and "Bought it, clear"). Items are always checked against the catalog when added, so prices and links are real.
+- Commands: `/shop`, `/gift` and `/cart`.
+- Verified with unit tests (catalog parsing and filters, lookup, checkout links, details validation and ownership, the cart by store, quantities and clearing) and one live run on `dev/matilda`: a real search, lookup and checkout link from Shopify. The cards weren't clicked through in a browser (signed out).
+- ponytail: requests are anonymous with Shopify's example agent profile. For production, host our own UCP profile and send a Dev Dashboard token.

@@ -44,6 +44,10 @@
 - [x] decide tool and /decide command: Jev picks between options
 - [x] Everyday commands, part 1: live lists, drafts, tables and recipes, with /todo, /shopping, /meals, /recipe, /pack, /rewrite, /reply, /translate, /tldr, /compare, /workout, /explain
 - [x] Everyday commands, part 2: /today, /dayplan, /trip, /split, /meet, /focus, /convert
+- [x] Shopping: find products across Shopify stores, a cart by store, Buy at the store's checkout with your details (/shop, /gift, /cart)
+- [ ] Shopping: our own UCP profile and a Shopify token for production rate limits
+- [ ] Shopping: pay on your behalf (Shopify trusted agent, or Stripe Link in the US and Canada)
+- [ ] Price watches: /watch an item and hear when it drops
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

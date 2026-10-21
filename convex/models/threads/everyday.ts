@@ -265,4 +265,5 @@ export const CARD_TOOLS = new Set([
   'show_recipe',
   'show_timeline',
   'start_timer',
+  'show_cart',
 ])
