@@ -7,6 +7,7 @@ import {
   PhoneOffIcon,
   Volume1Icon,
   Volume2Icon,
+  VolumeXIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
@@ -18,9 +19,13 @@ import {
   MAX_VOLUME,
   clampVolume,
   getCallVolume,
+  getFastVoice,
   saveCallVolume,
+  saveFastVoice,
   useCallVolume,
-} from '~/hooks/use-call-volume'
+  useFastVoice,
+} from '~/hooks/use-call-settings'
+import { toWav } from '~/lib/wav'
 import { hear, startListening } from '~/lib/turn-taking'
 
 type Status =
@@ -38,6 +43,8 @@ type Session = CallTarget & {
   audio: AudioContext
   /** Replies play through this, so the volume bar can turn them up or down. */
   gain: GainNode
+  /** What the assistant is saying right now, for the speaking animation. */
+  output: AnalyserNode
   analyser: AnalyserNode
   recorder?: MediaRecorder
   /** The assistant's reply while it arrives and plays. */
@@ -165,10 +172,13 @@ export function useVoiceCall({
       })
     }
     try {
+      // Fast voice's audio model takes WAV, not the browser's WebM.
+      const fast = getFastVoice()
+      const audio = fast ? await toWav(clip) : clip
       const res = await fetch(await uploadUrl(), {
         method: 'POST',
-        headers: { 'Content-Type': clip.type },
-        body: clip,
+        headers: { 'Content-Type': audio.type },
+        body: audio,
       })
       const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
       const liveKey = crypto.randomUUID()
@@ -183,6 +193,7 @@ export function useVoiceCall({
         callId: s.callId,
         interrupted: cutOff || undefined,
         liveKey,
+        fast: fast || undefined,
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
@@ -362,11 +373,15 @@ export function useVoiceCall({
       const gain = audio.createGain()
       gain.gain.value = getCallVolume()
       gain.connect(audio.destination)
+      const output = audio.createAnalyser()
+      output.fftSize = 1024
+      gain.connect(output)
       const s: Session = {
         ...target,
         stream,
         audio,
         gain,
+        output,
         analyser,
         ended: false,
       }
@@ -424,17 +439,34 @@ export function useVoiceCall({
     s?.gain.gain.setTargetAtTime(clampVolume(next), s.audio.currentTime, 0.03)
   }
 
+  /** How loud you and the assistant are right now, 0 to 1, read each animation frame. */
+  const levels = {
+    you: () => levelOf(session.current?.analyser),
+    them: () => levelOf(session.current?.output),
+  }
+
   return {
     status,
     error,
     muted,
     lines,
+    levels,
     volume,
     start,
     hangUp,
     toggleMute,
     setVolume,
   }
+}
+
+/** The loudness of what `analyser` hears, scaled so speech reaches about 1. */
+function levelOf(analyser: AnalyserNode | undefined) {
+  if (!analyser) return 0
+  const samples = new Float32Array(analyser.fftSize)
+  analyser.getFloatTimeDomainData(samples)
+  let sum = 0
+  for (const x of samples) sum += x * x
+  return Math.min(1, Math.sqrt(sum / samples.length) * 8)
 }
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -446,12 +478,17 @@ const STATUS_LABEL: Record<Status, string> = {
   speaking: 'Speaking…',
 }
 
-type Caller = { name: string; portrait: Portrait }
+type Caller = {
+  name: string
+  portrait: Portrait
+  /** Shown in the chat's box, in place of the side panel. */
+  inline?: boolean
+}
 
 const CallContext = React.createContext<{
   call: ReturnType<typeof useVoiceCall>
   /** Who the call is with, kept from the start, since the page can change during the call. */
-  caller?: Caller
+  caller?: Caller & { target: CallTarget }
   /** Starts a call unless one is on. Call it from a click. */
   startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
 } | null>(null)
@@ -459,7 +496,7 @@ const CallContext = React.createContext<{
 /** The app's one call, so a ring can't start a second call over the first. `CallPanel` shows it. */
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
-  const [caller, setCaller] = React.useState<Caller>()
+  const [caller, setCaller] = React.useState<Caller & { target: CallTarget }>()
   const call = useVoiceCall({
     onThread: ({ projectId, botId }) =>
       void navigate({
@@ -470,7 +507,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   })
   function startCall(target: CallTarget, who: Caller, opening?: Opening) {
     if (call.status !== 'idle') return
-    setCaller(who)
+    setCaller({ ...who, target })
     void call.start(target, opening)
   }
   return (
@@ -492,7 +529,9 @@ export function useCall() {
  */
 export function CallPanel() {
   const { call, caller } = useCall()
-  if (!caller || (call.status === 'idle' && !call.error)) return null
+  if (!caller || caller.inline || (call.status === 'idle' && !call.error)) {
+    return null
+  }
   const live = call.status === 'speaking' || call.status === 'hearing'
   return (
     <aside
@@ -551,6 +590,7 @@ export function CallPanel() {
         )}
       </ol>
       <div className="flex flex-col gap-3 border-t p-4">
+        <FastVoice />
         <VolumeBar volume={call.volume} onChange={call.setVolume} />
         <div className="flex justify-center gap-4">
           <Button
@@ -577,9 +617,33 @@ export function CallPanel() {
   )
 }
 
-const VOLUME_STEP = 0.1
+/** The Fast voice switch: quicker spoken answers from an audio chat model, without tools. */
+function FastVoice() {
+  const fast = useFastVoice()
+  return (
+    <label className="flex items-start gap-2 text-sm">
+      <input
+        type="checkbox"
+        role="switch"
+        checked={fast}
+        onChange={(e) => saveFastVoice(e.target.checked)}
+        className="mt-1 accent-primary"
+      />
+      <span>
+        Fast voice
+        <span className="block text-xs text-muted-foreground">
+          Answers sooner, but can’t set reminders, search or use other tools on
+          the call.
+        </span>
+      </span>
+    </label>
+  )
+}
 
-/** How loud the assistant's replies are: quieter, a slider, louder, and the level. */
+/**
+ * How loud the assistant's replies are: a speaker button that mutes them and
+ * brings them back to where they were, a slider, and the level.
+ */
 function VolumeBar({
   volume,
   onChange,
@@ -587,17 +651,29 @@ function VolumeBar({
   volume: number
   onChange: (volume: number) => void
 }) {
+  const audible = React.useRef(volume || 1)
   const percent = `${Math.round(volume * 100)}%`
   return (
     <div className="flex items-center gap-2" role="group" aria-label="Volume">
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Quieter"
-        disabled={volume <= 0}
-        onClick={() => onChange(volume - VOLUME_STEP)}
+        aria-label={volume > 0 ? 'Mute the assistant' : 'Unmute the assistant'}
+        title={volume > 0 ? 'Mute the assistant' : 'Unmute the assistant'}
+        aria-pressed={volume === 0}
+        onClick={() => {
+          if (volume === 0) return onChange(audible.current)
+          audible.current = volume
+          onChange(0)
+        }}
       >
-        <Volume1Icon />
+        {volume === 0 ? (
+          <VolumeXIcon />
+        ) : volume < 0.5 ? (
+          <Volume1Icon />
+        ) : (
+          <Volume2Icon />
+        )}
       </Button>
       <input
         type="range"
@@ -610,15 +686,6 @@ function VolumeBar({
         onChange={(e) => onChange(Number(e.target.value))}
         className="h-1.5 min-w-0 flex-1 cursor-pointer accent-primary"
       />
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Louder"
-        disabled={volume >= MAX_VOLUME}
-        onClick={() => onChange(volume + VOLUME_STEP)}
-      >
-        <Volume2Icon />
-      </Button>
       <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">
         {percent}
       </span>
@@ -629,4 +696,161 @@ function VolumeBar({
 /** Keeps the newest line in view as the transcript grows. */
 function scrollIntoView(element: HTMLLIElement | null) {
   element?.scrollIntoView({ block: 'nearest' })
+}
+
+/**
+ * Talking hands-free in the chat, in place of the message box: you and the
+ * assistant side by side, each swelling with your voice as you talk, and a
+ * wave between you in the colour of whoever is speaking. What's said lands in
+ * the chat as messages. It keeps listening until you end it.
+ */
+export function VoiceBar() {
+  const { call, caller } = useCall()
+  if (!caller) return null
+  const you = call.status === 'hearing'
+  const them = call.status === 'speaking'
+  const label = call.muted
+    ? 'Your mic is muted'
+    : {
+        idle: '',
+        starting: 'Connecting…',
+        listening: 'Listening…',
+        hearing: 'You’re talking…',
+        thinking: `${caller.name} is thinking…`,
+        speaking: `${caller.name} is talking…`,
+      }[call.status]
+  return (
+    <section
+      aria-label={`Talking with ${caller.name}`}
+      className="flex flex-col gap-3 rounded-3xl border bg-card p-4 text-card-foreground"
+    >
+      <div className="flex items-center justify-center gap-4 sm:gap-8">
+        <Speaker level={call.levels.you} active={you} tone="you">
+          <span className="flex size-12 items-center justify-center rounded-full bg-muted text-sm font-medium">
+            You
+          </span>
+        </Speaker>
+        <Wave
+          level={them ? call.levels.them : call.levels.you}
+          active={you || them}
+          tone={them ? 'them' : 'you'}
+        />
+        <Speaker level={call.levels.them} active={them} tone="them">
+          <BotAvatar portrait={caller.portrait} className="size-12" />
+        </Speaker>
+      </div>
+      <p
+        aria-live="polite"
+        className="text-center text-sm text-muted-foreground"
+      >
+        {label}
+      </p>
+      {call.error && (
+        <p role="alert" className="text-center text-sm text-destructive">
+          {call.error}
+        </p>
+      )}
+      <VolumeBar volume={call.volume} onChange={call.setVolume} />
+      <div className="flex justify-center gap-3">
+        <Button
+          variant="outline"
+          className="size-11 rounded-full"
+          aria-label={call.muted ? 'Unmute your mic' : 'Mute your mic'}
+          aria-pressed={call.muted}
+          disabled={call.status === 'idle' || call.status === 'starting'}
+          onClick={call.toggleMute}
+        >
+          {call.muted ? <MicOffIcon /> : <MicIcon />}
+        </Button>
+        <Button
+          variant="destructive"
+          className="size-11 rounded-full"
+          aria-label="Stop talking"
+          onClick={call.hangUp}
+        >
+          <PhoneOffIcon />
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+const TONE = {
+  you: { ring: 'bg-sky-400/40', bar: 'bg-sky-400' },
+  them: { ring: 'bg-emerald-400/40', bar: 'bg-emerald-400' },
+}
+
+/** Runs `paint` every frame while the element is on screen, without re-rendering; nothing moves for reduced motion. */
+function animate<TElement extends HTMLElement>(
+  paint: (el: TElement, now: number) => void,
+) {
+  return (el: TElement | null) => {
+    if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let frame = requestAnimationFrame(function tick(now) {
+      paint(el, now)
+      frame = requestAnimationFrame(tick)
+    })
+    return () => cancelAnimationFrame(frame)
+  }
+}
+
+/** A face with a halo that swells with their voice while it's their turn. */
+function Speaker({
+  level,
+  active,
+  tone,
+  children,
+}: {
+  level: () => number
+  active: boolean
+  tone: keyof typeof TONE
+  children: React.ReactNode
+}) {
+  return (
+    <span className="relative flex size-16 items-center justify-center">
+      <span
+        aria-hidden
+        className={`absolute inset-1 rounded-full transition-opacity ${TONE[tone].ring} ${active ? 'opacity-100' : 'opacity-0'}`}
+        ref={animate<HTMLSpanElement>((el) => {
+          el.style.transform = `scale(${1 + (active ? level() : 0) * 0.45})`
+        })}
+      />
+      <span className="relative">{children}</span>
+    </span>
+  )
+}
+
+const BARS = [0.5, 0.8, 1, 0.7, 0.9, 0.6, 0.75]
+
+/** Bars between the two faces, moving with whoever is talking, resting low otherwise. */
+function Wave({
+  level,
+  active,
+  tone,
+}: {
+  level: () => number
+  active: boolean
+  tone: keyof typeof TONE
+}) {
+  return (
+    <span
+      aria-hidden
+      className="flex h-10 items-center gap-1"
+      ref={animate<HTMLSpanElement>((el, now) => {
+        const loud = active ? level() : 0
+        Array.from(el.children).forEach((bar, i) => {
+          const wobble = 0.6 + 0.4 * Math.sin(now / 140 + i * 1.3)
+          const height = 0.15 + loud * BARS[i] * wobble
+          ;(bar as HTMLElement).style.height = `${Math.min(1, height) * 100}%`
+        })
+      })}
+    >
+      {BARS.map((_, i) => (
+        <span
+          key={i}
+          className={`h-[15%] w-1.5 rounded-full transition-colors ${active ? TONE[tone].bar : 'bg-muted-foreground/30'}`}
+        />
+      ))}
+    </span>
+  )
 }

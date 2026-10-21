@@ -36,6 +36,7 @@ import {
   MessageScrollerViewport,
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
+import { VoiceBar, useCall } from '~/components/voice-call'
 import { CommandDialog } from '~/components/command-dialog'
 
 /**
@@ -72,6 +73,13 @@ export function Chat({
   const [startEffort, setStartEffort] = React.useState<Effort>()
   const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
+  const { call, caller, startCall } = useCall()
+  // Talking in this chat: the call is on, started from here, with this assistant.
+  const talking =
+    caller?.inline === true &&
+    caller.target.projectId === project._id &&
+    caller.target.botId === bot?._id &&
+    (call.status !== 'idle' || call.error !== undefined)
   const { results } = useUIMessages(
     api.api.chat.listMessages,
     threadId ? { threadId } : 'skip',
@@ -257,34 +265,48 @@ export function Chat({
               </AlertDescription>
             </Alert>
           )}
-          <PromptForm
-            placeholder={`Message ${lead}…`}
-            isBusy={isBusy}
-            onSubmit={send}
-            commands={[
-              ...BUILT_IN_COMMANDS.filter(
-                (b) => !commands?.some((c) => c.name === b.name),
-              ).map((b) => ({ ...b, builtIn: true })),
-              ...(commands ?? []),
-            ]}
-            onCreateCommand={() => setCreatingCommand(true)}
-            tools={
-              <>
-                <EffortMenu
-                  threadId={threadId}
-                  effort={threadId ? thread?.effort : startEffort}
-                  own={bot ? bot.effort : project.effort}
-                  onPick={setStartEffort}
-                />
-                <ModelMenu
-                  threadId={threadId}
-                  model={threadId ? thread?.model : startModel}
-                  own={bot ? bot.model : project.model}
-                  onPick={setStartModel}
-                />
-              </>
-            }
-          />
+          {talking ? (
+            <VoiceBar />
+          ) : (
+            <PromptForm
+              placeholder={`Message ${lead}…`}
+              isBusy={isBusy}
+              onSubmit={send}
+              commands={[
+                ...BUILT_IN_COMMANDS.filter(
+                  (b) => !commands?.some((c) => c.name === b.name),
+                ).map((b) => ({ ...b, builtIn: true })),
+                ...(commands ?? []),
+              ]}
+              onCreateCommand={() => setCreatingCommand(true)}
+              onTalk={() =>
+                startCall(
+                  { projectId: project._id, botId: bot?._id },
+                  {
+                    name: lead,
+                    portrait: portraitOf(bot ?? project),
+                    inline: true,
+                  },
+                )
+              }
+              tools={
+                <>
+                  <EffortMenu
+                    threadId={threadId}
+                    effort={threadId ? thread?.effort : startEffort}
+                    own={bot ? bot.effort : project.effort}
+                    onPick={setStartEffort}
+                  />
+                  <ModelMenu
+                    threadId={threadId}
+                    model={threadId ? thread?.model : startModel}
+                    own={bot ? bot.model : project.model}
+                    onPick={setStartModel}
+                  />
+                </>
+              }
+            />
+          )}
           {creatingCommand && (
             <CommandDialog
               projectId={project._id}
