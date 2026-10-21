@@ -446,3 +446,11 @@
 - The card plays a short, silly scan (four steps and a filling bar, still for reduced motion), then shows the verdict, the odds for each and a warning when it's risky. The assistant follows with what it can do now and who to see. It gives emergency help first if you may be in danger.
 - Verified with a test and live on `dev/matilda`: a polite email to a landlord went to AI (0.77), a risky lease clause to a person (0.57, risky), chest pain to a person (0.86, risky). One earlier try failed with a network error and passed on retry.
 
+### Every assistant's chat is recorded, with no guessing (2026-10-22)
+
+- A review of #68 found that guessing an assistant's chat looked at only the newest 20 chats and 10 phone links. An app chat behind 20 channel chats was lost to a new one, an 11th link's chat could become the main chat, and a wrong guess stuck forever.
+- Now `getMainThread` only reads the pointer on the project or bot, and `ensureMainThread` reads it or starts a chat. Two first messages at once can't both start one: they read and write the same row, so Convex retries the second and it finds the first's.
+- `threads.recordMainThreads` records the chats that were never recorded, one time, from old chats with no caps (every linked phone's chats and email's are left out), ten workspaces a run. Running it again changes nothing. On `dev/matilda` it recorded two workspaces' chats; a second run changed nothing.
+- Verified with a test of the review's case (an app chat behind 20 channel chats from 11 linked phones and a mailbox: nothing guessed before, the right chat after, nothing changed on a second run).
+- Run it once on production after deploying: `pnpm exec convex run api/threads:recordMainThreads '{"cursor":null}' --prod`.
+
