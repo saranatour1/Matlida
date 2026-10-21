@@ -11,4 +11,12 @@ crons.interval('check email', { minutes: 1 }, internal.api.emails.poll)
 // Drop it once the webhook is seen answering Telegram.
 crons.interval('check telegram', { minutes: 1 }, internal.api.texts.poll, {})
 
+// The mail domain's DMARC record, shown on Connections.
+crons.daily(
+  'check mail domain',
+  { hourUTC: 6 },
+  internal.api.mailboxes.checkDomain,
+  {},
+)
+
 export default crons

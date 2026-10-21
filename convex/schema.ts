@@ -9,7 +9,7 @@ import { commandsTable } from './models/commands/table'
 import { commentsTable } from './models/comments/table'
 import { contactsTable } from './models/contacts/table'
 import { emailsTable } from './models/emails/table'
-import { mailboxesTable } from './models/mailboxes/table'
+import { domainChecksTable, mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
@@ -35,6 +35,7 @@ export default defineSchema({
   photonMessages: photonMessagesTable,
   telegramPolls: telegramPollsTable,
   mailboxes: mailboxesTable,
+  domainChecks: domainChecksTable,
   emails: emailsTable,
   plans: plansTable,
   usage: usageTable,

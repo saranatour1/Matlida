@@ -165,3 +165,34 @@ test('releasing frees the address, and you can only claim for your own workspace
     }),
   ).rejects.toThrow('Project not found.')
 })
+
+test("Check now stores the mail domain's DMARC, which Connections reads", async () => {
+  const { t, asAda } = await setup()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() =>
+      Promise.resolve(
+        Response.json({
+          Answer: [{ type: 16, data: '"v=DMARC1; p=none; adkim=s; aspf=r"' }],
+        }),
+      ),
+    ),
+  )
+  expect(await asAda.query(api.api.mailboxes.domainHealth, {})).toMatchObject({
+    domain: 'mail.example.com',
+    checkedAt: null,
+    problem: 'missing',
+  })
+  await asAda.action(api.api.mailboxes.checkDomainNow, {})
+  expect(await asAda.query(api.api.mailboxes.domainHealth, {})).toMatchObject({
+    domain: 'mail.example.com',
+    problem: null,
+    policy: 'none',
+    adkim: 's',
+    aspf: 'r',
+  })
+  expect(
+    await t.run((ctx) => ctx.db.query('domainChecks').take(5)),
+  ).toHaveLength(1)
+  vi.unstubAllGlobals()
+})

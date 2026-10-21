@@ -241,3 +241,9 @@
 - `preview_post` lays a post out roughly as LinkedIn, X, Reddit or Discord show it, with the character count against the platform's limit, flagged in red when it's over. It posts nothing.
 - New built-in commands: `/chart` (chart what you ask for, from your numbers or looked up with a source, never invented) and `/preview` (draft a post and preview it, LinkedIn when no platform is named). `/posts` now previews each draft too.
 - Verified with unit tests: the chart schema accepts a good chart and refuses mismatched values or a multi-series pie, and the commands name their tools. The components weren't driven in a browser.
+
+### DMARC on Connections, and email can't take actions (2026-10-21)
+
+- Connections' Email row shows the mail domain's DMARC: missing (anyone can send as the domain), several or unreadable, `aspf=s` (which fails Photon's `bounce.` return path), `p=none` (monitoring), or `quarantine`/`reject`, with a reminder when there's no `rua`. A daily cron looks up `_dmarc.<MAIL_DOMAIN>` over DNS-over-HTTPS and keeps the raw records in `domainChecks`; Check now does it at once. `convex/lib/dmarc.ts` parses them.
+- Photon passes no DKIM, SPF or DMARC results for received mail, only a spam flag, so a forged From can't be caught. Replies to email now get only the tools that read or show (web search, research, find_contact, show_chart, preview_post, ask_bot); saving, scheduling, running and sending need the app. The email style tells the assistant so, so it offers to do it in the app instead.
+- Verified with unit tests: the DMARC parser (policy, alignment, reports, missing, several), the DNS-over-HTTPS lookup joining split strings, Check now storing what Connections reads, and an email reply's tools.

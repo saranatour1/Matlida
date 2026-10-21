@@ -4,6 +4,7 @@ import { api } from '../../../../../convex/_generated/api'
 import { CHANNELS, STATUS_LABELS } from '../../../../../convex/lib/channels'
 import type { Channel, ChannelStatus } from '../../../../../convex/lib/channels'
 import type { Doc } from '../../../../../convex/_generated/dataModel'
+import { DomainHealth } from '~/components/domain-health'
 import { EmailAddress } from '~/components/email-address'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
@@ -123,7 +124,10 @@ function Row({
           )
         )}
         {channel.via === 'email' && status?.status !== 'needs_setup' && (
-          <EmailAddress project={project} />
+          <>
+            <EmailAddress project={project} />
+            <DomainHealth />
+          </>
         )}
       </div>
       {channel.via === 'photon' &&

@@ -34,6 +34,8 @@
 - [x] Tasks on Convex workflows: run a saved plan step by step with a live card
 - [x] Built-in commands, a "+" menu, and commands written by AI
 - [x] Charts and post previews in the chat (/chart, /preview)
+- [x] DMARC check on Connections, and email replies limited to read-only tools
+- [ ] Ask Photon to pass on DKIM, SPF and DMARC results for received mail, then refuse forged owner mail
 - [x] A TipTap markdown editor for instructions, with ready-made rules and notes
 - [x] Setup guide for email, Photon, Telegram and WhatsApp
 - [x] Several models: per bot, per lead and per chat, with the chat's history kept

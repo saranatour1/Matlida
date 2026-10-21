@@ -19,3 +19,10 @@ export const mailboxesTable = defineTable({
 })
   .index('by_user', ['userId'])
   .index('by_handle', ['handle'])
+
+/** The last DMARC lookup for the mail domain: its raw `_dmarc` TXT records, read with `parseDmarc`. */
+export const domainChecksTable = defineTable({
+  domain: v.string(),
+  records: v.array(v.string()),
+  checkedAt: v.number(),
+}).index('by_domain', ['domain'])

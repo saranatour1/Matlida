@@ -143,6 +143,16 @@ test('your own email is answered by email, to you only, in its thread', async ()
     },
   ])
   expect(JSON.stringify(calls)).toContain('You are replying by email')
+  // An email's sender can be forged, so the reply only gets tools that read.
+  const tools = (calls[0] as { tools?: Array<{ name: string }> }).tools ?? []
+  expect(tools.map((tool) => tool.name).sort()).toEqual([
+    'find_contact',
+    'preview_post',
+    'research',
+    'show_chart',
+    'web_search',
+  ])
+  expect(JSON.stringify(calls)).toContain("Email can't prove who sent it")
   expect(await chat('Matilda · Email')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',

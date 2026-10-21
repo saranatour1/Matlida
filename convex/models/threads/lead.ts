@@ -30,7 +30,7 @@ const STYLE: Record<Via, string> = {
   chat: 'Keep replies concise and use markdown.',
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
-    'You are replying by email: plain text with no markdown, short paragraphs, no subject line and no signature.',
+    "You are replying by email: plain text with no markdown, short paragraphs, no subject line and no signature. Email can't prove who sent it, so from email you only answer and look things up: you can't save, schedule, run or send anything. If they ask for that, say you'll do it when they ask in the app.",
   voice:
     'You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more.',
 }
@@ -196,6 +196,26 @@ function askTools(
   }
 }
 
+/**
+ * Tools that only read or show, the only ones a reply to an email gets: an
+ * email's sender can be forged, so it can't save, schedule, run or send.
+ */
+const READ_ONLY_TOOLS = new Set([
+  'web_search',
+  'research',
+  'find_contact',
+  'show_chart',
+  'preview_post',
+  'ask_bot',
+])
+
+function onlyFor(via: Via | undefined, tools: ToolSet): ToolSet {
+  if (via !== 'email') return tools
+  return Object.fromEntries(
+    Object.entries(tools).filter(([name]) => READ_ONLY_TOOLS.has(name)),
+  )
+}
+
 /** Who answers one reply, and how. See `createAgent`. */
 export type AgentOptions = ReplyOptions & {
   /** The bot answering. Unset means the project's lead. */
@@ -230,10 +250,10 @@ export function createAgent(
       ? botInstructions(project, bot, members, options)
       : leadInstructions(project, members, options),
     tools: tools
-      ? {
+      ? onlyFor(options.via, {
           ...assistantTools(project, name),
           ...askTools(project, members, name, EFFORTS[effort].botCalls),
-        }
+        })
       : {},
     stopWhen: tools ? stepCountIs(EFFORTS[effort].steps) : undefined,
     usageHandler: recordUsage(project, model, chargeTo),
