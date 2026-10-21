@@ -40,6 +40,7 @@ import type * as lib_photon from "../lib/photon.js";
 import type * as lib_portraits from "../lib/portraits.js";
 import type * as lib_sentences from "../lib/sentences.js";
 import type * as lib_transcript from "../lib/transcript.js";
+import type * as lib_typesafe from "../lib/typesafe.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
 import type * as lib_workflow from "../lib/workflow.js";
 import type * as models_bots_functions from "../models/bots/functions.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   "lib/portraits": typeof lib_portraits;
   "lib/sentences": typeof lib_sentences;
   "lib/transcript": typeof lib_transcript;
+  "lib/typesafe": typeof lib_typesafe;
   "lib/webhooks": typeof lib_webhooks;
   "lib/workflow": typeof lib_workflow;
   "models/bots/functions": typeof models_bots_functions;

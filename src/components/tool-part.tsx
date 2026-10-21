@@ -4,6 +4,7 @@ import {
   AlarmClockIcon,
   GlobeIcon,
   ListChecksIcon,
+  ScaleIcon,
   SendIcon,
   TelescopeIcon,
 } from 'lucide-react'
@@ -72,6 +73,59 @@ export function ToolPart({ part }: { part: Part }) {
         <Markdown text={result} />
       </div>
     </details>
+  )
+}
+
+/** A decision Jev made, with each option's odds, the pick first. */
+export function DecidePart({
+  part,
+}: {
+  part: Extract<ChatUIMessage['parts'][number], { type: 'tool-decide' }>
+}) {
+  if (part.state !== 'output-available') {
+    return (
+      <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+        {part.state === 'output-error' ? (
+          <ScaleIcon className="size-4" />
+        ) : (
+          <Spinner />
+        )}
+        {part.state === 'output-error'
+          ? `Couldn't decide “${part.input?.question ?? ''}”.`
+          : `Deciding “${part.input?.question ?? '…'}”…`}
+      </div>
+    )
+  }
+  const { choice, confidence, probabilities } = part.output
+  const odds = Object.entries(probabilities).sort(([, a], [, b]) => b - a)
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <ScaleIcon className="size-4" />
+        <span className="truncate">{part.input.question}</span>
+        <span className="ml-auto shrink-0 text-xs">
+          {Math.round(confidence * 100)}% sure
+        </span>
+      </div>
+      {odds.map(([name, p]) => (
+        <div key={name} className="flex items-center gap-2">
+          <span
+            className={`w-32 truncate ${name === choice ? 'font-medium' : 'text-muted-foreground'}`}
+          >
+            {name}
+          </span>
+          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <span
+              className="block h-full rounded-full bg-primary"
+              style={{ width: `${Math.round(p * 100)}%` }}
+            />
+          </span>
+          <span className="w-9 text-right text-xs text-muted-foreground tabular-nums">
+            {Math.round(p * 100)}%
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }
 

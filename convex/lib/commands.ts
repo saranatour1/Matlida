@@ -53,6 +53,12 @@ export const BUILT_IN_COMMANDS = [
       'Draft a document about what the user wrote after /doc, in markdown: a title, a two-line summary, then sections with headings. Use research or web_search when it needs facts, and name your sources at the end.',
   },
   {
+    name: 'decide',
+    description: 'Pick between options, with Jev',
+    markdown:
+      'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the confidence is under 0.5, say it’s close and name the runner-up.',
+  },
+  {
     name: 'research',
     description: 'Research a topic in depth',
     markdown:

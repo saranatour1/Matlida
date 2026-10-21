@@ -43,6 +43,7 @@ type Env = {
   readonly PHOTON_WEBHOOK_SECRET: string | undefined;
   readonly RESEND_API_KEY: string | undefined;
   readonly SITE_URL: string;
+  readonly TYPESAFE_API_KEY: string | undefined;
 };
 
 /**
