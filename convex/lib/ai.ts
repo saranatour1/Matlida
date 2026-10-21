@@ -1,5 +1,6 @@
 import { convexGateway } from '@convex-dev/ai-sdk-provider'
 import { MODELS } from './models'
+import type { Experimental_DecisionModel } from 'ai'
 
 /** The model the lead and every bot run on unless they pick another, through the Convex AI gateway. */
 export const languageModel = convexGateway(MODELS.chat)
@@ -18,3 +19,7 @@ export const transcriptionModel = convexGateway.transcriptionModel(
 )
 
 export const speechModel = convexGateway.speechModel(MODELS.speech)
+
+/** Jev, through the gateway's decisions endpoint (alpha), for `decide`. */
+export const decisionModel: Experimental_DecisionModel =
+  convexGateway.evaluationModel(MODELS.decide)

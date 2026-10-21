@@ -56,7 +56,7 @@ export const BUILT_IN_COMMANDS = [
     name: 'decide',
     description: 'Pick between options, with Jev',
     markdown:
-      'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the confidence is under 0.5, say it’s close and name the runner-up.',
+      'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
     name: 'research',

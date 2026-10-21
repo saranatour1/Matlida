@@ -2,9 +2,8 @@ import { createTool } from '@convex-dev/agent'
 import { generateText } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { env } from '../../_generated/server'
-import { researchModel, searchModel } from '../../lib/ai'
-import { decide } from '../../lib/typesafe'
+import { decisionModel, researchModel, searchModel } from '../../lib/ai'
+import { decide } from '../../lib/decide'
 import { gatewayCost } from '../usage/functions'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
@@ -262,7 +261,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     }),
     decide: createTool({
       description:
-        "Pick between options with Jev, TypeSafe's judgment model, when the user asks you to decide or choose. Give every option and the facts that matter. It returns the pick, how sure it is (0 to 1) and each option's probability: below 0.5, say it's close and name the runner-up.",
+        "Pick between options with Jev, TypeSafe's judgment model, when the user asks you to decide or choose. Give every option and the facts that matter. It returns the pick and each option's probability: when the pick is under 0.5, say it's close and name the runner-up.",
       inputSchema: z.object({
         question: z.string().trim().min(1).describe('What to decide.'),
         options: z
@@ -290,14 +289,8 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             "What matters for the choice: the user's goals, limits and preferences from the chat.",
           ),
       }),
-      execute: async (_ctx, input) => {
-        if (!env.TYPESAFE_API_KEY) {
-          throw new Error(
-            "Jev isn't set up: set TYPESAFE_API_KEY on the deployment.",
-          )
-        }
-        return await decide(env.TYPESAFE_API_KEY, input)
-      },
+      execute: async (_ctx, input, { abortSignal }) =>
+        await decide(decisionModel, input, abortSignal),
     }),
     find_texts: createTool({
       description:

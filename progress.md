@@ -272,7 +272,7 @@
 
 ### decide: Jev picks between options (2026-10-21)
 
-- New `decide` tool: the lead (or a bot) gives the question, the options with optional descriptions, and the context that matters, and Jev, TypeSafe's judgment model, answers one Choice question (`convex/lib/typesafe.ts`, `POST api.typesafe.ai/v1/systemone`, `jev-latest`). It returns the pick, Jev's confidence and each option's probability; below 0.5 the assistant says it's close and names the runner-up. It's read-only, so email drafts can use it.
-- New built-in `/decide` command that uses it. The chat shows a card with the question, each option's odds and how sure Jev is.
-- Needs `TYPESAFE_API_KEY` on the deployment; without it the tool says so.
-- Verified with unit tests of the Jev call (the request it sends, the answer it returns, a TypeSafe error), with `fetch` stubbed. Not run against the live API yet: dev has no key.
+- New `decide` tool: the lead (or a bot) gives the question, the options with optional descriptions, and the context that matters, and Jev, TypeSafe's judgment model, answers one choice question through the Convex AI gateway (`convexGateway.evaluationModel('~typesafe/jev-latest')` with the AI SDK's `experimental_decide`, in `convex/lib/decide.ts`). No TypeSafe key: the gateway bills it like the other models. The gateway's decisions endpoint is alpha.
+- It returns the pick and each option's probability; when the pick is under 0.5, the assistant says it's close and names the runner-up. It's read-only, so email drafts can use it.
+- New built-in `/decide` command that uses it. The chat shows a card with the question and each option's odds.
+- Verified with unit tests against a fake decision model, and one live call on `dev/matilda` through the gateway (train over flight for someone who hates airports, 1.0 to 0.0).

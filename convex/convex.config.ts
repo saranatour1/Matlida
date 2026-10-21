@@ -28,8 +28,6 @@ const app = defineApp({
     PHOTON_API_KEY: v.optional(v.string()),
     /** Signs Photon's platform webhook at /photon/webhook (whsec_…): Telegram messages, and email arriving. */
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
-    /** TypeSafe's API key, for the `decide` tool, which asks Jev to pick between options. */
-    TYPESAFE_API_KEY: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
   },

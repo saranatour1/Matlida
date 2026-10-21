@@ -96,7 +96,7 @@ export function DecidePart({
       </div>
     )
   }
-  const { choice, confidence, probabilities } = part.output
+  const { choice, probabilities } = part.output
   const odds = Object.entries(probabilities).sort(([, a], [, b]) => b - a)
   return (
     <div className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm">
@@ -104,7 +104,7 @@ export function DecidePart({
         <ScaleIcon className="size-4" />
         <span className="truncate">{part.input.question}</span>
         <span className="ml-auto shrink-0 text-xs">
-          {Math.round(confidence * 100)}% sure
+          {Math.round((probabilities[choice] ?? 0) * 100)}% for {choice}
         </span>
       </div>
       {odds.map(([name, p]) => (
