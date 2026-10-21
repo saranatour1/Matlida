@@ -323,16 +323,19 @@ const miss = internalAction({
     })
     if (!found) return null
     const { reminder, chat } = found
-    if (chat) {
-      await textChat(
+    const texted =
+      chat &&
+      (await textChat(
         chat,
         `Missed call from ${reminder.from}: ${reminder.message}`,
         `missed:${id}`,
-      )
-    }
+      ))
     await ctx.runMutation(internal.api.reminders.markSent, {
       id,
-      note: 'You missed the call.',
+      note:
+        chat && !texted
+          ? 'You missed the call, and the text about it couldn’t be sent.'
+          : 'You missed the call.',
     })
     return null
   },

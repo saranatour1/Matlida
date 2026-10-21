@@ -259,7 +259,8 @@ const answer = internalAction({
     } | null = await ctx.runMutation(internal.api.texts.forSpace, {
       spaceId,
       platform,
-      text,
+      // Texts over the limit aren't kept for find_texts.
+      text: admitted ? text : '',
     })
     if (!linked) {
       return admitted

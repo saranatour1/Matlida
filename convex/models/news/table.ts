@@ -17,4 +17,6 @@ export const newsSettingsTable = defineTable({
   timeZone: v.optional(v.string()),
   /** The last day a daily briefing went out, as YYYY-MM-DD in `timeZone`. */
   lastSentDay: v.optional(v.string()),
-}).index('by_user', ['userId'])
+})
+  .index('by_user', ['userId'])
+  .index('by_dailyHour', ['dailyHour'])

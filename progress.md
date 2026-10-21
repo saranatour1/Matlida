@@ -463,3 +463,14 @@
 - Not done: splitting `emails` into a union by status (ignored rows have no sender), which needs a migration of old rows.
 - Verified with pnpm check and tests: 120 newer emails and the oldest still gets its button; two Sends at once send one reply and post one "Replied".
 
+### Fixes from Cursor's review of every open PR (2026-10-22)
+
+- Critical: the hourly file sweep (#86) deleted any unreferenced file over an hour old, which now included pictures and videos. It now only removes command markdown and call audio (`sweepable`); pictures, videos and anything else stay. The picture tool also returns its storage id.
+- #96: a message before `recordMainThreads` ran started a new chat. Now an unrecorded assistant's old chat is found with no caps on the way in, so the backfill only saves the lookup.
+- #74: today's emails were the newest 100 of everyone's, then filtered to yours; now by user (`by_user_and_receivedAt`).
+- #75: the first add to the cart is held to 1 to 20, like later ones.
+- #78: daily briefings read the first 500 news settings; now every one with a daily time, by `by_dailyHour`.
+- #85: a silent clip on Fast voice no longer plays or keeps the reply it cut off.
+- Smaller: texts over the limit aren't kept for find_texts (#70); a missed-call text that couldn't go out says so (#71); no link on a price watch without a URL (#76); "Keep up to date" waits a full period (#79); needs_follow_up names no request when nothing's owed (#90); a diagram that fails to parse can be tried again (#93).
+- Left as is: a reply whose chat line fails after Photon sent it stays Replied (it was sent); plan titles beyond the newest 50 (#73); a union type for emails; #67's DoH status (on its own branch).
+

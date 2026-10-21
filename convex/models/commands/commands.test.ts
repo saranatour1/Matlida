@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import { sweepable } from './functions'
 import type { Id } from '../../_generated/dataModel'
 
 async function setup() {
@@ -187,4 +188,12 @@ test('the sweep deletes files nothing keeps, once they are an hour old', async (
     await t.run(async (ctx) => (await ctx.storage.get(recent)) === null),
   ).toBe(true)
   expect(await fileCount()).toBe(1)
+})
+
+test('the sweep never touches pictures or videos', () => {
+  expect(sweepable({ contentType: 'text/markdown' })).toBe(true)
+  expect(sweepable({ contentType: 'audio/webm' })).toBe(true)
+  expect(sweepable({ contentType: 'image/png' })).toBe(false)
+  expect(sweepable({ contentType: 'video/mp4' })).toBe(false)
+  expect(sweepable({ contentType: 'application/pdf' })).toBe(false)
 })

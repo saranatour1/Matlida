@@ -302,7 +302,8 @@ async function fastTurn(
         }
       },
     })
-    flush(spoken.reply)
+    // A silent clip's cut-off reply isn't played.
+    if (spoken.heard) flush(spoken.reply)
     await speaking
   } finally {
     await speaking.catch(() => undefined)

@@ -77,6 +77,8 @@ const setRefresh = authedMutation({
       refresh: every
         ? { every, instructions: instructions.trim().slice(0, 1000) }
         : undefined,
+      // The first refresh waits a full period from now.
+      refreshedAt: Date.now(),
     })
   },
 })

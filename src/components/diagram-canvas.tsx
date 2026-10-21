@@ -18,8 +18,14 @@ type Api = Parameters<
 const scenes = new Map<string, ReturnType<typeof toScene>>()
 
 async function toScene(mermaid: string) {
-  const { elements, files } = await parseMermaidToExcalidraw(mermaid)
-  return { elements: convertToExcalidrawElements(elements), files }
+  try {
+    const { elements, files } = await parseMermaidToExcalidraw(mermaid)
+    return { elements: convertToExcalidrawElements(elements), files }
+  } catch (error) {
+    // Not kept, so the next render parses it again.
+    scenes.delete(mermaid)
+    throw error
+  }
 }
 
 function download(blob: Blob, name: string) {

@@ -44,19 +44,32 @@ export async function getOwnedThread(
   return project?.ownerId === userId ? thread : null
 }
 
-/** An assistant's one thread, as recorded on it: the bot's, or the lead's when `bot` is null. Null before its first message. */
-export function getMainThread(
+/**
+ * An assistant's one thread: the one recorded on the bot, or the lead's when
+ * `bot` is null. Before one is recorded, the chat it used before, found
+ * with no caps, so traffic before `recordMainThreads` runs still lands in
+ * the old chat. Null when it has never been talked to.
+ */
+export async function getMainThread(
+  ctx: Pick<QueryCtx, 'db'>,
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
 ) {
-  return (bot ? bot.threadId : project.threadId) ?? null
+  const recorded = bot ? bot.threadId : project.threadId
+  if (recorded) return recorded
+  return await findOldMainThread(
+    ctx,
+    project,
+    bot,
+    await getChannelThreads(ctx, project),
+  )
 }
 
 /**
  * The chat an assistant used before one was recorded: its newest chat that
  * isn't one Telegram, iMessage, WhatsApp or email used to get of their own.
  * Reads every candidate, with no cap, so an old app chat behind many
- * channel chats is still found. Only `recordMainThreads` uses it.
+ * channel chats is still found.
  */
 async function findOldMainThread(
   ctx: Pick<QueryCtx, 'db'>,
@@ -159,7 +172,7 @@ export async function ensureMainThread(
   start: Pick<NewThread, 'model' | 'effort'> = {},
 ) {
   const threadId =
-    getMainThread(project, bot) ??
+    (await getMainThread(ctx, project, bot)) ??
     (await startThread(ctx, {
       projectId: project._id,
       kind: 'chat',
@@ -219,7 +232,7 @@ const main = authedQuery({
     const project = await getOwnedProject(ctx, ctx.userId, projectId)
     const bot = botId ? await ctx.db.get('bots', botId) : null
     if (botId && bot?.projectId !== projectId) return null
-    return getMainThread(project, bot)
+    return await getMainThread(ctx, project, bot)
   },
 })
 

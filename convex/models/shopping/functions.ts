@@ -100,7 +100,9 @@ const vOffer = v.object({
 const addItem = internalMutation({
   args: { userId: v.id('users'), offer: vOffer, quantity: v.number() },
   returns: v.null(),
-  handler: async (ctx, { userId, offer, quantity }) => {
+  handler: async (ctx, { userId, offer, quantity: asked }) => {
+    // 1 to 20, whatever the model or the caller asked for.
+    const quantity = Math.min(Math.max(Math.round(asked) || 1, 1), 20)
     const existing = await ctx.db
       .query('cartItems')
       .withIndex('by_user_and_variant', (q) =>
