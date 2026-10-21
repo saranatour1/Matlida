@@ -92,42 +92,6 @@ async function setup() {
   }
 }
 
-test('a voice note is answered in voice, and both play from the chat', async () => {
-  const { asAda, asBob, projectId, clip, messages } = await setup()
-  const { replyUrl } = await asAda.action(api.api.voiceClips.send, {
-    projectId,
-    storageId: await clip(),
-  })
-  expect(replyUrl).toEqual(expect.any(String))
-
-  const threadId = (await asAda.query(api.api.threads.main, { projectId }))!
-  const page = await messages(threadId)
-  expect(page.map((m) => [m.role, m.text]).sort()).toEqual([
-    ['assistant', 'Paris it is.'],
-    ['user', 'What is the capital of France?'],
-  ])
-  const clips = await asAda.query(api.api.voiceClips.forThread, { threadId })
-  expect(clips.map((c) => c.messageId).sort()).toEqual(
-    page.map((m) => m.id).sort(),
-  )
-  expect(await asBob.query(api.api.voiceClips.forThread, { threadId })).toEqual(
-    [],
-  )
-})
-
-test('a silent voice note gets no answer and saves nothing', async () => {
-  heard.text = ''
-  const { asAda, projectId, clip, messages } = await setup()
-  await expect(
-    asAda.action(api.api.voiceClips.send, {
-      projectId,
-      storageId: await clip(),
-    }),
-  ).rejects.toThrow('I couldn’t hear anything. Try again.')
-  const threadId = (await asAda.query(api.api.threads.main, { projectId }))!
-  expect(await messages(threadId)).toEqual([])
-})
-
 test('a Fast voice call turn answers in pieces and saves to the chat and the call', async () => {
   const { asAda, projectId, clip, messages } = await setup()
   const liveKey = 'fast-voice-turn-1'
@@ -156,4 +120,18 @@ test('a Fast voice call turn answers in pieces and saves to the chat and the cal
     'Paris it is.',
     'What is the capital of France?',
   ])
+})
+
+test('a silent Fast voice turn gets no answer and saves nothing', async () => {
+  heard.text = ''
+  const { asAda, projectId, clip, messages } = await setup()
+  const result = await asAda.action(api.api.calls.turn, {
+    projectId,
+    storageId: await clip(),
+    liveKey: 'fast-voice-turn-2',
+    fast: true,
+  })
+  expect(result).toMatchObject({ transcript: '', reply: null })
+  const threadId = (await asAda.query(api.api.threads.main, { projectId }))!
+  expect(await messages(threadId)).toEqual([])
 })

@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { ArrowUpIcon, PlusIcon, SparklesIcon } from 'lucide-react'
+import {
+  ArrowUpIcon,
+  AudioLinesIcon,
+  PlusIcon,
+  SparklesIcon,
+} from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -16,7 +21,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from '~/components/ui/input-group'
-import { VoiceButton, VoiceNoteButton } from '~/components/voice-button'
+import { VoiceButton } from '~/components/voice-button'
 
 export function PromptForm({
   placeholder,
@@ -24,7 +29,7 @@ export function PromptForm({
   onSubmit,
   commands = [],
   onCreateCommand,
-  onVoiceNote,
+  onTalk,
   tools,
 }: {
   placeholder: string
@@ -34,8 +39,8 @@ export function PromptForm({
   commands?: Array<{ name: string; description: string; builtIn?: boolean }>
   /** Opens the dialog that writes a new command with AI. */
   onCreateCommand?: () => void
-  /** Sends a voice note, answered in voice. Its error shows under the box. */
-  onVoiceNote?: (audio: Blob) => Promise<string | undefined>
+  /** Starts talking hands-free with the assistant, in place of the box. */
+  onTalk?: () => void
   /** Shown next to the send button, like the model menu. */
   tools?: React.ReactNode
 }) {
@@ -208,13 +213,17 @@ export function PromptForm({
               el.focus()
             }}
           />
-          {onVoiceNote && (
-            <VoiceNoteButton
-              onError={setVoiceError}
-              onRecorded={async (audio) => {
-                setVoiceError(await onVoiceNote(audio))
-              }}
-            />
+          {onTalk && (
+            <InputGroupButton
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Talk hands-free"
+              title="Talk hands-free"
+              onClick={onTalk}
+            >
+              <AudioLinesIcon />
+            </InputGroupButton>
           )}
           <div className="ml-auto" />
           {tools}

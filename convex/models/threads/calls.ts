@@ -10,8 +10,8 @@ import { zAuthedAction } from '../../lib/functions'
 import { voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
 import { gatewayCost } from '../usage/functions'
-import { concat, speakWith } from '../voiceClips/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
+import { concat, speakWith } from './voice'
 import type { Id } from '../../_generated/dataModel'
 import type { ActionCtx } from '../../_generated/server'
 
@@ -316,7 +316,7 @@ async function fastTurn(
       reply: null,
     }
   }
-  await ctx.runMutation(internal.api.voiceClips.save, {
+  await ctx.runMutation(internal.api.voice.save, {
     threadId: spoken.threadId,
     heard: spoken.heard,
     reply: spoken.reply,

@@ -299,14 +299,13 @@ const voiceUploadUrl = authedMutation({
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
 })
 
-/** Transcribes an uploaded recording, then deletes it unless `keep`. Returns the text and the gateway's metadata. */
+/** Transcribes an uploaded recording, then deletes it. Returns the text and the gateway's metadata. */
 export async function transcribeClip(
   ctx: ActionCtx,
   storageId: Id<'_storage'>,
-  keep = false,
 ) {
   const audio = await ctx.storage.get(storageId)
-  if (!keep) await ctx.storage.delete(storageId)
+  await ctx.storage.delete(storageId)
   if (!audio) throw new ConvexError('The recording was lost. Try again.')
   if (audio.size > 10 * 1024 * 1024) {
     throw new ConvexError('Recordings can be at most 10 MB.')

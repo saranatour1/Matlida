@@ -369,3 +369,12 @@
 - Fast voice: a switch on the call panel, saved on this browser. Turns go to the audio chat model in one step, streamed into the live turn in pieces (the first after 0.6 seconds of audio), saved to the chat and the call's transcript. It can't use tools, and says so when asked for something that needs one.
 - Live on `dev/matilda`: a spoken question as MP3 and as WAV with chat history got "2 plus 2 is 4." and "The capital of France is Paris." back in voice, first audio in about 0.9 seconds, about $0.0002 a turn.
 - Verified with unit tests (the stream with chunks split mid-line, gateway errors, the WAV wrappers, voices; a voice note answered and saved with clips only you can see; a silent note saved nothing; a Fast voice call turn in pieces). Not tried in the browser.
+
+### Talking in the chat, hands-free, instead of voice notes (2026-10-22)
+
+- Voice notes are gone (the button, the players and the `voiceClips` table): they needed a stop press and went through the tool-less audio model, so asking for a command didn't work.
+- The chat box has a Talk button. It starts the call engine inline: it keeps listening, works out when you've finished, answers, and listens again until you end it. What's said lands in the chat as plain messages. Normal turns keep every tool; Fast voice (the switch on the call panel) still uses the audio chat model.
+- While talking, a voice bar replaces the box: your face and the assistant's, each swelling with the live level of your voice and theirs (a second analyser on the reply's gain node), and a wave between you in sky for you and green for them. It's painted every frame from a ref, without re-rendering, and stays still for reduced motion. Mute your mic, the volume bar, and Stop talking.
+- The volume bar's speaker icon now mutes the assistant and brings it back to the level it had; the slider and the level stay.
+- The audio chat turn moved to `convex/models/threads/voice.ts` (`speakWith`, `voice.prepare`, `voice.save`).
+- Verified with unit tests (Fast voice turn in pieces, a silent Fast voice turn saving nothing) and pnpm check. Not tried in the browser.
