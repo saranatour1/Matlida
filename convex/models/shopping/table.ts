@@ -1,3 +1,4 @@
+import { literals } from 'convex-helpers/validators'
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -39,3 +40,23 @@ export const cartItemsTable = defineTable({
   /** The store's origin, where its checkout is. */
   shop: v.string(),
 }).index('by_user_and_variant', ['userId', 'variantId'])
+
+/** An item you're waiting to drop below a price. Checked daily; the chat hears when it does. */
+export const priceWatchesTable = defineTable({
+  userId: v.id('users'),
+  projectId: v.id('projects'),
+  /** The chat to post in when it drops. */
+  threadId: v.string(),
+  variantId: v.string(),
+  title: v.string(),
+  variantTitle: v.optional(v.string()),
+  url: v.optional(v.string()),
+  currency: v.string(),
+  /** Minor units: tell the user once the price is at or under this. */
+  target: v.number(),
+  /** Minor units, as of `checkedAt`. */
+  lastPrice: v.number(),
+  checkedAt: v.number(),
+  /** `dropped`: it hit the target. `gone`: the store stopped selling it. */
+  status: literals('watching', 'dropped', 'gone', 'stopped'),
+}).index('by_status_and_checkedAt', ['status', 'checkedAt'])

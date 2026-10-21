@@ -309,3 +309,10 @@
 - Commands: `/shop`, `/gift` and `/cart`.
 - Verified with unit tests (catalog parsing and filters, lookup, checkout links, details validation and ownership, the cart by store, quantities and clearing) and one live run on `dev/matilda`: a real search, lookup and checkout link from Shopify. The cards weren't clicked through in a browser (signed out).
 - ponytail: requests are anonymous with Shopify's example agent profile. For production, host our own UCP profile and send a Dev Dashboard token.
+
+### Price watches (2026-10-21)
+
+- `watch_price` watches a variant from the catalog and records the price now and the one you want (`priceWatches`). An hourly cron (`shopping.checkPrices`) looks up each watch about once a day. When the price is at or under the target, it posts in the chat that set it, with a link; when the store stops selling it, it says so and stops. Out of stock keeps watching.
+- The chat shows a watch card: the price now, your target, the status and Stop.
+- New built-in command: `/watch`.
+- Verified with a unit test: a watch isn't checked again within a day, then a drop and a gone item each post in the chat and end the watch.

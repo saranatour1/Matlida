@@ -71,6 +71,12 @@ export const BUILT_IN_COMMANDS = [
       'Find a gift for the person after /gift. If their interests or the budget are missing, ask in one short question. Search a few different kinds of gift with find_products, show the best six or fewer, and say in two lines why each fits. Add the one they pick with add_to_cart.',
   },
   {
+    name: 'watch',
+    description: 'Hear when a price drops',
+    markdown:
+      "Watch the price of what the user names after /watch. If you don't have its variantId yet, find it with find_products (and product_options for a size or color). If they gave no price, ask what they want to pay in one short question. Then call watch_price. Say in one line that you'll post here when it drops, or that it is already there if alreadyBelow is true.",
+  },
+  {
     name: 'cart',
     description: 'Your cart, ready to buy',
     markdown:

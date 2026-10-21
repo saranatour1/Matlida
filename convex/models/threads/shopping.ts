@@ -1,7 +1,11 @@
 import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { productOptions, searchProducts } from '../../lib/shopify'
+import {
+  lookupVariant,
+  productOptions,
+  searchProducts,
+} from '../../lib/shopify'
 import { addToCartFor } from '../shopping/functions'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
@@ -106,6 +110,39 @@ export function shoppingTools(project: Doc<'projects'>) {
       }),
       execute: async (ctx, { variantId, quantity = 1 }) =>
         shown(await addToCartFor(ctx, project.ownerId, variantId, quantity)),
+    }),
+    watch_price: createTool({
+      description:
+        "Watch an item's price and tell the user in this chat when it's at or under `below`. It's checked about once a day. Use the variantId from find_products or product_options.",
+      inputSchema: z.object({
+        variantId: z.string(),
+        below: z
+          .number()
+          .positive()
+          .describe("In the item's currency, like 30 for $30."),
+      }),
+      execute: async (ctx, { variantId, below }) => {
+        if (!ctx.threadId) throw new Error('Watches need a chat.')
+        const { country } = await buyer(ctx)
+        const offer = await lookupVariant(variantId, country ?? undefined)
+        if (!offer) throw new Error('That item isn’t in the catalog.')
+        const watchId: string = await ctx.runMutation(
+          internal.api.shopping.startWatch,
+          {
+            userId: project.ownerId,
+            projectId: project._id,
+            threadId: ctx.threadId,
+            offer,
+            target: Math.round(below * 100),
+          },
+        )
+        return {
+          watchId,
+          ...shown(offer),
+          below,
+          alreadyBelow: offer.price <= Math.round(below * 100),
+        }
+      },
     }),
     show_cart: createTool({
       description:

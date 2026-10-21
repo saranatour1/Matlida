@@ -11,4 +11,10 @@ crons.interval('check email', { minutes: 1 }, internal.api.emails.poll)
 // Drop it once the webhook is seen answering Telegram.
 crons.interval('check telegram', { minutes: 1 }, internal.api.texts.poll, {})
 
+crons.interval(
+  'check watched prices',
+  { hours: 1 },
+  internal.api.shopping.checkPrices,
+)
+
 export default crons

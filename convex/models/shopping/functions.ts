@@ -1,7 +1,12 @@
+import { saveMessage } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
-import { internal } from '../../_generated/api'
-import { internalMutation, internalQuery } from '../../_generated/server'
+import { components, internal } from '../../_generated/api'
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from '../../_generated/server'
 import {
   authedAction,
   authedMutation,
@@ -9,6 +14,7 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import { checkoutLink, lookupVariant } from '../../lib/shopify'
+import schema from '../../schema'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { ActionCtx, QueryCtx } from '../../_generated/server'
 import type { Offer } from '../../lib/shopify'
@@ -212,6 +218,146 @@ const clearShop = authedMutation({
   },
 })
 
+/** Starts watching an item for the tool, at the price it is now. */
+const startWatch = internalMutation({
+  args: {
+    userId: v.id('users'),
+    projectId: v.id('projects'),
+    threadId: v.string(),
+    offer: vOffer,
+    target: v.number(),
+  },
+  returns: v.id('priceWatches'),
+  handler: async (ctx, { offer, ...watch }) =>
+    await ctx.db.insert('priceWatches', {
+      ...watch,
+      variantId: offer.variantId,
+      title: offer.title,
+      variantTitle: offer.variantTitle,
+      url: offer.url,
+      currency: offer.currency,
+      lastPrice: offer.price,
+      checkedAt: Date.now(),
+      status: 'watching',
+    }),
+})
+
+/** One watch, for its card. Null when it isn't yours. */
+const watch = authedQuery({
+  args: { id: v.string() },
+  handler: async (ctx, { id }) => {
+    const watchId = ctx.db.normalizeId('priceWatches', id)
+    const found = watchId && (await ctx.db.get('priceWatches', watchId))
+    return found && found.userId === ctx.userId ? found : null
+  },
+})
+
+const stopWatch = authedMutation({
+  args: { id: v.id('priceWatches') },
+  handler: async (ctx, { id }) => {
+    const found = await ctx.db.get('priceWatches', id)
+    if (found?.userId !== ctx.userId) throw new ConvexError('Watch not found.')
+    if (found.status === 'watching') {
+      await ctx.db.patch('priceWatches', id, { status: 'stopped' })
+    }
+  },
+})
+
+const HOUR = 60 * 60_000
+
+/** Watches not checked for about a day, oldest first. */
+const dueWatches = internalQuery({
+  args: {},
+  returns: v.array(schema.doc('priceWatches')),
+  handler: async (ctx) =>
+    await ctx.db
+      .query('priceWatches')
+      .withIndex('by_status_and_checkedAt', (q) =>
+        q.eq('status', 'watching').lt('checkedAt', Date.now() - 23 * HOUR),
+      )
+      .take(50),
+})
+
+/** Records a check, and posts in the chat when the price dropped or the item went. */
+const recordCheck = internalMutation({
+  args: {
+    id: v.id('priceWatches'),
+    /** Null when the store stopped selling it. */
+    price: v.union(v.number(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { id, price }) => {
+    const found = await ctx.db.get('priceWatches', id)
+    if (found?.status !== 'watching') return null
+    const name = found.variantTitle
+      ? `${found.title} (${found.variantTitle})`
+      : found.title
+    const amount = (minor: number) =>
+      `${(minor / 100).toFixed(2)} ${found.currency}`
+    const post = (content: string) =>
+      saveMessage(ctx, components.agent, {
+        threadId: found.threadId,
+        message: { role: 'assistant', content },
+      })
+    if (price === null) {
+      await ctx.db.patch('priceWatches', id, {
+        status: 'gone',
+        checkedAt: Date.now(),
+      })
+      await post(
+        `_${name} isn't for sale anymore, so I've stopped watching it._`,
+      )
+      return null
+    }
+    const dropped = price <= found.target
+    await ctx.db.patch('priceWatches', id, {
+      lastPrice: price,
+      checkedAt: Date.now(),
+      status: dropped ? 'dropped' : 'watching',
+    })
+    if (dropped) {
+      await post(
+        `📉 **${name}** is down to **${amount(price)}**, at or under the ${amount(found.target)} you wanted.${found.url ? ` [See it](${found.url})` : ''} Want me to add it to your cart?`,
+      )
+    }
+    return null
+  },
+})
+
+/** Checks watched prices against the catalog. Hourly from `crons.ts`, so each watch about once a day. */
+const checkPrices = internalAction({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const watches: Array<Doc<'priceWatches'>> = await ctx.runQuery(
+      internal.api.shopping.dueWatches,
+      {},
+    )
+    for (const found of watches) {
+      const { country }: { country: string | null } = await ctx.runQuery(
+        internal.api.shopping.forAssistant,
+        { userId: found.userId },
+      )
+      try {
+        const offer = await lookupVariant(found.variantId, country ?? undefined)
+        await ctx.runMutation(internal.api.shopping.recordCheck, {
+          id: found._id,
+          // Out of stock isn't gone: keep watching at the last price.
+          price: !offer
+            ? null
+            : offer.available
+              ? offer.price
+              : found.lastPrice,
+        })
+      } catch (error) {
+        // A failed lookup is tried again at the next check.
+        console.error(error)
+      }
+    }
+    return null
+  },
+})
+
 export const shoppingApi = {
   details,
   saveDetails,
@@ -221,4 +367,10 @@ export const shoppingApi = {
   cart,
   setQuantity,
   clearShop,
+  startWatch,
+  watch,
+  stopWatch,
+  dueWatches,
+  recordCheck,
+  checkPrices,
 }

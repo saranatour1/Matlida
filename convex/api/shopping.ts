@@ -9,4 +9,10 @@ export const {
   cart,
   setQuantity,
   clearShop,
+  startWatch,
+  watch,
+  stopWatch,
+  dueWatches,
+  recordCheck,
+  checkPrices,
 } = shoppingApi

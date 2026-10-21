@@ -1,6 +1,7 @@
+import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -159,4 +160,109 @@ test('the cart holds real items by store, and each store checks out with your de
     shop: 'https://a.example',
   })
   expect((await asAda.query(api.api.shopping.cart, {})).shops).toEqual([])
+})
+
+test('a watched price posts in the chat once it drops, and a gone item stops the watch', async () => {
+  vi.useFakeTimers()
+  const { t } = await setup()
+  agentTest.register(t)
+  const ada = (await t.run((ctx) => ctx.db.query('users').first()))!._id
+  const projectId = await t
+    .withIdentity({ subject: ada })
+    .mutation(api.api.projects.save, {
+      name: 'Matilda',
+      brief: '',
+      guidelines: '',
+    })
+  const prices: Record<string, number> = {
+    'gid://shopify/ProductVariant/1': 3500,
+    'gid://shopify/ProductVariant/2': 2000,
+  }
+  vi.stubGlobal('fetch', (_url: string, init?: RequestInit) => {
+    const { params } = JSON.parse(init?.body as string) as {
+      params: { arguments: { catalog: { ids: Array<string> } } }
+    }
+    const [id] = params.arguments.catalog.ids
+    const products =
+      id in prices
+        ? [
+            {
+              id: `p-${id}`,
+              title: 'Dripper',
+              variants: [
+                {
+                  id,
+                  price: { amount: prices[id], currency: 'USD' },
+                  checkout_url: `https://a.example/cart/${id.replace(/\D/g, '')}:1`,
+                },
+              ],
+            },
+          ]
+        : []
+    return Promise.resolve(
+      Response.json({
+        jsonrpc: '2.0',
+        id: 1,
+        result: { structuredContent: { products } },
+      }),
+    )
+  })
+  const offer = {
+    productId: 'p',
+    title: 'Dripper',
+    price: 3500,
+    currency: 'USD',
+    available: true,
+    seller: 'A',
+    shop: 'https://a.example',
+  }
+  const threadId = await t.mutation(internal.api.threads.start, {
+    projectId,
+    kind: 'chat',
+    title: 'Matilda',
+    userId: ada,
+  })
+  const watchIds = await Promise.all(
+    ['1', '2'].map((n) =>
+      t.mutation(internal.api.shopping.startWatch, {
+        userId: ada,
+        projectId,
+        threadId,
+        offer: {
+          ...offer,
+          variantId: `gid://shopify/ProductVariant/${n}`,
+          variantNumber: n,
+        },
+        target: 3000,
+      }),
+    ),
+  )
+  const status = () =>
+    t.run(async (ctx) =>
+      Promise.all(
+        watchIds.map(
+          async (id) => (await ctx.db.get('priceWatches', id))?.status,
+        ),
+      ),
+    )
+
+  // Not due yet: checked just now.
+  await t.action(internal.api.shopping.checkPrices, {})
+  expect(await status()).toEqual(['watching', 'watching'])
+
+  vi.advanceTimersByTime(24 * 60 * 60_000)
+  delete prices['gid://shopify/ProductVariant/1']
+  await t.action(internal.api.shopping.checkPrices, {})
+  expect(await status()).toEqual(['gone', 'dropped'])
+  const { page } = await t
+    .withIdentity({ subject: ada })
+    .query(api.api.chat.listMessages, {
+      threadId,
+      paginationOpts: { numItems: 10, cursor: null },
+    })
+  expect(page.map((m) => m.text).sort()).toEqual([
+    "_Dripper isn't for sale anymore, so I've stopped watching it._",
+    '📉 **Dripper** is down to **20.00 USD**, at or under the 30.00 USD you wanted. Want me to add it to your cart?',
+  ])
+  vi.useRealTimers()
 })
