@@ -25,4 +25,10 @@ crons.interval(
   internal.api.pages.refreshDue,
 )
 
+crons.interval(
+  'sweep unsaved command files',
+  { hours: 1 },
+  internal.api.commands.sweepFiles,
+)
+
 export default crons
