@@ -41,7 +41,7 @@ export const JOBS = {
     name: 'Decisions',
     model: 'Jev',
     maker: 'TypeSafe',
-    note: '/decide: picks between options, with the odds for each.',
+    note: '/decide: picks between options, with the odds for each. Also checks what from earlier still needs a follow-up, in chats, texts and calls.',
   },
   search: {
     group: 'Looking things up',

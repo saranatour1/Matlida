@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { decide } from './decide'
+import { decide, needsFollowUp } from './decide'
 import type { Experimental_DecisionModelV4 } from '@ai-sdk/provider'
 
 function jev(answer: {
@@ -61,4 +61,54 @@ test('without probabilities, the pick counts as certain', async () => {
       context: '',
     }),
   ).toEqual({ choice: 'a', probabilities: { a: 1 } })
+})
+
+test('needs_follow_up asks Jev both questions at once and names the open request', async () => {
+  const doDecide = vi.fn(() =>
+    Promise.resolve({
+      answers: {
+        needs_follow_up: { type: 'boolean' as const, probability: 0.91 },
+        which: { type: 'choice' as const, choice: 'request_1' },
+      },
+      warnings: [],
+    }),
+  )
+  const model = {
+    specificationVersion: 'v4',
+    provider: 'convex-gateway',
+    modelId: '~typesafe/jev-latest',
+    supportedQuestionTypes: ['boolean', 'choice'],
+    doDecide,
+  } satisfies Experimental_DecisionModelV4
+  const conversation = [
+    { role: 'user' as const, text: 'Make me a video of a fox' },
+    { role: 'assistant' as const, text: 'On it. [used generate_video]' },
+    { role: 'user' as const, text: 'Thanks!' },
+  ]
+  const openWork = ['A video is still being made: a fox']
+
+  expect(await needsFollowUp(model, { conversation, openWork })).toEqual({
+    needsFollowUp: true,
+    probability: 0.91,
+    request: 'Make me a video of a fox',
+    openWork,
+  })
+  expect(doDecide).toHaveBeenCalledOnce()
+  expect(doDecide).toHaveBeenCalledWith(
+    expect.objectContaining({
+      questions: {
+        needs_follow_up: expect.objectContaining({
+          type: 'boolean',
+        }) as unknown,
+        which: expect.objectContaining({
+          type: 'choice',
+          criteria: {
+            request_1: 'Make me a video of a fox',
+            request_2: 'Thanks!',
+            none: 'Every request is done or answered.',
+          },
+        }) as unknown,
+      },
+    }),
+  )
 })

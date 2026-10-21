@@ -2,7 +2,7 @@ import { createThread } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
 import { components } from '../../_generated/api'
-import { internalMutation } from '../../_generated/server'
+import { internalMutation, internalQuery } from '../../_generated/server'
 import {
   authedMutation,
   authedQuery,
@@ -214,7 +214,44 @@ const setEffort = zAuthedMutation({
   },
 })
 
+/** Work this chat started that hasn't finished, or failed, in words for `needs_follow_up`. */
+const openWork = internalQuery({
+  args: { threadId: v.string() },
+  returns: v.array(v.string()),
+  handler: async (ctx, { threadId }) => {
+    const videos = await ctx.db
+      .query('videos')
+      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
+      .order('desc')
+      .take(10)
+    const tasks = await ctx.db
+      .query('tasks')
+      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
+      .order('desc')
+      .take(10)
+    return [
+      ...videos.flatMap((video) =>
+        video.status === 'working'
+          ? [`A video is still being made: ${video.prompt}`]
+          : video.status === 'failed'
+            ? [`A video failed (${video.error}): ${video.prompt}`]
+            : [],
+      ),
+      ...tasks.flatMap((task) =>
+        task.status === 'running'
+          ? [`The task "${task.title}" is still running.`]
+          : task.status === 'waiting_for_you'
+            ? [`The task "${task.title}" is waiting for the user to start it.`]
+            : task.status === 'failed'
+              ? [`The task "${task.title}" failed.`]
+              : [],
+      ),
+    ]
+  },
+})
+
 export const threadsApi = {
+  openWork,
   start,
   list,
   main,

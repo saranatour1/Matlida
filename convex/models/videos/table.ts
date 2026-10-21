@@ -12,4 +12,4 @@ export const videosTable = defineTable({
   status: literals('working', 'done', 'failed'),
   storageId: v.optional(v.id('_storage')),
   error: v.optional(v.string()),
-})
+}).index('by_threadId', ['threadId'])
