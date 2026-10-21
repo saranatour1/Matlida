@@ -1,4 +1,5 @@
 import { getServiceToken } from 'convex/server'
+import { MODELS } from './models'
 
 /**
  * Audio chat through the Convex AI gateway: a model hears the user and
@@ -6,15 +7,6 @@ import { getServiceToken } from 'convex/server'
  * The AI SDK returns only text for these, so this calls Chat Completions.
  */
 const GATEWAY = 'https://ai-gateway.convex.dev/v1/chat/completions'
-
-/** Audio chat models, by gateway id. */
-export const AUDIO_CHAT_MODELS = {
-  'openai/gpt-audio-mini': { name: 'GPT Audio mini', note: 'Quick replies.' },
-  'openai/gpt-audio': { name: 'GPT Audio', note: 'Richer, slower.' },
-} satisfies Record<string, { name: string; note: string }>
-
-export const AUDIO_CHAT_MODEL: keyof typeof AUDIO_CHAT_MODELS =
-  'openai/gpt-audio-mini'
 
 /** The voices the audio chat models speak in. */
 export const AUDIO_VOICES = [
@@ -105,7 +97,7 @@ export async function audioChat(
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: turn.model ?? AUDIO_CHAT_MODEL,
+      model: turn.model ?? MODELS.audioChat,
       modalities: ['text', 'audio'],
       audio: { voice: turn.voice, format: 'pcm16' },
       stream: true,

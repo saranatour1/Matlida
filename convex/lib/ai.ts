@@ -10,6 +10,9 @@ export function chatModel(id: string) {
   return convexGateway(id)
 }
 
+/** Fast and cheap, for quick summaries. */
+export const summaryModel = convexGateway(MODELS.summary)
+
 /** Search-grounded models: quick lookups, and longer research. */
 export const searchModel = convexGateway(MODELS.search)
 export const researchModel = convexGateway(MODELS.research)

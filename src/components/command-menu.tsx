@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
   BotIcon,
+  CpuIcon,
   LibraryIcon,
   PlugIcon,
   PlusIcon,
@@ -115,6 +116,7 @@ export function CommandMenu({ project }: { project: Doc<'projects'> }) {
                     ['Assistants', '/p/$projectId/bots', BotIcon],
                     ['Messaging', '/p/$projectId/messaging', SmartphoneIcon],
                     ['Connections', '/p/$projectId/connections', PlugIcon],
+                    ['Models', '/p/$projectId/models', CpuIcon],
                     ['Settings', '/p/$projectId/settings', SettingsIcon],
                   ] as const
                 ).map(([label, to, Icon]) => (

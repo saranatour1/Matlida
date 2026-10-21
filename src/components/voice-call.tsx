@@ -25,6 +25,7 @@ import {
   useCallVolume,
   useFastVoice,
 } from '~/hooks/use-call-settings'
+import { useUpload } from '~/hooks/use-upload'
 import { toWav } from '~/lib/wav'
 import { hear, startListening } from '~/lib/turn-taking'
 
@@ -104,7 +105,7 @@ export function useVoiceCall({
   const [lines, setLines] = React.useState<Array<Line>>([])
   const session = React.useRef<Session | null>(null)
   const convex = useConvex()
-  const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
+  const upload = useUpload()
   const turn = useAction(api.api.calls.turn)
   const end = useMutation(api.api.calls.end)
 
@@ -175,12 +176,7 @@ export function useVoiceCall({
       // Fast voice's audio model takes WAV, not the browser's WebM.
       const fast = getFastVoice()
       const audio = fast ? await toWav(clip) : clip
-      const res = await fetch(await uploadUrl(), {
-        method: 'POST',
-        headers: { 'Content-Type': audio.type },
-        body: audio,
-      })
-      const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
+      const storageId = await upload(audio)
       const liveKey = crypto.randomUUID()
       follow(s, liveKey)
       listen(s)
