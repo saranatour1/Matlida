@@ -45,6 +45,7 @@ export const emailsTable = defineTable({
 })
   .index('by_messageId', ['messageId'])
   .index('by_receivedAt', ['receivedAt'])
+  .index('by_user_and_receivedAt', ['userId', 'receivedAt'])
   .index('by_threadId', ['threadId'])
   .index('by_chatMessageId', ['chatMessageId'])
   .searchIndex('search_text', {

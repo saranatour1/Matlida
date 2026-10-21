@@ -86,9 +86,12 @@ export async function needsFollowUp(
     },
     abortSignal,
   })
-  const index = /^request_(\d+)$/.exec(answers.which.choice)?.[1]
+  const needs = answers.needs_follow_up.probability >= 0.5
+  const index = needs
+    ? /^request_(\d+)$/.exec(answers.which.choice)?.[1]
+    : undefined
   return {
-    needsFollowUp: answers.needs_follow_up.probability >= 0.5,
+    needsFollowUp: needs,
     probability: answers.needs_follow_up.probability,
     request: index ? (requests[Number(index) - 1] ?? null) : null,
     openWork,
@@ -132,8 +135,8 @@ export async function whoShouldHandle(
     abortSignal,
   })
   const { choice } = answers.who
-  const probabilities: Partial<Record<string, number>> =
-    answers.who.probabilities ?? { [choice]: 1 }
+  const probabilities: Partial<Record<string, number>> = answers.who
+    .probabilities ?? { [choice]: 1 }
   return {
     verdict: choice,
     probabilities,

@@ -136,7 +136,9 @@ const today = internalQuery({
       .take(20)
     const emails = await ctx.db
       .query('emails')
-      .withIndex('by_receivedAt', (q) => q.gt('receivedAt', now - 3 * DAY))
+      .withIndex('by_user_and_receivedAt', (q) =>
+        q.eq('userId', project.ownerId).gt('receivedAt', now - 3 * DAY),
+      )
       .order('desc')
       .take(100)
     const plans = await ctx.db
@@ -156,13 +158,7 @@ const today = internalQuery({
         .filter((t) => t.status === 'running' || t.status === 'waiting_for_you')
         .map((t) => ({ title: t.title, status: t.status })),
       emails: emails
-        .filter(
-          (e) =>
-            e.userId === project.ownerId &&
-            e.from &&
-            !e.repliedAt &&
-            e.status !== 'ignored',
-        )
+        .filter((e) => e.from && !e.repliedAt && e.status !== 'ignored')
         .slice(0, 5)
         .map((e) => ({
           from: e.from ?? '',

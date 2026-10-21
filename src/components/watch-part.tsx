@@ -46,7 +46,7 @@ function Watch({ id }: { id: string }) {
         <TrendingDownIcon className="mt-0.5 size-4 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <a
-            href={watch.url}
+            href={watch.url || undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium hover:underline"

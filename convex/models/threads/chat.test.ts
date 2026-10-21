@@ -125,7 +125,7 @@ test('each assistant has one chat, and messages keep going to it', async () => {
   )
 })
 
-test('the backfill records the old app chat behind any number of channel chats, once', async () => {
+test('the old app chat is found behind any number of channel chats, and recorded once', async () => {
   const { t, asAda, projectId } = await setup()
   const userId = (await t.run((ctx) => ctx.db.query('users').first()))!._id
   const start = (title: string) =>
@@ -170,8 +170,10 @@ test('the backfill records the old app chat behind any number of channel chats, 
     })
     await ctx.db.patch('projects', projectId, { threadId: undefined })
   })
-  // Before the backfill, nothing is guessed.
-  expect(await asAda.query(api.api.threads.main, { projectId })).toBeNull()
+  // Even before the backfill, a message lands in the old chat, not a new one.
+  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(
+    appChat,
+  )
 
   await t.mutation(internal.api.threads.recordMainThreads, { cursor: null })
   expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(

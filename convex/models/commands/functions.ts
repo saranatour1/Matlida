@@ -317,6 +317,19 @@ const HOUR = 60 * 60_000
  * files longer has to be checked here too.
  * ponytail: files from an hour the cron missed stay; widen the window if that matters.
  */
+/**
+ * Whether the sweep may delete a file nothing points to: command markdown
+ * and call audio, which are only kept by a row. Pictures, videos and
+ * anything else are kept. Files with no type (only in tests) count as left over.
+ */
+export function sweepable({ contentType }: { contentType?: string }) {
+  return (
+    !contentType ||
+    contentType === 'text/markdown' ||
+    contentType.startsWith('audio/')
+  )
+}
+
 const sweepFiles = internalMutation({
   args: {},
   returns: v.number(),
@@ -332,6 +345,7 @@ const sweepFiles = internalMutation({
       .take(500)
     let deleted = 0
     for (const file of files) {
+      if (!sweepable(file)) continue
       const used = await ctx.db
         .query('commands')
         .withIndex('by_storageId', (q) => q.eq('storageId', file._id))

@@ -72,14 +72,19 @@ const forUser = internalQuery({
   handler: async (ctx, { userId }) => await getSettings(ctx, userId),
 })
 
-/** Everyone with a daily time. ponytail: a scan, fine until thousands of users; index by hour then. */
+/** Everyone with a daily time, all of them, by the `by_dailyHour` index. */
 const withDailyTime = internalQuery({
   args: {},
   returns: v.array(schema.doc('newsSettings')),
-  handler: async (ctx) =>
-    (await ctx.db.query('newsSettings').take(500)).filter(
-      (s) => s.dailyHour !== undefined,
-    ),
+  handler: async (ctx) => {
+    const daily = []
+    for await (const row of ctx.db
+      .query('newsSettings')
+      .withIndex('by_dailyHour', (q) => q.gte('dailyHour', 0))) {
+      daily.push(row)
+    }
+    return daily
+  },
 })
 
 /** Posts the daily briefing in the lead's chat, once that day. */

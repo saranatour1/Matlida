@@ -200,7 +200,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             outputTokens: usage.outputTokens ?? 0,
           })
         }
-        return { url: await ctx.storage.getUrl(storageId), prompt }
+        return { url: await ctx.storage.getUrl(storageId), storageId, prompt }
       },
     }),
     generate_video: createTool({

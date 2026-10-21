@@ -189,7 +189,8 @@ export async function speakWith(
     project,
     bot,
     heard: heard.text,
-    reply: answer?.transcript ?? '',
+    // Nothing heard: whatever the cut-off reply started isn't kept.
+    reply: heard.text ? (answer?.transcript ?? '') : '',
   }
 }
 
