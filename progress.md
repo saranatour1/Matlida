@@ -434,3 +434,9 @@
 - Excalidraw and the Mermaid parser load with the first diagram, not with the app. `@excalidraw/mermaid-to-excalidraw` is pinned at 2.2.2, since 2.3.0 is a day old.
 - Cards only show in the app, so texts and calls don't get it.
 
+### Solving Convex problems fast (2026-10-22)
+
+- A `convex_docs` tool searches the live Convex docs (the `llms.txt` index, then the best three pages as markdown), so every assistant answers Convex questions from today's APIs and links the page. It works everywhere, email drafts included, since it only reads.
+- `/convex`: most likely cause in one line, the fix as code, how to check it, the docs page. `/fix` does the same for any problem, with web_search.
+- Pages rank by the words they share with the question. Live, "paginate a query" and "schedule a function later" found the right pages in about 0.7 seconds each; vaguer questions find nearby pages, and the assistant can search again.
+

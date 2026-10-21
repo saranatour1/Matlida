@@ -9,6 +9,7 @@ import {
   searchModel,
   summaryModel,
 } from '../../lib/ai'
+import { searchConvexDocs } from '../../lib/convexDocs'
 import { decide, needsFollowUp } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
@@ -479,6 +480,20 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       }),
       execute: async (_ctx, input, { abortSignal }) =>
         await decide(decisionModel, input, abortSignal),
+    }),
+    convex_docs: createTool({
+      description:
+        'Look up the current Convex docs (docs.convex.dev) for a Convex question or bug: queries, mutations, actions, schemas, indexes, auth, file storage, scheduling, components, limits or errors. Use it before answering anything about Convex, since APIs change; answer from what it returns and link the page.',
+      inputSchema: z.object({
+        query: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('The problem in a few words, like "action out of memory".'),
+      }),
+      execute: async (_ctx, { query }, { abortSignal }) => ({
+        pages: await searchConvexDocs(query, abortSignal),
+      }),
     }),
     needs_follow_up: createTool({
       description:
