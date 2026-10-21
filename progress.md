@@ -345,3 +345,8 @@
 
 - A bot's card crashed the chat when a saved `ask_bot` result came back without its input (`Cannot read properties of undefined (reading 'task')`). It now shows the Task line only when there is one. Also as its own PR against master. The decide card read its question the same way and is guarded too.
 - Every chat card is now a labelled region (`section` with an `aria-label`: the list, recipe, timeline or page title, "Your cart", "Settle up" and so on), loading lines are `role="status"`, product grids are lists of items, and tables have a caption.
+
+### No card can crash the chat (2026-10-21)
+
+- After `preview_post` was renamed to `preview_posts`, the model still called `preview_post`, copying its own older messages. The call failed, and the saved failure had no post text, so the preview card crashed the chat (`Cannot read properties of undefined (reading 'length')`). `preview_post` is back as a one-post alias.
+- Every card in a message now sits in an error boundary: one that can't render says "This card couldn't be shown" and the rest of the chat keeps working.

@@ -33,8 +33,6 @@ const ChartPart = React.lazy(() =>
   import('~/components/chart-part').then((m) => ({ default: m.ChartPart })),
 )
 
-type Platform = 'linkedin' | 'x' | 'reddit' | 'discord'
-
 /** The assistants' tools, typed from `assistantTools` itself, plus `ask_bot` from `lead.ts`. */
 export type ChatUIMessage = UIMessage<
   unknown,
@@ -43,18 +41,6 @@ export type ChatUIMessage = UIMessage<
     ask_bot: {
       input: { bot: string; task: string }
       output: { name: string; role: string; reply: string; threadId: string }
-    }
-    /** One post per call, before `preview_posts`. Kept so older chats still show it. */
-    preview_post: {
-      input: { platform: Platform; text: string }
-      output: {
-        platform: Platform
-        text: string
-        title?: string
-        subreddit?: string
-        author: string
-        limit: number
-      }
     }
   }
 >
@@ -88,72 +74,103 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
   return (
     <Message align="start">
       <MessageContent>
-        {message.parts.map((part, index) => {
-          switch (part.type) {
-            case 'text':
-              return part.text.trim() ? (
-                <Markdown key={index} text={part.text} />
-              ) : null
-            case 'tool-ask_bot':
-              return <BotPart key={part.toolCallId} part={part} />
-            case 'tool-web_search':
-            case 'tool-research':
-              return <ToolPart key={part.toolCallId} part={part} />
-            case 'tool-save_plan':
-            case 'tool-add_to_list':
-              return <ChecklistPart key={part.toolCallId} part={part} />
-            case 'tool-show_drafts':
-              return <DraftsPart key={part.toolCallId} part={part} />
-            case 'tool-show_table':
-              return <TablePart key={part.toolCallId} part={part} />
-            case 'tool-show_recipe':
-              return <RecipePart key={part.toolCallId} part={part} />
-            case 'tool-get_today':
-              return <TodayPart key={part.toolCallId} part={part} />
-            case 'tool-show_timeline':
-              return <TimelinePart key={part.toolCallId} part={part} />
-            case 'tool-split_costs':
-              return <SplitPart key={part.toolCallId} part={part} />
-            case 'tool-compare_times':
-              return <TimeZonesPart key={part.toolCallId} part={part} />
-            case 'tool-start_timer':
-              return <TimerPart key={part.toolCallId} part={part} />
-            case 'tool-find_products':
-              return <ProductsPart key={part.toolCallId} part={part} />
-            case 'tool-add_to_cart':
-            case 'tool-show_cart':
-              return <CartPart key={part.toolCallId} part={part} />
-            case 'tool-watch_price':
-              return <WatchPart key={part.toolCallId} part={part} />
-            case 'tool-get_news':
-              return <NewsPart key={part.toolCallId} part={part} />
-            case 'tool-setup_news':
-              return <NewsSetupPart key={part.toolCallId} part={part} />
-            case 'tool-write_page':
-              return <PagePart key={part.toolCallId} part={part} />
-            case 'tool-keep_page_updated':
-              return <KeepUpdatedPart key={part.toolCallId} part={part} />
-            case 'tool-set_reminder':
-              return <ReminderPart key={part.toolCallId} part={part} />
-            case 'tool-run_plan':
-              return <RunPlanPart key={part.toolCallId} part={part} />
-            case 'tool-show_chart':
-              return (
-                <React.Suspense key={part.toolCallId}>
-                  <ChartPart part={part} />
-                </React.Suspense>
-              )
-            case 'tool-decide':
-              return <DecidePart key={part.toolCallId} part={part} />
-            case 'tool-preview_post':
-              return <PostPreviewPart key={part.toolCallId} part={part} />
-            case 'tool-preview_posts':
-              return <PostPreviewsPart key={part.toolCallId} part={part} />
-            default:
-              return null
-          }
-        })}
+        {message.parts.map((part, index) => (
+          <PartBoundary key={'toolCallId' in part ? part.toolCallId : index}>
+            {renderPart(part, index)}
+          </PartBoundary>
+        ))}
       </MessageContent>
     </Message>
   )
+}
+
+type Part = ChatUIMessage['parts'][number]
+
+function renderPart(part: Part, index: number) {
+  switch (part.type) {
+    case 'text':
+      return part.text.trim() ? <Markdown key={index} text={part.text} /> : null
+    case 'tool-ask_bot':
+      return <BotPart key={part.toolCallId} part={part} />
+    case 'tool-web_search':
+    case 'tool-research':
+      return <ToolPart key={part.toolCallId} part={part} />
+    case 'tool-save_plan':
+    case 'tool-add_to_list':
+      return <ChecklistPart key={part.toolCallId} part={part} />
+    case 'tool-show_drafts':
+      return <DraftsPart key={part.toolCallId} part={part} />
+    case 'tool-show_table':
+      return <TablePart key={part.toolCallId} part={part} />
+    case 'tool-show_recipe':
+      return <RecipePart key={part.toolCallId} part={part} />
+    case 'tool-get_today':
+      return <TodayPart key={part.toolCallId} part={part} />
+    case 'tool-show_timeline':
+      return <TimelinePart key={part.toolCallId} part={part} />
+    case 'tool-split_costs':
+      return <SplitPart key={part.toolCallId} part={part} />
+    case 'tool-compare_times':
+      return <TimeZonesPart key={part.toolCallId} part={part} />
+    case 'tool-start_timer':
+      return <TimerPart key={part.toolCallId} part={part} />
+    case 'tool-find_products':
+      return <ProductsPart key={part.toolCallId} part={part} />
+    case 'tool-add_to_cart':
+    case 'tool-show_cart':
+      return <CartPart key={part.toolCallId} part={part} />
+    case 'tool-watch_price':
+      return <WatchPart key={part.toolCallId} part={part} />
+    case 'tool-get_news':
+      return <NewsPart key={part.toolCallId} part={part} />
+    case 'tool-setup_news':
+      return <NewsSetupPart key={part.toolCallId} part={part} />
+    case 'tool-write_page':
+      return <PagePart key={part.toolCallId} part={part} />
+    case 'tool-keep_page_updated':
+      return <KeepUpdatedPart key={part.toolCallId} part={part} />
+    case 'tool-set_reminder':
+      return <ReminderPart key={part.toolCallId} part={part} />
+    case 'tool-run_plan':
+      return <RunPlanPart key={part.toolCallId} part={part} />
+    case 'tool-show_chart':
+      return (
+        <React.Suspense key={part.toolCallId}>
+          <ChartPart part={part} />
+        </React.Suspense>
+      )
+    case 'tool-decide':
+      return <DecidePart key={part.toolCallId} part={part} />
+    case 'tool-preview_post':
+      return <PostPreviewPart key={part.toolCallId} part={part} />
+    case 'tool-preview_posts':
+      return <PostPreviewsPart key={part.toolCallId} part={part} />
+    default:
+      return null
+  }
+}
+
+/**
+ * One card that can't render, like a saved result that no longer matches its
+ * tool, shows a note instead of taking the whole chat down.
+ */
+class PartBoundary extends React.Component<
+  { children: React.ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  render() {
+    return this.state.failed ? (
+      <p role="status" className="px-1.5 text-sm text-muted-foreground">
+        This card couldn’t be shown.
+      </p>
+    ) : (
+      this.props.children
+    )
+  }
 }
