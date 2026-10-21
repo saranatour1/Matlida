@@ -7,7 +7,7 @@ import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
 import { PostPreviewPart } from '~/components/post-preview-part'
 import { RunPlanPart } from '~/components/task-card'
-import { ReminderPart, ToolPart } from '~/components/tool-part'
+import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
 
@@ -79,6 +79,8 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
                   <ChartPart part={part} />
                 </React.Suspense>
               )
+            case 'tool-decide':
+              return <DecidePart key={part.toolCallId} part={part} />
             case 'tool-preview_post':
               return <PostPreviewPart key={part.toolCallId} part={part} />
             default:

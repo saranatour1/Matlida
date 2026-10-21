@@ -2,7 +2,8 @@ import { createTool } from '@convex-dev/agent'
 import { generateText } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { researchModel, searchModel } from '../../lib/ai'
+import { decisionModel, researchModel, searchModel } from '../../lib/ai'
+import { decide } from '../../lib/decide'
 import { gatewayCost } from '../usage/functions'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
@@ -257,6 +258,39 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           receivedAt: new Date(e.receivedAt).toISOString(),
         }))
       },
+    }),
+    decide: createTool({
+      description:
+        "Pick between options with Jev, TypeSafe's judgment model, when the user asks you to decide or choose. Give every option and the facts that matter. It returns the pick and each option's probability: when the pick is under 0.5, say it's close and name the runner-up.",
+      inputSchema: z.object({
+        question: z.string().trim().min(1).describe('What to decide.'),
+        options: z
+          .array(
+            z.object({
+              name: z.string().trim().min(1).max(80),
+              description: z
+                .string()
+                .max(500)
+                .optional()
+                .describe('What the option is, if the name is not enough.'),
+            }),
+          )
+          .min(2)
+          .max(20)
+          .refine(
+            (options) =>
+              new Set(options.map((o) => o.name)).size === options.length,
+            'Each option needs its own name.',
+          ),
+        context: z
+          .string()
+          .max(4000)
+          .describe(
+            "What matters for the choice: the user's goals, limits and preferences from the chat.",
+          ),
+      }),
+      execute: async (_ctx, input, { abortSignal }) =>
+        await decide(decisionModel, input, abortSignal),
     }),
     find_texts: createTool({
       description:

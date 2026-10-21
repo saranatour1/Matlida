@@ -5,6 +5,8 @@ export const MODELS = {
   research: 'perplexity/sonar-pro',
   transcription: 'openai/whisper-large-v3-turbo',
   speech: 'hexgrad/kokoro-82m',
+  /** TypeSafe's Jev, for `decide`: typed picks with probabilities. */
+  decide: '~typesafe/jev-latest',
 } as const
 
 /** Kokoro voices the assistants speak in on calls. */
