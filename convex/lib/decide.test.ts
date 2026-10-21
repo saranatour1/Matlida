@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { decide, needsFollowUp } from './decide'
+import { decide, needsFollowUp, whoShouldHandle } from './decide'
 import type { Experimental_DecisionModelV4 } from '@ai-sdk/provider'
 
 function jev(answer: {
@@ -111,4 +111,38 @@ test('needs_follow_up asks Jev both questions at once and names the open request
       },
     }),
   )
+})
+
+test('the problem check asks Jev who should handle it and whether it is risky, in one call', async () => {
+  const doDecide = vi.fn(() =>
+    Promise.resolve({
+      answers: {
+        who: {
+          type: 'choice' as const,
+          choice: 'person',
+          probabilities: { ai: 0.05, ai_then_person: 0.25, person: 0.7 },
+        },
+        risky: { type: 'boolean' as const, probability: 0.8 },
+      },
+      warnings: [],
+    }),
+  )
+  const model = {
+    specificationVersion: 'v4',
+    provider: 'convex-gateway',
+    modelId: '~typesafe/jev-latest',
+    supportedQuestionTypes: ['boolean', 'choice'],
+    doDecide,
+  } satisfies Experimental_DecisionModelV4
+  expect(
+    await whoShouldHandle(model, {
+      problem: 'Should I sign this lease with a weird clause?',
+      context: 'First apartment.',
+    }),
+  ).toEqual({
+    verdict: 'person',
+    probabilities: { ai: 0.05, ai_then_person: 0.25, person: 0.7 },
+    risky: true,
+  })
+  expect(doDecide).toHaveBeenCalledOnce()
 })

@@ -8,6 +8,16 @@
 @theme {
   --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
+  /* The problem check's progress bar filling up. */
+  --animate-fill: fill 2s ease-out both;
+  @keyframes fill {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
 }
 
 .typeset-docs {

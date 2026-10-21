@@ -10,7 +10,7 @@ import {
   summaryModel,
 } from '../../lib/ai'
 import { searchConvexDocs } from '../../lib/convexDocs'
-import { decide, needsFollowUp } from '../../lib/decide'
+import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
@@ -493,6 +493,23 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       }),
       execute: async (_ctx, { query }, { abortSignal }) => ({
         pages: await searchConvexDocs(query, abortSignal),
+      }),
+    }),
+    problem_check: createTool({
+      description:
+        'The "make my problems go away" analysis: ask Jev whether AI can handle a problem, should prepare it for a person, or whether a real person (a professional, someone they trust, or the user) should handle it, and whether getting it wrong could really hurt. Shows an animated card in the chat.',
+      inputSchema: z.object({
+        problem: z.string().trim().min(1).max(2000),
+        context: z
+          .string()
+          .max(4000)
+          .describe(
+            'What matters from the chat: who they are, what they tried.',
+          ),
+      }),
+      execute: async (_ctx, input, { abortSignal }) => ({
+        problem: input.problem,
+        ...(await whoShouldHandle(decisionModel, input, abortSignal)),
       }),
     }),
     needs_follow_up: createTool({

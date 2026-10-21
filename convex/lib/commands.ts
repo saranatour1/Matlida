@@ -59,6 +59,12 @@ export const BUILT_IN_COMMANDS = [
       'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
+    name: 'make-my-problems-go-away',
+    description: 'Can AI do this, or should a person?',
+    markdown:
+      'Run problem_check on what the user asks after /make-my-problems-go-away, with what matters from the chat as context. If they gave nothing, ask what problem to make go away in one short question. After the card, say in two or three lines what you can do right now, and if a person should be involved, exactly who (the kind of professional or person) and what to bring them. Be warm and a little playful, but plain and serious when it is risky. If they may be in danger or crisis, give emergency help first.',
+  },
+  {
     name: 'convex',
     description: 'Solve a Convex problem fast',
     markdown:
