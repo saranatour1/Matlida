@@ -227,7 +227,6 @@ export function Chat({
                         <MessageScrollerItem
                           key={message.key}
                           messageId={message.key}
-                          scrollAnchor={message.role === 'user'}
                         >
                           <ChatMessage message={message} />
                           {email && (
