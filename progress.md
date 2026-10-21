@@ -262,3 +262,10 @@
 - What you text the lead from a linked iMessage, WhatsApp or Telegram chat is now kept in `receivedTexts` (not link codes, and not texts from unlinked chats), with a search index on the text.
 - `find_texts` searches it by words, optionally from one app. The lead has it in chat and in drafts of replies to your email. Drafts of replies to other people's email don't, so a stranger's email can't pull your texts into a draft. Texts from before this change aren't searchable.
 - Verified with a unit test: a linked chat's texts are found by words and app, the link code and texts sent before linking aren't kept, and another user's search finds nothing.
+
+### Telegram is the only texting app (2026-10-21)
+
+- iMessage and WhatsApp are gone. The Spectrum SDK went with them: its component, `/spectrum/webhook`, the outbox sender, the `SPECTRUM_*` and `TELEGRAM_BOT_TOKEN` env vars, and the `@spectrum-ts/*` and `@photon-ai/advanced-imessage` packages, plus the OpenTelemetry override they needed. Telegram already ran on Photon's platform API (`/photon/webhook` and the polling check), which stays.
+- Reminders text only a linked Telegram chat. Old iMessage and WhatsApp links stay on the Messaging page, marked as no longer working, so they can be unlinked.
+- `find_texts` searches Telegram only, with no app filter. Connections, Messaging, Settings, the README and the setup guide say Telegram only.
+- Verified with the unit tests (texts, the Photon webhook and channels) and the dev deployment, which took the removal of the component.

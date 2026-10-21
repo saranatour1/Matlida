@@ -23,8 +23,7 @@ function Settings() {
         <section className="flex flex-col gap-1 rounded-xl border p-4 text-sm">
           <h2 className="font-medium">Connections</h2>
           <p className="text-muted-foreground">
-            Email, iMessage, Telegram and WhatsApp, and what the assistants can
-            use.{' '}
+            Email and Telegram, and what the assistants can use.{' '}
             <Link
               to="/p/$projectId/connections"
               params={{ projectId: project._id }}
