@@ -1,7 +1,12 @@
 import { useMutation } from 'convex/react'
 import { CpuIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import { CHAT_MODELS, MODELS, modelName } from '../../convex/lib/models'
+import {
+  CHAT_MODELS,
+  MODELS,
+  isListedModel,
+  modelName,
+} from '../../convex/lib/models'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,11 +68,11 @@ export function ModelMenu({
               Switching keeps the chat's history.
             </span>
           </DropdownMenuLabel>
-          {CHAT_MODELS.map((m) => (
+          {Object.entries(CHAT_MODELS).map(([id, m]) => (
             <DropdownMenuItem
-              key={m.id}
-              onClick={() => pick(m.id)}
-              data-checked={m.id === current}
+              key={id}
+              onClick={() => pick(id)}
+              data-checked={id === current}
             >
               <span className="flex flex-col">
                 {m.name}
@@ -77,7 +82,7 @@ export function ModelMenu({
               </span>
             </DropdownMenuItem>
           ))}
-          {!CHAT_MODELS.some((m) => m.id === current) && (
+          {!isListedModel(current) && (
             <DropdownMenuItem data-checked>{current}</DropdownMenuItem>
           )}
         </DropdownMenuGroup>
