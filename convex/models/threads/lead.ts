@@ -210,6 +210,7 @@ export const READ_ONLY_TOOLS = [
   'decide',
   'read_page',
   'show_chart',
+  'preview_post',
   'preview_posts',
   'ask_bot',
 ]

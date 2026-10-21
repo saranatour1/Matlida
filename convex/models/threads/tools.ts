@@ -182,6 +182,23 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         ),
       execute: (_ctx, chart) => Promise.resolve(chart),
     }),
+    // Older chats show this name, and the model copies them; without it the call fails.
+    preview_post: createTool({
+      description:
+        'The older name for preview_posts: shows one post. Use preview_posts instead.',
+      inputSchema: z.object({
+        platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
+        text: z.string().min(1).max(4000),
+        title: z.string().max(300).optional(),
+        subreddit: z.string().max(50).optional(),
+      }),
+      execute: (_ctx, post) =>
+        Promise.resolve({
+          ...post,
+          author: from,
+          limit: POST_LIMITS[post.platform],
+        }),
+    }),
     preview_posts: createTool({
       description:
         "Show drafts of social posts in the chat, laid out the way LinkedIn, X, Reddit or Discord show them, so the user can compare versions before posting. Give two or three versions per platform in one call, each labelled by its angle (like Punchy, Story, Question), within the platform's length. It posts nothing.",
