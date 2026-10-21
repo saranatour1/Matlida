@@ -12,6 +12,7 @@ import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
 import { EffortMenu } from '~/components/effort-menu'
+import { EmailReply } from '~/components/email-reply'
 import { ModelMenu } from '~/components/model-menu'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -62,6 +63,10 @@ export function Chat({
       botId: bot?._id,
     }) ?? undefined
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
+  const emails = useQuery(
+    api.api.emails.forThread,
+    threadId ? { threadId } : 'skip',
+  )
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
@@ -206,15 +211,28 @@ export function Chat({
               <MessageScroller className="flex-1">
                 <MessageScrollerViewport>
                   <MessageScrollerContent className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
-                    {messages.map((message) => (
-                      <MessageScrollerItem
-                        key={message.key}
-                        messageId={message.key}
-                        scrollAnchor={message.role === 'user'}
-                      >
-                        <ChatMessage message={message} />
-                      </MessageScrollerItem>
-                    ))}
+                    {messages.map((message) => {
+                      const email = emails?.find(
+                        (e) => e.chatMessageId === message.id,
+                      )
+                      return (
+                        <MessageScrollerItem
+                          key={message.key}
+                          messageId={message.key}
+                          scrollAnchor={message.role === 'user'}
+                        >
+                          <ChatMessage message={message} />
+                          {email && (
+                            <EmailReply
+                              email={email}
+                              className={
+                                message.role === 'user' ? 'justify-end' : ''
+                              }
+                            />
+                          )}
+                        </MessageScrollerItem>
+                      )
+                    })}
                     {isWaiting && (
                       <MessageScrollerItem messageId="thinking">
                         <div className="flex shimmer items-center gap-2 px-3 text-sm text-muted-foreground">

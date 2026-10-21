@@ -29,7 +29,6 @@
 - [x] Email: a personal address per user, claimed on Connections
 - [x] Email: mail to your address shows in the app, and Matilda answers yours
 - [x] Email: reminders by email, and a limit on answered emails
-- [ ] Email: @name routing to bots, and Matilda emailing you from the app
 - [x] Contacts, and messages to them by email after you confirm
 - [x] Tasks on Convex workflows: run a saved plan step by step with a live card
 - [x] Built-in commands, a "+" menu, and commands written by AI
@@ -39,6 +38,7 @@
 - [x] Several models: per bot, per lead and per chat, with the chat's history kept
 - [x] Effort levels per bot, per lead and per chat, and one createAgent for every assistant
 - [x] One chat per assistant, and no bot members unless you add them
+- [x] Email and texts go only to the lead; Reply to any email with an editable draft
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

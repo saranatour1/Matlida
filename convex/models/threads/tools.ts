@@ -233,6 +233,31 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         }))
       },
     }),
+    find_emails: createTool({
+      description:
+        "Search the user's earlier emails, theirs and other people's, by words in the subject or text, optionally only from one address. Use it for context when answering or drafting a reply.",
+      inputSchema: z.object({
+        query: z.string().trim().min(1).describe('Words to look for.'),
+        from: z.email().optional().describe('Only emails from this address.'),
+      }),
+      execute: async (ctx, { query, from: sender }) => {
+        const found: Array<{
+          from: string
+          subject: string
+          receivedAt: number
+          text: string
+          replied: boolean
+        }> = await ctx.runQuery(internal.api.emails.search, {
+          userId: project.ownerId,
+          query,
+          from: sender,
+        })
+        return found.map((e) => ({
+          ...e,
+          receivedAt: new Date(e.receivedAt).toISOString(),
+        }))
+      },
+    }),
     set_reminder: createTool({
       description:
         'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',

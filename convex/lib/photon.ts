@@ -209,7 +209,7 @@ export async function sendEmail(
  */
 export async function replyByEmail(
   keys: PhotonKeys,
-  email: PhotonEmail & { receivedBy: { id: string } },
+  email: { id: string; spaceId: string; mailboxUserId: string },
   to: string,
   text: string,
 ) {
@@ -217,8 +217,8 @@ export async function replyByEmail(
     method: 'POST',
     headers: { 'idempotency-key': `matilda-reply:${email.id}` },
     body: JSON.stringify({
-      spaceId: email.space.id,
-      senderId: email.receivedBy.id,
+      spaceId: email.spaceId,
+      senderId: email.mailboxUserId,
       parentMessageId: email.id,
       content: { type: 'text', format: 'plain', text },
       email: { to: [{ address: to }] },

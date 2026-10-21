@@ -31,6 +31,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_channels from "../lib/channels.js";
+import type * as lib_commands from "../lib/commands.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_handles from "../lib/handles.js";
 import type * as lib_limits from "../lib/limits.js";
@@ -112,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/ai": typeof lib_ai;
   "lib/channels": typeof lib_channels;
+  "lib/commands": typeof lib_commands;
   "lib/functions": typeof lib_functions;
   "lib/handles": typeof lib_handles;
   "lib/limits": typeof lib_limits;
