@@ -394,3 +394,12 @@
 - Quick summaries: a `quick_summary` tool on Gemini 2.5 Flash (fast and cheap) that `/tldr` now uses.
 - `useUpload()` uploads a file to Convex storage in one call; the mic button and calls use it instead of fetching an upload URL themselves.
 - Verified with pnpm check, the tests (every tool a command names exists) and one live summary through the gateway in 0.9 seconds.
+
+### Pictures (2026-10-22)
+
+- A `generate_image` tool makes a picture with GPT Image 1 through the Convex AI gateway (`MODELS.image`), in a square, wide or tall shape, and saves it in Convex storage. The chat shows it as a card that opens full size. It's left out of texts, email and calls, like the other cards.
+- `/image` turns what you describe into a detailed prompt and makes the picture.
+- The Models page lists it under a new "Images and video" group. Each picture is a `media` row on the chat's costs.
+- No table: the tool returns the stored file's URL, and the card shows it.
+- Verified with pnpm check, the tests (the tool is offered in the chat but not in texts or calls) and one picture made on `dev/matilda`: a 1536x1024 PNG of 2.5 MB in 30 seconds, then deleted. The gateway sent no usage for it, so its cost shows as $0.
+

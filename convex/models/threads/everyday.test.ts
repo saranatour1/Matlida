@@ -14,6 +14,7 @@ test('cards show in the app, and texts and calls answer in words instead', () =>
       'add_to_list',
       'start_timer',
       'get_today',
+      'generate_image',
     ]),
   )
   for (const via of ['text', 'voice'] as const) {
@@ -26,5 +27,6 @@ test('cards show in the app, and texts and calls answer in words instead', () =>
     expect(tools).not.toContain('show_chart')
     expect(tools).not.toContain('show_timeline')
     expect(tools).not.toContain('start_timer')
+    expect(tools).not.toContain('generate_image')
   }
 })

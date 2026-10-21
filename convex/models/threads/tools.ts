@@ -1,14 +1,16 @@
 import { createTool } from '@convex-dev/agent'
-import { generateText } from 'ai'
+import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import {
   decisionModel,
+  imageModel,
   researchModel,
   searchModel,
   summaryModel,
 } from '../../lib/ai'
 import { decide } from '../../lib/decide'
+import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
@@ -24,6 +26,13 @@ const vSteps = z
   .min(1)
   .max(30)
   .describe('Each step as a short instruction, in order.')
+
+/** The sizes GPT Image makes, by shape. */
+const IMAGE_SIZES = {
+  square: '1024x1024',
+  wide: '1536x1024',
+  tall: '1024x1536',
+} as const
 
 /** How long a post can be on each platform, in characters. Previews flag anything over. */
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
@@ -124,6 +133,40 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         })
         await record(ctx, 'search', 'Quick summary', result)
         return { summary: result.text }
+      },
+    }),
+    generate_image: createTool({
+      description:
+        'Make a picture from a description. It is saved in the workspace and shows in the chat. Write a detailed prompt: subject, style, setting, light and mood.',
+      inputSchema: z.object({
+        prompt: z.string().min(1).max(4000),
+        shape: z.enum(['square', 'wide', 'tall']).default('square'),
+      }),
+      execute: async (ctx, { prompt, shape }, { abortSignal }) => {
+        const { image, usage, providerMetadata } = await generateImage({
+          model: imageModel,
+          prompt,
+          size: IMAGE_SIZES[shape],
+          abortSignal,
+        })
+        const storageId = await ctx.storage.store(
+          new Blob([new Uint8Array(image.uint8Array)], {
+            type: image.mediaType,
+          }),
+        )
+        if (ctx.threadId) {
+          await ctx.runMutation(internal.api.usage.record, {
+            projectId: project._id,
+            threadId: ctx.threadId,
+            kind: 'media',
+            label: 'Picture',
+            model: MODELS.image,
+            aiCost: gatewayCost(providerMetadata),
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+          })
+        }
+        return { url: await ctx.storage.getUrl(storageId), prompt }
       },
     }),
     research: createTool({

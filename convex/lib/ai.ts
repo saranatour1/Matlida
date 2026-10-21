@@ -21,6 +21,9 @@ export const transcriptionModel = convexGateway.transcriptionModel(
   MODELS.transcription,
 )
 
+/** Pictures for `generate_image`. */
+export const imageModel = convexGateway.imageModel(MODELS.image)
+
 export const speechModel = convexGateway.speechModel(MODELS.speech)
 
 /** Jev, through the gateway's decisions endpoint (alpha), for `decide`. */

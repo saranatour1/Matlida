@@ -6,6 +6,7 @@ import {
   CopyIcon,
   CpuIcon,
   GlobeIcon,
+  ImageIcon,
   LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
@@ -47,6 +48,7 @@ const KIND_ICON = {
   research: TelescopeIcon,
   compute: CpuIcon,
   voice: MicIcon,
+  media: ImageIcon,
 } as const
 
 /** The right sidebar for a chat: who you're talking to, with Details, Library and Costs tabs. */

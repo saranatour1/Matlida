@@ -280,4 +280,5 @@ export const CARD_TOOLS = new Set([
   'start_timer',
   'show_cart',
   'setup_news',
+  'generate_image',
 ])

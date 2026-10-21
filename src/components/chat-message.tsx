@@ -8,6 +8,7 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
+import { ImagePart } from '~/components/image-part'
 import { NewsPart, NewsSetupPart } from '~/components/news-part'
 import { KeepUpdatedPart, PagePart } from '~/components/page-part'
 import {
@@ -145,6 +146,8 @@ function renderPart(part: Part, index: number) {
       return <PostPreviewPart key={part.toolCallId} part={part} />
     case 'tool-preview_posts':
       return <PostPreviewsPart key={part.toolCallId} part={part} />
+    case 'tool-generate_image':
+      return <ImagePart key={part.toolCallId} part={part} />
     default:
       return null
   }
