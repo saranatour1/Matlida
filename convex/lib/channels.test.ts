@@ -1,14 +1,8 @@
 import { expect, test } from 'vitest'
-import { CHANNELS, channelStatus, messagingAppName } from './channels'
+import { CHANNELS, channelStatus } from './channels'
 import type { Channel, ChannelFacts } from './channels'
 
 const nothing: ChannelFacts = { env: [], linked: [], mailbox: null }
-
-const photonEnv = [
-  'SPECTRUM_PROJECT_ID',
-  'SPECTRUM_PROJECT_SECRET',
-  'SPECTRUM_WEBHOOK_SECRET',
-] as const
 
 const telegramEnv = [
   'PHOTON_PROJECT_ID',
@@ -47,11 +41,11 @@ test('a Photon app needs the deployment set up, then a linked chat', () => {
       linked: ['telegram'],
     }),
   ).toMatchObject({ status: 'connected' })
-  // A WhatsApp link doesn't count for iMessage.
+  // An old WhatsApp link doesn't count for Telegram.
   expect(
-    channelStatus(channel('imessage'), {
+    channelStatus(channel('telegram'), {
       ...nothing,
-      env: [...photonEnv],
+      env: [...telegramEnv],
       linked: ['whatsapp_business'],
     }),
   ).toMatchObject({ status: 'ready' })
@@ -94,10 +88,4 @@ test('tools are always on, and planned channels are coming soon', () => {
   expect(channelStatus(channel('phone'), nothing)).toMatchObject({
     status: 'coming_soon',
   })
-})
-
-test('Photon apps are named from the registry', () => {
-  expect(messagingAppName('whatsapp_business')).toBe('WhatsApp')
-  expect(messagingAppName('imessage')).toBe('iMessage')
-  expect(messagingAppName('signal')).toBe('signal')
 })

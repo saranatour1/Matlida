@@ -154,7 +154,9 @@ test('your own email gets a draft in the chat, and goes out only when you reply'
   await poll()
 
   expect(sent).toEqual([])
-  expect(JSON.stringify(calls)).toContain('You are drafting a reply to an email')
+  expect(JSON.stringify(calls)).toContain(
+    'You are drafting a reply to an email',
+  )
   expect(await chat('Matilda')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',

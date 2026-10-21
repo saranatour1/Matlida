@@ -9,7 +9,6 @@ export const {
   search,
   admit,
   answer,
-  respond,
   received,
   replyOnPhoton,
   pollingUntil,

@@ -77,10 +77,7 @@ export async function getMainThread(
   const chats = await ctx.db
     .query('threads')
     .withIndex('by_project_and_bot', (q) =>
-      q
-        .eq('projectId', project._id)
-        .eq('botId', bot?._id)
-        .eq('kind', 'chat'),
+      q.eq('projectId', project._id).eq('botId', bot?._id).eq('kind', 'chat'),
     )
     .order('desc')
     .take(20)

@@ -9,7 +9,6 @@ import authPassword from '@convex-dev/auth/components/password/convex.config.js'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
-import spectrum from '@spectrum-ts/convex/convex.config.js'
 
 const app = defineApp({
   env: {
@@ -24,13 +23,7 @@ const app = defineApp({
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
-    /** Photon (messaging). Read by the Photon component's webhook route and sender, so they stay optional until messaging is set up. */
-    SPECTRUM_WEBHOOK_SECRET: v.optional(v.string()),
-    SPECTRUM_PROJECT_ID: v.optional(v.string()),
-    SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
-    /** The Telegram bot's token from @BotFather, for replies on Telegram. */
-    TELEGRAM_BOT_TOKEN: v.optional(v.string()),
-    /** Photon's platform API (beta), which sends and receives the assistants' email. Project id starts with pho_prj_; the key needs project:read and project:write. */
+    /** Photon's platform API (beta), which sends and receives the assistants' email and Telegram messages. Project id starts with pho_prj_; the key needs project:read and project:write. */
     PHOTON_PROJECT_ID: v.optional(v.string()),
     PHOTON_API_KEY: v.optional(v.string()),
     /** Signs Photon's platform webhook at /photon/webhook (whsec_…): Telegram messages, and email arriving. */
@@ -41,7 +34,6 @@ const app = defineApp({
 })
 
 app.use(agent)
-app.use(spectrum)
 app.use(resend)
 app.use(rateLimiter)
 app.use(workflow)
