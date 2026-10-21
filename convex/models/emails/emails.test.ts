@@ -114,11 +114,36 @@ async function setup() {
     t.run(async (ctx) =>
       (await ctx.db.query('emails').take(10)).map((e) => e.status),
     )
-  return { poll, chat, statuses }
+  const inbox = async (title: string) => {
+    const chats = await asAda.query(api.api.threads.list, {
+      projectId,
+      kind: 'chat',
+    })
+    const thread = chats.find((c) => c.title === title)
+    return thread
+      ? await asAda.query(api.api.emails.forThread, {
+          threadId: thread.threadId,
+        })
+      : []
+  }
+  return { t, asAda, poll, chat, statuses, inbox }
 }
 
-test('your own email is answered by email, to you only, in its thread', async () => {
-  const { poll, chat, statuses } = await setup()
+const replyTo = (to: string, text: string) => ({
+  headers: expect.objectContaining({
+    'idempotency-key': 'matilda-reply:m1',
+  }) as unknown,
+  body: {
+    spaceId: 'space-1',
+    senderId: 'agent-user',
+    parentMessageId: 'm1',
+    content: { type: 'text', format: 'plain', text },
+    email: { to: [{ address: to }] },
+  },
+})
+
+test('your own email gets a draft in the chat, and goes out only when you reply', async () => {
+  const { asAda, poll, chat, statuses, inbox } = await setup()
   received = [
     email(
       'm1',
@@ -128,48 +153,70 @@ test('your own email is answered by email, to you only, in its thread', async ()
   ]
   await poll()
 
-  expect(sent).toEqual([
-    {
-      headers: expect.objectContaining({
-        'idempotency-key': 'matilda-reply:m1',
-      }) as unknown,
-      body: {
-        spaceId: 'space-1',
-        senderId: 'agent-user',
-        parentMessageId: 'm1',
-        content: { type: 'text', format: 'plain', text: 'Hi from Matilda.' },
-        email: { to: [{ address: 'ada@example.com' }] },
-      },
-    },
-  ])
+  expect(sent).toEqual([])
   expect(JSON.stringify(calls)).toContain('You are replying by email')
   expect(await chat('Matilda')).toEqual([
     'Today\n\nWhat is on today?',
     'Hi from Matilda.',
   ])
   expect(await statuses()).toEqual(['answered'])
+  const [mail] = await inbox('Matilda')
+  expect(mail).toMatchObject({
+    from: 'ada@example.com',
+    subject: 'Today',
+    draft: 'Hi from Matilda.',
+    repliedAt: null,
+  })
+
+  await asAda.action(api.api.emails.reply, {
+    emailId: mail._id,
+    text: ' Edited by Ada. ',
+  })
+  expect(sent).toEqual([replyTo('ada@example.com', 'Edited by Ada.')])
+  expect((await chat('Matilda'))?.at(-1)).toBe(
+    '↩️ **Replied to ada@example.com**\n\nEdited by Ada.',
+  )
+  await expect(
+    asAda.action(api.api.emails.reply, { emailId: mail._id, text: 'Again' }),
+  ).rejects.toThrow('You already replied to this one.')
 
   // The next check sees the same email again and leaves it.
   await poll()
   expect(sent).toHaveLength(1)
 })
 
-test("someone else's email shows in your inbox chat and isn't answered", async () => {
-  const { poll, chat, statuses } = await setup()
+test("someone else's email shows in your inbox with a draft, and only you can reply", async () => {
+  const { t, asAda, poll, chat, statuses, inbox } = await setup()
   received = [email('m1', 'bob@example.org', 'Lunch?', { name: 'Bob' })]
   await poll()
 
   expect(sent).toEqual([])
-  expect(calls).toHaveLength(0)
   expect(await chat('Email inbox')).toEqual([
     '📨 **Bob <bob@example.org>**\n**Today**\n\nLunch?',
   ])
   expect(await chat('Matilda')).toBeNull()
   expect(await statuses()).toEqual(['shown'])
+  const [mail] = await inbox('Email inbox')
+  expect(mail).toMatchObject({
+    from: 'bob@example.org',
+    draft: 'Hi from Matilda.',
+  })
+
+  const eve = await t.run((ctx) => ctx.db.insert('users', {}))
+  await expect(
+    t
+      .withIdentity({ subject: eve })
+      .action(api.api.emails.reply, { emailId: mail._id, text: 'Hi' }),
+  ).rejects.toThrow('Email not found.')
+  await asAda.action(api.api.emails.reply, {
+    emailId: mail._id,
+    text: 'Sure, noon?',
+  })
+  expect(sent).toEqual([replyTo('bob@example.org', 'Sure, noon?')])
 })
 
-test('spam from your own address is shown, not answered', async () => {
-  const { poll, chat } = await setup()
+test('spam from your own address is shown, not drafted', async () => {
+  const { poll, chat, inbox } = await setup()
   received = [email('m1', 'ada@example.com', 'Click here', { spam: true })]
   await poll()
 
@@ -178,6 +225,7 @@ test('spam from your own address is shown, not answered', async () => {
   expect(await chat('Email inbox')).toEqual([
     '📨 **Ada <ada@example.com>** _(marked as spam)_\n**Today**\n\nClick here',
   ])
+  expect(await inbox('Email inbox')).toMatchObject([{ draft: '' }])
 })
 
 test('mail to an address nobody claimed is ignored', async () => {
@@ -193,32 +241,31 @@ test('mail to an address nobody claimed is ignored', async () => {
   expect(await statuses()).toEqual(['ignored', 'ignored'])
 })
 
-test("a reply that can't be sent says so in the chat", async () => {
-  const { poll, chat, statuses } = await setup()
-  sendStatus = 502
-  vi.spyOn(console, 'error').mockImplementation(() => {})
+test("a reply that can't be sent says so, and can be sent again", async () => {
+  const { asAda, poll, inbox } = await setup()
   received = [email('m1', 'ada@example.com', 'What is on today?')]
   await poll()
+  const [mail] = await inbox('Matilda')
 
-  expect(await chat('Matilda')).toEqual([
-    'Today\n\nWhat is on today?',
-    'Hi from Matilda.',
-    "_This reply couldn't be sent by email._",
-  ])
-  expect(await statuses()).toEqual(['failed'])
+  sendStatus = 502
+  await expect(
+    asAda.action(api.api.emails.reply, { emailId: mail._id, text: 'Hi' }),
+  ).rejects.toThrow('Photon 502')
+  expect(await inbox('Matilda')).toMatchObject([{ repliedAt: null }])
 })
 
-test('past 5 emails at once, yours are posted but not answered', async () => {
+test('past 5 emails at once, yours are posted but not drafted', async () => {
   const { poll, chat, statuses } = await setup()
   received = Array.from({ length: 6 }, (_, i) =>
     email(`m${i}`, 'ada@example.com', `Question ${i}`),
   )
   await poll()
 
-  expect(sent).toHaveLength(5)
+  expect(sent).toEqual([])
+  expect(calls).toHaveLength(5)
   expect((await chat('Matilda'))?.slice(-2)).toEqual([
     'Today\n\nQuestion 5',
-    '_Not answered by email: too many emails in a short time. Try again in a few minutes._',
+    '_No draft for this one: too many emails in a short time. You can still reply._',
   ])
   expect(await statuses()).toEqual([
     'answered',

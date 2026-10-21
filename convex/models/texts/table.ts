@@ -21,13 +21,13 @@ export const phoneLinksTable = defineTable(
       spaceId: v.string(),
       /** The app, as Photon names it: imessage, telegram or whatsapp_business. Unset on early iMessage links. */
       platform: v.optional(v.string()),
-      /** The lead's chat for this link, started on the first message. */
+      /** Unused: texts go to Matilda's one chat. Kept for links made before. */
       threadId: v.optional(v.string()),
-      /** Each bot's chat for this link, started when it's first messaged. */
+      /** Unused, like `threadId`. */
       botThreads: v.optional(
         v.array(v.object({ botId: v.id('bots'), threadId: v.string() })),
       ),
-      /** Who messages go to, picked with `@name`. Unset means the lead. */
+      /** Unused: `@name` no longer switches to a bot. */
       activeBotId: v.optional(v.id('bots')),
       /**
        * The project's agent in this chat on Photon's platform API. Set for

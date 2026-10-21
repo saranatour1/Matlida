@@ -104,7 +104,7 @@ test('texting the code links the phone, once', async () => {
   ])
 
   expect(await text('space-1', `link ${code.toLowerCase()}`)).toBe(
-    'Linked to Matilda. Message me anytime, start with @name to talk to another assistant, or send "who" to see who\'s here.',
+    'Linked to Matilda. Message me anytime.',
   )
   expect(await asAda.query(api.api.texts.links, { projectId })).toMatchObject([
     { status: 'linked', spaceId: 'space-1', platform: 'imessage' },
@@ -129,7 +129,7 @@ test('a code works for 10 minutes', async () => {
   const fresh = await asAda.mutation(api.api.texts.startLink, { projectId })
   vi.advanceTimersByTime(9 * 60_000)
   expect(await text('space-1', `link ${fresh}`)).toBe(
-    'Linked to Matilda. Message me anytime, start with @name to talk to another assistant, or send "who" to see who\'s here.',
+    'Linked to Matilda. Message me anytime.',
   )
 })
 
@@ -305,9 +305,9 @@ test('a project links one chat per app, and relinking an app replaces it', async
   ])
 })
 
-test('@name talks to that assistant until you switch back', async () => {
+test('texts only ever go to the lead, even with @name', async () => {
   const { asAda, projectId, text } = await setup()
-  const ivyId = await asAda.mutation(api.api.bots.save, {
+  await asAda.mutation(api.api.bots.save, {
     projectId,
     name: 'Ivy',
     role: 'Researcher',
@@ -317,30 +317,13 @@ test('@name talks to that assistant until you switch back', async () => {
   await text('tg-1', `link ${code}`, 'telegram')
 
   expect(await text('tg-1', '@ivy, find me a cafe', 'telegram')).toBe(
-    'Ivy: Hi from Matilda.',
+    'Hi from Matilda.',
   )
-  expect(await text('tg-1', 'one with wifi', 'telegram')).toBe(
-    'Ivy: Hi from Matilda.',
-  )
-  expect(await text('tg-1', 'who', 'telegram')).toBe(
-    "You're talking to Ivy. You can message Matilda, Ivy: start a message with @name to switch.",
-  )
-  expect(await text('tg-1', '@Bob hi', 'telegram')).toBe(
-    "There's no one by that name here. You can message Matilda, Ivy.",
-  )
-  expect(await text('tg-1', '@Matilda', 'telegram')).toBe(
-    "You're talking to Matilda now.",
-  )
-  expect(await text('tg-1', 'thanks', 'telegram')).toBe('Hi from Matilda.')
-
   const chats = await asAda.query(api.api.threads.list, {
     projectId,
     kind: 'chat',
   })
-  expect(chats.map((c) => [c.title, c.botId]).sort()).toEqual([
-    ['Ivy', ivyId],
-    ['Matilda', undefined],
-  ])
+  expect(chats.map((c) => [c.title, c.botId])).toEqual([['Matilda', undefined]])
 })
 
 test('Telegram and WhatsApp chats link through Photon and get replies through their provider', async () => {

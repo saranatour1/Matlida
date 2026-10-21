@@ -248,3 +248,10 @@
 - No bots are members of a chat until you add them from the chat header. Before, the lead's chats had every bot. Tasks hand steps only to the chat's members.
 - Gone: "New chat", the per-assistant chat lists in the sidebar, "New group chat" in search, and `?thread=` links.
 - Verified with unit tests: one chat per assistant that messages keep going to, the newest old chat reused but not email's, no members by default, Telegram and email into the one chat. The UI wasn't driven in a browser.
+
+### Only Matilda answers email and texts, and you reply to email yourself (2026-10-21)
+
+- Texts on iMessage, WhatsApp and Telegram only ever go to the lead, in her one chat. `@name` no longer switches to a bot, and "who" is gone.
+- Email no longer replies on its own. Your own email shows in the lead's chat with her draft reply under it; anyone else's goes to the Email inbox, drafted with no tools and no chat history. Under each email, Reply opens the draft to edit, and Send mails it in the email's thread, to its sender only, once. The sent reply shows in the chat.
+- `emails` rows now keep what a reply needs: the chat and message it was posted as, the sender, subject, Photon thread and mailbox user, the draft and when you replied.
+- Verified with unit tests: drafts for yours and others' email with nothing sent, your edited reply sent to the sender only and only once, nobody else can reply, a failed send stays unreplied, spam and over-the-limit email not drafted, and texts to the lead even with `@name`. The Reply dialog wasn't driven in a browser.

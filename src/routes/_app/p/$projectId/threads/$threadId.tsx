@@ -4,12 +4,13 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../../../../convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ChatMessage } from '~/components/chat-message'
+import { EmailReply } from '~/components/email-reply'
 
 export const Route = createFileRoute('/_app/p/$projectId/threads/$threadId')({
   component: Thread,
 })
 
-/** Read-only view of a sub-thread, where the lead handed work to a bot. */
+/** A sub-thread, where the lead handed work to a bot, or the Email inbox. Read-only, but emails can be replied to. */
 function Thread() {
   const { projectId, threadId } = Route.useParams()
   const thread = useQuery(api.api.threads.get, { threadId })
@@ -17,6 +18,10 @@ function Thread() {
     api.api.chat.listMessages,
     thread ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
+  )
+  const emails = useQuery(
+    api.api.emails.forThread,
+    thread ? { threadId } : 'skip',
   )
 
   if (thread === null) {
@@ -39,9 +44,15 @@ function Thread() {
             </Link>
           )}
         </div>
-        {(results as Array<ChatUIMessage>).map((message) => (
-          <ChatMessage key={message.key} message={message} />
-        ))}
+        {(results as Array<ChatUIMessage>).map((message) => {
+          const email = emails?.find((e) => e.chatMessageId === message.id)
+          return (
+            <div key={message.key}>
+              <ChatMessage message={message} />
+              {email && <EmailReply email={email} />}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

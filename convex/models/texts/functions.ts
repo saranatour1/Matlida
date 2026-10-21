@@ -11,7 +11,6 @@ import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
-import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
 import { ensureMainThread, getMembers } from '../threads/functions'
 import { createAgent } from '../threads/lead'
@@ -177,27 +176,21 @@ const admit = internalMutation({
 })
 
 /**
- * Who a message from `spaceId` goes to. A message starting with `@name`
- * switches to that assistant for this and later messages. Starts the
- * assistant's chat for this link if needed. Null when the chat isn't linked.
+ * Matilda's chat for messages from `spaceId`, started if needed: texts only
+ * ever go to her. Null when the chat isn't linked.
  */
 const forSpace = internalMutation({
-  args: { spaceId: v.string(), text: v.string() },
+  args: { spaceId: v.string() },
   returns: v.union(
     v.object({
       project: schema.doc('projects'),
-      bots: v.array(schema.doc('bots')),
-      bot: v.union(schema.doc('bots'), v.null()),
-      /** Who the assistant can hand work to in its thread. */
+      /** Who she can hand work to in her chat. */
       members: v.array(schema.doc('bots')),
-      /** Null when `@name` matched no one here. */
-      threadId: v.union(v.string(), v.null()),
-      /** The message without its `@name`. */
-      prompt: v.string(),
+      threadId: v.string(),
     }),
     v.null(),
   ),
-  handler: async (ctx, { spaceId, text }) => {
+  handler: async (ctx, { spaceId }) => {
     const linked = await ctx.db
       .query('phoneLinks')
       .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
@@ -205,58 +198,14 @@ const forSpace = internalMutation({
     if (linked?.status !== 'linked') return null
     const project = await ctx.db.get('projects', linked.projectId)
     if (!project) return null
-    const bots = await getBots(ctx, project._id)
-    let botId = linked.activeBotId
-    let prompt = text.trim()
-    if (prompt.startsWith('@')) {
-      const named = addressee(prompt, project, bots)
-      if (!named) {
-        return { project, bots, bot: null, members: [], threadId: null, prompt }
-      }
-      botId = named.bot?._id
-      prompt = named.rest
-      if (botId !== linked.activeBotId) {
-        await ctx.db.patch('phoneLinks', linked._id, { activeBotId: botId })
-      }
-    }
-    const bot = bots.find((b) => b._id === botId) ?? null
-    // Texts go to the assistant's one thread, the same as in the app.
-    const threadId = await ensureMainThread(ctx, project, bot)
+    const threadId = await ensureMainThread(ctx, project, null)
     const thread = await ctx.db
       .query('threads')
       .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
       .unique()
-    const members = await getMembers(ctx, thread)
-    return { project, bots, bot, members, threadId, prompt }
+    return { project, members: await getMembers(ctx, thread), threadId }
   },
 })
-
-/** The assistant a message starting with `@name` is for, longest name first, and the rest of it. */
-function addressee(
-  text: string,
-  project: Doc<'projects'>,
-  bots: Array<Doc<'bots'>>,
-) {
-  const people = [
-    { name: project.name, bot: null },
-    ...bots.map((bot) => ({ name: bot.name, bot })),
-  ]
-  people.sort((a, b) => b.name.length - a.name.length)
-  const lower = text.toLowerCase()
-  for (const person of people) {
-    const tag = `@${person.name.toLowerCase()}`
-    if (
-      lower.startsWith(tag) &&
-      !/[\p{L}\p{N}]/u.test(text.charAt(tag.length))
-    ) {
-      return {
-        bot: person.bot,
-        rest: text.slice(tag.length).replace(/^[\s,:]+/, ''),
-      }
-    }
-  }
-  return null
-}
 
 /**
  * What to send back to a message from `spaceId`. Links the chat, or lets its
@@ -291,20 +240,14 @@ const answer = internalAction({
         { code, spaceId, platform, agentId },
       )
       return name
-        ? `Linked to ${name}. Message me anytime, start with @name to talk to another assistant, or send "who" to see who's here.`
+        ? `Linked to ${name}. Message me anytime.`
         : "That code didn't match. Get a new one on the Messaging page in Matilda."
     }
     const linked: {
       project: Doc<'projects'>
-      bots: Array<Doc<'bots'>>
-      bot: Doc<'bots'> | null
       members: Array<Doc<'bots'>>
-      threadId: string | null
-      prompt: string
-    } | null = await ctx.runMutation(internal.api.texts.forSpace, {
-      spaceId,
-      text,
-    })
+      threadId: string
+    } | null = await ctx.runMutation(internal.api.texts.forSpace, { spaceId })
     if (!linked) {
       return admitted
         ? "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
@@ -313,27 +256,14 @@ const answer = internalAction({
     if (!admitted) {
       return "You're sending a lot of messages. Give me a few minutes and try again."
     }
-    const { project, bots, bot, members, threadId, prompt } = linked
-    const names = [project.name, ...bots.map((b) => b.name)].join(', ')
-    const current = (bot ?? project).name
-    if (!threadId)
-      return `There's no one by that name here. You can message ${names}.`
-    if (/^who\??$/i.test(prompt)) {
-      return `You're talking to ${current}. You can message ${names}: start a message with @name to switch.`
-    }
-    if (!prompt) return `You're talking to ${current} now.`
-    const agent = createAgent(project, {
-      bot,
-      members,
-      via: 'text',
-    })
+    const { project, members, threadId } = linked
+    const agent = createAgent(project, { members, via: 'text' })
     const reply = await agent.generateText(
       ctx,
       { threadId, userId: project.ownerId },
-      { prompt },
+      { prompt: text.trim() },
     )
-    // Every assistant shares this chat, so bots sign their replies.
-    return bot ? `${bot.name}: ${reply.text}` : reply.text
+    return reply.text
   },
 })
 

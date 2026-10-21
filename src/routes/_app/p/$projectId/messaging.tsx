@@ -51,10 +51,8 @@ function Messaging() {
         <h1 className="text-lg font-semibold">Message {project.name}</h1>
         <p className="text-sm text-muted-foreground">
           Link a chat on iMessage, WhatsApp or Telegram, then message{' '}
-          {project.name} there. Start a message with @name to talk to another
-          assistant, or send &ldquo;who&rdquo; to see who&rsquo;s here. Each
-          assistant&rsquo;s messages also show up in a chat here. Every other
-          channel is on{' '}
+          {project.name} there. Your messages show up in {project.name}&rsquo;s
+          chat here. Every other channel is on{' '}
           <Link
             to="/p/$projectId/connections"
             params={{ projectId: project._id }}
