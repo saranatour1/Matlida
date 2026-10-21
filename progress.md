@@ -340,3 +340,8 @@
 - Commands: `/report`, `/memo` and `/dashboard`.
 - Roles: the page is an `article` with its title as its label, the numbers a labelled list, saves and errors are `status` and `alert`, and the chat card is a labelled section.
 - Verified with unit tests (write, your edits read back, ownership, another workspace refused; a page kept up to date is due after its period, refreshed by the lead in a sub-thread, then not due). Not clicked through in a browser yet.
+
+### Roles on the chat cards, and a crash fix (2026-10-21)
+
+- A bot's card crashed the chat when a saved `ask_bot` result came back without its input (`Cannot read properties of undefined (reading 'task')`). It now shows the Task line only when there is one. Also as its own PR against master. The decide card read its question the same way and is guarded too.
+- Every chat card is now a labelled region (`section` with an `aria-label`: the list, recipe, timeline or page title, "Your cart", "Settle up" and so on), loading lines are `role="status"`, product grids are lists of items, and tables have a caption.

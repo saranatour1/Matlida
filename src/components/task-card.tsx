@@ -50,7 +50,10 @@ export function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
   const cancel = useMutation(api.api.tasks.cancel)
   if (!task) return null
   return (
-    <div className="mx-1.5 flex flex-col gap-2 rounded-xl border p-3 text-sm">
+    <section
+      aria-label={`Task: ${task.title}`}
+      className="mx-1.5 flex flex-col gap-2 rounded-xl border p-3 text-sm"
+    >
       <div className="flex items-center gap-2">
         <ListChecksIcon className="size-4 text-muted-foreground" />
         <span className="font-medium">{task.title}</span>
@@ -118,7 +121,7 @@ export function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
           </Button>
         </div>
       )}
-    </div>
+    </section>
   )
 }
 

@@ -36,7 +36,10 @@ export function TimeZonesPart({ part }: { part: TimesToolPart }) {
       minute: '2-digit',
     })
   return (
-    <div className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label="Times across time zones"
+      className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <GlobeIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">Across time zones</p>
@@ -74,6 +77,6 @@ export function TimeZonesPart({ part }: { part: TimesToolPart }) {
               .join(', ')} your time.`
           : `No hour in the next day has everyone between ${workStart}:00 and ${workEnd}:00.`}
       </p>
-    </div>
+    </section>
   )
 }

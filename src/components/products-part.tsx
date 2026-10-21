@@ -38,7 +38,11 @@ export function ProductsPart({ part }: { part: ProductsToolPart }) {
     )
   }
   return (
-    <div className="mx-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div
+      className="mx-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3"
+      role="list"
+      aria-label={`Products for ${query}`}
+    >
       {products.map((product) => (
         <ProductTile key={product.variantId} product={product} />
       ))}
@@ -57,7 +61,10 @@ function ProductTile({ product }: { product: Product }) {
     }
   }, undefined)
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border bg-card text-sm text-card-foreground">
+    <div
+      role="listitem"
+      className="flex flex-col overflow-hidden rounded-xl border bg-card text-sm text-card-foreground"
+    >
       {product.image && (
         <img
           src={product.image}

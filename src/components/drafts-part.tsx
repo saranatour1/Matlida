@@ -21,7 +21,7 @@ export function DraftsPart({ part }: { part: DraftsToolPart }) {
   }
   const { title, to, drafts } = part.output
   return (
-    <div className="mx-1.5 flex max-w-xl flex-col gap-2">
+    <section aria-label={title} className="mx-1.5 flex max-w-xl flex-col gap-2">
       <p className="text-xs text-muted-foreground">
         {title}
         {to && ` · to ${to}`}
@@ -29,7 +29,7 @@ export function DraftsPart({ part }: { part: DraftsToolPart }) {
       {drafts.map((draft, i) => (
         <Draft key={i} label={draft.label} text={draft.text} />
       ))}
-    </div>
+    </section>
   )
 }
 

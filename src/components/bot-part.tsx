@@ -30,8 +30,7 @@ export function BotPart({ part }: { part: AskBotPart }) {
           </summary>
           {task && (
             <p className="mt-2 text-muted-foreground">
-              <span className="font-medium text-foreground">Task:</span>{' '}
-              {task}
+              <span className="font-medium text-foreground">Task:</span> {task}
             </p>
           )}
           <div className="mt-2">

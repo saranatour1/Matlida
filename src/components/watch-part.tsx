@@ -38,7 +38,10 @@ function Watch({ id }: { id: string }) {
   const stop = useMutation(api.api.shopping.stopWatch)
   if (!watch) return null
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label={`Price watch: ${watch.title}`}
+      className="mx-1.5 flex max-w-md flex-col gap-2 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-start gap-2">
         <TrendingDownIcon className="mt-0.5 size-4 text-muted-foreground" />
         <div className="min-w-0 flex-1">
@@ -74,6 +77,6 @@ function Watch({ id }: { id: string }) {
           </Button>
         )}
       </div>
-    </div>
+    </section>
   )
 }

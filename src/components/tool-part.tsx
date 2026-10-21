@@ -30,7 +30,10 @@ export function ToolStatus({
   children: ReactNode
 }) {
   return (
-    <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+    <div
+      role="status"
+      className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground"
+    >
       {failed ? <Icon className="size-4" /> : <Spinner />}
       {children}
     </div>
@@ -76,6 +79,8 @@ export function DecidePart({
 }: {
   part: Extract<ChatUIMessage['parts'][number], { type: 'tool-decide' }>
 }) {
+  // Some saved results come back without their input, whatever the types say.
+  const question = part.input?.question
   if (part.state !== 'output-available') {
     return (
       <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
@@ -85,18 +90,21 @@ export function DecidePart({
           <Spinner />
         )}
         {part.state === 'output-error'
-          ? `Couldn't decide “${part.input?.question ?? ''}”.`
-          : `Deciding “${part.input?.question ?? '…'}”…`}
+          ? `Couldn't decide “${question ?? ''}”.`
+          : `Deciding “${question ?? '…'}”…`}
       </div>
     )
   }
   const { choice, probabilities } = part.output
   const odds = Object.entries(probabilities).sort(([, a], [, b]) => b - a)
   return (
-    <div className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm">
+    <section
+      aria-label={`Decision: ${question ?? ''}`}
+      className="flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm"
+    >
       <div className="flex items-center gap-2 text-muted-foreground">
         <ScaleIcon className="size-4" />
-        <span className="truncate">{part.input.question}</span>
+        <span className="truncate">{question}</span>
         <span className="ml-auto shrink-0 text-xs">
           {Math.round((probabilities[choice] ?? 0) * 100)}% for {choice}
         </span>
@@ -119,7 +127,7 @@ export function DecidePart({
           </span>
         </div>
       ))}
-    </div>
+    </section>
   )
 }
 
