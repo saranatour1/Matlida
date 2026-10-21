@@ -52,6 +52,7 @@
 - [x] /news: set up what you follow, a briefing card, and an optional daily briefing
 - [x] Pages: reports, memos and dashboards you edit together, kept up to date (/report, /memo, /dashboard)
 - [x] Roles: ARIA roles and labels on every chat card
+- [x] A volume bar on calls
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn
