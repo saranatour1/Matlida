@@ -60,6 +60,12 @@
 - [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
 - [x] Pictures and videos on calls, shown in the chat beside the call
 - [x] needs_follow_up: Jev checks what from earlier is still not done, in chats, texts and calls
+- [x] The chat stays at the bottom when you send
+- [x] Copy on messages, code blocks, drafts and post previews
+- [x] Diagrams on an Excalidraw canvas (/draw)
+- [ ] Diagrams: see one render in the browser, and rank docs pages with Jev if word overlap misses
+- [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
+- [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn
