@@ -15,7 +15,7 @@ import {
 import { Textarea } from '~/components/ui/textarea'
 import { errorMessage } from '~/lib/errors'
 
-type Email = FunctionReturnType<typeof api.api.emails.forThread>[number]
+type Email = FunctionReturnType<typeof api.api.emails.forMessages>[number]
 
 /** Reply under an email in the chat: starts from the assistant's draft, sent once you press Send. */
 export function EmailReply({

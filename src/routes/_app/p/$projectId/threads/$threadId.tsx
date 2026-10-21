@@ -20,8 +20,8 @@ function Thread() {
     { initialNumItems: 50, stream: true },
   )
   const emails = useQuery(
-    api.api.emails.forThread,
-    thread ? { threadId } : 'skip',
+    api.api.emails.forMessages,
+    thread ? { threadId, messageIds: results.map((m) => m.id) } : 'skip',
   )
 
   if (thread === null) {

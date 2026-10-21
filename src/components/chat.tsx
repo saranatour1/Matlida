@@ -64,10 +64,6 @@ export function Chat({
       botId: bot?._id,
     }) ?? undefined
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
-  const emails = useQuery(
-    api.api.emails.forThread,
-    threadId ? { threadId } : 'skip',
-  )
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
@@ -86,6 +82,10 @@ export function Chat({
     { initialNumItems: 50, stream: true },
   )
   const messages = results as Array<ChatUIMessage>
+  const emails = useQuery(
+    api.api.emails.forMessages,
+    threadId ? { threadId, messageIds: messages.map((m) => m.id) } : 'skip',
+  )
   const last = messages.at(-1)
   const isBusy =
     last?.role === 'user' ||

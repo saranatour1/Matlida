@@ -215,6 +215,7 @@ function askTools(
 /**
  * Tools that only read or show, the only ones an email draft gets: an
  * email's sender can be forged, so it can't save, schedule, run or send.
+ * `everyday.test.ts` checks each name is a real tool.
  */
 export const READ_ONLY_TOOLS = [
   'web_search',

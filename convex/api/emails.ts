@@ -5,9 +5,11 @@ export const {
   receive,
   settle,
   poll,
-  forThread,
+  forMessages,
   search,
   forReply,
+  claimReply,
+  unclaimReply,
   replied,
   reply,
 } = emailsApi

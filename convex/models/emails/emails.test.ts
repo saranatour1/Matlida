@@ -120,13 +120,17 @@ async function setup() {
       kind: 'chat',
     })
     const thread = chats.find((c) => c.title === title)
-    return thread
-      ? await asAda.query(api.api.emails.forThread, {
-          threadId: thread.threadId,
-        })
-      : []
+    if (!thread) return []
+    const { page } = await asAda.query(api.api.chat.listMessages, {
+      threadId: thread.threadId,
+      paginationOpts: { numItems: 50, cursor: null },
+    })
+    return await asAda.query(api.api.emails.forMessages, {
+      threadId: thread.threadId,
+      messageIds: page.map((m) => m.id),
+    })
   }
-  return { t, asAda, poll, chat, statuses, inbox }
+  return { t, asAda, poll, chat, statuses, inbox, projectId }
 }
 
 const replyTo = (to: string, text: string) => ({
@@ -311,4 +315,54 @@ test('nothing is checked until Photon is set up', async () => {
   vi.stubEnv('PHOTON_API_KEY', '')
   await poll()
   expect(photonFetch).not.toHaveBeenCalled()
+})
+
+test('an email keeps its Reply button however far back it is', async () => {
+  const { t, asAda, inbox, poll } = await setup()
+  received = [email('m1', 'ada@example.com', 'What is on today?')]
+  await poll()
+  const [first] = await inbox('Matilda')
+  const userId = (await t.run((ctx) => ctx.db.query('users').first()))!._id
+  const threadId = (await t.run((ctx) => ctx.db.get('emails', first._id)))!
+    .threadId!
+  // 120 newer emails in the same chat.
+  await t.run(async (ctx) => {
+    for (let i = 0; i < 120; i++) {
+      await ctx.db.insert('emails', {
+        messageId: `later-${i}`,
+        receivedAt: Date.now() + i,
+        status: 'shown',
+        userId,
+        threadId,
+        chatMessageId: `chat-${i}`,
+        from: 'bob@example.com',
+      })
+    }
+  })
+  expect(
+    await asAda.query(api.api.emails.forMessages, {
+      threadId,
+      messageIds: [first.chatMessageId, 'chat-119', 'not-an-email'],
+    }),
+  ).toMatchObject([
+    { chatMessageId: first.chatMessageId },
+    { chatMessageId: 'chat-119' },
+  ])
+})
+
+test('two clicks on Send at once send one reply', async () => {
+  const { asAda, poll, inbox, chat } = await setup()
+  received = [email('m1', 'ada@example.com', 'What is on today?')]
+  await poll()
+  const [mail] = await inbox('Matilda')
+
+  const results = await Promise.allSettled([
+    asAda.action(api.api.emails.reply, { emailId: mail._id, text: 'One' }),
+    asAda.action(api.api.emails.reply, { emailId: mail._id, text: 'Two' }),
+  ])
+  expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+  expect(sent).toHaveLength(1)
+  expect(
+    (await chat('Matilda'))?.filter((m) => m.startsWith('↩️')),
+  ).toHaveLength(1)
 })
