@@ -144,22 +144,43 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         ),
       execute: (_ctx, chart) => Promise.resolve(chart),
     }),
-    preview_post: createTool({
+    preview_posts: createTool({
       description:
-        'Show a post in the chat the way it would look on LinkedIn, X, Reddit or Discord, so the user can see it before posting. It posts nothing. Call it once per platform.',
+        "Show drafts of social posts in the chat, laid out the way LinkedIn, X, Reddit or Discord show them, so the user can compare versions before posting. Give two or three versions per platform in one call, each labelled by its angle (like Punchy, Story, Question), within the platform's length. It posts nothing.",
       inputSchema: z.object({
-        platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
-        text: z.string().min(1).max(4000),
-        /** Reddit only. */
-        title: z.string().max(300).optional(),
-        /** Reddit only, without r/. */
-        subreddit: z.string().max(50).optional(),
+        posts: z
+          .array(
+            z.object({
+              platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
+              label: z
+                .string()
+                .min(1)
+                .max(30)
+                .describe('What makes this version different.'),
+              text: z.string().min(1).max(4000),
+              title: z.string().max(300).optional().describe('Reddit only.'),
+              subreddit: z
+                .string()
+                .max(50)
+                .optional()
+                .describe('Reddit only, without r/.'),
+              channel: z
+                .string()
+                .max(50)
+                .optional()
+                .describe('Discord only, without #.'),
+            }),
+          )
+          .min(1)
+          .max(12),
       }),
-      execute: (_ctx, post) =>
+      execute: (_ctx, { posts }) =>
         Promise.resolve({
-          ...post,
           author: from,
-          limit: POST_LIMITS[post.platform],
+          posts: posts.map((post) => ({
+            ...post,
+            limit: POST_LIMITS[post.platform],
+          })),
         }),
     }),
     save_command: createTool({

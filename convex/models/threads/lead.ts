@@ -209,7 +209,7 @@ export const READ_ONLY_TOOLS = [
   'find_texts',
   'decide',
   'show_chart',
-  'preview_post',
+  'preview_posts',
   'ask_bot',
 ]
 

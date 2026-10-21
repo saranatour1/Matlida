@@ -8,7 +8,10 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
-import { PostPreviewPart } from '~/components/post-preview-part'
+import {
+  PostPreviewPart,
+  PostPreviewsPart,
+} from '~/components/post-preview-part'
 import { ProductsPart } from '~/components/products-part'
 import { RecipePart } from '~/components/recipe-part'
 import { SplitPart } from '~/components/split-part'
@@ -28,6 +31,8 @@ const ChartPart = React.lazy(() =>
   import('~/components/chart-part').then((m) => ({ default: m.ChartPart })),
 )
 
+type Platform = 'linkedin' | 'x' | 'reddit' | 'discord'
+
 /** The assistants' tools, typed from `assistantTools` itself, plus `ask_bot` from `lead.ts`. */
 export type ChatUIMessage = UIMessage<
   unknown,
@@ -36,6 +41,18 @@ export type ChatUIMessage = UIMessage<
     ask_bot: {
       input: { bot: string; task: string }
       output: { name: string; role: string; reply: string; threadId: string }
+    }
+    /** One post per call, before `preview_posts`. Kept so older chats still show it. */
+    preview_post: {
+      input: { platform: Platform; text: string }
+      output: {
+        platform: Platform
+        text: string
+        title?: string
+        subreddit?: string
+        author: string
+        limit: number
+      }
     }
   }
 >
@@ -120,6 +137,8 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <DecidePart key={part.toolCallId} part={part} />
             case 'tool-preview_post':
               return <PostPreviewPart key={part.toolCallId} part={part} />
+            case 'tool-preview_posts':
+              return <PostPreviewsPart key={part.toolCallId} part={part} />
             default:
               return null
           }

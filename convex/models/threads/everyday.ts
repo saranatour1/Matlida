@@ -259,7 +259,7 @@ export function everydayTools(project: Doc<'projects'>) {
 /** Tools that only show a card, which texts, calls and emails can't show. */
 export const CARD_TOOLS = new Set([
   'show_chart',
-  'preview_post',
+  'preview_posts',
   'show_drafts',
   'show_table',
   'show_recipe',

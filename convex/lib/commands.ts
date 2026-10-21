@@ -18,9 +18,9 @@ export const BUILT_IN_COMMANDS = [
   },
   {
     name: 'preview',
-    description: 'Draft a post and preview it as it would look',
+    description: 'Draft posts in a few versions, as they would look',
     markdown:
-      'Draft the post the user describes after /preview and show it with preview_post on each platform they name, or LinkedIn when they name none. Keep within each platform’s length, and write it the way people post there. Nothing is posted; offer to adjust it.',
+      "Draft the post the user describes after /preview, for each platform they name, or for LinkedIn, X and Discord when they name none. Write three versions per platform, each with a different angle (like Punchy, Story, Question), within the platform's length and written the way people post there; for Discord, suggest a channel. Show them all with one preview_posts call. Then say in one line which you would pick. Nothing is posted.",
   },
   {
     name: 'plan',
@@ -38,7 +38,7 @@ export const BUILT_IN_COMMANDS = [
     name: 'posts',
     description: 'Draft posts for X, Reddit and Discord',
     markdown:
-      "Draft posts about what the user wrote after /posts, one for each of X, Reddit and Discord, under a heading each. X: at most 280 characters, or a short thread numbered 1/, 2/. Reddit: a title and a body in a plain, non-promotional tone, and a suggested subreddit. Discord: friendly, under 2000 characters, markdown allowed. Use web_search first if it needs current facts. Show each one with preview_post so the user sees it as it would look. Don't post anything; offer to adjust the tone or length.",
+      "Draft posts about what the user wrote after /posts, one for each of X, Reddit and Discord, under a heading each. X: at most 280 characters, or a short thread numbered 1/, 2/. Reddit: a title and a body in a plain, non-promotional tone, and a suggested subreddit. Discord: friendly, under 2000 characters, markdown allowed. Use web_search first if it needs current facts. Show them all with one preview_posts call, two versions per platform, so the user can compare them as they would look. Don't post anything; offer to adjust the tone or length.",
   },
   {
     name: 'email',
