@@ -59,6 +59,24 @@ export const BUILT_IN_COMMANDS = [
       'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
+    name: 'shop',
+    description: 'Find things to buy, and buy them',
+    markdown:
+      "Find what the user wants after /shop with find_products, following their sizes and preferences in `notes`. If something you need is missing, like a size or a budget, ask in one short question first. Pick the three to six best options; say in two lines which you would choose and why. When they choose, find the right size or color with product_options and add it with add_to_cart. The cart has a Buy button per store that opens the store's checkout with their details filled in, and they pay there. Never say you bought or paid for anything.",
+  },
+  {
+    name: 'gift',
+    description: 'Find a gift for someone',
+    markdown:
+      'Find a gift for the person after /gift. If their interests or the budget are missing, ask in one short question. Search a few different kinds of gift with find_products, show the best six or fewer, and say in two lines why each fits. Add the one they pick with add_to_cart.',
+  },
+  {
+    name: 'cart',
+    description: 'Your cart, ready to buy',
+    markdown:
+      "Show the user's cart with show_cart. Say in one line how many items from how many stores, and that Buy opens each store's checkout with their details filled in.",
+  },
+  {
     name: 'today',
     description: 'Your day at a glance',
     markdown:

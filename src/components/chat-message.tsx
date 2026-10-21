@@ -5,9 +5,11 @@ import type { UIMessage } from '@convex-dev/agent/react'
 import type { InferUITools, UIDataTypes } from 'ai'
 import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
+import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
 import { PostPreviewPart } from '~/components/post-preview-part'
+import { ProductsPart } from '~/components/products-part'
 import { RecipePart } from '~/components/recipe-part'
 import { SplitPart } from '~/components/split-part'
 import { TablePart } from '~/components/table-part'
@@ -96,6 +98,11 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <TimeZonesPart key={part.toolCallId} part={part} />
             case 'tool-start_timer':
               return <TimerPart key={part.toolCallId} part={part} />
+            case 'tool-find_products':
+              return <ProductsPart key={part.toolCallId} part={part} />
+            case 'tool-add_to_cart':
+            case 'tool-show_cart':
+              return <CartPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':
