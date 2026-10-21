@@ -223,6 +223,7 @@ export const READ_ONLY_TOOLS = [
   'find_emails',
   'find_texts',
   'decide',
+  'convex_docs',
   'needs_follow_up',
   'read_page',
   'show_chart',

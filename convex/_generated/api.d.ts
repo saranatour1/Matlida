@@ -38,6 +38,7 @@ import type * as lib_ai from "../lib/ai.js";
 import type * as lib_audio from "../lib/audio.js";
 import type * as lib_channels from "../lib/channels.js";
 import type * as lib_commands from "../lib/commands.js";
+import type * as lib_convexDocs from "../lib/convexDocs.js";
 import type * as lib_decide from "../lib/decide.js";
 import type * as lib_everyday from "../lib/everyday.js";
 import type * as lib_functions from "../lib/functions.js";
@@ -141,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   "lib/audio": typeof lib_audio;
   "lib/channels": typeof lib_channels;
   "lib/commands": typeof lib_commands;
+  "lib/convexDocs": typeof lib_convexDocs;
   "lib/decide": typeof lib_decide;
   "lib/everyday": typeof lib_everyday;
   "lib/functions": typeof lib_functions;

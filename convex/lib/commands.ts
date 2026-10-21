@@ -59,6 +59,18 @@ export const BUILT_IN_COMMANDS = [
       'Decide what the user asks after /decide with the decide tool. List every option they give (if they give none, ask for them in one short question), and put what matters from the chat in the context: their goals, limits and preferences. Say the pick and why in one or two lines. If the pick’s probability is under 0.5, say it’s close and name the runner-up.',
   },
   {
+    name: 'convex',
+    description: 'Solve a Convex problem fast',
+    markdown:
+      'Solve the Convex problem after /convex. Look it up with convex_docs first; never answer Convex APIs from memory. Reply with the most likely cause in one line, then the fix as code, then how to check it worked, then the docs page. If an error message or code is missing and you need it, ask for just that in one short question. Prefer current APIs: object-syntax functions with args validators, indexes over filters, internal functions for anything not called from the app.',
+  },
+  {
+    name: 'fix',
+    description: 'Solve a problem fast',
+    markdown:
+      'Solve the problem after /fix as fast as you can. Lead with the most likely cause and the fix, in a few lines, with code if it is code. Then how to check it worked, and the next thing to try if it did not. Look up anything current with web_search (or convex_docs for Convex) instead of guessing. Ask only for what you truly need, in one short question.',
+  },
+  {
     name: 'draw',
     description: 'Draw a diagram in Excalidraw',
     markdown:
