@@ -288,26 +288,41 @@ const poll = internalAction({
   },
 })
 
-/** The emails posted in a chat you own, for their Reply buttons. */
-const forThread = authedQuery({
-  args: { threadId: v.string() },
-  handler: async (ctx, { threadId }) => {
+/**
+ * The emails among `messageIds`, the chat messages on screen, in a chat you
+ * own, for their Reply buttons. Looked up by message, so an email keeps its
+ * button however far back it is.
+ */
+const forMessages = authedQuery({
+  args: { threadId: v.string(), messageIds: v.array(v.string()) },
+  handler: async (ctx, { threadId, messageIds }) => {
+    if (messageIds.length > 500) throw new ConvexError('Too many messages.')
     if (!(await getOwnedThread(ctx, ctx.userId, threadId))) return []
-    const rows = await ctx.db
-      .query('emails')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .order('desc')
-      .take(100)
-    return rows
-      .filter((r) => r.userId === ctx.userId && r.chatMessageId && r.from)
-      .map((r) => ({
-        _id: r._id,
-        chatMessageId: r.chatMessageId!,
-        from: r.from!,
-        subject: r.subject ?? '',
-        draft: r.draft ?? '',
-        repliedAt: r.repliedAt ?? null,
-      }))
+    const rows = await Promise.all(
+      messageIds.map((id) =>
+        ctx.db
+          .query('emails')
+          .withIndex('by_chatMessageId', (q) => q.eq('chatMessageId', id))
+          .first(),
+      ),
+    )
+    return rows.flatMap((r) =>
+      r?.threadId === threadId &&
+      r.userId === ctx.userId &&
+      r.chatMessageId &&
+      r.from
+        ? [
+            {
+              _id: r._id,
+              chatMessageId: r.chatMessageId,
+              from: r.from,
+              subject: r.subject ?? '',
+              draft: r.draft ?? '',
+              repliedAt: r.repliedAt ?? null,
+            },
+          ]
+        : [],
+    )
   },
 })
 
@@ -354,13 +369,38 @@ const forReply = internalQuery({
   },
 })
 
+/**
+ * Claims the one reply before it's sent, in a transaction, so two clicks
+ * can't both send. False when it's already claimed or not `userId`'s.
+ */
+const claimReply = internalMutation({
+  args: { emailId: v.id('emails'), userId: v.id('users') },
+  returns: v.boolean(),
+  handler: async (ctx, { emailId, userId }) => {
+    const row = await ctx.db.get('emails', emailId)
+    if (row?.userId !== userId || row.repliedAt) return false
+    await ctx.db.patch('emails', emailId, { repliedAt: Date.now() })
+    return true
+  },
+})
+
+/** Gives the claim back when sending failed, so the reply can be sent again. */
+const unclaimReply = internalMutation({
+  args: { emailId: v.id('emails') },
+  returns: v.null(),
+  handler: async (ctx, { emailId }) => {
+    await ctx.db.patch('emails', emailId, { repliedAt: undefined })
+    return null
+  },
+})
+
+/** Posts the reply you sent in the chat. */
 const replied = internalMutation({
   args: { emailId: v.id('emails'), text: v.string() },
   returns: v.null(),
   handler: async (ctx, { emailId, text }) => {
     const row = await ctx.db.get('emails', emailId)
     if (!row?.threadId) return null
-    await ctx.db.patch('emails', emailId, { repliedAt: Date.now() })
     await saveMessage(ctx, components.agent, {
       threadId: row.threadId,
       message: {
@@ -384,19 +424,28 @@ const reply = authedAction({
     if (!row?.from || !row.spaceId || !row.mailboxUserId) {
       throw new ConvexError('Email not found.')
     }
-    if (row.repliedAt) throw new ConvexError('You already replied to this one.')
     if (!text.trim()) throw new ConvexError('Write a reply first.')
     if (!photon) throw new ConvexError('Email isn’t set up on this deployment.')
-    await replyByEmail(
-      photon,
-      {
-        id: row.messageId,
-        spaceId: row.spaceId,
-        mailboxUserId: row.mailboxUserId,
-      },
-      row.from,
-      text.trim(),
+    const claimed: boolean = await ctx.runMutation(
+      internal.api.emails.claimReply,
+      { emailId, userId: ctx.userId },
     )
+    if (!claimed) throw new ConvexError('You already replied to this one.')
+    try {
+      await replyByEmail(
+        photon,
+        {
+          id: row.messageId,
+          spaceId: row.spaceId,
+          mailboxUserId: row.mailboxUserId,
+        },
+        row.from,
+        text.trim(),
+      )
+    } catch (error) {
+      await ctx.runMutation(internal.api.emails.unclaimReply, { emailId })
+      throw error
+    }
     await ctx.runMutation(internal.api.emails.replied, {
       emailId,
       text: text.trim(),
@@ -409,9 +458,11 @@ export const emailsApi = {
   receive,
   settle,
   poll,
-  forThread,
+  forMessages,
   search,
   forReply,
+  claimReply,
+  unclaimReply,
   replied,
   reply,
 }

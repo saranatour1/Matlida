@@ -12,10 +12,7 @@ export const threadsTable = defineTable({
   title: v.string(),
   /** The assistant this thread talks to. Unset means the project's lead. */
   botId: v.optional(v.id('bots')),
-  /**
-   * Assistants this thread's assistant can hand work to. Unset means all of
-   * the workspace's bots for the lead, and none for a bot.
-   */
+  /** Assistants this thread's assistant can hand work to. None until you add them. */
   memberIds: v.optional(v.array(v.id('bots'))),
   /** For sub-threads: the chat they came from. */
   parentThreadId: v.optional(v.string()),

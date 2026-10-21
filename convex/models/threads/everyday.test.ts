@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { createAgent } from './lead'
+import { READ_ONLY_TOOLS, createAgent } from './lead'
 import type { Doc } from '../../_generated/dataModel'
 
 const project = { name: 'Matilda', brief: '' } as Doc<'projects'>
@@ -39,4 +39,14 @@ test('calls can make pictures and videos, which show in the chat beside them, an
   )
   expect(toolsFor('text')).not.toContain('generate_image')
   expect(toolsFor('text')).not.toContain('generate_video')
+})
+
+test('every tool an email draft may use is a real tool, so a typo can’t drop one', () => {
+  const ivy = { _id: 'ivy', name: 'Ivy', role: 'Researcher' } as Doc<'bots'>
+  const all = Object.keys(
+    createAgent(project, { members: [ivy] }).options.tools ?? {},
+  )
+  for (const tool of [...READ_ONLY_TOOLS, 'find_emails']) {
+    expect(all).toContain(tool)
+  }
 })

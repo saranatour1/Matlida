@@ -454,3 +454,12 @@
 - Verified with a test of the review's case (an app chat behind 20 channel chats from 11 linked phones and a mailbox: nothing guessed before, the right chat after, nothing changed on a second run).
 - Run it once on production after deploying: `pnpm exec convex run api/threads:recordMainThreads '{"cursor":null}' --prod`.
 
+### Email fixes from the #69 review (2026-10-22)
+
+- Reply buttons no longer stop after 100 emails in a chat: `emails.forMessages` looks up the messages on screen by their id (new `by_chatMessageId` index) instead of loading the newest 100 emails of the chat.
+- Two clicks on Send can't send twice: `claimReply` sets `repliedAt` in a transaction before Photon is called, and `unclaimReply` gives it back if sending fails.
+- `READ_ONLY_TOOLS` and the email draft's tools are checked by a test, so a misspelled tool can't be dropped without notice. Typing them against `assistantTools` made a type cycle through the generated API.
+- Stale comments on `emails.status` and `threads.memberIds` updated. The cold-path guessing is gone in #96.
+- Not done: splitting `emails` into a union by status (ignored rows have no sender), which needs a migration of old rows.
+- Verified with pnpm check and tests: 120 newer emails and the oldest still gets its button; two Sends at once send one reply and post one "Replied".
+

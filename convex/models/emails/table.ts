@@ -14,7 +14,7 @@ export const emailsTable = defineTable({
   /**
    * `answering` then `answered` or `failed`: from the mailbox owner, Matilda's draft written.
    * `limited`: from the owner, but over the limit on drafts, so only posted.
-   * `shown`: from anyone else, posted in the owner's inbox chat.
+   * `shown`: from anyone else, posted in the lead's chat with a draft.
    * `ignored`: no one has claimed the address.
    */
   status: literals(
@@ -40,12 +40,13 @@ export const emailsTable = defineTable({
   mailboxUserId: v.optional(v.string()),
   /** Matilda's suggested reply, which the Reply box starts with. */
   draft: v.optional(v.string()),
-  /** When you replied. One reply per email. */
+  /** When you replied, set just before sending so there's one reply per email. */
   repliedAt: v.optional(v.number()),
 })
   .index('by_messageId', ['messageId'])
   .index('by_receivedAt', ['receivedAt'])
   .index('by_threadId', ['threadId'])
+  .index('by_chatMessageId', ['chatMessageId'])
   .searchIndex('search_text', {
     searchField: 'text',
     filterFields: ['userId', 'from'],
