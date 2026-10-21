@@ -1,8 +1,7 @@
-import * as React from 'react'
-import { CheckIcon, CopyIcon, PenLineIcon } from 'lucide-react'
+import { PenLineIcon } from 'lucide-react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
-import { Button } from '~/components/ui/button'
+import { CopyButton } from '~/components/copy-button'
 
 type DraftsToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -34,7 +33,6 @@ export function DraftsPart({ part }: { part: DraftsToolPart }) {
 }
 
 function Draft({ label, text }: { label: string; text: string }) {
-  const [copied, setCopied] = React.useState(false)
   return (
     <div className="rounded-xl border bg-card p-3 text-sm text-card-foreground">
       <div className="mb-1.5 flex items-center gap-2">
@@ -42,17 +40,7 @@ function Draft({ label, text }: { label: string; text: string }) {
         <span className="text-xs text-muted-foreground tabular-nums">
           {text.length.toLocaleString()} characters
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 px-2"
-          onClick={() =>
-            void navigator.clipboard.writeText(text).then(() => setCopied(true))
-          }
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
+        <CopyButton text={text} className="ml-auto" />
       </div>
       <p className="whitespace-pre-wrap">{text}</p>
     </div>

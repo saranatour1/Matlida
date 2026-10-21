@@ -424,3 +424,7 @@
 
 - Your sent message was a scroll anchor, so the chat moved it to the top and pushed everything up. Now the chat stays at the bottom as replies come in.
 
+### Copy buttons (2026-10-22)
+
+- Copy on every message (yours and replies, just the words, not the cards) and on every code block, shown on hover on desktop and always on phones. Drafts and post previews use the same `CopyButton`, which says Copied for a moment and announces it to screen readers.
+

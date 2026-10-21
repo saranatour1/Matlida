@@ -7,6 +7,7 @@ import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
+import { CopyButton } from '~/components/copy-button'
 import { DraftsPart } from '~/components/drafts-part'
 import { ImagePart } from '~/components/image-part'
 import { NewsPart, NewsSetupPart } from '~/components/news-part'
@@ -55,9 +56,38 @@ export type AskBotPart = Extract<
 export function Markdown({ text }: { text: string }) {
   return (
     <div className="typeset typeset-docs px-1.5">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{ pre: CodeBlock }}
+      >
+        {text}
+      </ReactMarkdown>
     </div>
   )
+}
+
+/** A code block, with Copy in its corner. */
+function CodeBlock({ children }: { children?: React.ReactNode }) {
+  const ref = React.useRef<HTMLPreElement>(null)
+  return (
+    <div className="group/code relative">
+      <pre ref={ref}>{children}</pre>
+      <CopyButton
+        compact
+        label="Copy code"
+        text={() => ref.current?.innerText ?? ''}
+        className="absolute top-1.5 right-1.5 bg-background/80 md:opacity-0 md:group-hover/code:opacity-100 focus-visible:opacity-100"
+      />
+    </div>
+  )
+}
+
+/** The message's own words, without its cards, for Copy. */
+function textOf(message: ChatUIMessage) {
+  return message.parts
+    .flatMap((part) => (part.type === 'text' ? [part.text.trim()] : []))
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 /** One chat message. User messages are bubbles, replies are markdown and tool cards. */
@@ -69,6 +99,12 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
           <Bubble align="end" variant="muted">
             <BubbleContent>{message.text}</BubbleContent>
           </Bubble>
+          <CopyButton
+            compact
+            label="Copy message"
+            text={message.text}
+            className="self-end md:opacity-0 md:group-hover/message:opacity-100 focus-visible:opacity-100"
+          />
         </MessageContent>
       </Message>
     )
@@ -81,6 +117,14 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
             {renderPart(part, index)}
           </PartBoundary>
         ))}
+        {textOf(message) && (
+          <CopyButton
+            compact
+            label="Copy reply"
+            text={() => textOf(message)}
+            className="md:opacity-0 md:group-hover/message:opacity-100 focus-visible:opacity-100"
+          />
+        )}
       </MessageContent>
     </Message>
   )
