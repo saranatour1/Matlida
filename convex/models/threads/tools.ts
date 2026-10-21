@@ -7,6 +7,7 @@ import { decide } from '../../lib/decide'
 import { fetchNews } from '../../lib/news'
 import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
+import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
@@ -46,6 +47,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
   return {
     ...everydayTools(project),
     ...shoppingTools(project),
+    ...pageTools(project, from),
     web_search: createTool({
       description:
         'Search the web for current facts, news, prices or anything after your training. Returns a short sourced answer.',

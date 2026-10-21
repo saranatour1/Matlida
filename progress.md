@@ -330,3 +330,13 @@
 - `get_news` searches each topic side by side with the search model for the last 24 hours, and keeps only well-formed stories with web links (`convex/lib/news.ts`). The card shows them by topic with headline, one line and source, and Edit topics opens the settings inline. `/news Gaza and climate` asks once about those topics.
 - With a daily time, an hourly cron (`news.sendDaily`) posts the briefing in the lead's chat at that hour in your time zone, once a day.
 - Verified with unit tests (parsing, due time across time zones, the daily message, settings validation and ownership, the daily post once per day) and one live search on `dev/matilda` that returned real stories with sources for World and Tech.
+
+### Pages: reports, memos and dashboards you edit together (2026-10-21)
+
+- New `pages` table and a page at `/p/:projectId/pages/:pageId`: the title, the kind, headline numbers for a dashboard, the markdown in the editor you already use for instructions, and Save. Pages are listed in the Library.
+- Tools: `write_page` (new, or the whole page replaced), `read_page` (the page with your edits, before an assistant changes it) and `keep_page_updated` (every day or week, following instructions). An hourly cron (`pages.refreshDue`) has the lead update each due page in its own thread under the chat that made it, with tools that read and look things up; the page's "Keep it up to date" form sets the same thing.
+- The chat shows a live page card (title, kind, numbers, first lines, Open the page) and a line when a page starts or stops being kept up to date.
+- Dashboards use Arc's metric card and sparkline (uiarc.dev, MIT), copied into `src/components/ui/arc` with `motion` 14.2.0. Arc's own theme uses the same names as shadcn's (`--background`, `--accent`), so instead of importing it, `arc.css` maps the tokens these components read onto this app's theme under `.arc`.
+- Commands: `/report`, `/memo` and `/dashboard`.
+- Roles: the page is an `article` with its title as its label, the numbers a labelled list, saves and errors are `status` and `alert`, and the chat card is a labelled section.
+- Verified with unit tests (write, your edits read back, ownership, another workspace refused; a page kept up to date is due after its period, refreshed by the lead in a sub-thread, then not due). Not clicked through in a browser yet.

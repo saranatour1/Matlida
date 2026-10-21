@@ -23,6 +23,7 @@ import { Route as AppPProjectIdConnectionsRouteImport } from './routes/_app/p/$p
 import { Route as AppPProjectIdLibraryRouteImport } from './routes/_app/p/$projectId/library'
 import { Route as AppPProjectIdMessagingRouteImport } from './routes/_app/p/$projectId/messaging'
 import { Route as AppPProjectIdSettingsRouteImport } from './routes/_app/p/$projectId/settings'
+import { Route as AppPProjectIdPagesPageIdRouteImport } from './routes/_app/p/$projectId/pages/$pageId'
 import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -94,6 +95,12 @@ const AppPProjectIdSettingsRoute = AppPProjectIdSettingsRouteImport.update({
   path: '/p/$projectId/settings',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPProjectIdPagesPageIdRoute =
+  AppPProjectIdPagesPageIdRouteImport.update({
+    id: '/p/$projectId/pages/$pageId',
+    path: '/p/$projectId/pages/$pageId',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppPProjectIdThreadsThreadIdRoute =
   AppPProjectIdThreadsThreadIdRouteImport.update({
     id: '/p/$projectId/threads/$threadId',
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
+  '/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
@@ -129,6 +137,7 @@ export interface FileRoutesByTo {
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
+  '/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
   '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesById {
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/_app/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/_app/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
+  '/_app/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
   '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/p/$projectId/messaging'
     | '/p/$projectId/settings'
     | '/p/$projectId/'
+    | '/p/$projectId/pages/$pageId'
     | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/p/$projectId/messaging'
     | '/p/$projectId/settings'
     | '/p/$projectId'
+    | '/p/$projectId/pages/$pageId'
     | '/p/$projectId/threads/$threadId'
   id:
     | '__root__'
@@ -196,6 +208,7 @@ export interface FileRouteTypes {
     | '/_app/p/$projectId/messaging'
     | '/_app/p/$projectId/settings'
     | '/_app/p/$projectId/'
+    | '/_app/p/$projectId/pages/$pageId'
     | '/_app/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdSettingsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/pages/$pageId': {
+      id: '/_app/p/$projectId/pages/$pageId'
+      path: '/p/$projectId/pages/$pageId'
+      fullPath: '/p/$projectId/pages/$pageId'
+      preLoaderRoute: typeof AppPProjectIdPagesPageIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/p/$projectId/threads/$threadId': {
       id: '/_app/p/$projectId/threads/$threadId'
       path: '/p/$projectId/threads/$threadId'
@@ -322,6 +342,7 @@ interface AppRouteRouteChildren {
   AppPProjectIdMessagingRoute: typeof AppPProjectIdMessagingRoute
   AppPProjectIdSettingsRoute: typeof AppPProjectIdSettingsRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
+  AppPProjectIdPagesPageIdRoute: typeof AppPProjectIdPagesPageIdRoute
   AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
 }
 
@@ -333,6 +354,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppPProjectIdMessagingRoute: AppPProjectIdMessagingRoute,
   AppPProjectIdSettingsRoute: AppPProjectIdSettingsRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
+  AppPProjectIdPagesPageIdRoute: AppPProjectIdPagesPageIdRoute,
   AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
 }
 
