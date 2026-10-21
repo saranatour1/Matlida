@@ -7,6 +7,8 @@ import { Spinner } from '~/components/ui/spinner'
 export function BotPart({ part }: { part: AskBotPart }) {
   const { projectId } = useParams({ strict: false })
   const bot = part.input?.bot ?? 'a bot'
+  // Some saved replies come back without their input, whatever the types say.
+  const task = part.input?.task
 
   switch (part.state) {
     case 'input-streaming':
@@ -26,10 +28,12 @@ export function BotPart({ part }: { part: AskBotPart }) {
             </span>{' '}
             · {part.output.role}
           </summary>
-          <p className="mt-2 text-muted-foreground">
-            <span className="font-medium text-foreground">Task:</span>{' '}
-            {part.input.task}
-          </p>
+          {task && (
+            <p className="mt-2 text-muted-foreground">
+              <span className="font-medium text-foreground">Task:</span>{' '}
+              {task}
+            </p>
+          )}
           <div className="mt-2">
             <Markdown text={part.output.reply} />
           </div>
