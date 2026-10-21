@@ -419,3 +419,8 @@
 - It reads the chat's last 30 messages, with which tools ran and failed, and `threads.openWork`. It works in chats, texts and calls, and in email drafts, since it only reads.
 - The assistant uses it when you come back after a while, at the start of a call, or when you ask what's left, then follows up on what it finds.
 - Verified with pnpm check, a test that both questions go to Jev in one call and the open request is named, and two live checks on `dev/matilda` in half a second: a video still being made needed a follow-up (0.97) and named that request; a question already answered didn't (0.03).
+
+### Sending no longer jumps the chat (2026-10-22)
+
+- Your sent message was a scroll anchor, so the chat moved it to the top and pushed everything up. Now the chat stays at the bottom as replies come in.
+
