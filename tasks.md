@@ -42,6 +42,8 @@
 - [x] find_emails and find_texts: the lead searches your earlier email and texts
 - [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed
 - [x] decide tool and /decide command: Jev picks between options
+- [x] Everyday commands, part 1: live lists, drafts, tables and recipes, with /todo, /shopping, /meals, /recipe, /pack, /rewrite, /reply, /translate, /tldr, /compare, /workout, /explain
+- [ ] Everyday commands, part 2: /today, /dayplan, /trip, /split, /meet, /focus
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

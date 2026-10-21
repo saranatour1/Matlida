@@ -71,6 +71,7 @@ import type * as models_texts_table from "../models/texts/table.js";
 import type * as models_texts_webhook from "../models/texts/webhook.js";
 import type * as models_threads_calls from "../models/threads/calls.js";
 import type * as models_threads_chat from "../models/threads/chat.js";
+import type * as models_threads_everyday from "../models/threads/everyday.js";
 import type * as models_threads_functions from "../models/threads/functions.js";
 import type * as models_threads_lead from "../models/threads/lead.js";
 import type * as models_threads_table from "../models/threads/table.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "models/texts/webhook": typeof models_texts_webhook;
   "models/threads/calls": typeof models_threads_calls;
   "models/threads/chat": typeof models_threads_chat;
+  "models/threads/everyday": typeof models_threads_everyday;
   "models/threads/functions": typeof models_threads_functions;
   "models/threads/lead": typeof models_threads_lead;
   "models/threads/table": typeof models_threads_table;

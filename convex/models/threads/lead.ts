@@ -5,6 +5,7 @@ import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { chatModel, languageModel } from '../../lib/ai'
 import { EFFORTS, MODELS } from '../../lib/models'
+import { CARD_TOOLS } from './everyday'
 import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
 import type { UsageHandler } from '@convex-dev/agent'
@@ -250,7 +251,12 @@ export function createAgent(
           Object.entries({
             ...assistantTools(project, name),
             ...askTools(project, members, name, EFFORTS[effort].botCalls),
-          }).filter(([tool]) => tools === true || tools.includes(tool)),
+          }).filter(
+            ([tool]) =>
+              (tools === true || tools.includes(tool)) &&
+              // Cards only show in the app.
+              !(options.via && options.via !== 'chat' && CARD_TOOLS.has(tool)),
+          ),
         )
       : {},
     stopWhen: tools ? stepCountIs(EFFORTS[effort].steps) : undefined,
