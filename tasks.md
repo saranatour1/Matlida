@@ -47,7 +47,7 @@
 - [x] Shopping: find products across Shopify stores, a cart by store, Buy at the store's checkout with your details (/shop, /gift, /cart)
 - [ ] Shopping: our own UCP profile and a Shopify token for production rate limits
 - [ ] Shopping: pay on your behalf (Shopify trusted agent, or Stripe Link in the US and Canada)
-- [ ] Price watches: /watch an item and hear when it drops
+- [x] Price watches: /watch an item and hear when it drops
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

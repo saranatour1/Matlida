@@ -17,6 +17,7 @@ import { TimeZonesPart } from '~/components/time-zones-part'
 import { TimelinePart } from '~/components/timeline-part'
 import { TimerPart } from '~/components/timer-part'
 import { TodayPart } from '~/components/today-part'
+import { WatchPart } from '~/components/watch-part'
 import { RunPlanPart } from '~/components/task-card'
 import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
@@ -103,6 +104,8 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
             case 'tool-add_to_cart':
             case 'tool-show_cart':
               return <CartPart key={part.toolCallId} part={part} />
+            case 'tool-watch_price':
+              return <WatchPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':
