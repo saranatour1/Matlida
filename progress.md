@@ -440,3 +440,9 @@
 - `/convex`: most likely cause in one line, the fix as code, how to check it, the docs page. `/fix` does the same for any problem, with web_search.
 - Pages rank by the words they share with the question. Live, "paginate a query" and "schedule a function later" found the right pages in about 0.7 seconds each; vaguer questions find nearby pages, and the assistant can search again.
 
+### Make my problems go away (2026-10-22)
+
+- `/make-my-problems-go-away` runs `problem_check`: Jev answers, in one call, who should handle the problem (AI alone, AI then a person, or a real person) and whether getting it wrong could really hurt.
+- The card plays a short, silly scan (four steps and a filling bar, still for reduced motion), then shows the verdict, the odds for each and a warning when it's risky. The assistant follows with what it can do now and who to see. It gives emergency help first if you may be in danger.
+- Verified with a test and live on `dev/matilda`: a polite email to a landlord went to AI (0.77), a risky lease clause to a person (0.57, risky), chest pain to a person (0.86, risky). One earlier try failed with a network error and passed on retry.
+

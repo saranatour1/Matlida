@@ -94,3 +94,49 @@ export async function needsFollowUp(
     openWork,
   }
 }
+
+/** Who should handle a problem: AI alone, AI then a person, or a person. */
+export const HANDLERS = {
+  ai: 'An AI assistant can handle this well on its own.',
+  ai_then_person:
+    'An AI assistant can help get it ready, but a real person should decide or do the final part.',
+  person:
+    'A real person should handle this: a professional like a doctor, lawyer, accountant or therapist, someone the user trusts, or the user themselves.',
+}
+
+/**
+ * The "make my problems go away" check: who should handle `problem`, and
+ * whether getting it wrong could really hurt. Jev answers both in one call.
+ */
+export async function whoShouldHandle(
+  model: Experimental_DecisionModel,
+  { problem, context }: { problem: string; context: string },
+  abortSignal?: AbortSignal,
+) {
+  const { answers } = await experimental_decide({
+    model,
+    state: { problem, context },
+    questions: {
+      who: {
+        type: 'choice',
+        instructions:
+          'Given `context`, who should handle `problem` for the user to get a good outcome?',
+        criteria: HANDLERS,
+      },
+      risky: {
+        type: 'boolean',
+        instructions:
+          'Could getting `problem` wrong seriously hurt the user’s health, safety, money, legal standing or relationships?',
+      },
+    },
+    abortSignal,
+  })
+  const { choice } = answers.who
+  const probabilities: Partial<Record<string, number>> =
+    answers.who.probabilities ?? { [choice]: 1 }
+  return {
+    verdict: choice,
+    probabilities,
+    risky: answers.risky.probability >= 0.5,
+  }
+}

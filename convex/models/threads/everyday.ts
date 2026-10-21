@@ -296,6 +296,7 @@ const CARD_TOOLS = new Set([
   'generate_image',
   'generate_video',
   'draw_diagram',
+  'problem_check',
 ])
 
 /** Cards a call still gets: you talk from the chat, or beside it, so the picture or video shows there. */

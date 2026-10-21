@@ -10,6 +10,7 @@ import { ChecklistPart } from '~/components/checklist-part'
 import { CopyButton } from '~/components/copy-button'
 import { DiagramPart } from '~/components/diagram-part'
 import { DraftsPart } from '~/components/drafts-part'
+import { ProblemCheckPart } from '~/components/problem-check-part'
 import { ImagePart } from '~/components/image-part'
 import { NewsPart, NewsSetupPart } from '~/components/news-part'
 import { KeepUpdatedPart, PagePart } from '~/components/page-part'
@@ -188,6 +189,8 @@ function renderPart(part: Part, index: number) {
           <ChartPart part={part} />
         </React.Suspense>
       )
+    case 'tool-problem_check':
+      return <ProblemCheckPart key={part.toolCallId} part={part} />
     case 'tool-decide':
       return <DecidePart key={part.toolCallId} part={part} />
     case 'tool-preview_post':
