@@ -42,6 +42,7 @@
     "convex": "^1.47.0",
     "convex-helpers": "^0.1.128",
     "lucide-react": "^1.59.0",
+    "motion": "14.2.0",
     "nice-grpc": "^2.1.17",
     "nice-grpc-common": "^2.0.4",
     "react": "^19.2.8",

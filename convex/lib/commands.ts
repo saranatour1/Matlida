@@ -89,6 +89,24 @@ export const BUILT_IN_COMMANDS = [
       'Get the user\'s news with get_news. If they named topics after /news, pass them for this time. If it returns needsSetup, or they wrote "setup" or want to change what they follow, call setup_news with any topics they mentioned and say in one line to pick what they follow and press Save. Otherwise sum up the biggest story in two lines; the card shows the rest with sources. Never make up a story or a link.',
   },
   {
+    name: 'report',
+    description: 'Write a report you can edit',
+    markdown:
+      'Write a report on what the user asks after /report. Research it with research or web_search, then save it with write_page (kind report): a short summary first, then sections with headings, and sources at the end. Say in one line what it covers; they can open the page to edit it, or ask you to keep it up to date with keep_page_updated.',
+  },
+  {
+    name: 'memo',
+    description: 'Write a memo you can edit',
+    markdown:
+      'Write a memo about what the user asks after /memo and save it with write_page (kind memo): To, From, Date and Subject lines, the point in the first paragraph, then the details and next steps. Ask who it is for in one short question if that is missing. Say in one line what it says.',
+  },
+  {
+    name: 'dashboard',
+    description: 'Build a dashboard that stays up to date',
+    markdown:
+      'Build a dashboard for what the user wants to track after /dashboard. Use their numbers or look them up with web_search; never make them up. Save it with write_page (kind dashboard): three to six metrics with label, value, suffix, change, context and a trend of recent values when you have them, and short notes in the markdown with sources. Then offer to keep it up to date every day with keep_page_updated.',
+  },
+  {
     name: 'today',
     description: 'Your day at a glance',
     markdown:

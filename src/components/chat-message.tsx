@@ -9,6 +9,7 @@ import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
 import { NewsPart, NewsSetupPart } from '~/components/news-part'
+import { KeepUpdatedPart, PagePart } from '~/components/page-part'
 import {
   PostPreviewPart,
   PostPreviewsPart,
@@ -128,6 +129,10 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <NewsPart key={part.toolCallId} part={part} />
             case 'tool-setup_news':
               return <NewsSetupPart key={part.toolCallId} part={part} />
+            case 'tool-write_page':
+              return <PagePart key={part.toolCallId} part={part} />
+            case 'tool-keep_page_updated':
+              return <KeepUpdatedPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':

@@ -19,4 +19,10 @@ crons.interval(
 
 crons.interval('daily news', { hours: 1 }, internal.api.news.sendDaily)
 
+crons.interval(
+  'keep pages up to date',
+  { hours: 1 },
+  internal.api.pages.refreshDue,
+)
+
 export default crons

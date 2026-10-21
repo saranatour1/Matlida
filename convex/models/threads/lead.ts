@@ -208,6 +208,7 @@ export const READ_ONLY_TOOLS = [
   'find_emails',
   'find_texts',
   'decide',
+  'read_page',
   'show_chart',
   'preview_posts',
   'ask_bot',
