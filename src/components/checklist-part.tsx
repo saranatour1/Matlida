@@ -56,7 +56,10 @@ function Checklist({ id }: { id: string }) {
   }
   const done = plan.steps.filter((s) => s.done).length
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-2 rounded-xl border bg-card p-3 text-sm text-card-foreground">
+    <section
+      aria-label={plan.title}
+      className="mx-1.5 flex max-w-md flex-col gap-2 rounded-xl border bg-card p-3 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <ListChecksIcon className="size-4 text-muted-foreground" />
         <p className="flex-1 truncate font-medium">{plan.title}</p>
@@ -114,7 +117,7 @@ function Checklist({ id }: { id: string }) {
           </Link>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 

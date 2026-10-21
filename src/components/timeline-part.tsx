@@ -30,7 +30,10 @@ export function TimelinePart({ part }: { part: TimelineToolPart }) {
     ])
   }
   return (
-    <div className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label={title}
+      className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <CalendarClockIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">{title}</p>
@@ -57,6 +60,6 @@ export function TimelinePart({ part }: { part: TimelineToolPart }) {
         </div>
       ))}
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
-    </div>
+    </section>
   )
 }

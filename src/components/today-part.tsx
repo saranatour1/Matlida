@@ -33,7 +33,10 @@ export function TodayPart({ part }: { part: TodayToolPart }) {
   const empty =
     needsYou + reminders.length + running.length + lists.length === 0
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label="Your day"
+      className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <SunIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">
@@ -114,7 +117,7 @@ export function TodayPart({ part }: { part: TodayToolPart }) {
           )}
         </Section>
       )}
-    </div>
+    </section>
   )
 }
 

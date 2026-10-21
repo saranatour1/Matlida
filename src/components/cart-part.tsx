@@ -40,7 +40,10 @@ function Cart() {
   const clearShop = useMutation(api.api.shopping.clearShop)
   if (!cart) return null
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label="Your cart"
+      className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <ShoppingCartIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">Your cart</p>
@@ -149,6 +152,6 @@ function Cart() {
           )}
         </p>
       )}
-    </div>
+    </section>
   )
 }

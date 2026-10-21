@@ -25,13 +25,16 @@ export function NewsSetupPart({ part }: { part: SetupToolPart }) {
     )
   }
   return (
-    <div className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground">
+    <section
+      aria-label="News setup"
+      className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground"
+    >
       <div className="flex items-center gap-2 text-sm">
         <NewspaperIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">What news do you follow?</p>
       </div>
       <NewsSettings suggested={part.output.suggested} />
-    </div>
+    </section>
   )
 }
 
@@ -49,7 +52,10 @@ export function NewsPart({ part }: { part: NewsToolPart }) {
   const { needsSetup, date, sections } = part.output
   if (needsSetup) return null
   return (
-    <div className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label="The news"
+      className="mx-1.5 flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <NewspaperIcon className="size-4 text-muted-foreground" />
         <p className="flex-1 font-medium">
@@ -96,6 +102,6 @@ export function NewsPart({ part }: { part: NewsToolPart }) {
           ))}
         </div>
       ))}
-    </div>
+    </section>
   )
 }

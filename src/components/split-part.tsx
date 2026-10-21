@@ -26,7 +26,10 @@ export function SplitPart({ part }: { part: SplitToolPart }) {
       maximumFractionDigits: 2,
     })}`
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label="Settle up"
+      className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-center gap-2">
         <ReceiptIcon className="size-4 text-muted-foreground" />
         <p className="flex-1 font-medium">Settle up</p>
@@ -67,6 +70,6 @@ export function SplitPart({ part }: { part: SplitToolPart }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </section>
   )
 }

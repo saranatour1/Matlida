@@ -54,7 +54,10 @@ export function PostPreviewsPart({ part }: { part: PreviewsToolPart }) {
       .filter((p) => p.platform === platform)
       .map((p, i) => <PostCard key={i} post={{ ...p, author }} />)
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-2">
+    <section
+      aria-label="Post previews"
+      className="mx-1.5 flex max-w-md flex-col gap-2"
+    >
       {platforms.length === 1 ? (
         versions(platforms[0])
       ) : (
@@ -77,7 +80,7 @@ export function PostPreviewsPart({ part }: { part: PreviewsToolPart }) {
           ))}
         </Tabs>
       )}
-    </div>
+    </section>
   )
 }
 

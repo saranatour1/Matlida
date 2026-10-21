@@ -55,7 +55,10 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
   }, undefined)
 
   return (
-    <div className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label={`Recipe: ${recipe.title}`}
+      className="mx-1.5 flex max-w-md flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-start gap-2">
         <ChefHatIcon className="mt-0.5 size-4 text-muted-foreground" />
         <p className="flex-1 font-medium">{recipe.title}</p>
@@ -116,6 +119,6 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       {recipe.source && (
         <p className="text-xs text-muted-foreground">{recipe.source}</p>
       )}
-    </div>
+    </section>
   )
 }

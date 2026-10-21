@@ -45,7 +45,10 @@ function Face({ timer, left }: { timer: Timer; left: number }) {
   const total = timer.minutes * 60
   const done = left === 0
   return (
-    <div className="mx-1.5 flex max-w-xs items-center gap-4 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <section
+      aria-label={`Timer: ${timer.label}`}
+      className="mx-1.5 flex max-w-xs items-center gap-4 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <svg viewBox="0 0 64 64" className="size-16 -rotate-90" aria-hidden>
         <circle
           cx="32"
@@ -78,6 +81,6 @@ function Face({ timer, left }: { timer: Timer; left: number }) {
         </p>
         <p className="text-xs text-muted-foreground">{timer.minutes} minutes</p>
       </div>
-    </div>
+    </section>
   )
 }

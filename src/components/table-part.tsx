@@ -21,10 +21,11 @@ export function TablePart({ part }: { part: TableToolPart }) {
   }
   const { title, columns, rows, highlight, note } = part.output
   return (
-    <div className="mx-1.5 flex flex-col gap-1.5">
+    <section aria-label={title} className="mx-1.5 flex flex-col gap-1.5">
       <p className="text-sm font-medium">{title}</p>
       <div className="overflow-x-auto rounded-xl border">
         <table className="w-full text-left text-sm">
+          <caption className="sr-only">{title}</caption>
           <thead className="bg-muted/50 text-xs text-muted-foreground">
             <tr>
               {columns.map((column) => (
@@ -55,6 +56,6 @@ export function TablePart({ part }: { part: TableToolPart }) {
         </table>
       </div>
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
-    </div>
+    </section>
   )
 }
