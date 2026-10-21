@@ -45,6 +45,18 @@ export const phoneLinksTable = defineTable(
 /** Until when the fast Telegram check keeps running. One row, kept fresh while a chat is active. */
 export const telegramPollsTable = defineTable({ until: v.number() })
 
+/** What you texted the lead from a linked chat, for `find_texts`. Link codes aren't kept. */
+export const receivedTextsTable = defineTable({
+  userId: v.id('users'),
+  projectId: v.id('projects'),
+  /** The app, as Photon names it: imessage, telegram or whatsapp_business. */
+  platform: v.string(),
+  text: v.string(),
+}).searchIndex('search_text', {
+  searchField: 'text',
+  filterFields: ['userId', 'platform'],
+})
+
 /** Messages that came in through `/photon/webhook`, by Photon's id, so each is answered once. */
 export const photonMessagesTable = defineTable({
   messageId: v.string(),

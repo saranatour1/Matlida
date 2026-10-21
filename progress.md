@@ -256,3 +256,9 @@
 - `emails` rows now keep what a reply needs: the chat and message it was posted as, the sender, subject, Photon thread and mailbox user, the draft and when you replied.
 - Verified with unit tests: drafts for yours and others' email with nothing sent, your edited reply sent to the sender only and only once, nobody else can reply, a failed send stays unreplied, spam and over-the-limit email not drafted, and texts to the lead even with `@name`. The Reply dialog wasn't driven in a browser.
 - `find_emails` searches your earlier emails, yours and other people's, by words in the subject or text, optionally from one address (`emails.search`, a search index over the email's text, now stored on its row). Drafts use it for context: yours get it with the other read-only tools only (search, research, contacts, charts, previews, bots), since an email's sender can be forged; others' get only `find_emails`. The lead can use it in chat too. Emails from before this change aren't searchable.
+
+### find_texts: search what you texted the lead (2026-10-21)
+
+- What you text the lead from a linked iMessage, WhatsApp or Telegram chat is now kept in `receivedTexts` (not link codes, and not texts from unlinked chats), with a search index on the text.
+- `find_texts` searches it by words, optionally from one app. The lead has it in chat and in drafts of replies to your email. Drafts of replies to other people's email don't, so a stranger's email can't pull your texts into a draft. Texts from before this change aren't searchable.
+- Verified with a unit test: a linked chat's texts are found by words and app, the link code and texts sent before linking aren't kept, and another user's search finds nothing.

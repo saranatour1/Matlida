@@ -17,6 +17,7 @@ import { tasksTable } from './models/tasks/table'
 import {
   phoneLinksTable,
   photonMessagesTable,
+  receivedTextsTable,
   telegramPollsTable,
 } from './models/texts/table'
 import { threadsTable } from './models/threads/table'
@@ -33,6 +34,7 @@ export default defineSchema({
   contacts: contactsTable,
   phoneLinks: phoneLinksTable,
   photonMessages: photonMessagesTable,
+  receivedTexts: receivedTextsTable,
   telegramPolls: telegramPollsTable,
   mailboxes: mailboxesTable,
   emails: emailsTable,

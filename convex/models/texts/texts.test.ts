@@ -92,7 +92,15 @@ async function setup() {
   })
   const text = (spaceId: string, message: string, platform = 'imessage') =>
     t.action(internal.api.texts.answer, { spaceId, platform, text: message })
-  return { t, asAda, asBob: t.withIdentity({ subject: bob }), projectId, text }
+  return {
+    t,
+    ada,
+    bob,
+    asAda,
+    asBob: t.withIdentity({ subject: bob }),
+    projectId,
+    text,
+  }
 }
 
 test('texting the code links the phone, once', async () => {
@@ -324,6 +332,27 @@ test('texts only ever go to the lead, even with @name', async () => {
     kind: 'chat',
   })
   expect(chats.map((c) => [c.title, c.botId])).toEqual([['Matilda', undefined]])
+})
+
+test('find_texts searches what you texted from a linked chat, and only yours', async () => {
+  const { t, ada, bob, asAda, projectId, text } = await setup()
+  await text('tg-1', 'pick up the dry cleaning', 'telegram')
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await text('tg-1', `link ${code}`, 'telegram')
+  await text('tg-1', 'Remind me about the dry cleaning on Friday', 'telegram')
+  await text('tg-1', 'And book the dentist', 'telegram')
+  const search = (userId: typeof ada, query: string, platform?: string) =>
+    t.query(internal.api.texts.search, { userId, query, platform })
+
+  expect(await search(ada, 'dry cleaning')).toMatchObject([
+    {
+      platform: 'telegram',
+      text: 'Remind me about the dry cleaning on Friday',
+    },
+  ])
+  expect(await search(ada, 'dentist', 'whatsapp_business')).toEqual([])
+  expect(await search(ada, code)).toEqual([])
+  expect(await search(bob, 'dentist')).toEqual([])
 })
 
 test('Telegram and WhatsApp chats link through Photon and get replies through their provider', async () => {
