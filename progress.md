@@ -276,3 +276,15 @@
 - It returns the pick and each option's probability; when the pick is under 0.5, the assistant says it's close and names the runner-up. It's read-only, so email drafts can use it.
 - New built-in `/decide` command that uses it. The chat shows a card with the question and each option's odds.
 - Verified with unit tests against a fake decision model, and one live call on `dev/matilda` through the gateway (train over flight for someone who hates airports, 1.0 to 0.0).
+
+### Everyday commands, part 1: lists and writing (2026-10-21)
+
+- Researched what people use assistants for day to day: OpenAI's usage study (practical guidance, looking things up and writing are 78% of messages; two-thirds of writing is reworking the user's own text), Anthropic's Economic Index (recipes peak around 6pm; itineraries and workouts are common), household assistants (meals, groceries, to-dos, reminders) and Raycast's daily commands.
+- New cards in the chat, each a tool in `convex/models/threads/everyday.ts`:
+  - **Checklist**: plans and lists render live in the chat, with sections, ticking and Clear done. `add_to_list` keeps one list per name ("To-do", "Shopping list", "Packing: Lisbon"), started on first use.
+  - **Drafts** (`show_drafts`): up to four versions, each with Copy.
+  - **Table** (`show_table`): rows and columns, one row highlighted, a note for sources.
+  - **Recipe** (`show_recipe`): change the servings and the amounts scale; Add to shopping list puts the ingredients on the Shopping list under the recipe's name.
+- New built-in commands: `/todo`, `/shopping`, `/meals`, `/recipe`, `/pack`, `/rewrite`, `/reply`, `/translate`, `/tldr`, `/compare`, `/workout`, `/explain`. `/create` can make lists too.
+- Texts, calls and emails don't get the card-only tools, so they answer in words.
+- Verified with unit tests: lists by name, sections, ticking, clearing and ownership; a card adding to your list; every tool a built-in command names exists; cards left out of texts and calls; recipe amounts. The cards weren't clicked through in a browser (signed out).

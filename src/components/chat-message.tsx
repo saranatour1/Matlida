@@ -5,7 +5,11 @@ import type { UIMessage } from '@convex-dev/agent/react'
 import type { InferUITools, UIDataTypes } from 'ai'
 import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
+import { ChecklistPart } from '~/components/checklist-part'
+import { DraftsPart } from '~/components/drafts-part'
 import { PostPreviewPart } from '~/components/post-preview-part'
+import { RecipePart } from '~/components/recipe-part'
+import { TablePart } from '~/components/table-part'
 import { RunPlanPart } from '~/components/task-card'
 import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
@@ -67,8 +71,16 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <BotPart key={part.toolCallId} part={part} />
             case 'tool-web_search':
             case 'tool-research':
-            case 'tool-save_plan':
               return <ToolPart key={part.toolCallId} part={part} />
+            case 'tool-save_plan':
+            case 'tool-add_to_list':
+              return <ChecklistPart key={part.toolCallId} part={part} />
+            case 'tool-show_drafts':
+              return <DraftsPart key={part.toolCallId} part={part} />
+            case 'tool-show_table':
+              return <TablePart key={part.toolCallId} part={part} />
+            case 'tool-show_recipe':
+              return <RecipePart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':

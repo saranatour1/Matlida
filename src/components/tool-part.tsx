@@ -1,14 +1,13 @@
-import { Link, useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
   GlobeIcon,
-  ListChecksIcon,
   ScaleIcon,
   SendIcon,
   TelescopeIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
@@ -17,37 +16,32 @@ import { Spinner } from '~/components/ui/spinner'
 
 type Part = Extract<
   ChatUIMessage['parts'][number],
-  { type: 'tool-web_search' | 'tool-research' | 'tool-save_plan' }
+  { type: 'tool-web_search' | 'tool-research' }
 >
 
-/** Search, research and plan tool calls, as a status line that opens to the result. */
+/** A card's line while its tool runs, or when it failed: a spinner, or `icon` and the error. */
+export function ToolStatus({
+  failed,
+  icon: Icon,
+  children,
+}: {
+  failed: boolean
+  icon: ComponentType<{ className?: string }>
+  children: ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+      {failed ? <Icon className="size-4" /> : <Spinner />}
+      {children}
+    </div>
+  )
+}
+
+/** Search and research tool calls, as a status line that opens to the result. */
 export function ToolPart({ part }: { part: Part }) {
-  const { projectId } = useParams({ strict: false })
   const busy =
     part.state === 'input-streaming' || part.state === 'input-available'
   const failed = part.state === 'output-error'
-
-  if (part.type === 'tool-save_plan') {
-    return (
-      <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
-        {busy ? <Spinner /> : <ListChecksIcon className="size-4" />}
-        {failed
-          ? `Couldn't save the plan.`
-          : busy
-            ? 'Saving the plan…'
-            : `Saved “${part.input.title}”.`}
-        {part.state === 'output-available' && projectId && (
-          <Link
-            to="/p/$projectId/library"
-            params={{ projectId }}
-            className="underline hover:text-foreground"
-          >
-            Open the Library
-          </Link>
-        )}
-      </div>
-    )
-  }
 
   const isResearch = part.type === 'tool-research'
   const Icon = isResearch ? TelescopeIcon : GlobeIcon

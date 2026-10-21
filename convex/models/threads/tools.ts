@@ -5,6 +5,7 @@ import { internal } from '../../_generated/api'
 import { decisionModel, researchModel, searchModel } from '../../lib/ai'
 import { decide } from '../../lib/decide'
 import { gatewayCost } from '../usage/functions'
+import { everydayTools } from './everyday'
 import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
@@ -41,6 +42,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     })
   }
   return {
+    ...everydayTools(project),
     web_search: createTool({
       description:
         'Search the web for current facts, news, prices or anything after your training. Returns a short sourced answer.',
