@@ -1,8 +1,7 @@
-import * as React from 'react'
-import { CheckIcon, CopyIcon, MegaphoneIcon } from 'lucide-react'
+import { MegaphoneIcon } from 'lucide-react'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { CopyButton } from '~/components/copy-button'
 import { ToolStatus } from '~/components/tool-part'
-import { Button } from '~/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 
 type PreviewToolPart = Extract<
@@ -102,12 +101,7 @@ export function PostPreviewPart({ part }: { part: PreviewToolPart }) {
 }
 
 function PostCard({ post }: { post: Post }) {
-  const [copied, setCopied] = React.useState(false)
   const over = post.text.length - post.limit
-  const copy = () =>
-    void navigator.clipboard
-      .writeText(post.title ? `${post.title}\n\n${post.text}` : post.text)
-      .then(() => setCopied(true))
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -123,10 +117,10 @@ function PostCard({ post }: { post: Post }) {
             ? `${over.toLocaleString()} characters over`
             : `${post.text.length.toLocaleString()} / ${post.limit.toLocaleString()}`}
         </span>
-        <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={copy}>
-          {copied ? <CheckIcon /> : <CopyIcon />}
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
+        <CopyButton
+          text={post.title ? `${post.title}\n\n${post.text}` : post.text}
+          className="h-6 px-1.5"
+        />
       </div>
       {post.platform === 'discord' ? (
         <DiscordMessage post={post} />
