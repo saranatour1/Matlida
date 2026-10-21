@@ -316,3 +316,10 @@
 - The chat shows a watch card: the price now, your target, the status and Stop.
 - New built-in command: `/watch`.
 - Verified with a unit test: a watch isn't checked again within a day, then a drop and a gone item each post in the chat and end the watch.
+
+### Previews come in sets, with Discord (2026-10-21)
+
+- `preview_posts` replaces `preview_post`: one call shows a set, two or three labelled versions per platform (like Punchy, Story, Question), with a tab per platform and Copy on each. Older chats still show their one-post previews.
+- Discord previews look like Discord: a `#channel` header (the assistant suggests one), the name and today's time, on Discord's dark background.
+- `/preview` writes three versions for each platform named, or for LinkedIn, X and Discord when none is named, then says which it would pick. `/posts` shows two versions per platform.
+- Verified with a unit test of the set's schema, and the commands test (every tool a command names exists). Not clicked through in a browser (signed out).

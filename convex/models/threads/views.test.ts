@@ -40,6 +40,24 @@ test('a chart needs one value per series, and a pie has one series', async () =>
 test('/chart and /preview are built in, and /posts previews its drafts', () => {
   const byName = Object.fromEntries(BUILT_IN_COMMANDS.map((c) => [c.name, c]))
   expect(byName.chart.markdown).toContain('show_chart')
-  expect(byName.preview.markdown).toContain('preview_post')
-  expect(byName.posts.markdown).toContain('preview_post')
+  expect(byName.preview.markdown).toContain('preview_posts')
+  expect(byName.posts.markdown).toContain('preview_posts')
+})
+
+test('previews come as sets: several labelled versions, Discord included, at most twelve', async () => {
+  const schema = tools.preview_posts.inputSchema as {
+    safeParseAsync: (v: unknown) => Promise<{ success: boolean }>
+  }
+  const posts = ['Punchy', 'Story', 'Question'].flatMap((label) =>
+    (['linkedin', 'x', 'discord'] as const).map((platform) => ({
+      platform,
+      label,
+      text: `${label} post`,
+      ...(platform === 'discord' && { channel: 'announcements' }),
+    })),
+  )
+  expect((await schema.safeParseAsync({ posts })).success).toBe(true)
+  expect(
+    (await schema.safeParseAsync({ posts: [...posts, ...posts] })).success,
+  ).toBe(false)
 })
