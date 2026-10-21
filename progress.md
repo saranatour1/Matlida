@@ -235,6 +235,13 @@
 - `texts.received` now takes the token while it records the message, one at a time, and passes the result to the reply. Photon replies no longer call `admit`; the Spectrum SDK route still does.
 - Verified with a unit test: 16 texts in one check get 15 answers and one "slow down", with the limit taken as they're recorded.
 
+### Charts and post previews in the chat (2026-10-20)
+
+- `show_chart` draws numbers in the chat with Recharts (bar, line, area or pie, up to 4 series, with a unit and a source), in the theme's chart colors. The chart component loads only when a chart appears, so Recharts stays out of the main bundle.
+- `preview_post` lays a post out roughly as LinkedIn, X, Reddit or Discord show it, with the character count against the platform's limit, flagged in red when it's over. It posts nothing.
+- New built-in commands: `/chart` (chart what you ask for, from your numbers or looked up with a source, never invented) and `/preview` (draft a post and preview it, LinkedIn when no platform is named). `/posts` now previews each draft too.
+- Verified with unit tests: the chart schema accepts a good chart and refuses mismatched values or a multi-series pie, and the commands name their tools. The components weren't driven in a browser.
+
 ### DMARC in the setup guide (2026-10-20)
 
 - `matilda-is-a-bot.app` has no DMARC record. Photon's DNS list doesn't include one, so the guide now adds it as step 3: `v=DMARC1; p=none; adkim=s; aspf=r; fo=1; rua=…`. Strict DKIM, because Photon signs as the domain; relaxed SPF, because its return path is `bounce.<domain>`. Reports go to Cloudflare's DMARC Management rather than a handle on the domain. Start at `p=none`, then move to `quarantine` and `reject`.

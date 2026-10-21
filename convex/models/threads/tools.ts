@@ -14,6 +14,9 @@ const vSteps = z
   .max(30)
   .describe('Each step as a short instruction, in order.')
 
+/** How long a post can be on each platform, in characters. Previews flag anything over. */
+const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
+
 /** Tools every assistant (`from`) gets: the web, plans saved to the Library, and reminders. */
 export function assistantTools(project: Doc<'projects'>, from: string) {
   const record = async (
@@ -103,6 +106,56 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         )
         return { taskId, waitingForStart: true }
       },
+    }),
+    show_chart: createTool({
+      description:
+        "Show numbers as a chart in the chat. Use line for change over time, bar to compare, area for totals over time, pie for parts of a whole (one series, at most 8 slices). Only chart numbers the user gave or that you looked up; say where they're from in `source`.",
+      inputSchema: z
+        .object({
+          title: z.string().min(1).max(80),
+          kind: z.enum(['bar', 'line', 'area', 'pie']),
+          /** Each series' name, like Revenue. One for pie. */
+          series: z.array(z.string().min(1).max(40)).min(1).max(4),
+          points: z
+            .array(
+              z.object({
+                label: z.string().min(1).max(40),
+                /** One value per series, in the same order. */
+                values: z.array(z.number()).min(1).max(4),
+              }),
+            )
+            .min(1)
+            .max(50),
+          unit: z.string().max(12).optional().describe('Like $, %, or users.'),
+          source: z.string().max(200).optional(),
+        })
+        .refine(
+          (c) => c.points.every((p) => p.values.length === c.series.length),
+          'Give each point one value per series.',
+        )
+        .refine(
+          (c) => c.kind !== 'pie' || c.series.length === 1,
+          'A pie chart has one series.',
+        ),
+      execute: (_ctx, chart) => Promise.resolve(chart),
+    }),
+    preview_post: createTool({
+      description:
+        'Show a post in the chat the way it would look on LinkedIn, X, Reddit or Discord, so the user can see it before posting. It posts nothing. Call it once per platform.',
+      inputSchema: z.object({
+        platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
+        text: z.string().min(1).max(4000),
+        /** Reddit only. */
+        title: z.string().max(300).optional(),
+        /** Reddit only, without r/. */
+        subreddit: z.string().max(50).optional(),
+      }),
+      execute: (_ctx, post) =>
+        Promise.resolve({
+          ...post,
+          author: from,
+          limit: POST_LIMITS[post.platform],
+        }),
     }),
     save_command: createTool({
       description:

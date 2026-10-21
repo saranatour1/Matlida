@@ -33,6 +33,7 @@
 - [x] Contacts, and messages to them by email after you confirm
 - [x] Tasks on Convex workflows: run a saved plan step by step with a live card
 - [x] Built-in commands, a "+" menu, and commands written by AI
+- [x] Charts and post previews in the chat (/chart, /preview)
 - [x] A TipTap markdown editor for instructions, with ready-made rules and notes
 - [x] Setup guide for email, Photon, Telegram and WhatsApp
 - [x] Several models: per bot, per lead and per chat, with the chat's history kept
