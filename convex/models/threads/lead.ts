@@ -106,6 +106,21 @@ ${bot.instructions}${team}
 ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
 }
 
+/**
+ * What an assistant answers with, for replies made outside `createAgent`
+ * like audio chat, which can't use tools: no bots to ask, and a line saying so.
+ */
+export function instructionsFor(
+  project: Project,
+  bot: Bot | null,
+  options: ReplyOptions,
+) {
+  const base = bot
+    ? botInstructions(project, bot, [], options)
+    : leadInstructions(project, [], options)
+  return `${base}\n\nYou can't use tools on this answer. If they ask for something that needs one, like a reminder, a search or a list, say you'll do it when they ask in the chat.`
+}
+
 /** The gateway model for `id`, or the default when it's unset or the default itself. */
 function modelFor(id: string, effort: Effort) {
   return wrapLanguageModel({

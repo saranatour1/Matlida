@@ -18,9 +18,13 @@ import {
   MAX_VOLUME,
   clampVolume,
   getCallVolume,
+  getFastVoice,
   saveCallVolume,
+  saveFastVoice,
   useCallVolume,
-} from '~/hooks/use-call-volume'
+  useFastVoice,
+} from '~/hooks/use-call-settings'
+import { toWav } from '~/lib/wav'
 import { hear, startListening } from '~/lib/turn-taking'
 
 type Status =
@@ -165,10 +169,13 @@ export function useVoiceCall({
       })
     }
     try {
+      // Fast voice's audio model takes WAV, not the browser's WebM.
+      const fast = getFastVoice()
+      const audio = fast ? await toWav(clip) : clip
       const res = await fetch(await uploadUrl(), {
         method: 'POST',
-        headers: { 'Content-Type': clip.type },
-        body: clip,
+        headers: { 'Content-Type': audio.type },
+        body: audio,
       })
       const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
       const liveKey = crypto.randomUUID()
@@ -183,6 +190,7 @@ export function useVoiceCall({
         callId: s.callId,
         interrupted: cutOff || undefined,
         liveKey,
+        fast: fast || undefined,
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
@@ -551,6 +559,7 @@ export function CallPanel() {
         )}
       </ol>
       <div className="flex flex-col gap-3 border-t p-4">
+        <FastVoice />
         <VolumeBar volume={call.volume} onChange={call.setVolume} />
         <div className="flex justify-center gap-4">
           <Button
@@ -574,6 +583,29 @@ export function CallPanel() {
         </div>
       </div>
     </aside>
+  )
+}
+
+/** The Fast voice switch: quicker spoken answers from an audio chat model, without tools. */
+function FastVoice() {
+  const fast = useFastVoice()
+  return (
+    <label className="flex items-start gap-2 text-sm">
+      <input
+        type="checkbox"
+        role="switch"
+        checked={fast}
+        onChange={(e) => saveFastVoice(e.target.checked)}
+        className="mt-1 accent-primary"
+      />
+      <span>
+        Fast voice
+        <span className="block text-xs text-muted-foreground">
+          Answers sooner, but can’t set reminders, search or use other tools on
+          the call.
+        </span>
+      </span>
+    </label>
   )
 }
 

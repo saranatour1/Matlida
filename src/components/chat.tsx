@@ -1,12 +1,12 @@
 import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { Link } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
 import type { Effort } from '../../convex/lib/models'
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc, Id } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
@@ -36,6 +36,8 @@ import {
   MessageScrollerViewport,
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
+import { getCallVolume } from '~/hooks/use-call-settings'
+import { toWav } from '~/lib/wav'
 import { CommandDialog } from '~/components/command-dialog'
 
 /**
@@ -67,6 +69,38 @@ export function Chat({
     api.api.emails.forThread,
     threadId ? { threadId } : 'skip',
   )
+  const clips = useQuery(
+    api.api.voiceClips.forThread,
+    threadId ? { threadId } : 'skip',
+  )
+  const voiceUploadUrl = useMutation(api.api.chat.voiceUploadUrl)
+  const sendVoiceNote = useAction(api.api.voiceClips.send)
+  /** Sends a voice note as WAV and plays the spoken reply. Returns an error to show, if any. */
+  async function voiceNote(recording: Blob) {
+    try {
+      const audio = await toWav(recording)
+      const res = await fetch(await voiceUploadUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': audio.type },
+        body: audio,
+      })
+      const { storageId } = (await res.json()) as { storageId: Id<'_storage'> }
+      const { replyUrl } = await sendVoiceNote({
+        projectId: project._id,
+        botId: bot?._id,
+        storageId,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      })
+      if (replyUrl) {
+        const reply = new Audio(replyUrl)
+        reply.volume = Math.min(getCallVolume(), 1)
+        void reply.play().catch(() => undefined)
+      }
+      return undefined
+    } catch (e) {
+      return errorMessage(e, 'Could not send the voice note. Try again.')
+    }
+  }
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
@@ -222,6 +256,22 @@ export function Chat({
                           scrollAnchor={message.role === 'user'}
                         >
                           <ChatMessage message={message} />
+                          {clips?.some((c) => c.messageId === message.id) && (
+                            <audio
+                              controls
+                              preload="none"
+                              aria-label={
+                                message.role === 'user'
+                                  ? 'Your voice note'
+                                  : `${lead}'s spoken reply`
+                              }
+                              src={
+                                clips.find((c) => c.messageId === message.id)
+                                  ?.url ?? undefined
+                              }
+                              className={`mt-1 h-9 max-w-xs ${message.role === 'user' ? 'ml-auto' : 'ml-1.5'}`}
+                            />
+                          )}
                           {email && (
                             <EmailReply
                               email={email}
@@ -268,6 +318,7 @@ export function Chat({
               ...(commands ?? []),
             ]}
             onCreateCommand={() => setCreatingCommand(true)}
+            onVoiceNote={voiceNote}
             tools={
               <>
                 <EffortMenu

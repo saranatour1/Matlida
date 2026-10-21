@@ -16,7 +16,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from '~/components/ui/input-group'
-import { VoiceButton } from '~/components/voice-button'
+import { VoiceButton, VoiceNoteButton } from '~/components/voice-button'
 
 export function PromptForm({
   placeholder,
@@ -24,6 +24,7 @@ export function PromptForm({
   onSubmit,
   commands = [],
   onCreateCommand,
+  onVoiceNote,
   tools,
 }: {
   placeholder: string
@@ -33,6 +34,8 @@ export function PromptForm({
   commands?: Array<{ name: string; description: string; builtIn?: boolean }>
   /** Opens the dialog that writes a new command with AI. */
   onCreateCommand?: () => void
+  /** Sends a voice note, answered in voice. Its error shows under the box. */
+  onVoiceNote?: (audio: Blob) => Promise<string | undefined>
   /** Shown next to the send button, like the model menu. */
   tools?: React.ReactNode
 }) {
@@ -205,6 +208,14 @@ export function PromptForm({
               el.focus()
             }}
           />
+          {onVoiceNote && (
+            <VoiceNoteButton
+              onError={setVoiceError}
+              onRecorded={async (audio) => {
+                setVoiceError(await onVoiceNote(audio))
+              }}
+            />
+          )}
           <div className="ml-auto" />
           {tools}
           <InputGroupButton

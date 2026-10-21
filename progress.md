@@ -360,3 +360,12 @@
 ### Models as an object map (2026-10-22)
 
 - `CHAT_MODELS` is now an object keyed by gateway id (`{ 'anthropic/claude-sonnet-5': { name, maker, note }, … }`), typed with `satisfies Record<string, ChatModel>`. `isListedModel` checks own keys only, and `modelName` looks a name up by id. The model menu and the model field iterate it with `Object.entries`.
+
+### Audio chat: voice notes, and Fast voice on calls (2026-10-22)
+
+- `convex/lib/audio.ts` calls the gateway's Chat Completions with an audio chat model (`openai/gpt-audio-mini`, from `AUDIO_CHAT_MODELS`), using `getServiceToken('ai-gateway')`, `modalities: ['text', 'audio']` and a streamed `pcm16` answer. Each assistant has its own voice (`audioVoiceFor`; Matilda's is `marin`). The AI SDK only returns text for these models, hence the direct request.
+- `speakWith` (in `models/voiceClips`) runs one spoken turn: the assistant's instructions without tools, the chat so far as text, and the recording; what you said is transcribed at the same time, and when that comes back empty the answer is cancelled.
+- Voice notes: a voice note button next to the mic in the chat box. The note is converted to a 16 kHz WAV in the browser, answered in voice, and the reply plays right away at your call volume. Both messages are saved to the chat with an audio player (`voiceClips`).
+- Fast voice: a switch on the call panel, saved on this browser. Turns go to the audio chat model in one step, streamed into the live turn in pieces (the first after 0.6 seconds of audio), saved to the chat and the call's transcript. It can't use tools, and says so when asked for something that needs one.
+- Live on `dev/matilda`: a spoken question as MP3 and as WAV with chat history got "2 plus 2 is 4." and "The capital of France is Paris." back in voice, first audio in about 0.9 seconds, about $0.0002 a turn.
+- Verified with unit tests (the stream with chunks split mid-line, gateway errors, the WAV wrappers, voices; a voice note answered and saved with clips only you can see; a silent note saved nothing; a Fast voice call turn in pieces). Not tried in the browser.

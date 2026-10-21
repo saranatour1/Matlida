@@ -29,6 +29,7 @@ import {
 } from './models/texts/table'
 import { threadsTable } from './models/threads/table'
 import { usageTable } from './models/usage/table'
+import { voiceClipsTable } from './models/voiceClips/table'
 import { usersTable } from './models/users/table'
 
 export default defineSchema({
@@ -49,6 +50,7 @@ export default defineSchema({
   pages: pagesTable,
   newsSettings: newsSettingsTable,
   usage: usageTable,
+  voiceClips: voiceClipsTable,
   reminders: remindersTable,
   shoppingDetails: shoppingDetailsTable,
   cartItems: cartItemsTable,

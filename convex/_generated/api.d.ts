@@ -29,9 +29,11 @@ import type * as api_texts from "../api/texts.js";
 import type * as api_threads from "../api/threads.js";
 import type * as api_usage from "../api/usage.js";
 import type * as api_users from "../api/users.js";
+import type * as api_voiceClips from "../api/voiceClips.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_audio from "../lib/audio.js";
 import type * as lib_channels from "../lib/channels.js";
 import type * as lib_commands from "../lib/commands.js";
 import type * as lib_decide from "../lib/decide.js";
@@ -95,6 +97,8 @@ import type * as models_usage_table from "../models/usage/table.js";
 import type * as models_users_auth from "../models/users/auth.js";
 import type * as models_users_functions from "../models/users/functions.js";
 import type * as models_users_table from "../models/users/table.js";
+import type * as models_voiceClips_functions from "../models/voiceClips/functions.js";
+import type * as models_voiceClips_table from "../models/voiceClips/table.js";
 
 import type {
   ApiFromModules,
@@ -124,9 +128,11 @@ declare const fullApi: ApiFromModules<{
   "api/threads": typeof api_threads;
   "api/usage": typeof api_usage;
   "api/users": typeof api_users;
+  "api/voiceClips": typeof api_voiceClips;
   crons: typeof crons;
   http: typeof http;
   "lib/ai": typeof lib_ai;
+  "lib/audio": typeof lib_audio;
   "lib/channels": typeof lib_channels;
   "lib/commands": typeof lib_commands;
   "lib/decide": typeof lib_decide;
@@ -190,6 +196,8 @@ declare const fullApi: ApiFromModules<{
   "models/users/auth": typeof models_users_auth;
   "models/users/functions": typeof models_users_functions;
   "models/users/table": typeof models_users_table;
+  "models/voiceClips/functions": typeof models_voiceClips_functions;
+  "models/voiceClips/table": typeof models_voiceClips_table;
 }>;
 
 /**
