@@ -176,11 +176,12 @@ const admit = internalMutation({
 })
 
 /**
- * Matilda's chat for messages from `spaceId`, started if needed: texts only
- * ever go to her. Null when the chat isn't linked.
+ * Keeps `text` for `find_texts` and returns Matilda's chat for messages from
+ * `spaceId`, started if needed: texts only ever go to her. Null when the
+ * chat isn't linked.
  */
 const forSpace = internalMutation({
-  args: { spaceId: v.string() },
+  args: { spaceId: v.string(), platform: v.string(), text: v.string() },
   returns: v.union(
     v.object({
       project: schema.doc('projects'),
@@ -190,7 +191,7 @@ const forSpace = internalMutation({
     }),
     v.null(),
   ),
-  handler: async (ctx, { spaceId }) => {
+  handler: async (ctx, { spaceId, platform, text }) => {
     const linked = await ctx.db
       .query('phoneLinks')
       .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
@@ -198,6 +199,14 @@ const forSpace = internalMutation({
     if (linked?.status !== 'linked') return null
     const project = await ctx.db.get('projects', linked.projectId)
     if (!project) return null
+    if (text.trim()) {
+      await ctx.db.insert('receivedTexts', {
+        userId: linked.ownerId,
+        projectId: project._id,
+        platform: linked.platform ?? platform,
+        text: text.trim(),
+      })
+    }
     const threadId = await ensureMainThread(ctx, project, null)
     const thread = await ctx.db
       .query('threads')
@@ -247,7 +256,11 @@ const answer = internalAction({
       project: Doc<'projects'>
       members: Array<Doc<'bots'>>
       threadId: string
-    } | null = await ctx.runMutation(internal.api.texts.forSpace, { spaceId })
+    } | null = await ctx.runMutation(internal.api.texts.forSpace, {
+      spaceId,
+      platform,
+      text,
+    })
     if (!linked) {
       return admitted
         ? "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
@@ -458,12 +471,39 @@ function textOf(message: unknown) {
     : ''
 }
 
+/** `userId`'s texts to the lead matching `query`, best first, optionally from one app. For `find_texts`. */
+const search = internalQuery({
+  args: {
+    userId: v.id('users'),
+    query: v.string(),
+    platform: v.optional(v.string()),
+  },
+  returns: v.array(
+    v.object({ platform: v.string(), text: v.string(), sentAt: v.number() }),
+  ),
+  handler: async (ctx, { userId, query, platform }) => {
+    const rows = await ctx.db
+      .query('receivedTexts')
+      .withSearchIndex('search_text', (q) => {
+        const mine = q.search('text', query).eq('userId', userId)
+        return platform ? mine.eq('platform', platform) : mine
+      })
+      .take(10)
+    return rows.map((r) => ({
+      platform: r.platform,
+      text: r.text.slice(0, 2000),
+      sentAt: r._creationTime,
+    }))
+  },
+})
+
 export const textsApi = {
   links,
   startLink,
   unlink,
   claim,
   forSpace,
+  search,
   admit,
   answer,
   respond,

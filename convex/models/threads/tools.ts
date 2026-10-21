@@ -258,6 +258,29 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         }))
       },
     }),
+    find_texts: createTool({
+      description:
+        'Search what the user has texted you from Telegram, WhatsApp or iMessage, by words in the message, optionally from one app.',
+      inputSchema: z.object({
+        query: z.string().trim().min(1).describe('Words to look for.'),
+        platform: z
+          .enum(['telegram', 'whatsapp_business', 'imessage'])
+          .optional()
+          .describe('Only messages from this app.'),
+      }),
+      execute: async (ctx, { query, platform }) => {
+        const found: Array<{ platform: string; text: string; sentAt: number }> =
+          await ctx.runQuery(internal.api.texts.search, {
+            userId: project.ownerId,
+            query,
+            platform,
+          })
+        return found.map((t) => ({
+          ...t,
+          sentAt: new Date(t.sentAt).toISOString(),
+        }))
+      },
+    }),
     set_reminder: createTool({
       description:
         'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
