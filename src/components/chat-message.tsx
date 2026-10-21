@@ -8,6 +8,7 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { DraftsPart } from '~/components/drafts-part'
+import { NewsPart, NewsSetupPart } from '~/components/news-part'
 import {
   PostPreviewPart,
   PostPreviewsPart,
@@ -123,6 +124,10 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
               return <CartPart key={part.toolCallId} part={part} />
             case 'tool-watch_price':
               return <WatchPart key={part.toolCallId} part={part} />
+            case 'tool-get_news':
+              return <NewsPart key={part.toolCallId} part={part} />
+            case 'tool-setup_news':
+              return <NewsSetupPart key={part.toolCallId} part={part} />
             case 'tool-set_reminder':
               return <ReminderPart key={part.toolCallId} part={part} />
             case 'tool-run_plan':

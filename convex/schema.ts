@@ -11,6 +11,7 @@ import { contactsTable } from './models/contacts/table'
 import { emailsTable } from './models/emails/table'
 import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
+import { newsSettingsTable } from './models/news/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
 import {
@@ -44,6 +45,7 @@ export default defineSchema({
   mailboxes: mailboxesTable,
   emails: emailsTable,
   plans: plansTable,
+  newsSettings: newsSettingsTable,
   usage: usageTable,
   reminders: remindersTable,
   shoppingDetails: shoppingDetailsTable,

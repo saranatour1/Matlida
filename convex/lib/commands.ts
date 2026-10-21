@@ -83,6 +83,12 @@ export const BUILT_IN_COMMANDS = [
       "Show the user's cart with show_cart. Say in one line how many items from how many stores, and that Buy opens each store's checkout with their details filled in.",
   },
   {
+    name: 'news',
+    description: 'What happened around the world',
+    markdown:
+      'Get the user\'s news with get_news. If they named topics after /news, pass them for this time. If it returns needsSetup, or they wrote "setup" or want to change what they follow, call setup_news with any topics they mentioned and say in one line to pick what they follow and press Save. Otherwise sum up the biggest story in two lines; the card shows the rest with sources. Never make up a story or a link.',
+  },
+  {
     name: 'today',
     description: 'Your day at a glance',
     markdown:
