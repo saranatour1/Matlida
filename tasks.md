@@ -66,6 +66,8 @@
 - [ ] Diagrams: see one render in the browser, and rank docs pages with Jev if word overlap misses
 - [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
 - [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
+- [x] Record every assistant's chat once, then stop guessing
+- [ ] Run `api/threads:recordMainThreads` on production after this deploys
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

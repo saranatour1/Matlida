@@ -125,7 +125,7 @@ test('each assistant has one chat, and messages keep going to it', async () => {
   )
 })
 
-test("the newest old chat becomes the one chat, and email's chats don't", async () => {
+test('the backfill records the old app chat behind any number of channel chats, once', async () => {
   const { t, asAda, projectId } = await setup()
   const userId = (await t.run((ctx) => ctx.db.query('users').first()))!._id
   const start = (title: string) =>
@@ -135,23 +135,61 @@ test("the newest old chat becomes the one chat, and email's chats don't", async 
       title,
       userId,
     })
-  const older = await start('Older')
-  const newer = await start('Newer')
-  const emailChat = await start('Email')
-  await t.run((ctx) =>
-    ctx.db.insert('mailboxes', {
+  const appChat = await start('The app chat')
+  // 20 newer chats, all from messaging apps and email: eleven linked
+  // phones, a mailbox, and the rest as a link's old bot chats.
+  const channel: Array<string> = []
+  for (let i = 0; i < 20; i++) channel.push(await start(`Channel ${i}`))
+  const botId = await asAda.mutation(api.api.bots.save, {
+    projectId,
+    name: 'Rex',
+    role: 'Researcher',
+    instructions: 'Find things out.',
+  })
+  await t.run(async (ctx) => {
+    for (let i = 0; i < 11; i++) {
+      await ctx.db.insert('phoneLinks', {
+        status: 'linked',
+        ownerId: userId,
+        projectId,
+        spaceId: `space-${i}`,
+        threadId: channel[i],
+        ...(i === 0 && {
+          botThreads: channel
+            .slice(13)
+            .map((threadId) => ({ botId, threadId })),
+        }),
+      })
+    }
+    await ctx.db.insert('mailboxes', {
       userId,
       projectId,
       handle: 'ada',
-      threadId: emailChat,
-    }),
-  )
+      threadId: channel[11],
+      inboxThreadId: channel[12],
+    })
+    await ctx.db.patch('projects', projectId, { threadId: undefined })
+  })
+  // Before the backfill, nothing is guessed.
+  expect(await asAda.query(api.api.threads.main, { projectId })).toBeNull()
 
-  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(newer)
+  await t.mutation(internal.api.threads.recordMainThreads, { cursor: null })
+  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(
+    appChat,
+  )
+  // Rex has no chat yet, so the backfill leaves him to start one.
+  expect(
+    await asAda.query(api.api.threads.main, { projectId, botId }),
+  ).toBeNull()
+
+  // Running it again changes nothing, and messages go to the recorded chat.
+  await t.mutation(internal.api.threads.recordMainThreads, { cursor: null })
   expect(
     await asAda.mutation(api.api.chat.sendMessage, { projectId, prompt: 'Hi' }),
-  ).toEqual(newer)
-  expect(older).not.toEqual(newer)
+  ).toEqual(appChat)
+  expect(await asAda.query(api.api.threads.main, { projectId })).toEqual(
+    appChat,
+  )
 })
 
 test("a bot from another workspace can't be messaged", async () => {

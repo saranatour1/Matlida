@@ -1,7 +1,7 @@
 import { createThread } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
-import { components } from '../../_generated/api'
+import { components, internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import {
   authedMutation,
@@ -44,49 +44,113 @@ export async function getOwnedThread(
   return project?.ownerId === userId ? thread : null
 }
 
-/**
- * An assistant's one thread: the bot's, or the lead's when `bot` is null.
- * Before one was recorded, its newest chat, leaving out the chats Telegram,
- * iMessage, WhatsApp and email used to get of their own and the email inbox.
- * Null when it has never been talked to.
- */
-export async function getMainThread(
-  ctx: Pick<QueryCtx, 'db'>,
+/** An assistant's one thread, as recorded on it: the bot's, or the lead's when `bot` is null. Null before its first message. */
+export function getMainThread(
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
 ) {
-  const recorded = bot ? bot.threadId : project.threadId
-  if (recorded) return recorded
-  const links = await ctx.db
-    .query('phoneLinks')
-    .withIndex('by_project', (q) => q.eq('projectId', project._id))
-    .take(10)
-  const mailbox = await ctx.db
-    .query('mailboxes')
-    .withIndex('by_user', (q) => q.eq('userId', project.ownerId))
-    .unique()
-  const channelThreads = new Set([
-    ...links.flatMap((l) =>
-      l.status === 'linked'
-        ? [l.threadId, ...(l.botThreads ?? []).map((t) => t.threadId)]
-        : [],
-    ),
-    mailbox?.threadId,
-    mailbox?.inboxThreadId,
-  ])
-  const chats = await ctx.db
+  return (bot ? bot.threadId : project.threadId) ?? null
+}
+
+/**
+ * The chat an assistant used before one was recorded: its newest chat that
+ * isn't one Telegram, iMessage, WhatsApp or email used to get of their own.
+ * Reads every candidate, with no cap, so an old app chat behind many
+ * channel chats is still found. Only `recordMainThreads` uses it.
+ */
+async function findOldMainThread(
+  ctx: Pick<QueryCtx, 'db'>,
+  project: Doc<'projects'>,
+  bot: Doc<'bots'> | null,
+  channelThreads: Set<string | undefined>,
+) {
+  for await (const chat of ctx.db
     .query('threads')
     .withIndex('by_project_and_bot', (q) =>
       q.eq('projectId', project._id).eq('botId', bot?._id).eq('kind', 'chat'),
     )
-    .order('desc')
-    .take(20)
-  return chats.find((c) => !channelThreads.has(c.threadId))?.threadId ?? null
+    .order('desc')) {
+    if (!channelThreads.has(chat.threadId)) return chat.threadId
+  }
+  return null
+}
+
+/** Threads the messaging apps and email used to get of their own. */
+async function getChannelThreads(
+  ctx: Pick<QueryCtx, 'db'>,
+  project: Doc<'projects'>,
+) {
+  const threads = new Set<string | undefined>()
+  for await (const link of ctx.db
+    .query('phoneLinks')
+    .withIndex('by_project', (q) => q.eq('projectId', project._id))) {
+    // Only linked chats ever had threads of their own.
+    if (link.status !== 'linked') continue
+    threads.add(link.threadId)
+    for (const t of link.botThreads ?? []) threads.add(t.threadId)
+  }
+  const mailbox = await ctx.db
+    .query('mailboxes')
+    .withIndex('by_user', (q) => q.eq('userId', project.ownerId))
+    .unique()
+  threads.add(mailbox?.threadId)
+  threads.add(mailbox?.inboxThreadId)
+  return threads
 }
 
 /**
+ * One-off, run once after deploy: records the one chat of every assistant
+ * that doesn't have one yet, from its old chats, so nobody's chat is lost
+ * to a new one. Ten workspaces a run, then it schedules the rest. Safe to
+ * run again: anything recorded is left as it is.
+ */
+const recordMainThreads = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { cursor }) => {
+    const { page, isDone, continueCursor } = await ctx.db
+      .query('projects')
+      .paginate({ numItems: 10, cursor })
+    for (const project of page) {
+      const channelThreads = await getChannelThreads(ctx, project)
+      if (!project.threadId) {
+        const threadId = await findOldMainThread(
+          ctx,
+          project,
+          null,
+          channelThreads,
+        )
+        if (threadId) await ctx.db.patch('projects', project._id, { threadId })
+      }
+      for await (const bot of ctx.db
+        .query('bots')
+        .withIndex('by_project_and_name', (q) =>
+          q.eq('projectId', project._id),
+        )) {
+        if (bot.threadId) continue
+        const threadId = await findOldMainThread(
+          ctx,
+          project,
+          bot,
+          channelThreads,
+        )
+        if (threadId) await ctx.db.patch('bots', bot._id, { threadId })
+      }
+    }
+    if (!isDone) {
+      await ctx.scheduler.runAfter(0, internal.api.threads.recordMainThreads, {
+        cursor: continueCursor,
+      })
+    }
+    return null
+  },
+})
+
+/**
  * An assistant's one thread, recorded on it, and started on first use with
- * `model` and `effort` when given.
+ * `model` and `effort` when given. Two first messages at once can't both
+ * start one: both read and write the same project or bot, so Convex runs
+ * them one after the other and the second finds the first's.
  */
 export async function ensureMainThread(
   ctx: MutationCtx,
@@ -95,7 +159,7 @@ export async function ensureMainThread(
   start: Pick<NewThread, 'model' | 'effort'> = {},
 ) {
   const threadId =
-    (await getMainThread(ctx, project, bot)) ??
+    getMainThread(project, bot) ??
     (await startThread(ctx, {
       projectId: project._id,
       kind: 'chat',
@@ -155,7 +219,7 @@ const main = authedQuery({
     const project = await getOwnedProject(ctx, ctx.userId, projectId)
     const bot = botId ? await ctx.db.get('bots', botId) : null
     if (botId && bot?.projectId !== projectId) return null
-    return await getMainThread(ctx, project, bot)
+    return getMainThread(project, bot)
   },
 })
 
@@ -252,6 +316,7 @@ const openWork = internalQuery({
 
 export const threadsApi = {
   openWork,
+  recordMainThreads,
   start,
   list,
   main,

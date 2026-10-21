@@ -51,13 +51,16 @@ test('the lead hands work to a bot in a sub-thread of the chat', async () => {
     instructions: 'You find sources.',
   })
   // Ivy joins the lead's chat before the first message.
-  await t.mutation(internal.api.threads.start, {
+  const leadChat = await t.mutation(internal.api.threads.start, {
     projectId,
     kind: 'chat',
     title: 'Matilda',
     userId: ada,
     memberIds: [ivy],
   })
+  await t.run((ctx) =>
+    ctx.db.patch('projects', projectId, { threadId: leadChat }),
+  )
 
   const chatId = await asAda.mutation(api.api.chat.sendMessage, {
     projectId,
