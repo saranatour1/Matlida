@@ -1,7 +1,7 @@
-import { createTool } from '@convex-dev/agent'
+import { createTool, listMessages } from '@convex-dev/agent'
 import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
-import { internal } from '../../_generated/api'
+import { components, internal } from '../../_generated/api'
 import {
   decisionModel,
   imageModel,
@@ -9,7 +9,7 @@ import {
   searchModel,
   summaryModel,
 } from '../../lib/ai'
-import { decide } from '../../lib/decide'
+import { decide, needsFollowUp } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
@@ -17,8 +17,9 @@ import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
+import type { Turn } from '../../lib/decide'
 import type { Doc } from '../../_generated/dataModel'
-import type { ToolCtx } from '@convex-dev/agent'
+import type { MessageDoc, ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
 
 const vSteps = z
@@ -33,6 +34,38 @@ const IMAGE_SIZES = {
   wide: '1536x1024',
   tall: '1024x1536',
 } as const
+
+/** The chat's last 30 messages for Jev, with which tools ran and which failed. */
+async function recentTurns(ctx: ToolCtx, threadId: string) {
+  const { page } = await listMessages(ctx, components.agent, {
+    threadId,
+    paginationOpts: { numItems: 30, cursor: null },
+  })
+  return page
+    .sort((a, b) => a.order - b.order || a.stepOrder - b.stepOrder)
+    .flatMap((m): Array<Turn> => {
+      const text = turnText(m).slice(0, 500)
+      if (!text) return []
+      return [{ role: m.message?.role === 'user' ? 'user' : 'assistant', text }]
+    })
+}
+
+function turnText({ message, text, status, error }: MessageDoc) {
+  const parts = Array.isArray(message?.content) ? message.content : []
+  return [
+    text?.trim(),
+    ...parts.map((part) =>
+      part.type === 'tool-call'
+        ? `[used ${part.toolName}]`
+        : part.type === 'tool-result' && part.output?.type.startsWith('error')
+          ? `[${part.toolName} failed]`
+          : '',
+    ),
+    status === 'failed' ? `[this reply failed: ${error ?? 'no reason'}]` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
 /** How long a post can be on each platform, in characters. Previews flag anything over. */
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
@@ -446,6 +479,25 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       }),
       execute: async (_ctx, input, { abortSignal }) =>
         await decide(decisionModel, input, abortSignal),
+    }),
+    needs_follow_up: createTool({
+      description:
+        'Check with Jev whether anything from earlier in this chat still needs a follow-up: a request you have not done or answered, a tool that failed, something you said you would do later, or a video or task still running. Use it when the user comes back after a while, at the start of a call, or when they ask what is left; then follow up on what it finds.',
+      inputSchema: z.object({}),
+      execute: async (ctx, _input, { abortSignal }) => {
+        if (!ctx.threadId) throw new Error('This only works in a chat.')
+        const [conversation, openWork] = await Promise.all([
+          recentTurns(ctx, ctx.threadId),
+          ctx.runQuery(internal.api.threads.openWork, {
+            threadId: ctx.threadId,
+          }),
+        ])
+        return await needsFollowUp(
+          decisionModel,
+          { conversation, openWork },
+          abortSignal,
+        )
+      },
     }),
     find_texts: createTool({
       description:

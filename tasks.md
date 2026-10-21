@@ -59,6 +59,7 @@
 - [x] Pictures: /image makes one with GPT Image 1, saved in Convex storage
 - [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
 - [x] Pictures and videos on calls, shown in the chat beside the call
+- [x] needs_follow_up: Jev checks what from earlier is still not done, in chats, texts and calls
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

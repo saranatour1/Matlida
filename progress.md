@@ -412,3 +412,10 @@
 - Safe to run again: if the action dies, a check 12 minutes later (past the action limit) marks the video failed. A file that arrives late still lands, and nothing undoes a finished video.
 - Verified with pnpm check, the tests (a video lands for its owner only, a failure says why, finishing converges) and two videos on `dev/matilda`. The first ran out of the default runtime's memory, and the 12-minute check marked it failed. The second, in Node, took 95 seconds: a 5.1 MB MP4 costing $0.80. Both were deleted afterwards.
 - The Models page lists it under "Images and video". Each video is a `media` row on the chat's costs.
+
+### Follow-ups with Jev (2026-10-22)
+
+- A `needs_follow_up` tool asks Jev, in one call, whether the assistant still owes you something from the chat, and which of your requests it is. It covers a request not done or answered, a tool that failed, a promise to do it later (like Fast voice's "ask me in the chat"), and work still open in the chat (videos being made or failed, tasks running, waiting or failed).
+- It reads the chat's last 30 messages, with which tools ran and failed, and `threads.openWork`. It works in chats, texts and calls, and in email drafts, since it only reads.
+- The assistant uses it when you come back after a while, at the start of a call, or when you ask what's left, then follows up on what it finds.
+- Verified with pnpm check, a test that both questions go to Jev in one call and the open request is named, and two live checks on `dev/matilda` in half a second: a video still being made needed a follow-up (0.97) and named that request; a question already answered didn't (0.03).
