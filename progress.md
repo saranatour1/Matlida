@@ -323,3 +323,10 @@
 - Discord previews look like Discord: a `#channel` header (the assistant suggests one), the name and today's time, on Discord's dark background.
 - `/preview` writes three versions for each platform named, or for LinkedIn, X and Discord when none is named, then says which it would pick. `/posts` shows two versions per platform.
 - Verified with a unit test of the set's schema, and the commands test (every tool a command names exists). Not clicked through in a browser (signed out).
+
+### /news: set up what you follow, then the briefing (2026-10-21)
+
+- `/news` with no settings shows a setup card (`setup_news`): topic chips (World, Middle East, Politics, Business, Tech, AI, Science, Health, Climate, Sports, Culture), your own topics, regions, what to leave out, stories per topic, and a daily time. "Save and get the news" saves and asks for the briefing.
+- `get_news` searches each topic side by side with the search model for the last 24 hours, and keeps only well-formed stories with web links (`convex/lib/news.ts`). The card shows them by topic with headline, one line and source, and Edit topics opens the settings inline. `/news Gaza and climate` asks once about those topics.
+- With a daily time, an hourly cron (`news.sendDaily`) posts the briefing in the lead's chat at that hour in your time zone, once a day.
+- Verified with unit tests (parsing, due time across time zones, the daily message, settings validation and ownership, the daily post once per day) and one live search on `dev/matilda` that returned real stories with sources for World and Tech.

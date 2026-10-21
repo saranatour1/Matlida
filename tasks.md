@@ -48,6 +48,8 @@
 - [ ] Shopping: our own UCP profile and a Shopify token for production rate limits
 - [ ] Shopping: pay on your behalf (Shopify trusted agent, or Stripe Link in the US and Canada)
 - [x] Price watches: /watch an item and hear when it drops
+- [x] Previews in sets with a Discord look
+- [x] /news: set up what you follow, a briefing card, and an optional daily briefing
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

@@ -230,6 +230,18 @@ export function everydayTools(project: Doc<'projects'>) {
           endsAt: Date.now() + minutes * 60_000,
         }),
     }),
+    setup_news: createTool({
+      description:
+        'Show a card where the user chooses the news they follow: topics, regions, what to skip, how many stories, and a time for a daily briefing. Use it the first time they ask for news and whenever they want to change it.',
+      inputSchema: z.object({
+        suggested: z
+          .array(z.string().max(40))
+          .max(8)
+          .optional()
+          .describe('Topics they mentioned, ticked to start with.'),
+      }),
+      execute: (_ctx, setup) => Promise.resolve(setup),
+    }),
     show_recipe: createTool({
       description:
         'Show a recipe as a card the user can scale to more or fewer servings and add to their Shopping list. Give amounts as numbers for the servings stated.',
@@ -266,4 +278,5 @@ export const CARD_TOOLS = new Set([
   'show_timeline',
   'start_timer',
   'show_cart',
+  'setup_news',
 ])

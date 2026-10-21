@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { decisionModel, researchModel, searchModel } from '../../lib/ai'
 import { decide } from '../../lib/decide'
+import { fetchNews } from '../../lib/news'
 import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { shoppingTools } from './shopping'
@@ -57,6 +58,41 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         })
         await record(ctx, 'search', query, result)
         return { answer: result.text }
+      },
+    }),
+    get_news: createTool({
+      description:
+        "The user's news: the most important stories from the last 24 hours on the topics and regions they follow, each with its source. Pass `topics` for a one-off, like a story they name. It returns needsSetup when they haven't chosen what to follow; then call setup_news. In the app the stories show as a card.",
+      inputSchema: z.object({
+        topics: z.array(z.string().trim().min(1).max(60)).max(6).optional(),
+      }),
+      execute: async (ctx, { topics }, { abortSignal }) => {
+        const settings: Doc<'newsSettings'> | null = await ctx.runQuery(
+          internal.api.news.forUser,
+          { userId: project.ownerId },
+        )
+        const follow = topics?.length ? topics : settings?.topics
+        if (!follow) {
+          return { needsSetup: true, date: Date.now(), sections: [] }
+        }
+        const sections = await fetchNews(
+          searchModel,
+          {
+            topics: follow,
+            regions: settings?.regions ?? [],
+            avoid: settings?.avoid,
+            perTopic: settings?.perTopic ?? 3,
+          },
+          abortSignal,
+        )
+        await Promise.all(
+          sections.map((s) => record(ctx, 'search', `News: ${s.topic}`, s)),
+        )
+        return {
+          needsSetup: false,
+          date: Date.now(),
+          sections: sections.map(({ topic, stories }) => ({ topic, stories })),
+        }
       },
     }),
     research: createTool({

@@ -17,4 +17,6 @@ crons.interval(
   internal.api.shopping.checkPrices,
 )
 
+crons.interval('daily news', { hours: 1 }, internal.api.news.sendDaily)
+
 export default crons
