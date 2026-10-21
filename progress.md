@@ -410,4 +410,5 @@
 - Pictures and videos work on calls too, from the call panel or hands-free in the chat: the reply goes to the assistant's chat, so the card shows there beside the call (`showsVia` in `everyday.ts`). Other cards still stay out of calls, and all of them stay out of texts and email. Fast voice has no tools, so it can't make them.
 - `/video` turns what you describe into a detailed prompt and says it takes a few minutes.
 - Safe to run again: if the action dies, a check 12 minutes later (past the action limit) marks the video failed. A file that arrives late still lands, and nothing undoes a finished video.
+- Verified with pnpm check, the tests (a video lands for its owner only, a failure says why, finishing converges) and two videos on `dev/matilda`. The first ran out of the default runtime's memory, and the 12-minute check marked it failed. The second, in Node, took 95 seconds: a 5.1 MB MP4 costing $0.80. Both were deleted afterwards.
 - The Models page lists it under "Images and video". Each video is a `media` row on the chat's costs.
