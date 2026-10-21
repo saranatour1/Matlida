@@ -1,13 +1,26 @@
 import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation } from 'convex/react'
-import { MicIcon, MicOffIcon, PhoneOffIcon } from 'lucide-react'
+import {
+  MicIcon,
+  MicOffIcon,
+  PhoneOffIcon,
+  Volume1Icon,
+  Volume2Icon,
+} from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 import type { Portrait } from '../../convex/lib/portraits'
 import { BotAvatar } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'
+import {
+  MAX_VOLUME,
+  clampVolume,
+  getCallVolume,
+  saveCallVolume,
+  useCallVolume,
+} from '~/hooks/use-call-volume'
 import { hear, startListening } from '~/lib/turn-taking'
 
 type Status =
@@ -23,6 +36,8 @@ export type CallTarget = {
 type Session = CallTarget & {
   stream: MediaStream
   audio: AudioContext
+  /** Replies play through this, so the volume bar can turn them up or down. */
+  gain: GainNode
   analyser: AnalyserNode
   recorder?: MediaRecorder
   /** The assistant's reply while it arrives and plays. */
@@ -275,7 +290,7 @@ export function useVoiceCall({
   function play(s: Session, reply: Reply, buffer: AudioBuffer, offset: number) {
     const source = s.audio.createBufferSource()
     source.buffer = buffer
-    source.connect(s.audio.destination)
+    source.connect(s.gain)
     source.onended = () => {
       // Not when paused or hung up: those clear `playing` first.
       if (reply.playing?.source !== source) return
@@ -344,7 +359,17 @@ export function useVoiceCall({
       const analyser = audio.createAnalyser()
       analyser.fftSize = 1024
       audio.createMediaStreamSource(stream).connect(analyser)
-      const s: Session = { ...target, stream, audio, analyser, ended: false }
+      const gain = audio.createGain()
+      gain.gain.value = getCallVolume()
+      gain.connect(audio.destination)
+      const s: Session = {
+        ...target,
+        stream,
+        audio,
+        gain,
+        analyser,
+        ended: false,
+      }
       session.current = s
       const first = await opening?.catch(() => null)
       if (session.current !== s) return
@@ -391,7 +416,25 @@ export function useVoiceCall({
     setMuted(!muted)
   }
 
-  return { status, error, muted, lines, start, hangUp, toggleMute }
+  const volume = useCallVolume()
+  /** Saved for next time, and applied to what's playing now, smoothed so it doesn't click. */
+  function setVolume(next: number) {
+    saveCallVolume(next)
+    const s = session.current
+    s?.gain.gain.setTargetAtTime(clampVolume(next), s.audio.currentTime, 0.03)
+  }
+
+  return {
+    status,
+    error,
+    muted,
+    lines,
+    volume,
+    start,
+    hangUp,
+    toggleMute,
+    setVolume,
+  }
 }
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -507,27 +550,79 @@ export function CallPanel() {
           </li>
         )}
       </ol>
-      <div className="flex justify-center gap-4 border-t p-4">
-        <Button
-          variant="outline"
-          className="size-12 rounded-full"
-          aria-label={call.muted ? 'Unmute' : 'Mute'}
-          disabled={call.status === 'idle' || call.status === 'starting'}
-          aria-pressed={call.muted}
-          onClick={call.toggleMute}
-        >
-          {call.muted ? <MicOffIcon /> : <MicIcon />}
-        </Button>
-        <Button
-          variant="destructive"
-          className="size-12 rounded-full"
-          aria-label="Hang up"
-          onClick={call.hangUp}
-        >
-          <PhoneOffIcon />
-        </Button>
+      <div className="flex flex-col gap-3 border-t p-4">
+        <VolumeBar volume={call.volume} onChange={call.setVolume} />
+        <div className="flex justify-center gap-4">
+          <Button
+            variant="outline"
+            className="size-12 rounded-full"
+            aria-label={call.muted ? 'Unmute' : 'Mute'}
+            disabled={call.status === 'idle' || call.status === 'starting'}
+            aria-pressed={call.muted}
+            onClick={call.toggleMute}
+          >
+            {call.muted ? <MicOffIcon /> : <MicIcon />}
+          </Button>
+          <Button
+            variant="destructive"
+            className="size-12 rounded-full"
+            aria-label="Hang up"
+            onClick={call.hangUp}
+          >
+            <PhoneOffIcon />
+          </Button>
+        </div>
       </div>
     </aside>
+  )
+}
+
+const VOLUME_STEP = 0.1
+
+/** How loud the assistant's replies are: quieter, a slider, louder, and the level. */
+function VolumeBar({
+  volume,
+  onChange,
+}: {
+  volume: number
+  onChange: (volume: number) => void
+}) {
+  const percent = `${Math.round(volume * 100)}%`
+  return (
+    <div className="flex items-center gap-2" role="group" aria-label="Volume">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Quieter"
+        disabled={volume <= 0}
+        onClick={() => onChange(volume - VOLUME_STEP)}
+      >
+        <Volume1Icon />
+      </Button>
+      <input
+        type="range"
+        min={0}
+        max={MAX_VOLUME}
+        step={0.05}
+        value={volume}
+        aria-label="Call volume"
+        aria-valuetext={percent}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-1.5 min-w-0 flex-1 cursor-pointer accent-primary"
+      />
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Louder"
+        disabled={volume >= MAX_VOLUME}
+        onClick={() => onChange(volume + VOLUME_STEP)}
+      >
+        <Volume2Icon />
+      </Button>
+      <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">
+        {percent}
+      </span>
+    </div>
   )
 }
 

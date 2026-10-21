@@ -350,3 +350,9 @@
 
 - After `preview_post` was renamed to `preview_posts`, the model still called `preview_post`, copying its own older messages. The call failed, and the saved failure had no post text, so the preview card crashed the chat (`Cannot read properties of undefined (reading 'length')`). `preview_post` is back as a one-post alias.
 - Every card in a message now sits in an error boundary: one that can't render says "This card couldn't be shown" and the rest of the chat keeps working.
+
+### A volume bar on calls (2026-10-22)
+
+- The call panel has a volume bar above Mute and Hang up: Quieter, a slider from silent to 150%, Louder, and the level. Replies play through a gain node, so a change applies to what's playing now, smoothed so it doesn't click.
+- The level is saved on this browser and kept in step across tabs; it starts each call where you left it.
+- Verified with a unit test of the clamping (0 to 150%, whole percents) and pnpm check. Not tried on a live call.
