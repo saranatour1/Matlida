@@ -7,6 +7,7 @@ import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { OAuthButtons } from '~/components/oauth-buttons'
 import { Button } from '~/components/ui/button'
+import { useSignInMethods } from '~/hooks/use-sign-in-methods'
 import { FieldError, FieldGroup, FieldSeparator } from '~/components/ui/field'
 import { authErrorMessage, invalid, signUpSchema } from '~/lib/auth'
 
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/_auth/sign-up')({
 })
 
 function SignUp() {
+  const methods = useSignInMethods()
   const { signUp } = useSignUpWithEmailPassword(api.api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
@@ -42,6 +44,8 @@ function SignUp() {
     )
   }
 
+  if (!methods) return <AuthPage title="Welcome to Matilda" />
+  const email = methods.includes('email')
   return (
     <AuthPage
       title="Welcome to Matilda"
@@ -51,41 +55,43 @@ function SignUp() {
         </>
       }
     >
-      <form action={submit} noValidate>
-        <FieldGroup>
-          <FormField
-            name="email"
-            label="Email"
-            type="email"
-            autoComplete="email"
-            defaultValue={state.email}
-            errors={state.fieldErrors?.email}
-            required
-          />
-          <FormField
-            name="password"
-            label="Password"
-            type="password"
-            autoComplete="new-password"
-            errors={state.fieldErrors?.password}
-            required
-          />
-          <FormField
-            name="confirmPassword"
-            label="Confirm password"
-            type="password"
-            autoComplete="new-password"
-            errors={state.fieldErrors?.confirmPassword}
-            required
-          />
-          {state.error && <FieldError>{state.error}</FieldError>}
-          <Button type="submit" disabled={isPending}>
-            Create account
-          </Button>
-        </FieldGroup>
-      </form>
-      <FieldSeparator>Or</FieldSeparator>
-      <OAuthButtons />
+      {email && (
+        <form action={submit} noValidate>
+          <FieldGroup>
+            <FormField
+              name="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              defaultValue={state.email}
+              errors={state.fieldErrors?.email}
+              required
+            />
+            <FormField
+              name="password"
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              errors={state.fieldErrors?.password}
+              required
+            />
+            <FormField
+              name="confirmPassword"
+              label="Confirm password"
+              type="password"
+              autoComplete="new-password"
+              errors={state.fieldErrors?.confirmPassword}
+              required
+            />
+            {state.error && <FieldError>{state.error}</FieldError>}
+            <Button type="submit" disabled={isPending}>
+              Create account
+            </Button>
+          </FieldGroup>
+        </form>
+      )}
+      {email && methods.length > 1 && <FieldSeparator>Or</FieldSeparator>}
+      <OAuthButtons methods={methods} />
     </AuthPage>
   )
 }

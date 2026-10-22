@@ -700,3 +700,12 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Checked: `pnpm check`, the tests, `wrangler deploy --dry-run` (1.37 MiB gzipped), and `pnpm dev` serving pages from Cloudflare's runtime. Not deployed yet: production Convex has no environment variables, and `convex.config.ts` requires them.
 - Workers Builds failed at `pnpm install --frozen-lockfile` with "packages field missing or empty": it ran pnpm 9.10.0, which needs a `packages:` list in `pnpm-workspace.yaml`. pnpm 12 doesn't. `package.json` now pins `packageManager: pnpm@12.6.0` (the lockfile records it), and Workers Builds needs the build variable `PNPM_VERSION=12.6.0`, the only way it picks pnpm's version.
 - Node is pinned to 24.22.1 (`.node-version`, which Workers Builds reads, plus `engines`), the patched 24.x from the October 21 Node security release. Workers Builds had used 24.21.0, which is open to its Brotli remote code execution bug (CVE-2026-111497).
+
+### Sign-in methods per deployment (2026-10-22)
+
+- A new optional `AUTH_METHODS` variable picks which sign-in methods a deployment offers, as a comma list of `email`, `google` and `github`. Unset means all of them, which is how dev stays. Production sets `github`.
+- Enforced on the server: for a method that's off, `convex/models/users/auth.ts` exports its functions as undefined, so Convex doesn't register them. Checked on dev with `github`: only the GitHub, sign-out and session functions existed, and `startPasswordRecovery` answered "Could not find function". Without the variable, all 13 came back.
+- Convex picks the functions at deploy time, so set or change `AUTH_METHODS` before deploying.
+- An unknown name, like a typo, throws when the code loads, so the deploy fails instead of locking everyone out.
+- The pages ask `users.signInMethods` and show only what's on. Sign-in and sign-up show just the GitHub button. Forgot-password and reset-password say there are no passwords and point back to sign in; the reset form doesn't mount at all, since it would call a function that's gone.
+- Verified with pnpm check, the tests (228), and every auth page on dev with `AUTH_METHODS=github`, then restored.

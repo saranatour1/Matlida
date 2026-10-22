@@ -37,6 +37,7 @@ type Env = {
   readonly AUTH_GOOGLE_CLIENT_ID: string;
   readonly AUTH_GOOGLE_CLIENT_SECRET: string;
   readonly AUTH_JWKS: string;
+  readonly AUTH_METHODS: string | undefined;
   readonly AUTH_PRIVATE_KEY: string;
   readonly MAIL_DOMAIN: string | undefined;
   readonly PHOTON_API_KEY: string | undefined;
