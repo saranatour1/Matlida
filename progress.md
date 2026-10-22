@@ -741,3 +741,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
+
+### Phone numbers redacted on screen (2026-10-22)
+
+- Every phone number shown in the chat, in your messages, the assistants' replies and quoted emails, appears as its last 4 digits, like "…0123" (`redactNumbers` in `convex/lib/phone.ts`). Only the display changes: the stored message keeps the full number, so the call tool can still check it, and Copy copies what you wrote.
+- The person called is named by that fragment: the call tool hands the model "…0123" in its result and errors, and asks it to use that in replies. On the call, the assistant isn't told the number, and is told never to say it.
+- It counts as a number when it starts with + or 00, or locally with 0, and has 8 to 15 digits, so dates, times and prices stay as they are.
+

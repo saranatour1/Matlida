@@ -154,18 +154,16 @@ const openSip = async (host: string) => {
 const instructionsFor = ({
   from,
   owner,
-  to,
   say,
   about,
 }: {
   from: string
   owner: string
-  to: string
   say: string
   about: string
 }) =>
   [
-    `You are ${from}, an AI assistant, on a phone call you placed to ${to} for ${owner}.`,
+    `You are ${from}, an AI assistant, on a phone call you placed for ${owner}. Never say their phone number.`,
     `Why you called: ${about}`,
     `You opened with: "${say}"`,
     'Speak naturally, in one or two short sentences at a time, with no lists or formatting.',
@@ -545,7 +543,7 @@ const placeCall = async (
   })
 
   const history: AudioChatTurn['history'] = []
-  const instructions = instructionsFor({ from, owner, to, say, about })
+  const instructions = instructionsFor({ from, owner, say, about })
   const addLine = (who: 'you' | 'them', text: string) =>
     ctx.runMutation(internal.api.calls.addLine, {
       callId: call._id,
