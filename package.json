@@ -12,7 +12,7 @@
     "deploy": "pnpm build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "format": "prettier --write .",
-    "lint": "pnpm run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "scripts/no-env-files.sh && pnpm run typecheck && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run"
   },
   "dependencies": {

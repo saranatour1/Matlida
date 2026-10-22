@@ -698,3 +698,8 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The production build gets `VITE_CONVEX_URL` (production Convex, `knowing-magpie-554`) from the environment: on the command line, or Workers Builds' build variables. No `.env*` file is committed; `.gitignore` covers them all.
 - Scripts: `pnpm run deploy` (build, then `wrangler deploy`), `pnpm preview`, `pnpm cf-typegen`. The old Node `start` script is gone. `.wrangler` and `.dev.vars` are ignored. pnpm may run `workerd`'s install script.
 - Checked: `pnpm check`, the tests, `wrangler deploy --dry-run` (1.37 MiB gzipped), and `pnpm dev` serving pages from Cloudflare's runtime. Not deployed yet: production Convex has no environment variables, and `convex.config.ts` requires them.
+
+### No env files in git, enforced (2026-10-22)
+
+- I committed `.env.production` (only the public production Convex URL) to the `claude/cloudflare` branch in #140, then removed it before the merge. It never reached master. The branch is deleted, and no branch on GitHub holds that commit; #140's page may still list it.
+- `scripts/no-env-files.sh` now runs first in `pnpm lint` (and so `pnpm check`). It fails if git tracks any `.env*` file, even one forced past `.gitignore`. AGENTS.md says so.
