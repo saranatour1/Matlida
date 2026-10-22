@@ -582,3 +582,8 @@
 - Limits: 9am–9pm in your zone, 3 a day, 2 hours from any other call or check-in, never right after you chatted. A missed check-in is left in the chat without another call. You can turn them off in Settings → Account.
 - Found while testing: a rate limiter fixed window with no `start` begins at a random time, so "3 a day" could let a 4th through. Pinned to UTC days.
 - Verified with pnpm check and the tests (207), and pushed to dev, where the hourly check is now running.
+
+### Command pills (2026-10-22)
+
+- Asked "what can you do?", an assistant calls `show_commands`, and the chat shows each command as a pill: your own first, then the built-ins it doesn't replace. Tapping one sends `/name`. The pills are off while a reply is running.
+- Verified with pnpm check and the tests.

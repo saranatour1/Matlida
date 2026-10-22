@@ -93,7 +93,7 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 - [x] PR 1: answer in the call bar, snooze, Jev on missed or declined calls, saved time zone
 - [x] PR 2: once vs recurring (`scheduler` vs `@convex-dev/crons`), Jev pause and stop, and pause/resume/stop in the Library
 - [x] PR 3: check-in calls on an hourly cron, with `shouldCallNow` and the daily limit
-- [ ] PR 4: "what can you do" as command pills (`show_commands`)
+- [x] PR 4: "what can you do" as command pills (`show_commands`)
 - [ ] PR 5: attachments through the agent component's file storage, with paste and drop
 - [ ] PR 6: edit and retry (`deleteMessageRange`, then reply again)
 - [ ] PR 7: study component (`convex/components/study/`): cards, quizzes, spaced review, and review calls

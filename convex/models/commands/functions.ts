@@ -182,6 +182,21 @@ const remove = authedMutation({
 })
 
 /** The project's command names, once its owner is checked. For `draft`. */
+/** Every command the workspace can run, its own first, for `show_commands`. */
+const described = internalQuery({
+  args: { projectId: v.id('projects') },
+  returns: v.array(v.object({ name: v.string(), description: v.string() })),
+  handler: async (ctx, { projectId }) => {
+    const own = await getCommands(ctx, projectId)
+    return [
+      ...own.map(({ name, description }) => ({ name, description })),
+      ...BUILT_IN_COMMANDS.filter(
+        (b) => !own.some((c) => c.name === b.name),
+      ).map(({ name, description }) => ({ name, description })),
+    ]
+  },
+})
+
 const names = internalQuery({
   args: { projectId: v.id('projects'), userId: v.id('users') },
   returns: v.array(v.string()),
@@ -311,6 +326,7 @@ export const commandsApi = {
   write,
   remove,
   names,
+  described,
   draft,
   sweepFiles,
 }

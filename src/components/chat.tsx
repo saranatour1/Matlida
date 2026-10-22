@@ -207,7 +207,15 @@ export function Chat({
                           key={message.key}
                           messageId={message.key}
                         >
-                          <ChatMessage message={message} />
+                          <ChatMessage
+                            message={message}
+                            onSend={
+                              isBusy
+                                ? undefined
+                                : (prompt) =>
+                                    React.startTransition(() => send(prompt))
+                            }
+                          />
                           {email && (
                             <EmailReply
                               email={email}
