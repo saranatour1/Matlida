@@ -33,7 +33,7 @@ type Status =
   'idle' | 'starting' | 'listening' | 'hearing' | 'thinking' | 'speaking'
 
 /** Who the call is with. `threadId` fills in when the first turn starts a chat. */
-export type CallTarget = {
+type CallTarget = {
   projectId: Id<'projects'>
   botId?: Id<'bots'>
   threadId?: string
@@ -93,7 +93,7 @@ type Opening = Promise<{
  * the clip as one turn, play the spoken reply, then listen again. Start it
  * from a click, so the browser allows the microphone and audio playback.
  */
-export function useVoiceCall({
+function useVoiceCall({
   onThread,
 }: {
   /** Called when the first turn starts a new chat. */

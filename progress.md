@@ -497,3 +497,7 @@
 - The deployment's own ceiling is the gateway's spend limit in the Convex dashboard; the component's global cap isn't set.
 - Verified with pnpm check, the tests (`lib/budget` is mocked by `test.budget.ts`, which hands back each test's mocked models) and live on `dev/matilda`: one call cost $0.0000096 from the gateway's own figure, and a one-cent cap refused the next with "You've used this month's AI budget".
 
+### Dead code (2026-10-22)
+
+- knip found two unused UI files (`card`, `collapsible`), three packages left from the WhatsApp removal (`@grpc/grpc-js`, `nice-grpc`, `nice-grpc-common`) and twelve exports nothing imports (`TaskCard`, `useVoiceCall`, the turn-taking thresholds, four types). The files and packages are gone; the exports are plain locals now. shadcn's spare exports stay.
+

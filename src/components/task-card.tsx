@@ -44,7 +44,7 @@ export function RunPlanPart({ part }: { part: RunPlanPart }) {
   return <TaskCard taskId={part.output.taskId as Id<'tasks'>} />
 }
 
-export function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
+function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
   const task = useQuery(api.api.tasks.get, { taskId })
   const answer = useMutation(api.api.tasks.answer)
   const cancel = useMutation(api.api.tasks.cancel)
