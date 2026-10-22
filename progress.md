@@ -773,3 +773,8 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Flagship is read by the Worker's binding (`NO_PHONE_CALLS_YET` in `wrangler.jsonc`), so Convex asks the Worker's `/api/flags` (`src/routes/api/flags.ts`) with a shared `FLAGS_SECRET`, and the user's Convex id as the targeting key. No Cloudflare API token is needed.
 - It fails closed: without the secret, or when the Worker doesn't answer, calls are refused. Dev points `FLAGS_URL` at the deployed Worker, since Convex can't reach localhost, or sets `FLAGS_ON=phone-calls` to turn calls on for everyone there.
 - The assistant is told to always try the call tool, since it kept repeating an earlier "calling is off" after calls were turned back on.
+
+### Databuddy's id in the code (2026-10-23)
+
+- Prod sent no analytics: Workers Builds never had `VITE_DATABUDDY_CLIENT_ID`, so Vite dropped Databuddy from the bundle. The client id is public (every page sends it), so it now lives in `src/lib/site.ts` as `DATABUDDY_CLIENT_ID`, and Databuddy is always mounted. No build variable to forget.
+

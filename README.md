@@ -63,10 +63,9 @@ On Workers Builds, set `VITE_CONVEX_URL` (and `VITE_SITE_URL`) under the Worker'
 
 And in the app's environment when deploying:
 
-| Name                       | What it's for                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `VITE_SITE_URL`            | Public URL, so the `og:image` link is absolute for link previews                                                               |
-| `VITE_DATABUDDY_CLIENT_ID` | Databuddy analytics (page views, clicks, web vitals, errors, and the events in `src/lib/analytics.ts`). Unset, nothing is sent |
+| Name            | What it's for                                                    |
+| --------------- | ---------------------------------------------------------------- |
+| `VITE_SITE_URL` | Public URL, so the `og:image` link is absolute for link previews |
 
 ### Models
 
