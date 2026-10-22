@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api, internal } from '../../_generated/api'
+import { api } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
@@ -154,16 +154,4 @@ test('/create works out what to make, with save_command among its tools', async 
   expect(sent).toContain('The user ran the /create command.')
   expect(sent).toContain('a reusable command (save_command)')
   expect(sent).toContain('"save_command"')
-})
-
-test('save_command finds the command it replaces by name', async () => {
-  const { t, projectId } = await setup()
-  const found = await t.query(internal.api.commands.byName, {
-    projectId,
-    name: 'standup',
-  })
-  expect(found.map((c) => c.name)).toEqual(['standup'])
-  expect(
-    await t.query(internal.api.commands.byName, { projectId, name: 'nope' }),
-  ).toEqual([])
 })

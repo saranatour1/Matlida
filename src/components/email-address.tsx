@@ -47,9 +47,9 @@ export function EmailAddress({ project }: { project: Doc<'projects'> }) {
     return (
       <div className="mt-2 flex flex-col gap-2 text-xs">
         <p>
-          Write to <span className="font-medium">{mailbox.address}</span> from{' '}
-          {mine.email}. Replies go only there. Start the subject or first line
-          with @name to reach another assistant.
+          Write to <span className="font-medium">{mailbox.address}</span> from
+          anywhere and it shows in {project.name}&rsquo;s chat with a draft
+          reply. Nothing is sent until you press Reply.
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -70,8 +70,8 @@ export function EmailAddress({ project }: { project: Doc<'projects'> }) {
       <div className="mt-2 flex flex-col gap-2 text-xs">
         <p>
           <span className="font-medium">{mailbox.address}</span> answers in
-          another workspace. Bring it here and {project.name} and the bots
-          answer it instead.
+          another workspace. Bring it here and {project.name} drafts the replies
+          instead.
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -95,8 +95,8 @@ export function EmailAddress({ project }: { project: Doc<'projects'> }) {
       }
     >
       <p>
-        Pick a handle. Mail from {mine.email} to it gets a reply from{' '}
-        {project.name}, or from a bot named with @name.
+        Pick a handle. Mail to it shows in the app, and {project.name} drafts a
+        reply you can edit and send.
       </p>
       <div className="flex items-center gap-2">
         <Input

@@ -3,10 +3,8 @@ import { Link, useParams, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
   ChevronDownIcon,
-  ChevronRightIcon,
   ChevronsUpDownIcon,
   LogOutIcon,
-  MessagesSquareIcon,
   PlusIcon,
   SettingsIcon,
 } from 'lucide-react'
@@ -22,11 +20,6 @@ import {
 } from '~/components/ui/avatar'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '~/components/ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,12 +37,8 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from '~/components/ui/sidebar'
 import { useProject } from '~/hooks/use-project'
@@ -102,8 +91,8 @@ function Hero({ project }: { project: Doc<'projects'> }) {
         params={{ projectId: project._id }}
         search={{}}
         onClick={() => setOpenMobile(false)}
-        aria-label={`New chat with ${project.name}`}
-        title={`New chat with ${project.name}`}
+        aria-label={`Chat with ${project.name}`}
+        title={`Chat with ${project.name}`}
       >
         <BotAvatar
           portrait={portraitOf(project)}
@@ -144,7 +133,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
   )
 }
 
-/** The lead first, then the bots, as cards. Each one opens to its recent chats. */
+/** The lead first, then the bots, as cards. Each one opens to its one chat. */
 function Assistants({ project }: { project: Doc<'projects'> }) {
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   return (
@@ -189,24 +178,11 @@ function Assistant({
   const search = useSearch({ strict: false })
   const { threadId } = useParams({ strict: false })
   const { setOpenMobile } = useSidebar()
-  const threads = useQuery(api.api.threads.listForBot, {
-    projectId,
-    botId: bot?._id,
-  })
-  const isActive =
-    search.bot === bot?._id &&
-    (!threadId || threads?.some((t) => t.threadId === threadId))
-  const latest = threads?.[0]
   return (
-    <Collapsible
-      key={String(isActive)}
-      defaultOpen={isActive}
-      render={<SidebarMenuItem />}
-      className="group/collapsible"
-    >
+    <SidebarMenuItem>
       <SidebarMenuButton
         size="lg"
-        isActive={isActive}
+        isActive={!threadId && search.bot === bot?._id}
         className="h-auto rounded-xl py-2 data-[active=true]:bg-sidebar-accent"
         render={
           <Link
@@ -216,7 +192,7 @@ function Assistant({
           />
         }
         onClick={() => setOpenMobile(false)}
-        title={`New chat with ${name}`}
+        title={`Chat with ${name}`}
       >
         <BotAvatar portrait={portrait} className="size-9" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -230,53 +206,11 @@ function Assistant({
             </Badge>
           </span>
           <span className="truncate text-xs text-muted-foreground">
-            {latest?.title ?? `Message ${name}`}
+            Message {name}
           </span>
         </span>
       </SidebarMenuButton>
-      {threads && threads.length > 0 && (
-        <>
-          <CollapsibleTrigger
-            render={<SidebarMenuAction />}
-            aria-label={`${name}'s chats`}
-            className="transition-transform group-data-[open]/collapsible:rotate-90"
-          >
-            <ChevronRightIcon />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {threads.map((t) => (
-                <SidebarMenuSubItem key={t._id}>
-                  <SidebarMenuSubButton
-                    isActive={
-                      search.thread === t.threadId || threadId === t.threadId
-                    }
-                    render={
-                      t.kind === 'chat' ? (
-                        <Link
-                          to="/p/$projectId"
-                          params={{ projectId }}
-                          search={{ bot: bot?._id, thread: t.threadId }}
-                        />
-                      ) : (
-                        <Link
-                          to="/p/$projectId/threads/$threadId"
-                          params={{ projectId, threadId: t.threadId }}
-                        />
-                      )
-                    }
-                    onClick={() => setOpenMobile(false)}
-                  >
-                    {t.kind === 'subagent' && <MessagesSquareIcon />}
-                    <span className="truncate">{t.title}</span>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              ))}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </>
-      )}
-    </Collapsible>
+    </SidebarMenuItem>
   )
 }
 

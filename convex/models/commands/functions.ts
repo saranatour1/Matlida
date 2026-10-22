@@ -8,10 +8,9 @@ import { languageModel } from '../../lib/ai'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
-import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
+import type { ActionCtx, QueryCtx } from '../../_generated/server'
 
 export const MAX_COMMANDS = 50
 
@@ -100,7 +99,54 @@ const commandArgs = {
     .max(200, 'Descriptions can be at most 200 characters.'),
 }
 
-/** Stores the command's markdown in Convex storage, then saves the command. */
+/** The markdown's SHA-256, in hex. */
+async function sha256(text: string) {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(text),
+  )
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+/**
+ * Stores the markdown, then saves the command: `id` edits that command,
+ * `replace` replaces the one with the same name, otherwise it's new. Safe to
+ * run again: saving what's already saved changes nothing and returns the same
+ * command. A file left by a run that stopped before saving is swept later.
+ */
+export async function saveCommand(
+  ctx: ActionCtx,
+  {
+    markdown,
+    ...command
+  }: {
+    projectId: Id<'projects'>
+    userId: Id<'users'>
+    id?: Id<'commands'>
+    replace?: boolean
+    name: string
+    description: string
+    markdown: string
+  },
+): Promise<Id<'commands'>> {
+  const storageId = await ctx.storage.store(
+    new Blob([markdown], { type: 'text/markdown' }),
+  )
+  try {
+    return await ctx.runMutation(internal.api.commands.write, {
+      ...command,
+      storageId,
+      hash: await sha256(markdown),
+    })
+  } catch (error) {
+    await ctx.storage.delete(storageId)
+    throw error
+  }
+}
+
+/** The Library editor's Save, and Save in Create with AI. */
 const save = zAuthedAction({
   args: {
     ...commandArgs,
@@ -110,46 +156,58 @@ const save = zAuthedAction({
       .min(1, 'Write what the command should do.')
       .max(20_000, 'Commands can be at most 20,000 characters.'),
   },
-  handler: async (ctx, { markdown, ...command }): Promise<Id<'commands'>> => {
-    const storageId = await ctx.storage.store(
-      new Blob([markdown], { type: 'text/markdown' }),
-    )
-    try {
-      return await ctx.runMutation(internal.api.commands.write, {
-        ...command,
-        userId: ctx.userId,
-        storageId,
-      })
-    } catch (error) {
-      await ctx.storage.delete(storageId)
-      throw error
-    }
-  },
+  handler: async (ctx, command): Promise<Id<'commands'>> =>
+    await saveCommand(ctx, { ...command, userId: ctx.userId }),
 })
 
-/** Saves a command whose markdown is already stored, and deletes the file it replaces. */
+/**
+ * Points a command at its newly stored markdown, deciding from what's saved
+ * now: when the command already has this name, description and markdown, the
+ * new file is dropped and nothing changes. Otherwise it edits `id`, replaces
+ * the command named `name` when `replace`, or adds a new one, and deletes the
+ * file it replaces. The name is looked up here, in the same transaction, so
+ * two saves of one name can't both think it's new.
+ */
 const write = internalMutation({
   args: {
     projectId: v.id('projects'),
     id: v.optional(v.id('commands')),
+    replace: v.optional(v.boolean()),
     name: v.string(),
     description: v.string(),
     storageId: v.id('_storage'),
+    hash: v.string(),
     userId: v.id('users'),
   },
   returns: v.id('commands'),
-  handler: async (ctx, { projectId, id, userId, ...command }) => {
+  handler: async (ctx, { projectId, id, replace, userId, ...command }) => {
     await getOwnedProject(ctx, userId, projectId)
     const commands = await getCommands(ctx, projectId)
-    const existing = commands.find((c) => c._id === id)
-    if (id && !existing) throw new ConvexError('Command not found.')
-    if (commands.some((c) => c.name === command.name && c._id !== id)) {
+    const named = commands.find((c) => c.name === command.name)
+    const target = id
+      ? commands.find((c) => c._id === id)
+      : replace
+        ? named
+        : undefined
+    if (id && !target) throw new ConvexError('Command not found.')
+    // Already saved, like a retry after a lost response.
+    const current = target || named
+    if (
+      current &&
+      current.name === command.name &&
+      current.description === command.description &&
+      current.hash === command.hash
+    ) {
+      await ctx.storage.delete(command.storageId)
+      return current._id
+    }
+    if (named && named._id !== target?._id) {
       throw new ConvexError(`There's already a /${command.name} command.`)
     }
-    if (existing) {
-      await ctx.db.patch('commands', existing._id, command)
-      await ctx.storage.delete(existing.storageId)
-      return existing._id
+    if (target) {
+      await ctx.db.patch('commands', target._id, command)
+      await ctx.storage.delete(target.storageId)
+      return target._id
     }
     if (commands.length >= MAX_COMMANDS) {
       throw new ConvexError(
@@ -160,11 +218,12 @@ const write = internalMutation({
   },
 })
 
+/** Deletes a command. Deleting one that's already gone does nothing. */
 const remove = authedMutation({
   args: { id: v.id('commands') },
   handler: async (ctx, { id }) => {
     const command = await ctx.db.get('commands', id)
-    if (!command) throw new ConvexError('Command not found.')
+    if (!command) return
     await getOwnedProject(ctx, ctx.userId, command.projectId)
     await removeComments(ctx, command.projectId, 'command', id)
     await ctx.db.delete('commands', id)
@@ -246,13 +305,56 @@ const draft = zAuthedAction({
   },
 })
 
-/** The project's command called `name`, as a list of at most one. For the `save_command` tool. */
-const byName = internalQuery({
-  args: { projectId: v.id('projects'), name: v.string() },
-  returns: v.array(schema.doc('commands')),
-  handler: async (ctx, { projectId, name }) => {
-    const command = await getCommand(ctx, projectId, name)
-    return command ? [command] : []
+const HOUR = 60 * 60_000
+
+/**
+ * Deletes files nothing keeps. Every file kept past an hour is a command's
+ * markdown (call audio and recordings are deleted within minutes), so a file
+ * from one to two hours ago that no command points to was left by a run that
+ * stopped halfway: a command save, a call piece or a recording. Hourly from
+ * `crons.ts`; a file it already deleted is simply gone the next time, and a
+ * save still running is too new to be looked at. Anything new that keeps
+ * files longer has to be checked here too.
+ * ponytail: files from an hour the cron missed stay; widen the window if that matters.
+ */
+/**
+ * Whether the sweep may delete a file nothing points to: command markdown
+ * and call audio, which are only kept by a row. Pictures, videos and
+ * anything else are kept. Files with no type (only in tests) count as left over.
+ */
+export function sweepable({ contentType }: { contentType?: string }) {
+  return (
+    !contentType ||
+    contentType === 'text/markdown' ||
+    contentType.startsWith('audio/')
+  )
+}
+
+const sweepFiles = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const now = Date.now()
+    const files = await ctx.db.system
+      .query('_storage')
+      .withIndex('by_creation_time', (q) =>
+        q
+          .gte('_creationTime', now - 2 * HOUR - 10 * 60_000)
+          .lt('_creationTime', now - HOUR),
+      )
+      .take(500)
+    let deleted = 0
+    for (const file of files) {
+      if (!sweepable(file)) continue
+      const used = await ctx.db
+        .query('commands')
+        .withIndex('by_storageId', (q) => q.eq('storageId', file._id))
+        .first()
+      if (used) continue
+      await ctx.storage.delete(file._id)
+      deleted++
+    }
+    return deleted
   },
 })
 
@@ -264,5 +366,5 @@ export const commandsApi = {
   remove,
   names,
   draft,
-  byName,
+  sweepFiles,
 }

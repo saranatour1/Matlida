@@ -27,7 +27,7 @@ const list = authedQuery({
     const facts = {
       env: presentEnv(),
       linked: links.flatMap((link) =>
-        link.status === 'linked' ? [link.platform ?? 'imessage'] : [],
+        link.status === 'linked' && link.platform ? [link.platform] : [],
       ),
       mailbox:
         mailbox && env.MAIL_DOMAIN

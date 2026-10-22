@@ -5,6 +5,7 @@ import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { chatModel, languageModel } from '../../lib/ai'
 import { EFFORTS, MODELS } from '../../lib/models'
+import { showsVia } from './everyday'
 import { assistantTools } from './tools'
 import type { Doc } from '../../_generated/dataModel'
 import type { UsageHandler } from '@convex-dev/agent'
@@ -30,7 +31,7 @@ const STYLE: Record<Via, string> = {
   chat: 'Keep replies concise and use markdown.',
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
-    'You are replying by email: plain text with no markdown, short paragraphs, no subject line and no signature.',
+    'You are drafting a reply to an email, which the user checks and sends: plain text with no markdown, short paragraphs, no subject line and no signature. Look up earlier emails with find_emails when they would help.',
   voice:
     'You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more.',
 }
@@ -76,7 +77,7 @@ function leadInstructions(
 ${bots.map((b) => `- ${b.name}: ${b.role}`).join('\n')}
 
 For anything beyond small talk, hand the work to the relevant bots with ask_bot. Ask several in parallel when the topic spans their areas. Then combine what they said into one clear answer, crediting them by name.`
-    : 'You have no bots yet. Answer yourself, and suggest the user adds some on the Bots page.'
+    : 'No bots are in this chat, so answer yourself. The user can add bots to it from the chat header.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
 ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(
@@ -103,6 +104,21 @@ function botInstructions(
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
 ${bot.instructions}${team}
 ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
+}
+
+/**
+ * What an assistant answers with, for replies made outside `createAgent`
+ * like audio chat, which can't use tools: no bots to ask, and a line saying so.
+ */
+export function instructionsFor(
+  project: Project,
+  bot: Bot | null,
+  options: ReplyOptions,
+) {
+  const base = bot
+    ? botInstructions(project, bot, [], options)
+    : leadInstructions(project, [], options)
+  return `${base}\n\nYou can't use tools on this answer. If they ask for something that needs one, like a reminder, a search or a list, say you'll do it when they ask in the chat.`
 }
 
 /** The gateway model for `id`, or the default when it's unset or the default itself. */
@@ -196,6 +212,27 @@ function askTools(
   }
 }
 
+/**
+ * Tools that only read or show, the only ones an email draft gets: an
+ * email's sender can be forged, so it can't save, schedule, run or send.
+ * `everyday.test.ts` checks each name is a real tool.
+ */
+export const READ_ONLY_TOOLS = [
+  'web_search',
+  'research',
+  'find_contact',
+  'find_emails',
+  'find_texts',
+  'decide',
+  'convex_docs',
+  'needs_follow_up',
+  'read_page',
+  'show_chart',
+  'preview_post',
+  'preview_posts',
+  'ask_bot',
+]
+
 /** Who answers one reply, and how. See `createAgent`. */
 export type AgentOptions = ReplyOptions & {
   /** The bot answering. Unset means the project's lead. */
@@ -204,8 +241,8 @@ export type AgentOptions = ReplyOptions & {
   members?: Array<Bot>
   /** For a bot asked by another assistant: whose chat its usage is charged to. */
   chargeTo?: string
-  /** False for a bot asked by another assistant: it only answers, with no tools. */
-  tools?: boolean
+  /** False for a bot asked by another assistant: it only answers, with no tools. A list keeps only those tools. */
+  tools?: boolean | Array<string>
 }
 
 /**
@@ -230,10 +267,16 @@ export function createAgent(
       ? botInstructions(project, bot, members, options)
       : leadInstructions(project, members, options),
     tools: tools
-      ? {
-          ...assistantTools(project, name),
-          ...askTools(project, members, name, EFFORTS[effort].botCalls),
-        }
+      ? Object.fromEntries(
+          Object.entries({
+            ...assistantTools(project, name),
+            ...askTools(project, members, name, EFFORTS[effort].botCalls),
+          }).filter(
+            ([tool]) =>
+              (tools === true || tools.includes(tool)) &&
+              showsVia(tool, options.via),
+          ),
+        )
       : {},
     stopWhen: tools ? stepCountIs(EFFORTS[effort].steps) : undefined,
     usageHandler: recordUsage(project, model, chargeTo),

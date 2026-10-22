@@ -6,6 +6,7 @@ import {
   CopyIcon,
   CpuIcon,
   GlobeIcon,
+  ImageIcon,
   LinkIcon,
   ListChecksIcon,
   MessageSquareIcon,
@@ -47,6 +48,7 @@ const KIND_ICON = {
   research: TelescopeIcon,
   compute: CpuIcon,
   voice: MicIcon,
+  media: ImageIcon,
 } as const
 
 /** The right sidebar for a chat: who you're talking to, with Details, Library and Costs tabs. */
@@ -83,7 +85,7 @@ export function AssistantPanel({
   )
   const computeMs = rows.reduce((sum, r) => sum + (r.computeMs ?? 0), 0)
   const others = (bots ?? []).filter((b) => b._id !== bot?._id)
-  const memberIds = thread?.memberIds ?? (bot ? [] : others.map((b) => b._id))
+  const memberIds = thread?.memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
   const name = bot?.name ?? project.name
 

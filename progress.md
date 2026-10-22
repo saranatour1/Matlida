@@ -241,3 +241,236 @@
 - `preview_post` lays a post out roughly as LinkedIn, X, Reddit or Discord show it, with the character count against the platform's limit, flagged in red when it's over. It posts nothing.
 - New built-in commands: `/chart` (chart what you ask for, from your numbers or looked up with a source, never invented) and `/preview` (draft a post and preview it, LinkedIn when no platform is named). `/posts` now previews each draft too.
 - Verified with unit tests: the chart schema accepts a good chart and refuses mismatched values or a multi-series pie, and the commands name their tools. The components weren't driven in a browser.
+
+### One chat per assistant, and no members by default (2026-10-21)
+
+- Matilda and each bot have one chat (`projects.threadId`, `bots.threadId`). The app, Telegram, email and calls all talk there; `threads.main` finds it, and the first message starts it. A workspace from before keeps its newest chat as the one chat; older chats stay in the database but leave the sidebar. Email from other people still goes to the Email inbox, now a sidebar link.
+- No bots are members of a chat until you add them from the chat header. Before, the lead's chats had every bot. Tasks hand steps only to the chat's members.
+- Gone: "New chat", the per-assistant chat lists in the sidebar, "New group chat" in search, and `?thread=` links.
+- Verified with unit tests: one chat per assistant that messages keep going to, the newest old chat reused but not email's, no members by default, Telegram and email into the one chat. The UI wasn't driven in a browser.
+
+### Only Matilda answers email and texts, and you reply to email yourself (2026-10-21)
+
+- Texts on iMessage, WhatsApp and Telegram only ever go to the lead, in her one chat. `@name` no longer switches to a bot, and "who" is gone.
+- Email no longer replies on its own. All email shows in the lead's chat: yours as your message, anyone else's as a quoted email, each with a draft reply. Others' email is drafted with no tools and no chat history. The Email inbox chat and its sidebar link are gone. Under each email, Reply opens the draft to edit, and Send mails it in the email's thread, to its sender only, once. The sent reply shows in the chat.
+- `emails` rows now keep what a reply needs: the chat and message it was posted as, the sender, subject, Photon thread and mailbox user, the draft and when you replied.
+- Verified with unit tests: drafts for yours and others' email with nothing sent, your edited reply sent to the sender only and only once, nobody else can reply, a failed send stays unreplied, spam and over-the-limit email not drafted, and texts to the lead even with `@name`. The Reply dialog wasn't driven in a browser.
+- `find_emails` searches your earlier emails, yours and other people's, by words in the subject or text, optionally from one address (`emails.search`, a search index over the email's text, now stored on its row). Drafts use it for context: yours get it with the other read-only tools only (search, research, contacts, charts, previews, bots), since an email's sender can be forged; others' get only `find_emails`. The lead can use it in chat too. Emails from before this change aren't searchable.
+
+### find_texts: search what you texted the lead (2026-10-21)
+
+- What you text the lead from a linked iMessage, WhatsApp or Telegram chat is now kept in `receivedTexts` (not link codes, and not texts from unlinked chats), with a search index on the text.
+- `find_texts` searches it by words, optionally from one app. The lead has it in chat and in drafts of replies to your email. Drafts of replies to other people's email don't, so a stranger's email can't pull your texts into a draft. Texts from before this change aren't searchable.
+- Verified with a unit test: a linked chat's texts are found by words and app, the link code and texts sent before linking aren't kept, and another user's search finds nothing.
+
+### Telegram is the only texting app (2026-10-21)
+
+- iMessage and WhatsApp are gone. The Spectrum SDK went with them: its component, `/spectrum/webhook`, the outbox sender, the `SPECTRUM_*` and `TELEGRAM_BOT_TOKEN` env vars, and the `@spectrum-ts/*` and `@photon-ai/advanced-imessage` packages, plus the OpenTelemetry override they needed. Telegram already ran on Photon's platform API (`/photon/webhook` and the polling check), which stays.
+- Reminders text only a linked Telegram chat. Old iMessage and WhatsApp links stay on the Messaging page, marked as no longer working, so they can be unlinked.
+- `find_texts` searches Telegram only, with no app filter. Connections, Messaging, Settings, the README and the setup guide say Telegram only.
+- Verified with the unit tests (texts, the Photon webhook and channels) and the dev deployment, which took the removal of the component.
+
+### decide: Jev picks between options (2026-10-21)
+
+- New `decide` tool: the lead (or a bot) gives the question, the options with optional descriptions, and the context that matters, and Jev, TypeSafe's judgment model, answers one choice question through the Convex AI gateway (`convexGateway.evaluationModel('~typesafe/jev-latest')` with the AI SDK's `experimental_decide`, in `convex/lib/decide.ts`). No TypeSafe key: the gateway bills it like the other models. The gateway's decisions endpoint is alpha.
+- It returns the pick and each option's probability; when the pick is under 0.5, the assistant says it's close and names the runner-up. It's read-only, so email drafts can use it.
+- New built-in `/decide` command that uses it. The chat shows a card with the question and each option's odds.
+- Verified with unit tests against a fake decision model, and one live call on `dev/matilda` through the gateway (train over flight for someone who hates airports, 1.0 to 0.0).
+
+### Everyday commands, part 1: lists and writing (2026-10-21)
+
+- Researched what people use assistants for day to day: OpenAI's usage study (practical guidance, looking things up and writing are 78% of messages; two-thirds of writing is reworking the user's own text), Anthropic's Economic Index (recipes peak around 6pm; itineraries and workouts are common), household assistants (meals, groceries, to-dos, reminders) and Raycast's daily commands.
+- New cards in the chat, each a tool in `convex/models/threads/everyday.ts`:
+  - **Checklist**: plans and lists render live in the chat, with sections, ticking and Clear done. `add_to_list` keeps one list per name ("To-do", "Shopping list", "Packing: Lisbon"), started on first use.
+  - **Drafts** (`show_drafts`): up to four versions, each with Copy.
+  - **Table** (`show_table`): rows and columns, one row highlighted, a note for sources.
+  - **Recipe** (`show_recipe`): change the servings and the amounts scale; Add to shopping list puts the ingredients on the Shopping list under the recipe's name.
+- New built-in commands: `/todo`, `/shopping`, `/meals`, `/recipe`, `/pack`, `/rewrite`, `/reply`, `/translate`, `/tldr`, `/compare`, `/workout`, `/explain`. `/create` can make lists too.
+- Texts, calls and emails don't get the card-only tools, so they answer in words.
+- Verified with unit tests: lists by name, sections, ticking, clearing and ownership; a card adding to your list; every tool a built-in command names exists; cards left out of texts and calls; recipe amounts. The cards weren't clicked through in a browser (signed out).
+
+### Everyday commands, part 2: today, time and money (2026-10-21)
+
+- New cards and tools in `convex/models/threads/everyday.ts`:
+  - **Today** (`get_today`, data from `projects.today`): what needs you (messages waiting for your OK, tasks to start, emails from the last three days nobody replied to), reminders in the next 24 hours, what's running, and lists with things left.
+  - **Timeline** (`show_timeline`): a day in time blocks or a trip day by day, grouped.
+  - **Settle up** (`split_costs`): who pays whom, and each person's paid and share. The math is in `convex/lib/everyday.ts`, in cents, with the fewest payments.
+  - **Time zones** (`compare_times`): the time in each place, and a 24-hour strip per place with working hours filled and the hours everyone overlaps ringed. Done with `Intl` in code; zones are checked as real IANA zones.
+  - **Focus timer** (`start_timer`): a ring counting down from when it was set, so a reload keeps time.
+- New built-in commands: `/today`, `/dayplan`, `/trip`, `/split`, `/meet`, `/focus` and `/convert`.
+- Verified with unit tests: splitting (odd cents, subsets, fewest payments, nobody owing), time zones (local times, day shift, overlaps, bad zones), the Today data (only what's due, yours, unreplied and open), and timeline and timer kept out of texts and calls. The cards weren't clicked through in a browser (signed out).
+
+### Shopping: find things, fill a cart, buy at the store (2026-10-21)
+
+- Researched how an assistant can buy for someone: OpenAI and Stripe's Agentic Commerce Protocol, Google and Shopify's Universal Commerce Protocol, Stripe's Link wallet for agents (US and Canada only, with a spend request the user approves) and Shopify's agent docs. Shopify's Global Catalog searches every Shopify store and works anonymously at a low rate; its cart links take the buyer's email and shipping address. Paying on the user's behalf needs Shopify's trusted-agent tier or Link, so the user pays on the store's checkout for now.
+- `convex/lib/shopify.ts`: `searchProducts`, `productOptions` and `lookupVariant` over the Global Catalog, and `checkoutLink`, which builds a store's cart link with the user's details.
+- Shopping details in Settings (`shoppingDetails`): name, email, address, a two-letter country code and notes on sizes and preferences. Searches only show what ships to that country, and the assistants read the notes. No card details.
+- Tools: `find_products` (a card of product tiles with price, list price, rating, store and Add to cart), `product_options` (sizes and colors), `add_to_cart` and `show_cart` (a live cart by store, with quantities, totals, "Buy at {store}", which opens that store's checkout with the details filled in, and "Bought it, clear"). Items are always checked against the catalog when added, so prices and links are real.
+- Commands: `/shop`, `/gift` and `/cart`.
+- Verified with unit tests (catalog parsing and filters, lookup, checkout links, details validation and ownership, the cart by store, quantities and clearing) and one live run on `dev/matilda`: a real search, lookup and checkout link from Shopify. The cards weren't clicked through in a browser (signed out).
+- ponytail: requests are anonymous with Shopify's example agent profile. For production, host our own UCP profile and send a Dev Dashboard token.
+
+### Price watches (2026-10-21)
+
+- `watch_price` watches a variant from the catalog and records the price now and the one you want (`priceWatches`). An hourly cron (`shopping.checkPrices`) looks up each watch about once a day. When the price is at or under the target, it posts in the chat that set it, with a link; when the store stops selling it, it says so and stops. Out of stock keeps watching.
+- The chat shows a watch card: the price now, your target, the status and Stop.
+- New built-in command: `/watch`.
+- Verified with a unit test: a watch isn't checked again within a day, then a drop and a gone item each post in the chat and end the watch.
+
+### Previews come in sets, with Discord (2026-10-21)
+
+- `preview_posts` replaces `preview_post`: one call shows a set, two or three labelled versions per platform (like Punchy, Story, Question), with a tab per platform and Copy on each. Older chats still show their one-post previews.
+- Discord previews look like Discord: a `#channel` header (the assistant suggests one), the name and today's time, on Discord's dark background.
+- `/preview` writes three versions for each platform named, or for LinkedIn, X and Discord when none is named, then says which it would pick. `/posts` shows two versions per platform.
+- Verified with a unit test of the set's schema, and the commands test (every tool a command names exists). Not clicked through in a browser (signed out).
+
+### /news: set up what you follow, then the briefing (2026-10-21)
+
+- `/news` with no settings shows a setup card (`setup_news`): topic chips (World, Middle East, Politics, Business, Tech, AI, Science, Health, Climate, Sports, Culture), your own topics, regions, what to leave out, stories per topic, and a daily time. "Save and get the news" saves and asks for the briefing.
+- `get_news` searches each topic side by side with the search model for the last 24 hours, and keeps only well-formed stories with web links (`convex/lib/news.ts`). The card shows them by topic with headline, one line and source, and Edit topics opens the settings inline. `/news Gaza and climate` asks once about those topics.
+- With a daily time, an hourly cron (`news.sendDaily`) posts the briefing in the lead's chat at that hour in your time zone, once a day.
+- Verified with unit tests (parsing, due time across time zones, the daily message, settings validation and ownership, the daily post once per day) and one live search on `dev/matilda` that returned real stories with sources for World and Tech.
+
+### Pages: reports, memos and dashboards you edit together (2026-10-21)
+
+- New `pages` table and a page at `/p/:projectId/pages/:pageId`: the title, the kind, headline numbers for a dashboard, the markdown in the editor you already use for instructions, and Save. Pages are listed in the Library.
+- Tools: `write_page` (new, or the whole page replaced), `read_page` (the page with your edits, before an assistant changes it) and `keep_page_updated` (every day or week, following instructions). An hourly cron (`pages.refreshDue`) has the lead update each due page in its own thread under the chat that made it, with tools that read and look things up; the page's "Keep it up to date" form sets the same thing.
+- The chat shows a live page card (title, kind, numbers, first lines, Open the page) and a line when a page starts or stops being kept up to date.
+- Dashboards use Arc's metric card and sparkline (uiarc.dev, MIT), copied into `src/components/ui/arc` with `motion` 14.2.0. Arc's own theme uses the same names as shadcn's (`--background`, `--accent`), so instead of importing it, `arc.css` maps the tokens these components read onto this app's theme under `.arc`.
+- Commands: `/report`, `/memo` and `/dashboard`.
+- Roles: the page is an `article` with its title as its label, the numbers a labelled list, saves and errors are `status` and `alert`, and the chat card is a labelled section.
+- Verified with unit tests (write, your edits read back, ownership, another workspace refused; a page kept up to date is due after its period, refreshed by the lead in a sub-thread, then not due). Not clicked through in a browser yet.
+
+### Roles on the chat cards, and a crash fix (2026-10-21)
+
+- A bot's card crashed the chat when a saved `ask_bot` result came back without its input (`Cannot read properties of undefined (reading 'task')`). It now shows the Task line only when there is one. Also as its own PR against master. The decide card read its question the same way and is guarded too.
+- Every chat card is now a labelled region (`section` with an `aria-label`: the list, recipe, timeline or page title, "Your cart", "Settle up" and so on), loading lines are `role="status"`, product grids are lists of items, and tables have a caption.
+
+### No card can crash the chat (2026-10-21)
+
+- After `preview_post` was renamed to `preview_posts`, the model still called `preview_post`, copying its own older messages. The call failed, and the saved failure had no post text, so the preview card crashed the chat (`Cannot read properties of undefined (reading 'length')`). `preview_post` is back as a one-post alias.
+- Every card in a message now sits in an error boundary: one that can't render says "This card couldn't be shown" and the rest of the chat keeps working.
+
+### A volume bar on calls (2026-10-22)
+
+- The call panel has a volume bar above Mute and Hang up: Quieter, a slider from silent to 150%, Louder, and the level. Replies play through a gain node, so a change applies to what's playing now, smoothed so it doesn't click.
+- The level is saved on this browser and kept in step across tabs; it starts each call where you left it.
+- Verified with a unit test of the clamping (0 to 150%, whole percents) and pnpm check. Not tried on a live call.
+
+### Models as an object map (2026-10-22)
+
+- `CHAT_MODELS` is now an object keyed by gateway id (`{ 'anthropic/claude-sonnet-5': { name, maker, note }, … }`), typed with `satisfies Record<string, ChatModel>`. `isListedModel` checks own keys only, and `modelName` looks a name up by id. The model menu and the model field iterate it with `Object.entries`.
+
+### Audio chat: voice notes, and Fast voice on calls (2026-10-22)
+
+- `convex/lib/audio.ts` calls the gateway's Chat Completions with an audio chat model (`openai/gpt-audio-mini`, from `AUDIO_CHAT_MODELS`), using `getServiceToken('ai-gateway')`, `modalities: ['text', 'audio']` and a streamed `pcm16` answer. Each assistant has its own voice (`audioVoiceFor`; Matilda's is `marin`). The AI SDK only returns text for these models, hence the direct request.
+- `speakWith` (in `models/voiceClips`) runs one spoken turn: the assistant's instructions without tools, the chat so far as text, and the recording; what you said is transcribed at the same time, and when that comes back empty the answer is cancelled.
+- Voice notes: a voice note button next to the mic in the chat box. The note is converted to a 16 kHz WAV in the browser, answered in voice, and the reply plays right away at your call volume. Both messages are saved to the chat with an audio player (`voiceClips`).
+- Fast voice: a switch on the call panel, saved on this browser. Turns go to the audio chat model in one step, streamed into the live turn in pieces (the first after 0.6 seconds of audio), saved to the chat and the call's transcript. It can't use tools, and says so when asked for something that needs one.
+- Live on `dev/matilda`: a spoken question as MP3 and as WAV with chat history got "2 plus 2 is 4." and "The capital of France is Paris." back in voice, first audio in about 0.9 seconds, about $0.0002 a turn.
+- Verified with unit tests (the stream with chunks split mid-line, gateway errors, the WAV wrappers, voices; a voice note answered and saved with clips only you can see; a silent note saved nothing; a Fast voice call turn in pieces). Not tried in the browser.
+
+### Talking in the chat, hands-free, instead of voice notes (2026-10-22)
+
+- Voice notes are gone (the button, the players and the `voiceClips` table): they needed a stop press and went through the tool-less audio model, so asking for a command didn't work.
+- The chat box has a Talk button. It starts the call engine inline: it keeps listening, works out when you've finished, answers, and listens again until you end it. What's said lands in the chat as plain messages. Normal turns keep every tool; Fast voice (the switch on the call panel) still uses the audio chat model.
+- While talking, a voice bar replaces the box: your face and the assistant's, each swelling with the live level of your voice and theirs (a second analyser on the reply's gain node), and a wave between you in sky for you and green for them. It's painted every frame from a ref, without re-rendering, and stays still for reduced motion. Mute your mic, the volume bar, and Stop talking.
+- The volume bar's speaker icon now mutes the assistant and brings it back to the level it had; the slider and the level stay.
+- The audio chat turn moved to `convex/models/threads/voice.ts` (`speakWith`, `voice.prepare`, `voice.save`).
+- Verified with unit tests (Fast voice turn in pieces, a silent Fast voice turn saving nothing) and pnpm check. Not tried in the browser.
+
+### Commands are safe to run twice (2026-10-22)
+
+- Saving a command converges: each command keeps a SHA-256 of its markdown, so saving the same name, description and markdown again (a retry after a lost response, a double click, the model calling `save_command` twice) changes nothing and returns the same command, dropping the duplicate file. A different command can't take a name that's in use.
+- `save_command` now looks its name up inside the same transaction as the write (`replace`), so two saves of one name can't both think it's new. The Library's Save and the tool share `saveCommand`.
+- Removing a command that's already gone does nothing, instead of failing.
+- A run that stops between storing the markdown and saving the command leaves a file nothing points to. An hourly sweep (`commands.sweepFiles`) deletes files from one to two hours ago that no command keeps, judged by whether any command points to the file, so it holds wherever a run stopped. Commands are the only files kept past an hour.
+- Verified with unit tests (same save twice, new and edited; a name clash; replacing by name three times; removing twice; the sweep deleting leftovers, keeping commands and new files, and finding nothing the second time) and one run of the sweep on `dev/matilda`.
+
+### Models by job, and quick summaries (2026-10-22)
+
+- `MODELS` in `convex/lib/models.ts` is the one map of job to gateway model: replies, quick summaries, decisions, web search, research, hearing you, speaking on calls and Fast voice. `JOBS` gives each job its name, the model's name and maker, where you meet it, and its group. The audio chat model moved there from `lib/audio.ts`.
+- A Models page (`/p/:projectId/models`, linked from Settings and search) shows the jobs by group, each with the model's name, maker, id and what it's used for, and the workspace's own chat model when one is picked. It reads the map directly, with no backend call.
+- Quick summaries: a `quick_summary` tool on Gemini 2.5 Flash (fast and cheap) that `/tldr` now uses.
+- `useUpload()` uploads a file to Convex storage in one call; the mic button and calls use it instead of fetching an upload URL themselves.
+- Verified with pnpm check, the tests (every tool a command names exists) and one live summary through the gateway in 0.9 seconds.
+
+### Pictures (2026-10-22)
+
+- A `generate_image` tool makes a picture with GPT Image 1 through the Convex AI gateway (`MODELS.image`), in a square, wide or tall shape, and saves it in Convex storage. The chat shows it as a card that opens full size. It's left out of texts, email and calls, like the other cards.
+- `/image` turns what you describe into a detailed prompt and makes the picture.
+- The Models page lists it under a new "Images and video" group. Each picture is a `media` row on the chat's costs.
+- No table: the tool returns the stored file's URL, and the card shows it.
+- Verified with pnpm check, the tests (the tool is offered in the chat but not in texts or calls) and one picture made on `dev/matilda`: a 1536x1024 PNG of 2.5 MB in 30 seconds, then deleted. The gateway sent no usage for it, so its cost shows as $0.
+
+### Videos (2026-10-22)
+
+- A `generate_video` tool makes an 8-second clip with Veo 3.1 Fast through the Convex AI gateway (`MODELS.video`), wide or tall. It returns at once: a `videos` row tracks it while an action makes the clip in the background and saves it in Convex storage. That action runs in Node (`models/videos/make.ts`): on dev, the default runtime ran out of its 64 MB holding the video.
+- The chat card follows the row live: "Making the video", then a player, or why it failed. Only the workspace's owner can see it.
+- Pictures and videos work on calls too, from the call panel or hands-free in the chat: the reply goes to the assistant's chat, so the card shows there beside the call (`showsVia` in `everyday.ts`). Other cards still stay out of calls, and all of them stay out of texts and email. Fast voice has no tools, so it can't make them.
+- `/video` turns what you describe into a detailed prompt and says it takes a few minutes.
+- Safe to run again: if the action dies, a check 12 minutes later (past the action limit) marks the video failed. A file that arrives late still lands, and nothing undoes a finished video.
+- Verified with pnpm check, the tests (a video lands for its owner only, a failure says why, finishing converges) and two videos on `dev/matilda`. The first ran out of the default runtime's memory, and the 12-minute check marked it failed. The second, in Node, took 95 seconds: a 5.1 MB MP4 costing $0.80. Both were deleted afterwards.
+- The Models page lists it under "Images and video". Each video is a `media` row on the chat's costs.
+
+### Follow-ups with Jev (2026-10-22)
+
+- A `needs_follow_up` tool asks Jev, in one call, whether the assistant still owes you something from the chat, and which of your requests it is. It covers a request not done or answered, a tool that failed, a promise to do it later (like Fast voice's "ask me in the chat"), and work still open in the chat (videos being made or failed, tasks running, waiting or failed).
+- It reads the chat's last 30 messages, with which tools ran and failed, and `threads.openWork`. It works in chats, texts and calls, and in email drafts, since it only reads.
+- The assistant uses it when you come back after a while, at the start of a call, or when you ask what's left, then follows up on what it finds.
+- Verified with pnpm check, a test that both questions go to Jev in one call and the open request is named, and two live checks on `dev/matilda` in half a second: a video still being made needed a follow-up (0.97) and named that request; a question already answered didn't (0.03).
+
+### Sending no longer jumps the chat (2026-10-22)
+
+- Your sent message was a scroll anchor, so the chat moved it to the top and pushed everything up. Now the chat stays at the bottom as replies come in.
+
+### Copy buttons (2026-10-22)
+
+- Copy on every message (yours and replies, just the words, not the cards) and on every code block, shown on hover on desktop and always on phones. Drafts and post previews use the same `CopyButton`, which says Copied for a moment and announces it to screen readers.
+
+### Diagrams in Excalidraw (2026-10-22)
+
+- A `draw_diagram` tool: the assistant writes the diagram as Mermaid, and the chat shows it on an Excalidraw canvas you can edit, with PNG and .excalidraw downloads (open the file on excalidraw.com to keep going there). `/draw` asks for one.
+- Excalidraw and the Mermaid parser load with the first diagram, not with the app. `@excalidraw/mermaid-to-excalidraw` is pinned at 2.2.2, since 2.3.0 is a day old.
+- Cards only show in the app, so texts and calls don't get it.
+
+### Solving Convex problems fast (2026-10-22)
+
+- A `convex_docs` tool searches the live Convex docs (the `llms.txt` index, then the best three pages as markdown), so every assistant answers Convex questions from today's APIs and links the page. It works everywhere, email drafts included, since it only reads.
+- `/convex`: most likely cause in one line, the fix as code, how to check it, the docs page. `/fix` does the same for any problem, with web_search.
+- Pages rank by the words they share with the question. Live, "paginate a query" and "schedule a function later" found the right pages in about 0.7 seconds each; vaguer questions find nearby pages, and the assistant can search again.
+
+### Make my problems go away (2026-10-22)
+
+- `/make-my-problems-go-away` runs `problem_check`: Jev answers, in one call, who should handle the problem (AI alone, AI then a person, or a real person) and whether getting it wrong could really hurt.
+- The card plays a short, silly scan (four steps and a filling bar, still for reduced motion), then shows the verdict, the odds for each and a warning when it's risky. The assistant follows with what it can do now and who to see. It gives emergency help first if you may be in danger.
+- Verified with a test and live on `dev/matilda`: a polite email to a landlord went to AI (0.77), a risky lease clause to a person (0.57, risky), chest pain to a person (0.86, risky). One earlier try failed with a network error and passed on retry.
+
+### Every assistant's chat is recorded, with no guessing (2026-10-22)
+
+- A review of #68 found that guessing an assistant's chat looked at only the newest 20 chats and 10 phone links. An app chat behind 20 channel chats was lost to a new one, an 11th link's chat could become the main chat, and a wrong guess stuck forever.
+- Now `getMainThread` only reads the pointer on the project or bot, and `ensureMainThread` reads it or starts a chat. Two first messages at once can't both start one: they read and write the same row, so Convex retries the second and it finds the first's.
+- `threads.recordMainThreads` records the chats that were never recorded, one time, from old chats with no caps (every linked phone's chats and email's are left out), ten workspaces a run. Running it again changes nothing. On `dev/matilda` it recorded two workspaces' chats; a second run changed nothing.
+- Verified with a test of the review's case (an app chat behind 20 channel chats from 11 linked phones and a mailbox: nothing guessed before, the right chat after, nothing changed on a second run).
+- Run it once on production after deploying: `pnpm exec convex run api/threads:recordMainThreads '{"cursor":null}' --prod`.
+
+### Email fixes from the #69 review (2026-10-22)
+
+- Reply buttons no longer stop after 100 emails in a chat: `emails.forMessages` looks up the messages on screen by their id (new `by_chatMessageId` index) instead of loading the newest 100 emails of the chat.
+- Two clicks on Send can't send twice: `claimReply` sets `repliedAt` in a transaction before Photon is called, and `unclaimReply` gives it back if sending fails.
+- `READ_ONLY_TOOLS` and the email draft's tools are checked by a test, so a misspelled tool can't be dropped without notice. Typing them against `assistantTools` made a type cycle through the generated API.
+- Stale comments on `emails.status` and `threads.memberIds` updated. The cold-path guessing is gone in #96.
+- Not done: splitting `emails` into a union by status (ignored rows have no sender), which needs a migration of old rows.
+- Verified with pnpm check and tests: 120 newer emails and the oldest still gets its button; two Sends at once send one reply and post one "Replied".
+
+### Fixes from Cursor's review of every open PR (2026-10-22)
+
+- Critical: the hourly file sweep (#86) deleted any unreferenced file over an hour old, which now included pictures and videos. It now only removes command markdown and call audio (`sweepable`); pictures, videos and anything else stay. The picture tool also returns its storage id.
+- #96: a message before `recordMainThreads` ran started a new chat. Now an unrecorded assistant's old chat is found with no caps on the way in, so the backfill only saves the lookup.
+- #74: today's emails were the newest 100 of everyone's, then filtered to yours; now by user (`by_user_and_receivedAt`).
+- #75: the first add to the cart is held to 1 to 20, like later ones.
+- #78: daily briefings read the first 500 news settings; now every one with a daily time, by `by_dailyHour`.
+- #85: a silent clip on Fast voice no longer plays or keeps the reply it cut off.
+- Smaller: texts over the limit aren't kept for find_texts (#70); a missed-call text that couldn't go out says so (#71); no link on a price watch without a URL (#76); "Keep up to date" waits a full period (#79); needs_follow_up names no request when nothing's owed (#90); a diagram that fails to parse can be tried again (#93).
+- Left as is: a reply whose chat line fails after Photon sent it stays Replied (it was sent); plan titles beyond the newest 50 (#73); a union type for emails; #67's DoH status (on its own branch).
+

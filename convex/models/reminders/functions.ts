@@ -16,7 +16,6 @@ import schema from '../../schema'
 import { getMailbox } from '../mailboxes/functions'
 import { getOwnedProject } from '../projects/functions'
 import { getLink } from '../texts/functions'
-import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { ActionCtx, MutationCtx } from '../../_generated/server'
@@ -296,30 +295,21 @@ const decline = authedMutation({
   },
 })
 
-/**
- * Texts a linked chat: through Photon's platform API when the chat was
- * linked there, otherwise through the Spectrum SDK's outbox.
- */
+/** Texts a linked Telegram chat through Photon's platform API. False when Photon isn't set up. */
 async function textChat(
-  ctx: ActionCtx,
   chat: { spaceId: string; agentId?: string },
   text: string,
   key: string,
 ) {
   const keys = photonKeys(env)
-  if (chat.agentId && keys) {
-    await sendText(keys, {
-      spaceId: chat.spaceId,
-      senderId: chat.agentId,
-      text,
-      key,
-    })
-    return
-  }
-  await spectrum.send(ctx, {
+  if (!chat.agentId || !keys) return false
+  await sendText(keys, {
     spaceId: chat.spaceId,
-    content: { type: 'text', text },
+    senderId: chat.agentId,
+    text,
+    key,
   })
+  return true
 }
 
 /** Nobody picked up: texts the reminder when texting is linked, and posts it in the chat. */
@@ -333,17 +323,19 @@ const miss = internalAction({
     })
     if (!found) return null
     const { reminder, chat } = found
-    if (chat) {
-      await textChat(
-        ctx,
+    const texted =
+      chat &&
+      (await textChat(
         chat,
         `Missed call from ${reminder.from}: ${reminder.message}`,
         `missed:${id}`,
-      )
-    }
+      ))
     await ctx.runMutation(internal.api.reminders.markSent, {
       id,
-      note: 'You missed the call.',
+      note:
+        chat && !texted
+          ? 'You missed the call, and the text about it couldn’t be sent.'
+          : 'You missed the call.',
     })
     return null
   },
@@ -433,14 +425,14 @@ const fire = internalAction({
       }
     }
     if (reminder.via === 'text') {
-      if (chat) {
-        await textChat(
-          ctx,
+      const texted =
+        chat &&
+        (await textChat(
           chat,
           `Reminder from ${reminder.from}: ${reminder.message}`,
           `reminder:${id}`,
-        )
-      } else {
+        ))
+      if (!texted) {
         note = "Texting isn't linked, so it's only here."
       }
     }

@@ -12,9 +12,9 @@ export const mailboxesTable = defineTable({
   projectId: v.id('projects'),
   /** Lowercase, 3 to 32 of `a-z0-9._-`, checked by `parseHandle`. Unique. */
   handle: v.string(),
-  /** The chat where the owner's emails are answered, started on the first one. */
+  /** Unused, like `inboxThreadId`. */
   threadId: v.optional(v.string()),
-  /** The chat where everyone else's emails are posted, unanswered. */
+  /** Unused: all email goes to the lead's chat. Kept for mailboxes from before. */
   inboxThreadId: v.optional(v.string()),
 })
   .index('by_user', ['userId'])

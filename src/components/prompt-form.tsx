@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { ArrowUpIcon, PlusIcon, SparklesIcon } from 'lucide-react'
+import {
+  ArrowUpIcon,
+  AudioLinesIcon,
+  PlusIcon,
+  SparklesIcon,
+} from 'lucide-react'
 
 import {
   DropdownMenu,
@@ -24,6 +29,7 @@ export function PromptForm({
   onSubmit,
   commands = [],
   onCreateCommand,
+  onTalk,
   tools,
 }: {
   placeholder: string
@@ -33,6 +39,8 @@ export function PromptForm({
   commands?: Array<{ name: string; description: string; builtIn?: boolean }>
   /** Opens the dialog that writes a new command with AI. */
   onCreateCommand?: () => void
+  /** Starts talking hands-free with the assistant, in place of the box. */
+  onTalk?: () => void
   /** Shown next to the send button, like the model menu. */
   tools?: React.ReactNode
 }) {
@@ -205,6 +213,18 @@ export function PromptForm({
               el.focus()
             }}
           />
+          {onTalk && (
+            <InputGroupButton
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Talk hands-free"
+              title="Talk hands-free"
+              onClick={onTalk}
+            >
+              <AudioLinesIcon />
+            </InputGroupButton>
+          )}
           <div className="ml-auto" />
           {tools}
           <InputGroupButton

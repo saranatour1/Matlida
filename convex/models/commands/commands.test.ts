@@ -1,8 +1,9 @@
 import { convexTest } from 'convex-test'
-import { expect, test } from 'vitest'
-import { api } from '../../_generated/api'
+import { afterEach, expect, test, vi } from 'vitest'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import { sweepable } from './functions'
 import type { Id } from '../../_generated/dataModel'
 
 async function setup() {
@@ -24,6 +25,8 @@ async function setup() {
   const read = (storageId: Id<'_storage'>) =>
     t.run(async (ctx) => (await ctx.storage.get(storageId))?.text() ?? null)
   return {
+    t,
+    ada,
     asAda,
     asBob: t.withIdentity({ subject: bob }),
     projectId,
@@ -89,4 +92,108 @@ test('removing a command deletes its file', async () => {
   await asAda.mutation(api.api.commands.remove, { id })
   expect(await asAda.query(api.api.commands.list, { projectId })).toEqual([])
   expect(await fileCount()).toBe(0)
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+test('saving the same command again changes nothing, new or edited', async () => {
+  const { asAda, projectId, fileCount } = await setup()
+  const id = await asAda.action(api.api.commands.save, {
+    projectId,
+    ...standup,
+  })
+  // A retry after a lost response, then an edit that keeps everything.
+  expect(
+    await asAda.action(api.api.commands.save, { projectId, ...standup }),
+  ).toBe(id)
+  const [saved] = await asAda.query(api.api.commands.list, { projectId })
+  expect(
+    await asAda.action(api.api.commands.save, { projectId, id, ...standup }),
+  ).toBe(id)
+  const commands = await asAda.query(api.api.commands.list, { projectId })
+  expect(commands).toEqual([saved])
+  expect(await fileCount()).toBe(1)
+})
+
+test("a new command can't take a name that's in use for something else", async () => {
+  const { asAda, projectId, fileCount } = await setup()
+  await asAda.action(api.api.commands.save, { projectId, ...standup })
+  await expect(
+    asAda.action(api.api.commands.save, {
+      projectId,
+      ...standup,
+      markdown: 'Something else.',
+    }),
+  ).rejects.toThrow("There's already a /standup command.")
+  expect(await fileCount()).toBe(1)
+})
+
+test('replacing by name, as save_command does, adds or replaces, and repeats safely', async () => {
+  const { t, ada, asAda, projectId, read } = await setup()
+  const write = async (markdown: string, hash: string) =>
+    t.mutation(internal.api.commands.write, {
+      projectId,
+      userId: ada,
+      replace: true,
+      name: 'checkin',
+      description: 'Check in on last night.',
+      hash,
+      storageId: await t.run((ctx) =>
+        ctx.storage.store(new Blob([markdown], { type: 'text/markdown' })),
+      ),
+    })
+  const first = await write('Ask what got done.', 'a')
+  expect(await write('Ask what got done.', 'a')).toBe(first)
+  expect(await write('Ask what got done, and what is next.', 'b')).toBe(first)
+  const commands = await asAda.query(api.api.commands.list, { projectId })
+  expect(commands).toHaveLength(1)
+  expect(await read(commands[0].storageId)).toBe(
+    'Ask what got done, and what is next.',
+  )
+})
+
+test('removing a command twice is fine', async () => {
+  const { asAda, projectId } = await setup()
+  const id = await asAda.action(api.api.commands.save, {
+    projectId,
+    ...standup,
+  })
+  await asAda.mutation(api.api.commands.remove, { id })
+  await asAda.mutation(api.api.commands.remove, { id })
+  expect(await asAda.query(api.api.commands.list, { projectId })).toEqual([])
+})
+
+test('the sweep deletes files nothing keeps, once they are an hour old', async () => {
+  const start = Date.now()
+  vi.useFakeTimers({ now: start, toFake: ['Date'] })
+  const { t, asAda, projectId, fileCount } = await setup()
+  await asAda.action(api.api.commands.save, { projectId, ...standup })
+  const store = (type: string) =>
+    t.run((ctx) => ctx.storage.store(new Blob(['x'], { type })))
+  // Left by a save that stopped before saving the command, and by a call.
+  await store('text/markdown')
+  await store('audio/wav')
+  vi.setSystemTime(start + 30 * 60_000)
+  const recent = await store('text/markdown')
+
+  vi.setSystemTime(start + 90 * 60_000)
+  expect(await t.mutation(internal.api.commands.sweepFiles, {})).toBe(2)
+  expect(await t.mutation(internal.api.commands.sweepFiles, {})).toBe(0)
+  expect(await fileCount()).toBe(2)
+  vi.setSystemTime(start + 120 * 60_000)
+  await t.mutation(internal.api.commands.sweepFiles, {})
+  expect(
+    await t.run(async (ctx) => (await ctx.storage.get(recent)) === null),
+  ).toBe(true)
+  expect(await fileCount()).toBe(1)
+})
+
+test('the sweep never touches pictures or videos', () => {
+  expect(sweepable({ contentType: 'text/markdown' })).toBe(true)
+  expect(sweepable({ contentType: 'audio/webm' })).toBe(true)
+  expect(sweepable({ contentType: 'image/png' })).toBe(false)
+  expect(sweepable({ contentType: 'video/mp4' })).toBe(false)
+  expect(sweepable({ contentType: 'application/pdf' })).toBe(false)
 })

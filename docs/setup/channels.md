@@ -1,7 +1,6 @@
 # Setting up the channels
 
-How to connect email, iMessage/SMS, Telegram and WhatsApp to a Matilda
-deployment, and why phone calls wait. Every secret is set on the Convex
+How to connect email and Telegram to a Matilda deployment, and why phone calls wait. Every secret is set on the Convex
 deployment and only named here. Check which deployment a command targets
 first: an exported `CONVEX_DEPLOYMENT` overrides `.env.local`. To set a secret
 without it landing in your shell history, copy it and run
@@ -11,15 +10,12 @@ without it landing in your shell history, copy it and run
 
 ## Env vars, names only
 
-| Name                      | What it's for                                                      |
-| ------------------------- | ------------------------------------------------------------------ |
-| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.       |
-| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
-| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
-| `PHOTON_WEBHOOK_SECRET`   | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
-| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                     |
-| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                         |
-| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.                 |
+| Name                    | What it's for                                                      |
+| ----------------------- | ------------------------------------------------------------------ |
+| `MAIL_DOMAIN`           | The domain connected in Photon. Users claim `handle@` on it.       |
+| `PHOTON_PROJECT_ID`     | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
+| `PHOTON_API_KEY`        | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
+| `PHOTON_WEBHOOK_SECRET` | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
 
 `SITE_URL` and the `AUTH_*` variables are in the README.
 
@@ -43,29 +39,13 @@ records; the app checks Photon for new mail every minute.
 5. **Claim an address** on Connections. Claiming needs a verified sign-in
    email: it's the only address the assistants accept mail from as you, and
    the only one they write to.
-6. **Try it.** Email your address from your sign-in email. Within a minute it
-   shows in the "Matilda · Email" chat and Matilda replies in the same
-   thread. Mail from anyone else shows in the "Email inbox" chat and isn't
-   answered.
+6. **Try it.** Email your address. Within a minute it shows in Matilda's
+   chat with a draft reply under it. Press Reply, edit the draft, and Send
+   mails it in the same thread, to the sender only.
 
-Photon doesn't pass on DKIM or DMARC results, so a forged From can get an
-answer. The reply only ever goes to your sign-in email, and answers are
-capped at 5 at once, then 20 an hour.
-
-## Texting: iMessage and SMS
-
-1. Copy the project's id and secret into `SPECTRUM_PROJECT_ID` and
-   `SPECTRUM_PROJECT_SECRET`. They're different values: a secret that equals
-   the id means it was pasted into the wrong field.
-2. Register a Spectrum webhook pointing at
-   `https://<deployment>.convex.site/spectrum/webhook`, and copy its signing
-   secret into `SPECTRUM_WEBHOOK_SECRET`. The route refuses deliveries without
-   it, or with a bad or stale signature. It reads the Spectrum SDK's format:
-   a webhook destination made on Photon's beta platform sends a different
-   format, and the route rejects it.
-3. Photon provisions the iMessage line. When a recipient isn't on iMessage,
-   the line falls back to SMS or RCS by itself.
-4. In the app, open Messaging, get a code, and text `link <code>` to the line.
+Photon doesn't pass on DKIM or DMARC results, so a forged From can't be told
+from yours. Nothing is sent until you press Send, drafts only get tools that
+read, and drafts are capped at 5 at once, then 20 an hour.
 
 ## Telegram
 
@@ -77,22 +57,12 @@ capped at 5 at once, then 20 an hour.
    secret (`whsec_…`) as `PHOTON_WEBHOOK_SECRET`. `PHOTON_PROJECT_ID` and
    `PHOTON_API_KEY` are the same as for email.
 3. In the app, get a code on Messaging and send `link <code>` to the bot.
-   Then message it; `@name` switches to a bot.
+   Then message it. Everything goes to Matilda.
 
 Replies go out through Photon's API. Photon hasn't delivered events to the
 webhook yet, so the app also checks Photon for new Telegram messages every
 minute, and every 3 seconds for 2 minutes after any message: the first reply
 after a quiet spell can take up to a minute.
-
-## WhatsApp
-
-1. Add a WhatsApp Business number to the Photon project. Photon holds the
-   Meta credentials, so the texting keys are enough.
-2. In the app, get a code on Messaging and send `link <code>` to the number.
-
-WhatsApp allows free-form replies only within 24 hours of your last message.
-A reminder texted outside that window fails to send but still posts in the
-chat.
 
 ## Phone calls: why not yet
 

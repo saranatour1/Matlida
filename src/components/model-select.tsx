@@ -1,4 +1,9 @@
-import { CHAT_MODELS, EFFORTS, MODELS } from '../../convex/lib/models'
+import {
+  CHAT_MODELS,
+  EFFORTS,
+  MODELS,
+  isListedModel,
+} from '../../convex/lib/models'
 import type { Effort } from '../../convex/lib/models'
 import { Input } from '~/components/ui/input'
 
@@ -14,7 +19,7 @@ export function ModelSelect({
   name: string
   defaultValue?: string
 }) {
-  const listed = CHAT_MODELS.some((m) => m.id === defaultValue)
+  const listed = isListedModel(defaultValue)
   return (
     <div className="flex flex-col gap-1.5 text-sm">
       Model
@@ -23,10 +28,10 @@ export function ModelSelect({
         defaultValue={listed ? defaultValue : MODELS.chat}
         className="h-9 rounded-md border bg-transparent px-3 text-sm"
       >
-        {CHAT_MODELS.map((m) => (
-          <option key={m.id} value={m.id}>
+        {Object.entries(CHAT_MODELS).map(([id, m]) => (
+          <option key={id} value={id}>
             {m.name} · {m.maker}
-            {m.id === MODELS.chat ? ' (default)' : ''}
+            {id === MODELS.chat ? ' (default)' : ''}
           </option>
         ))}
       </select>

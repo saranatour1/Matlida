@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
@@ -48,6 +48,7 @@ function Library() {
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
         <div>
           <h1 className="text-lg font-semibold">Library</h1>
+          <Pages projectId={project._id} />
           <Reminders projectId={project._id} />
           <Plans projectId={project._id} />
           <h2 className="mt-6 font-medium">Commands</h2>
@@ -242,6 +243,36 @@ function Plans({ projectId }: { projectId: Id<'projects'> }) {
           </ul>
         </div>
       ))}
+    </section>
+  )
+}
+
+/** Reports, memos and dashboards, newest first. */
+function Pages({ projectId }: { projectId: Id<'projects'> }) {
+  const pages = useQuery(api.api.pages.list, { projectId })
+  if (!pages?.length) return null
+  return (
+    <section className="mt-4 flex flex-col gap-2" aria-labelledby="pages">
+      <h2 id="pages" className="font-medium">
+        Pages
+      </h2>
+      <ul className="flex flex-col gap-1">
+        {pages.map((page) => (
+          <li key={page._id} className="flex items-center gap-2 text-sm">
+            <Link
+              to="/p/$projectId/pages/$pageId"
+              params={{ projectId, pageId: page._id }}
+              className="flex-1 truncate underline-offset-4 hover:underline"
+            >
+              {page.title}
+            </Link>
+            <span className="text-xs text-muted-foreground capitalize">
+              {page.kind}
+              {page.refresh && ` · every ${page.refresh.every}`}
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

@@ -10,13 +10,10 @@ import {
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
-import { messagingAppName } from '../../lib/channels'
 import schema from '../../schema'
-import { getBots } from '../bots/functions'
 import { getOwnedProject } from '../projects/functions'
-import { startThread } from '../threads/functions'
+import { ensureMainThread, getMembers } from '../threads/functions'
 import { createAgent } from '../threads/lead'
-import { spectrum } from './spectrum'
 import type { Doc, Id } from '../../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../../_generated/server'
 
@@ -49,13 +46,17 @@ export async function getLinks(
     .take(10)
 }
 
-/** The project's most recently linked chat, where reminders text. */
+/** The project's linked Telegram chat, where reminders text. */
 export async function getLink(
   ctx: Pick<QueryCtx, 'db'>,
   projectId: Id<'projects'>,
 ) {
   const links = await getLinks(ctx, projectId)
-  return links.find((l) => l.status === 'linked') ?? null
+  return (
+    links.find(
+      (l) => l.status === 'linked' && l.platform === 'telegram' && !!l.agentId,
+    ) ?? null
+  )
 }
 
 const links = authedQuery({
@@ -120,10 +121,7 @@ const claim = internalMutation({
       .take(10)
     for (const row of previous) await ctx.db.delete('phoneLinks', row._id)
     for (const row of await getLinks(ctx, pending.projectId)) {
-      if (
-        row.status === 'linked' &&
-        (row.platform ?? 'imessage') === platform
-      ) {
+      if (row.status === 'linked' && row.platform === platform) {
         await ctx.db.delete('phoneLinks', row._id)
       }
     }
@@ -139,8 +137,6 @@ const claim = internalMutation({
     return project?.name ?? null
   },
 })
-
-type Linked = Extract<Doc<'phoneLinks'>, { status: 'linked' }>
 
 /**
  * Whether a chat may send another message or try another code. Messages
@@ -180,25 +176,22 @@ const admit = internalMutation({
 })
 
 /**
- * Who a message from `spaceId` goes to. A message starting with `@name`
- * switches to that assistant for this and later messages. Starts the
- * assistant's chat for this link if needed. Null when the chat isn't linked.
+ * Keeps `text` for `find_texts` and returns Matilda's chat for messages from
+ * `spaceId`, started if needed: texts only ever go to her. Null when the
+ * chat isn't linked.
  */
 const forSpace = internalMutation({
-  args: { spaceId: v.string(), text: v.string() },
+  args: { spaceId: v.string(), platform: v.string(), text: v.string() },
   returns: v.union(
     v.object({
       project: schema.doc('projects'),
-      bots: v.array(schema.doc('bots')),
-      bot: v.union(schema.doc('bots'), v.null()),
-      /** Null when `@name` matched no one here. */
-      threadId: v.union(v.string(), v.null()),
-      /** The message without its `@name`. */
-      prompt: v.string(),
+      /** Who she can hand work to in her chat. */
+      members: v.array(schema.doc('bots')),
+      threadId: v.string(),
     }),
     v.null(),
   ),
-  handler: async (ctx, { spaceId, text }) => {
+  handler: async (ctx, { spaceId, platform, text }) => {
     const linked = await ctx.db
       .query('phoneLinks')
       .withIndex('by_spaceId', (q) => q.eq('spaceId', spaceId))
@@ -206,83 +199,22 @@ const forSpace = internalMutation({
     if (linked?.status !== 'linked') return null
     const project = await ctx.db.get('projects', linked.projectId)
     if (!project) return null
-    const bots = await getBots(ctx, project._id)
-    let botId = linked.activeBotId
-    let prompt = text.trim()
-    if (prompt.startsWith('@')) {
-      const named = addressee(prompt, project, bots)
-      if (!named) return { project, bots, bot: null, threadId: null, prompt }
-      botId = named.bot?._id
-      prompt = named.rest
-      if (botId !== linked.activeBotId) {
-        await ctx.db.patch('phoneLinks', linked._id, { activeBotId: botId })
-      }
+    if (text.trim()) {
+      await ctx.db.insert('receivedTexts', {
+        userId: linked.ownerId,
+        projectId: project._id,
+        platform: linked.platform ?? platform,
+        text: text.trim(),
+      })
     }
-    const bot = bots.find((b) => b._id === botId) ?? null
-    const threadId = await chatFor(ctx, linked, project, bot)
-    return { project, bots, bot, threadId, prompt }
+    const threadId = await ensureMainThread(ctx, project, null)
+    const thread = await ctx.db
+      .query('threads')
+      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
+      .unique()
+    return { project, members: await getMembers(ctx, thread), threadId }
   },
 })
-
-/** The assistant a message starting with `@name` is for, longest name first, and the rest of it. */
-function addressee(
-  text: string,
-  project: Doc<'projects'>,
-  bots: Array<Doc<'bots'>>,
-) {
-  const people = [
-    { name: project.name, bot: null },
-    ...bots.map((bot) => ({ name: bot.name, bot })),
-  ]
-  people.sort((a, b) => b.name.length - a.name.length)
-  const lower = text.toLowerCase()
-  for (const person of people) {
-    const tag = `@${person.name.toLowerCase()}`
-    if (
-      lower.startsWith(tag) &&
-      !/[\p{L}\p{N}]/u.test(text.charAt(tag.length))
-    ) {
-      return {
-        bot: person.bot,
-        rest: text.slice(tag.length).replace(/^[\s,:]+/, ''),
-      }
-    }
-  }
-  return null
-}
-
-/** This link's chat with `bot` (the lead when null), started on first use. */
-async function chatFor(
-  ctx: MutationCtx,
-  linked: Linked,
-  project: Doc<'projects'>,
-  bot: Doc<'bots'> | null,
-) {
-  const existing = bot
-    ? linked.botThreads?.find((t) => t.botId === bot._id)?.threadId
-    : linked.threadId
-  if (existing) return existing
-  const threadId = await startThread(ctx, {
-    projectId: project._id,
-    kind: 'chat',
-    title: `${(bot ?? project).name} · ${messagingAppName(linked.platform ?? 'imessage')}`,
-    botId: bot?._id,
-    userId: linked.ownerId,
-  })
-  await ctx.db.patch(
-    'phoneLinks',
-    linked._id,
-    bot
-      ? {
-          botThreads: [
-            ...(linked.botThreads ?? []),
-            { botId: bot._id, threadId },
-          ],
-        }
-      : { threadId },
-  )
-  return threadId
-}
 
 /**
  * What to send back to a message from `spaceId`. Links the chat, or lets its
@@ -317,18 +249,18 @@ const answer = internalAction({
         { code, spaceId, platform, agentId },
       )
       return name
-        ? `Linked to ${name}. Message me anytime, start with @name to talk to another assistant, or send "who" to see who's here.`
+        ? `Linked to ${name}. Message me anytime.`
         : "That code didn't match. Get a new one on the Messaging page in Matilda."
     }
     const linked: {
       project: Doc<'projects'>
-      bots: Array<Doc<'bots'>>
-      bot: Doc<'bots'> | null
-      threadId: string | null
-      prompt: string
+      members: Array<Doc<'bots'>>
+      threadId: string
     } | null = await ctx.runMutation(internal.api.texts.forSpace, {
       spaceId,
-      text,
+      platform,
+      // Texts over the limit aren't kept for find_texts.
+      text: admitted ? text : '',
     })
     if (!linked) {
       return admitted
@@ -338,70 +270,14 @@ const answer = internalAction({
     if (!admitted) {
       return "You're sending a lot of messages. Give me a few minutes and try again."
     }
-    const { project, bots, bot, threadId, prompt } = linked
-    const names = [project.name, ...bots.map((b) => b.name)].join(', ')
-    const current = (bot ?? project).name
-    if (!threadId)
-      return `There's no one by that name here. You can message ${names}.`
-    if (/^who\??$/i.test(prompt)) {
-      return `You're talking to ${current}. You can message ${names}: start a message with @name to switch.`
-    }
-    if (!prompt) return `You're talking to ${current} now.`
-    const agent = createAgent(project, {
-      bot,
-      members: bot ? [] : bots,
-      via: 'text',
-    })
+    const { project, members, threadId } = linked
+    const agent = createAgent(project, { members, via: 'text' })
     const reply = await agent.generateText(
       ctx,
       { threadId, userId: project.ownerId },
-      { prompt },
+      { prompt: text.trim() },
     )
-    // Every assistant shares this chat, so bots sign their replies.
-    return bot ? `${bot.name}: ${reply.text}` : reply.text
-  },
-})
-
-/** Photon's batch handler: one turn per burst of texts from a phone. */
-const respond = internalAction({
-  args: {
-    spaceId: v.string(),
-    chainId: v.string(),
-    messages: v.array(v.any()),
-    carried: v.array(v.any()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const text = [...args.carried, ...args.messages]
-      .map(textOf)
-      .filter(Boolean)
-      .join('\n')
-    try {
-      if (text) {
-        const reply: string = await ctx
-          .runAction(internal.api.texts.answer, {
-            spaceId: args.spaceId,
-            platform:
-              (await spectrum.getSpace(ctx, { spaceId: args.spaceId }))
-                ?.platform ?? 'imessage',
-            text,
-          })
-          .catch((error: unknown) => {
-            console.error(error)
-            return 'Sorry, something went wrong. Try again in a minute.'
-          })
-        // A newer text may have superseded this turn while the lead was thinking.
-        if (!reply || (await spectrum.isCancelled(ctx, args))) return null
-        await spectrum.send(ctx, {
-          spaceId: args.spaceId,
-          chainId: args.chainId,
-          content: { type: 'text', text: reply },
-        })
-      }
-    } finally {
-      await spectrum.completeChain(ctx, args)
-    }
-    return null
+    return reply.text
   },
 })
 
@@ -544,14 +420,26 @@ const poll = internalAction({
   },
 })
 
-/** The text of an inbound Photon message, or '' for anything else (photos, reactions). */
-function textOf(message: unknown) {
-  const content = (message as { content?: { type?: unknown; text?: unknown } })
-    .content
-  return content?.type === 'text' && typeof content.text === 'string'
-    ? content.text
-    : ''
-}
+/** `userId`'s texts to the lead matching `query`, best first. For `find_texts`. */
+const search = internalQuery({
+  args: { userId: v.id('users'), query: v.string() },
+  returns: v.array(
+    v.object({ platform: v.string(), text: v.string(), sentAt: v.number() }),
+  ),
+  handler: async (ctx, { userId, query }) => {
+    const rows = await ctx.db
+      .query('receivedTexts')
+      .withSearchIndex('search_text', (q) =>
+        q.search('text', query).eq('userId', userId),
+      )
+      .take(10)
+    return rows.map((r) => ({
+      platform: r.platform,
+      text: r.text.slice(0, 2000),
+      sentAt: r._creationTime,
+    }))
+  },
+})
 
 export const textsApi = {
   links,
@@ -559,9 +447,9 @@ export const textsApi = {
   unlink,
   claim,
   forSpace,
+  search,
   admit,
   answer,
-  respond,
   received,
   replyOnPhoton,
   pollingUntil,

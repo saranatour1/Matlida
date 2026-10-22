@@ -29,7 +29,6 @@
 - [x] Email: a personal address per user, claimed on Connections
 - [x] Email: mail to your address shows in the app, and Matilda answers yours
 - [x] Email: reminders by email, and a limit on answered emails
-- [ ] Email: @name routing to bots, and Matilda emailing you from the app
 - [x] Contacts, and messages to them by email after you confirm
 - [x] Tasks on Convex workflows: run a saved plan step by step with a live card
 - [x] Built-in commands, a "+" menu, and commands written by AI
@@ -38,6 +37,37 @@
 - [x] Setup guide for email, Photon, Telegram and WhatsApp
 - [x] Several models: per bot, per lead and per chat, with the chat's history kept
 - [x] Effort levels per bot, per lead and per chat, and one createAgent for every assistant
+- [x] One chat per assistant, and no bot members unless you add them
+- [x] Email and texts go only to the lead; Reply to any email with an editable draft
+- [x] find_emails and find_texts: the lead searches your earlier email and texts
+- [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed
+- [x] decide tool and /decide command: Jev picks between options
+- [x] Everyday commands, part 1: live lists, drafts, tables and recipes, with /todo, /shopping, /meals, /recipe, /pack, /rewrite, /reply, /translate, /tldr, /compare, /workout, /explain
+- [x] Everyday commands, part 2: /today, /dayplan, /trip, /split, /meet, /focus, /convert
+- [x] Shopping: find products across Shopify stores, a cart by store, Buy at the store's checkout with your details (/shop, /gift, /cart)
+- [ ] Shopping: our own UCP profile and a Shopify token for production rate limits
+- [ ] Shopping: pay on your behalf (Shopify trusted agent, or Stripe Link in the US and Canada)
+- [x] Price watches: /watch an item and hear when it drops
+- [x] Previews in sets with a Discord look
+- [x] /news: set up what you follow, a briefing card, and an optional daily briefing
+- [x] Pages: reports, memos and dashboards you edit together, kept up to date (/report, /memo, /dashboard)
+- [x] Roles: ARIA roles and labels on every chat card
+- [x] A volume bar on calls
+- [x] Models as an object map
+- [x] Audio chat: talk hands-free in the chat with a speaking animation, and Fast voice on calls
+- [x] A mute toggle on the volume bar
+- [x] Pictures: /image makes one with GPT Image 1, saved in Convex storage
+- [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
+- [x] Pictures and videos on calls, shown in the chat beside the call
+- [x] needs_follow_up: Jev checks what from earlier is still not done, in chats, texts and calls
+- [x] The chat stays at the bottom when you send
+- [x] Copy on messages, code blocks, drafts and post previews
+- [x] Diagrams on an Excalidraw canvas (/draw)
+- [ ] Diagrams: see one render in the browser, and rank docs pages with Jev if word overlap misses
+- [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
+- [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
+- [x] Record every assistant's chat once, then stop guessing
+- [ ] Run `api/threads:recordMainThreads` on production after this deploys
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

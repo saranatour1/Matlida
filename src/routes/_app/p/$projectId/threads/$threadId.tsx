@@ -4,12 +4,13 @@ import { useQuery } from 'convex/react'
 import { api } from '../../../../../../convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ChatMessage } from '~/components/chat-message'
+import { EmailReply } from '~/components/email-reply'
 
 export const Route = createFileRoute('/_app/p/$projectId/threads/$threadId')({
   component: Thread,
 })
 
-/** Read-only view of a sub-thread, where the lead handed work to a bot. */
+/** Read-only view of a sub-thread, where the lead handed work to a bot. Old inbox emails can still be replied to. */
 function Thread() {
   const { projectId, threadId } = Route.useParams()
   const thread = useQuery(api.api.threads.get, { threadId })
@@ -17,6 +18,10 @@ function Thread() {
     api.api.chat.listMessages,
     thread ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
+  )
+  const emails = useQuery(
+    api.api.emails.forMessages,
+    thread ? { threadId, messageIds: results.map((m) => m.id) } : 'skip',
   )
 
   if (thread === null) {
@@ -31,18 +36,23 @@ function Thread() {
           <h1 className="text-lg font-semibold">{thread?.title ?? 'Thread'}</h1>
           {thread?.parentThreadId && (
             <Link
-              to="/p/$projectId"
-              params={{ projectId }}
-              search={{ thread: thread.parentThreadId }}
+              to="/p/$projectId/threads/$threadId"
+              params={{ projectId, threadId: thread.parentThreadId }}
               className="text-sm text-muted-foreground underline hover:text-foreground"
             >
               Open the chat it came from
             </Link>
           )}
         </div>
-        {(results as Array<ChatUIMessage>).map((message) => (
-          <ChatMessage key={message.key} message={message} />
-        ))}
+        {(results as Array<ChatUIMessage>).map((message) => {
+          const email = emails?.find((e) => e.chatMessageId === message.id)
+          return (
+            <div key={message.key}>
+              <ChatMessage message={message} />
+              {email && <EmailReply email={email} />}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

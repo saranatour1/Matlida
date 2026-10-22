@@ -6,9 +6,7 @@ export type EnvName = keyof typeof env
 
 export type ChannelId =
   | 'email'
-  | 'imessage'
   | 'telegram'
-  | 'whatsapp'
   | 'phone'
   | 'web_search'
   | 'research'
@@ -30,17 +28,11 @@ export type Channel = {
   /** Deployment env vars it needs. Connections shows which are missing, never their values. */
   env: ReadonlyArray<EnvName>
 } & (
-  | { via: 'photon'; platform: 'imessage' | 'telegram' | 'whatsapp_business' }
+  | { via: 'photon'; platform: 'telegram' }
   | { via: 'email' }
   | { via: 'tool'; model: string }
   | { via: 'planned'; note: string }
 )
-
-const PHOTON_ENV = [
-  'SPECTRUM_PROJECT_ID',
-  'SPECTRUM_PROJECT_SECRET',
-  'SPECTRUM_WEBHOOK_SECRET',
-] as const
 
 /**
  * Every channel the app supports, in the order Connections shows them. Adding
@@ -57,15 +49,6 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     env: ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'],
   },
   {
-    id: 'imessage',
-    name: 'iMessage',
-    via: 'photon',
-    platform: 'imessage',
-    description:
-      "Text through a Photon line. Reaches SMS and RCS phones too: Photon falls back when iMessage isn't available.",
-    env: PHOTON_ENV,
-  },
-  {
     id: 'telegram',
     name: 'Telegram',
     via: 'photon',
@@ -73,14 +56,6 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     description:
       "Message your Telegram bot. It's connected in Photon's dashboard, and messages arrive at /photon/webhook.",
     env: ['PHOTON_PROJECT_ID', 'PHOTON_API_KEY', 'PHOTON_WEBHOOK_SECRET'],
-  },
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    via: 'photon',
-    platform: 'whatsapp_business',
-    description: 'Message a WhatsApp Business number, through Photon.',
-    env: PHOTON_ENV,
   },
   {
     id: 'phone',
@@ -185,12 +160,4 @@ export function channelStatus(
         detail: `${facts.mailbox.address} answers in another workspace.`,
         missing,
       }
-}
-
-/** How a Photon messaging app is named in the app, by Photon's id for it. */
-export function messagingAppName(platform: string) {
-  const channel = CHANNELS.find(
-    (c) => c.via === 'photon' && c.platform === platform,
-  )
-  return channel?.name ?? platform
 }

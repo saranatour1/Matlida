@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { AccountForm } from '~/components/account-form'
 import { ProjectForm } from '~/components/project-form'
+import { ShoppingDetailsForm } from '~/components/shopping-details-form'
 import { useProject } from '~/hooks/use-project'
 
 export const Route = createFileRoute('/_app/p/$projectId/settings')({
@@ -21,10 +22,23 @@ function Settings() {
         </div>
         <ProjectForm key={project._id} project={project} />
         <section className="flex flex-col gap-1 rounded-xl border p-4 text-sm">
+          <h2 className="font-medium">Models</h2>
+          <p className="text-muted-foreground">
+            Which model does each job: replies, quick summaries, decisions,
+            search and voice.{' '}
+            <Link
+              to="/p/$projectId/models"
+              params={{ projectId: project._id }}
+              className="underline"
+            >
+              See the models
+            </Link>
+          </p>
+        </section>
+        <section className="flex flex-col gap-1 rounded-xl border p-4 text-sm">
           <h2 className="font-medium">Connections</h2>
           <p className="text-muted-foreground">
-            Email, iMessage, Telegram and WhatsApp, and what the assistants can
-            use.{' '}
+            Email and Telegram, and what the assistants can use.{' '}
             <Link
               to="/p/$projectId/connections"
               params={{ projectId: project._id }}
@@ -34,6 +48,7 @@ function Settings() {
             </Link>
           </p>
         </section>
+        <ShoppingDetailsForm />
         <AccountForm />
       </div>
     </div>

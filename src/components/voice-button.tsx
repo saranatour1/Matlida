@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { useAction, useMutation } from 'convex/react'
+import { useAction } from 'convex/react'
 import { MicIcon, SquareIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
 import { InputGroupButton } from '~/components/ui/input-group'
 import { Spinner } from '~/components/ui/spinner'
+import { useUpload } from '~/hooks/use-upload'
 import { errorMessage } from '~/lib/errors'
 
 type Status = 'idle' | 'recording' | 'transcribing'
@@ -22,7 +22,7 @@ export function VoiceButton({
 }) {
   const [status, setStatus] = React.useState<Status>('idle')
   const recorder = React.useRef<MediaRecorder | null>(null)
-  const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
+  const upload = useUpload()
   const transcribe = useAction(api.api.chat.transcribe)
 
   async function start() {
@@ -36,15 +36,8 @@ export function VoiceButton({
         setStatus('transcribing')
         try {
           const audio = new Blob(chunks, { type: r.mimeType })
-          const res = await fetch(await uploadUrl(), {
-            method: 'POST',
-            headers: { 'Content-Type': audio.type },
-            body: audio,
-          })
-          const { storageId } = (await res.json()) as { storageId: string }
-          const text = await transcribe({
-            storageId: storageId as Id<'_storage'>,
-          })
+          const storageId = await upload(audio)
+          const text = await transcribe({ storageId })
           if (text) onText(text)
         } catch (e) {
           onError(errorMessage(e, "Couldn't transcribe that. Try again."))

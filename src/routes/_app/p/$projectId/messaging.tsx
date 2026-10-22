@@ -2,7 +2,6 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
-import { messagingAppName } from '../../../../../convex/lib/channels'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
@@ -14,7 +13,7 @@ export const Route = createFileRoute('/_app/p/$projectId/messaging')({
 
 type Action = { type: 'code' } | { type: 'unlink'; id: Id<'phoneLinks'> }
 
-/** Link chats on iMessage, WhatsApp or Telegram, over Photon, to message the project's assistants. */
+/** Link a Telegram chat, over Photon, to message the project's lead. */
 function Messaging() {
   const project = useProject()
   const links = useQuery(
@@ -50,10 +49,8 @@ function Messaging() {
       <div>
         <h1 className="text-lg font-semibold">Message {project.name}</h1>
         <p className="text-sm text-muted-foreground">
-          Link a chat on iMessage, WhatsApp or Telegram, then message{' '}
-          {project.name} there. Start a message with @name to talk to another
-          assistant, or send &ldquo;who&rdquo; to see who&rsquo;s here. Each
-          assistant&rsquo;s messages also show up in a chat here. Every other
+          Link your Telegram chat, then message {project.name} there. Your
+          messages show up in {project.name}&rsquo;s chat here. Every other
           channel is on{' '}
           <Link
             to="/p/$projectId/connections"
@@ -71,10 +68,19 @@ function Messaging() {
           {linked.map((link) => (
             <div key={link._id} className="flex items-center gap-3 p-4">
               <span className="size-2 rounded-full bg-emerald-500" />
-              <p className="flex-1">
-                {messagingAppName(link.platform ?? 'imessage')}{' '}
-                <span className="text-muted-foreground">linked</span>
-              </p>
+              {link.platform === 'telegram' ? (
+                <p className="flex-1">
+                  Telegram <span className="text-muted-foreground">linked</span>
+                </p>
+              ) : (
+                <p className="flex-1 text-muted-foreground">
+                  An old{' '}
+                  {link.platform === 'whatsapp_business'
+                    ? 'WhatsApp'
+                    : 'iMessage'}{' '}
+                  link. Only Telegram works now.
+                </p>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -91,16 +97,13 @@ function Messaging() {
       <section className="flex flex-col gap-3 rounded-xl border p-4 text-sm">
         {links === undefined ? null : pending ? (
           <>
-            <p>
-              From the app you want to link, send this to your Photon number on
-              iMessage or WhatsApp, or to your bot on Telegram:
-            </p>
+            <p>Send this to your bot on Telegram:</p>
             <p className="font-mono text-lg tracking-widest">
               link {pending.code}
             </p>
             <p className="text-muted-foreground">
-              The code works for 10 minutes. Linking an app again replaces its
-              old link.
+              The code works for 10 minutes. Linking again replaces the old
+              link.
             </p>
             <Button
               variant="outline"
@@ -115,7 +118,7 @@ function Messaging() {
           <>
             <p>
               {linked.length
-                ? 'Link another app, or link one again from a different chat.'
+                ? 'Link again from a different chat.'
                 : 'Nothing is linked yet.'}
             </p>
             <Button

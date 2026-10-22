@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { MODEL_ID } from '../../lib/models'
 import { zPortrait } from '../../lib/portraits'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
+import { internalQuery } from '../../_generated/server'
 import type { Id } from '../../_generated/dataModel'
 import type { QueryCtx } from '../../_generated/server'
 
@@ -73,4 +74,109 @@ const save = zAuthedMutation({
   },
 })
 
-export const projectsApi = { list, get, save }
+const DAY = 24 * 60 * 60_000
+
+/**
+ * What's on the user's plate, for `get_today`: reminders in the next day,
+ * messages and tasks waiting for them, emails from the last three days
+ * nobody replied to, and lists with things left to do.
+ */
+const today = internalQuery({
+  args: { projectId: v.id('projects') },
+  returns: v.object({
+    reminders: v.array(
+      v.object({
+        message: v.string(),
+        dueAt: v.number(),
+        via: v.string(),
+        to: v.optional(v.string()),
+      }),
+    ),
+    toConfirm: v.number(),
+    tasks: v.array(v.object({ title: v.string(), status: v.string() })),
+    emails: v.array(
+      v.object({
+        from: v.string(),
+        subject: v.string(),
+        receivedAt: v.number(),
+      }),
+    ),
+    lists: v.array(
+      v.object({
+        planId: v.id('plans'),
+        title: v.string(),
+        left: v.number(),
+        next: v.array(v.string()),
+      }),
+    ),
+  }),
+  handler: async (ctx, { projectId }) => {
+    const project = await ctx.db.get('projects', projectId)
+    if (!project) throw new Error('No such project.')
+    const now = Date.now()
+    const reminders = await ctx.db
+      .query('reminders')
+      .withIndex('by_project_and_status', (q) =>
+        q
+          .eq('projectId', projectId)
+          .eq('status', 'scheduled')
+          .lt('dueAt', now + DAY),
+      )
+      .take(20)
+    const toConfirm = await ctx.db
+      .query('reminders')
+      .withIndex('by_project_and_status', (q) =>
+        q.eq('projectId', projectId).eq('status', 'pending'),
+      )
+      .take(20)
+    const tasks = await ctx.db
+      .query('tasks')
+      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .order('desc')
+      .take(20)
+    const emails = await ctx.db
+      .query('emails')
+      .withIndex('by_user_and_receivedAt', (q) =>
+        q.eq('userId', project.ownerId).gt('receivedAt', now - 3 * DAY),
+      )
+      .order('desc')
+      .take(100)
+    const plans = await ctx.db
+      .query('plans')
+      .withIndex('by_project', (q) => q.eq('projectId', projectId))
+      .order('desc')
+      .take(30)
+    return {
+      reminders: reminders.map((r) => ({
+        message: r.message,
+        dueAt: r.dueAt,
+        via: r.via,
+        to: r.toName,
+      })),
+      toConfirm: toConfirm.length,
+      tasks: tasks
+        .filter((t) => t.status === 'running' || t.status === 'waiting_for_you')
+        .map((t) => ({ title: t.title, status: t.status })),
+      emails: emails
+        .filter((e) => e.from && !e.repliedAt && e.status !== 'ignored')
+        .slice(0, 5)
+        .map((e) => ({
+          from: e.from ?? '',
+          subject: e.subject ?? '',
+          receivedAt: e.receivedAt,
+        })),
+      lists: plans
+        .map((p) => ({ plan: p, open: p.steps.filter((s) => !s.done) }))
+        .filter(({ open }) => open.length > 0)
+        .slice(0, 6)
+        .map(({ plan, open }) => ({
+          planId: plan._id,
+          title: plan.title,
+          left: open.length,
+          next: open.slice(0, 3).map((s) => s.text),
+        })),
+    }
+  },
+})
+
+export const projectsApi = { list, get, save, today }

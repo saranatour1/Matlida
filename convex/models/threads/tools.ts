@@ -1,11 +1,26 @@
-import { createTool } from '@convex-dev/agent'
-import { generateText } from 'ai'
+import { createTool, listMessages } from '@convex-dev/agent'
+import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
-import { internal } from '../../_generated/api'
-import { researchModel, searchModel } from '../../lib/ai'
+import { components, internal } from '../../_generated/api'
+import {
+  decisionModel,
+  imageModel,
+  researchModel,
+  searchModel,
+  summaryModel,
+} from '../../lib/ai'
+import { searchConvexDocs } from '../../lib/convexDocs'
+import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
+import { MODELS } from '../../lib/models'
+import { fetchNews } from '../../lib/news'
+import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
+import { everydayTools } from './everyday'
+import { pageTools } from './pages'
+import { shoppingTools } from './shopping'
+import type { Turn } from '../../lib/decide'
 import type { Doc } from '../../_generated/dataModel'
-import type { ToolCtx } from '@convex-dev/agent'
+import type { MessageDoc, ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
 
 const vSteps = z
@@ -13,6 +28,45 @@ const vSteps = z
   .min(1)
   .max(30)
   .describe('Each step as a short instruction, in order.')
+
+/** The sizes GPT Image makes, by shape. */
+const IMAGE_SIZES = {
+  square: '1024x1024',
+  wide: '1536x1024',
+  tall: '1024x1536',
+} as const
+
+/** The chat's last 30 messages for Jev, with which tools ran and which failed. */
+async function recentTurns(ctx: ToolCtx, threadId: string) {
+  const { page } = await listMessages(ctx, components.agent, {
+    threadId,
+    paginationOpts: { numItems: 30, cursor: null },
+  })
+  return page
+    .sort((a, b) => a.order - b.order || a.stepOrder - b.stepOrder)
+    .flatMap((m): Array<Turn> => {
+      const text = turnText(m).slice(0, 500)
+      if (!text) return []
+      return [{ role: m.message?.role === 'user' ? 'user' : 'assistant', text }]
+    })
+}
+
+function turnText({ message, text, status, error }: MessageDoc) {
+  const parts = Array.isArray(message?.content) ? message.content : []
+  return [
+    text?.trim(),
+    ...parts.map((part) =>
+      part.type === 'tool-call'
+        ? `[used ${part.toolName}]`
+        : part.type === 'tool-result' && part.output?.type.startsWith('error')
+          ? `[${part.toolName} failed]`
+          : '',
+    ),
+    status === 'failed' ? `[this reply failed: ${error ?? 'no reason'}]` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
 /** How long a post can be on each platform, in characters. Previews flag anything over. */
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
@@ -40,6 +94,9 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     })
   }
   return {
+    ...everydayTools(project),
+    ...shoppingTools(project),
+    ...pageTools(project, from),
     web_search: createTool({
       description:
         'Search the web for current facts, news, prices or anything after your training. Returns a short sourced answer.',
@@ -52,6 +109,113 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         })
         await record(ctx, 'search', query, result)
         return { answer: result.text }
+      },
+    }),
+    get_news: createTool({
+      description:
+        "The user's news: the most important stories from the last 24 hours on the topics and regions they follow, each with its source. Pass `topics` for a one-off, like a story they name. It returns needsSetup when they haven't chosen what to follow; then call setup_news. In the app the stories show as a card.",
+      inputSchema: z.object({
+        topics: z.array(z.string().trim().min(1).max(60)).max(6).optional(),
+      }),
+      execute: async (ctx, { topics }, { abortSignal }) => {
+        const settings: Doc<'newsSettings'> | null = await ctx.runQuery(
+          internal.api.news.forUser,
+          { userId: project.ownerId },
+        )
+        const follow = topics?.length ? topics : settings?.topics
+        if (!follow) {
+          return { needsSetup: true, date: Date.now(), sections: [] }
+        }
+        const sections = await fetchNews(
+          searchModel,
+          {
+            topics: follow,
+            regions: settings?.regions ?? [],
+            avoid: settings?.avoid,
+            perTopic: settings?.perTopic ?? 3,
+          },
+          abortSignal,
+        )
+        await Promise.all(
+          sections.map((s) => record(ctx, 'search', `News: ${s.topic}`, s)),
+        )
+        return {
+          needsSetup: false,
+          date: Date.now(),
+          sections: sections.map(({ topic, stories }) => ({ topic, stories })),
+        }
+      },
+    }),
+    quick_summary: createTool({
+      description:
+        'Summarize text quickly and cheaply with a fast model: a pasted article, an email thread, what web_search found. Returns a bold one-line TL;DR, key points, and any dates, numbers or action items.',
+      inputSchema: z.object({
+        text: z.string().min(1).max(100_000),
+        focus: z
+          .string()
+          .max(200)
+          .optional()
+          .describe('What the user cares about, if they said.'),
+      }),
+      execute: async (ctx, { text, focus }, { abortSignal }) => {
+        const result = await generateText({
+          model: summaryModel,
+          system:
+            'Summarize for a busy reader: a one-line TL;DR in bold, then at most five short key points, then any dates, numbers or action items. Markdown. No preamble. Only what the text says.',
+          prompt: focus ? `Focus on: ${focus}\n\n${text}` : text,
+          abortSignal,
+        })
+        await record(ctx, 'search', 'Quick summary', result)
+        return { summary: result.text }
+      },
+    }),
+    generate_image: createTool({
+      description:
+        'Make a picture from a description. It is saved in the workspace and shows in the chat. Write a detailed prompt: subject, style, setting, light and mood.',
+      inputSchema: z.object({
+        prompt: z.string().min(1).max(4000),
+        shape: z.enum(['square', 'wide', 'tall']).default('square'),
+      }),
+      execute: async (ctx, { prompt, shape }, { abortSignal }) => {
+        const { image, usage, providerMetadata } = await generateImage({
+          model: imageModel,
+          prompt,
+          size: IMAGE_SIZES[shape],
+          abortSignal,
+        })
+        const storageId = await ctx.storage.store(
+          new Blob([new Uint8Array(image.uint8Array)], {
+            type: image.mediaType,
+          }),
+        )
+        if (ctx.threadId) {
+          await ctx.runMutation(internal.api.usage.record, {
+            projectId: project._id,
+            threadId: ctx.threadId,
+            kind: 'media',
+            label: 'Picture',
+            model: MODELS.image,
+            aiCost: gatewayCost(providerMetadata),
+            inputTokens: usage.inputTokens ?? 0,
+            outputTokens: usage.outputTokens ?? 0,
+          })
+        }
+        return { url: await ctx.storage.getUrl(storageId), storageId, prompt }
+      },
+    }),
+    generate_video: createTool({
+      description:
+        'Make an 8-second video from a description. It takes a few minutes in the background and shows in the chat when ready, so say so and carry on. Write a detailed prompt: subject, action, camera movement, setting, light and mood.',
+      inputSchema: z.object({
+        prompt: z.string().min(1).max(4000),
+        shape: z.enum(['wide', 'tall']).default('wide'),
+      }),
+      execute: async (ctx, video) => {
+        const videoId: string = await ctx.runMutation(
+          internal.api.videos.start,
+          { projectId: project._id, threadId: ctx.threadId ?? '', ...video },
+        )
+        return { videoId, prompt: video.prompt }
       },
     }),
     research: createTool({
@@ -139,15 +303,14 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         ),
       execute: (_ctx, chart) => Promise.resolve(chart),
     }),
+    // Older chats show this name, and the model copies them; without it the call fails.
     preview_post: createTool({
       description:
-        'Show a post in the chat the way it would look on LinkedIn, X, Reddit or Discord, so the user can see it before posting. It posts nothing. Call it once per platform.',
+        'The older name for preview_posts: shows one post. Use preview_posts instead.',
       inputSchema: z.object({
         platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
         text: z.string().min(1).max(4000),
-        /** Reddit only. */
         title: z.string().max(300).optional(),
-        /** Reddit only, without r/. */
         subreddit: z.string().max(50).optional(),
       }),
       execute: (_ctx, post) =>
@@ -155,6 +318,45 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           ...post,
           author: from,
           limit: POST_LIMITS[post.platform],
+        }),
+    }),
+    preview_posts: createTool({
+      description:
+        "Show drafts of social posts in the chat, laid out the way LinkedIn, X, Reddit or Discord show them, so the user can compare versions before posting. Give two or three versions per platform in one call, each labelled by its angle (like Punchy, Story, Question), within the platform's length. It posts nothing.",
+      inputSchema: z.object({
+        posts: z
+          .array(
+            z.object({
+              platform: z.enum(['linkedin', 'x', 'reddit', 'discord']),
+              label: z
+                .string()
+                .min(1)
+                .max(30)
+                .describe('What makes this version different.'),
+              text: z.string().min(1).max(4000),
+              title: z.string().max(300).optional().describe('Reddit only.'),
+              subreddit: z
+                .string()
+                .max(50)
+                .optional()
+                .describe('Reddit only, without r/.'),
+              channel: z
+                .string()
+                .max(50)
+                .optional()
+                .describe('Discord only, without #.'),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+      execute: (_ctx, { posts }) =>
+        Promise.resolve({
+          author: from,
+          posts: posts.map((post) => ({
+            ...post,
+            limit: POST_LIMITS[post.platform],
+          })),
         }),
     }),
     save_command: createTool({
@@ -170,26 +372,14 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         description: z.string().min(1).max(200),
         markdown: z.string().min(1).max(20_000),
       }),
-      execute: async (ctx, { markdown, ...command }) => {
-        const storageId = await ctx.storage.store(
-          new Blob([markdown], { type: 'text/markdown' }),
-        )
-        const existing: Array<Doc<'commands'>> = await ctx.runQuery(
-          internal.api.commands.byName,
-          { projectId: project._id, name: command.name },
-        )
-        try {
-          await ctx.runMutation(internal.api.commands.write, {
-            projectId: project._id,
-            id: existing[0]?._id,
-            userId: project.ownerId,
-            storageId,
-            ...command,
-          })
-        } catch (error) {
-          await ctx.storage.delete(storageId)
-          throw error
-        }
+      execute: async (ctx, command) => {
+        // Replaces their command with this name, or adds it; saving the same again changes nothing.
+        await saveCommand(ctx, {
+          ...command,
+          projectId: project._id,
+          userId: project.ownerId,
+          replace: true,
+        })
         return { saved: true, run: `/${command.name}` }
       },
     }),
@@ -230,6 +420,132 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           email: c.email ?? null,
           phone: c.phone ?? null,
           note: c.note ?? null,
+        }))
+      },
+    }),
+    find_emails: createTool({
+      description:
+        "Search the user's earlier emails, theirs and other people's, by words in the subject or text, optionally only from one address. Use it for context when answering or drafting a reply.",
+      inputSchema: z.object({
+        query: z.string().trim().min(1).describe('Words to look for.'),
+        from: z.email().optional().describe('Only emails from this address.'),
+      }),
+      execute: async (ctx, { query, from: sender }) => {
+        const found: Array<{
+          from: string
+          subject: string
+          receivedAt: number
+          text: string
+          replied: boolean
+        }> = await ctx.runQuery(internal.api.emails.search, {
+          userId: project.ownerId,
+          query,
+          from: sender,
+        })
+        return found.map((e) => ({
+          ...e,
+          receivedAt: new Date(e.receivedAt).toISOString(),
+        }))
+      },
+    }),
+    decide: createTool({
+      description:
+        "Pick between options with Jev, TypeSafe's judgment model, when the user asks you to decide or choose. Give every option and the facts that matter. It returns the pick and each option's probability: when the pick is under 0.5, say it's close and name the runner-up.",
+      inputSchema: z.object({
+        question: z.string().trim().min(1).describe('What to decide.'),
+        options: z
+          .array(
+            z.object({
+              name: z.string().trim().min(1).max(80),
+              description: z
+                .string()
+                .max(500)
+                .optional()
+                .describe('What the option is, if the name is not enough.'),
+            }),
+          )
+          .min(2)
+          .max(20)
+          .refine(
+            (options) =>
+              new Set(options.map((o) => o.name)).size === options.length,
+            'Each option needs its own name.',
+          ),
+        context: z
+          .string()
+          .max(4000)
+          .describe(
+            "What matters for the choice: the user's goals, limits and preferences from the chat.",
+          ),
+      }),
+      execute: async (_ctx, input, { abortSignal }) =>
+        await decide(decisionModel, input, abortSignal),
+    }),
+    convex_docs: createTool({
+      description:
+        'Look up the current Convex docs (docs.convex.dev) for a Convex question or bug: queries, mutations, actions, schemas, indexes, auth, file storage, scheduling, components, limits or errors. Use it before answering anything about Convex, since APIs change; answer from what it returns and link the page.',
+      inputSchema: z.object({
+        query: z
+          .string()
+          .trim()
+          .min(1)
+          .describe('The problem in a few words, like "action out of memory".'),
+      }),
+      execute: async (_ctx, { query }, { abortSignal }) => ({
+        pages: await searchConvexDocs(query, abortSignal),
+      }),
+    }),
+    problem_check: createTool({
+      description:
+        'The "make my problems go away" analysis: ask Jev whether AI can handle a problem, should prepare it for a person, or whether a real person (a professional, someone they trust, or the user) should handle it, and whether getting it wrong could really hurt. Shows an animated card in the chat.',
+      inputSchema: z.object({
+        problem: z.string().trim().min(1).max(2000),
+        context: z
+          .string()
+          .max(4000)
+          .describe(
+            'What matters from the chat: who they are, what they tried.',
+          ),
+      }),
+      execute: async (_ctx, input, { abortSignal }) => ({
+        problem: input.problem,
+        ...(await whoShouldHandle(decisionModel, input, abortSignal)),
+      }),
+    }),
+    needs_follow_up: createTool({
+      description:
+        'Check with Jev whether anything from earlier in this chat still needs a follow-up: a request you have not done or answered, a tool that failed, something you said you would do later, or a video or task still running. Use it when the user comes back after a while, at the start of a call, or when they ask what is left; then follow up on what it finds.',
+      inputSchema: z.object({}),
+      execute: async (ctx, _input, { abortSignal }) => {
+        if (!ctx.threadId) throw new Error('This only works in a chat.')
+        const [conversation, openWork] = await Promise.all([
+          recentTurns(ctx, ctx.threadId),
+          ctx.runQuery(internal.api.threads.openWork, {
+            threadId: ctx.threadId,
+          }),
+        ])
+        return await needsFollowUp(
+          decisionModel,
+          { conversation, openWork },
+          abortSignal,
+        )
+      },
+    }),
+    find_texts: createTool({
+      description:
+        'Search what the user has texted you on Telegram, by words in the message.',
+      inputSchema: z.object({
+        query: z.string().trim().min(1).describe('Words to look for.'),
+      }),
+      execute: async (ctx, { query }) => {
+        const found: Array<{ platform: string; text: string; sentAt: number }> =
+          await ctx.runQuery(internal.api.texts.search, {
+            userId: project.ownerId,
+            query,
+          })
+        return found.map((t) => ({
+          text: t.text,
+          sentAt: new Date(t.sentAt).toISOString(),
         }))
       },
     }),

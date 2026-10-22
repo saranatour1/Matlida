@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
@@ -12,6 +12,7 @@ import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
 import { EffortMenu } from '~/components/effort-menu'
+import { EmailReply } from '~/components/email-reply'
 import { ModelMenu } from '~/components/model-menu'
 import { PromptForm } from '~/components/prompt-form'
 import { Suggestions } from '~/components/suggestions'
@@ -35,42 +36,56 @@ import {
   MessageScrollerViewport,
 } from '~/components/ui/message-scroller'
 import { errorMessage } from '~/lib/errors'
+import { VoiceBar, useCall } from '~/components/voice-call'
 import { CommandDialog } from '~/components/command-dialog'
 
 /**
- * A chat with one of the project's assistants: `bot`, or the lead when unset.
- * Without `threadId`, the first message starts one.
+ * The one chat with one of the project's assistants: `bot`, or the lead when
+ * unset. The first message starts it.
  */
 export function Chat({
   project,
   bot,
-  threadId,
   panel,
   onCall,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
-  threadId?: string
   /** Whether the right sidebar is open. It lives in the URL as `?panel=true`. */
   panel?: boolean
   /** Starts a voice call with this chat's assistant. */
   onCall: () => void
 }) {
-  const navigate = useNavigate()
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
+  const threadId =
+    useQuery(api.api.threads.main, {
+      projectId: project._id,
+      botId: bot?._id,
+    }) ?? undefined
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   // A new chat's model, until the first message starts the thread.
   const [startModel, setStartModel] = React.useState<string>()
   const [startEffort, setStartEffort] = React.useState<Effort>()
   const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
+  const { call, caller, startCall } = useCall()
+  // Talking in this chat: the call is on, started from here, with this assistant.
+  const talking =
+    caller?.inline === true &&
+    caller.target.projectId === project._id &&
+    caller.target.botId === bot?._id &&
+    (call.status !== 'idle' || call.error !== undefined)
   const { results } = useUIMessages(
     api.api.chat.listMessages,
     threadId ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
   const messages = results as Array<ChatUIMessage>
+  const emails = useQuery(
+    api.api.emails.forMessages,
+    threadId ? { threadId, messageIds: messages.map((m) => m.id) } : 'skip',
+  )
   const last = messages.at(-1)
   const isBusy =
     last?.role === 'user' ||
@@ -90,22 +105,14 @@ export function Chat({
   const [error, send] = React.useActionState(
     async (_previous: string | undefined, prompt: string) => {
       try {
-        const id = await sendMessage({
+        await sendMessage({
           projectId: project._id,
           botId: bot?._id,
-          threadId,
           prompt,
           model: threadId ? undefined : startModel,
           effort: threadId ? undefined : startEffort,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
-        if (!threadId) {
-          void navigate({
-            to: '/p/$projectId',
-            params: { projectId: project._id },
-            search: { thread: id, bot: bot?._id, panel },
-          })
-        }
         return undefined
       } catch (e) {
         return errorMessage(e, 'Could not send your message. Try again.')
@@ -212,15 +219,27 @@ export function Chat({
               <MessageScroller className="flex-1">
                 <MessageScrollerViewport>
                   <MessageScrollerContent className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-6">
-                    {messages.map((message) => (
-                      <MessageScrollerItem
-                        key={message.key}
-                        messageId={message.key}
-                        scrollAnchor={message.role === 'user'}
-                      >
-                        <ChatMessage message={message} />
-                      </MessageScrollerItem>
-                    ))}
+                    {messages.map((message) => {
+                      const email = emails?.find(
+                        (e) => e.chatMessageId === message.id,
+                      )
+                      return (
+                        <MessageScrollerItem
+                          key={message.key}
+                          messageId={message.key}
+                        >
+                          <ChatMessage message={message} />
+                          {email && (
+                            <EmailReply
+                              email={email}
+                              className={
+                                message.role === 'user' ? 'justify-end' : ''
+                              }
+                            />
+                          )}
+                        </MessageScrollerItem>
+                      )
+                    })}
                     {isWaiting && (
                       <MessageScrollerItem messageId="thinking">
                         <div className="flex shimmer items-center gap-2 px-3 text-sm text-muted-foreground">
@@ -245,34 +264,48 @@ export function Chat({
               </AlertDescription>
             </Alert>
           )}
-          <PromptForm
-            placeholder={`Message ${lead}…`}
-            isBusy={isBusy}
-            onSubmit={send}
-            commands={[
-              ...BUILT_IN_COMMANDS.filter(
-                (b) => !commands?.some((c) => c.name === b.name),
-              ).map((b) => ({ ...b, builtIn: true })),
-              ...(commands ?? []),
-            ]}
-            onCreateCommand={() => setCreatingCommand(true)}
-            tools={
-              <>
-                <EffortMenu
-                  threadId={threadId}
-                  effort={threadId ? thread?.effort : startEffort}
-                  own={bot ? bot.effort : project.effort}
-                  onPick={setStartEffort}
-                />
-                <ModelMenu
-                  threadId={threadId}
-                  model={threadId ? thread?.model : startModel}
-                  own={bot ? bot.model : project.model}
-                  onPick={setStartModel}
-                />
-              </>
-            }
-          />
+          {talking ? (
+            <VoiceBar />
+          ) : (
+            <PromptForm
+              placeholder={`Message ${lead}…`}
+              isBusy={isBusy}
+              onSubmit={send}
+              commands={[
+                ...BUILT_IN_COMMANDS.filter(
+                  (b) => !commands?.some((c) => c.name === b.name),
+                ).map((b) => ({ ...b, builtIn: true })),
+                ...(commands ?? []),
+              ]}
+              onCreateCommand={() => setCreatingCommand(true)}
+              onTalk={() =>
+                startCall(
+                  { projectId: project._id, botId: bot?._id },
+                  {
+                    name: lead,
+                    portrait: portraitOf(bot ?? project),
+                    inline: true,
+                  },
+                )
+              }
+              tools={
+                <>
+                  <EffortMenu
+                    threadId={threadId}
+                    effort={threadId ? thread?.effort : startEffort}
+                    own={bot ? bot.effort : project.effort}
+                    onPick={setStartEffort}
+                  />
+                  <ModelMenu
+                    threadId={threadId}
+                    model={threadId ? thread?.model : startModel}
+                    own={bot ? bot.model : project.model}
+                    onPick={setStartModel}
+                  />
+                </>
+              }
+            />
+          )}
           {creatingCommand && (
             <CommandDialog
               projectId={project._id}

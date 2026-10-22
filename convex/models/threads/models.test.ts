@@ -47,7 +47,6 @@ async function setup() {
   })
   /** Sends a message and runs the reply, returning the chat and its texts. */
   const chat = async (args: {
-    threadId?: string
     botId?: Awaited<ReturnType<typeof asAda.mutation<typeof api.api.bots.save>>>
     model?: string
     effort?: 'low' | 'medium' | 'high'
@@ -106,7 +105,7 @@ test('a chat can switch models and keeps its history', async () => {
     threadId,
     model: 'anthropic/claude-opus-5',
   })
-  const after = await chat({ threadId, prompt: 'Second' })
+  const after = await chat({ prompt: 'Second' })
   expect(after.texts).toEqual([
     'First',
     'Hello from the default.',
@@ -115,7 +114,7 @@ test('a chat can switch models and keeps its history', async () => {
   ])
   // Back to the assistant's own.
   await asAda.mutation(api.api.threads.setModel, { threadId, model: null })
-  const back = await chat({ threadId, prompt: 'Third' })
+  const back = await chat({ prompt: 'Third' })
   expect(back.texts.at(-1)).toBe('Hello from the default.')
   const rows = await t.run((ctx) =>
     ctx.db
@@ -214,19 +213,16 @@ test("effort is medium by default, then the assistant's own, then the chat's pic
     guidelines: '',
     effort: 'high',
   })
-  await chat({ threadId, prompt: 'Think hard' })
+  await chat({ prompt: 'Think hard' })
   await asAda.mutation(api.api.threads.setEffort, { threadId, effort: 'low' })
-  await chat({ threadId, prompt: 'Quick one' })
+  await chat({ prompt: 'Quick one' })
   await asAda.mutation(api.api.threads.setEffort, { threadId, effort: null })
-  await chat({ threadId, prompt: 'Back to normal' })
-  const fresh = await chat({ effort: 'low', prompt: 'New chat, low' })
-  expect(fresh.texts).toContain('Hello from the default.')
+  await chat({ prompt: 'Back to normal' })
   expect(effortsAsked().slice(before)).toEqual([
     'medium',
     'high',
     'low',
     'high',
-    'low',
   ])
 })
 
