@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
-import { sweepable } from './functions'
+import { sweepable } from '../../models/commands/functions'
 import type { Id } from '../../lib/ctx'
 
 const setup = async () => {

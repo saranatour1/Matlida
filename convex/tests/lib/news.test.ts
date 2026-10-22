@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { briefingMarkdown, dueDay, parseStories } from './news'
+import { briefingMarkdown, dueDay, parseStories } from '../../lib/news'
 
 test('stories come from the JSON in the answer, and bad ones are dropped', () => {
   const text = `Here you go:

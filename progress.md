@@ -523,3 +523,7 @@
 - `shoppingDetails`, `cartItems` and `priceWatches` left the app schema; dev had no rows in them. Tests register the component with `registerShopping(t)` from `test.setup.ts`.
 - Verdict on the pattern: it fits a feature that only needs its own rows and a user id. Threads, emails and texts write into the agent's thread, so they'd stay in the app.
 
+### Tests in their own folders (2026-10-22)
+
+- Backend tests live in `convex/tests/<table>/` and `convex/tests/lib/`, frontend ones in `src/tests/`. Only the relative imports changed. `test.setup.ts` and `test.budget.ts` stay at `convex/`, since convex-test keys modules by paths from there.
+

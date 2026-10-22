@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { decide, needsFollowUp, whoShouldHandle } from './decide'
+import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
 import type { Experimental_DecisionModelV4 } from '@ai-sdk/provider'
 
 const jev = (answer: {

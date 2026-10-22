@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { RULES } from './rules'
+import { RULES } from '../lib/rules'
 
 test('every rule is one markdown list item with its title in bold', () => {
   const ids = RULES.map((r) => r.id)

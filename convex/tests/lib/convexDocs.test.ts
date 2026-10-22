@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseIndex, rankPages } from './convexDocs'
+import { parseIndex, rankPages } from '../../lib/convexDocs'
 
 const index = `# Convex Documentation
 

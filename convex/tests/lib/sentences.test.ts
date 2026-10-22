@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { MAX_PIECE, takePieces } from './sentences'
+import { MAX_PIECE, takePieces } from '../../lib/sentences'
 
 /** Streams `text` in small deltas the way the model does, and returns every piece in order. */
 const stream = (text: string, delta = 7) => {

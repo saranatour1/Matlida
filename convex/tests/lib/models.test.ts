@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { CHAT_MODELS, MODELS, isListedModel, modelName } from './models'
+import { CHAT_MODELS, MODELS, isListedModel, modelName } from '../../lib/models'
 
 test('chat models are looked up by id, and anything else shows its id', () => {
   expect(isListedModel(MODELS.chat)).toBe(true)

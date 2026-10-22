@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
-import { assistantTools } from '../models/threads/tools'
-import { BUILT_IN_COMMANDS } from './commands'
-import type { Doc } from './ctx'
+import { assistantTools } from '../../models/threads/tools'
+import { BUILT_IN_COMMANDS } from '../../lib/commands'
+import type { Doc } from '../../lib/ctx'
 
 test('every tool a built-in command names exists', () => {
   const tools = new Set([

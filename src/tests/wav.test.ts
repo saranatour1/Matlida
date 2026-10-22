@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { encodeWav } from './wav'
+import { encodeWav } from '../lib/wav'
 
 test('samples become a 16-bit mono WAV, clipped to range', () => {
   const wav = encodeWav(new Float32Array([0, 1, -1, 2]), 16_000)
