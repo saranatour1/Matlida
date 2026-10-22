@@ -3,11 +3,12 @@ import { z } from 'zod'
 import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
-import { chatModel, languageModel } from '../../lib/ai'
+import { budgetedModel } from '../../lib/budget'
 import { EFFORTS, MODELS } from '../../lib/models'
 import { showsVia } from './everyday'
 import { assistantTools } from './tools'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc, Id } from '../../_generated/dataModel'
+import type { ActionCtx } from '../../_generated/server'
 import type { UsageHandler } from '@convex-dev/agent'
 import type { Effort } from '../../lib/models'
 import type { ToolSet } from 'ai'
@@ -121,10 +122,15 @@ export function instructionsFor(
   return `${base}\n\nYou can't use tools on this answer. If they ask for something that needs one, like a reminder, a search or a list, say you'll do it when they ask in the chat.`
 }
 
-/** The gateway model for `id`, or the default when it's unset or the default itself. */
-function modelFor(id: string, effort: Effort) {
+/** The gateway model `id`, metered against the owner's budget. */
+function modelFor(
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  id: string,
+  effort: Effort,
+) {
   return wrapLanguageModel({
-    model: id === MODELS.chat ? languageModel : chatModel(id),
+    model: budgetedModel(ctx, userId, id),
     // The gateway sends this on as the request's `reasoning_effort`.
     middleware: defaultSettingsMiddleware({
       settings: {
@@ -196,7 +202,7 @@ function askTools(
             userId: project.ownerId,
           },
         )
-        const agent = createAgent(project, {
+        const agent = createAgent(ctx, project, {
           bot: b,
           chargeTo: ctx.threadId,
           tools: false,
@@ -252,6 +258,7 @@ export type AgentOptions = ReplyOptions & {
  * usage recording, so callers only run it.
  */
 export function createAgent(
+  ctx: ActionCtx,
   project: Project,
   { bot, members = [], chargeTo, tools = true, ...options }: AgentOptions = {},
 ) {
@@ -262,7 +269,7 @@ export function createAgent(
   const name = bot?.name ?? project.name
   return new Agent(components.agent, {
     name,
-    languageModel: modelFor(model, effort),
+    languageModel: modelFor(ctx, project.ownerId, model, effort),
     instructions: bot
       ? botInstructions(project, bot, members, options)
       : leadInstructions(project, members, options),

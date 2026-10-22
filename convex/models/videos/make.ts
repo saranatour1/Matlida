@@ -5,6 +5,7 @@ import { v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { internalAction } from '../../_generated/server'
 import { videoModel } from '../../lib/ai'
+import { metered } from '../../lib/budget'
 import { MODELS } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
 import { videosTable } from './table'
@@ -22,20 +23,28 @@ const FORMATS = {
 const make = internalAction({
   args: {
     id: v.id('videos'),
+    userId: v.id('users'),
     projectId: v.id('projects'),
     threadId: v.string(),
     prompt: v.string(),
     shape: videosTable.validator.fields.shape,
   },
   returns: v.null(),
-  handler: async (ctx, { id, projectId, threadId, prompt, shape }) => {
+  handler: async (ctx, { id, userId, projectId, threadId, prompt, shape }) => {
     try {
-      const { video, providerMetadata } = await generateVideo({
-        model: videoModel,
-        prompt,
-        duration: 8,
-        ...FORMATS[shape],
-      })
+      const { video, providerMetadata } = await metered(
+        ctx,
+        { userId, model: MODELS.video, estimate: 0.8 },
+        async () => {
+          const made = await generateVideo({
+            model: videoModel,
+            prompt,
+            duration: 8,
+            ...FORMATS[shape],
+          })
+          return { result: made, cost: gatewayCost(made.providerMetadata) }
+        },
+      )
       const storageId = await ctx.storage.store(
         new Blob([new Uint8Array(video.uint8Array)], { type: video.mediaType }),
       )

@@ -21,6 +21,7 @@ export default defineConfig([
       'convex/http.ts',
       'convex/crons.ts',
       'convex/test.setup.ts',
+      'convex/test.budget.ts',
     ],
     rules: {
       'no-restricted-syntax': [

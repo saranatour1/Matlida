@@ -5,9 +5,10 @@ import { generateSpeech } from 'ai'
 import { internal } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { speechModel } from '../../lib/ai'
+import { metered } from '../../lib/budget'
 import { PCM_RATE, pcmToWav } from '../../lib/audio'
 import { zAuthedAction } from '../../lib/functions'
-import { voiceFor } from '../../lib/models'
+import { MODELS, voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
@@ -48,12 +49,24 @@ const forget = internalMutation({
 })
 
 /** Reads `text` out in `name`'s voice and stores it. */
-async function voice(ctx: ActionCtx, text: string, name: string) {
-  const { audio } = await generateSpeech({
-    model: speechModel,
-    text: text.slice(0, MAX_SPOKEN),
-    voice: voiceFor(name),
-  })
+async function voice(
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  text: string,
+  name: string,
+) {
+  const { audio } = await metered(
+    ctx,
+    { userId, model: MODELS.speech, estimate: 0.01 },
+    async () => {
+      const spoken = await generateSpeech({
+        model: speechModel,
+        text: text.slice(0, MAX_SPOKEN),
+        voice: voiceFor(name),
+      })
+      return { result: spoken, cost: gatewayCost(spoken.providerMetadata) }
+    },
+  )
   const storageId = await ctx.storage.store(
     new Blob([new Uint8Array(audio.uint8Array)], { type: audio.mediaType }),
   )
@@ -61,8 +74,13 @@ async function voice(ctx: ActionCtx, text: string, name: string) {
 }
 
 /** `voice`, deleted after 10 minutes. Returns its URL. */
-async function speak(ctx: ActionCtx, text: string, name: string) {
-  const { storageId, url } = await voice(ctx, text, name)
+async function speak(
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  text: string,
+  name: string,
+) {
+  const { storageId, url } = await voice(ctx, userId, text, name)
   await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
     storageId,
   })
@@ -129,7 +147,7 @@ const turn = zAuthedAction({
         live,
       })
     }
-    const heard = await transcribeClip(ctx, storageId)
+    const heard = await transcribeClip(ctx, ctx.userId, storageId)
     if (!heard.text) {
       await live({ heard: '', done: true })
       return {
@@ -179,7 +197,7 @@ const turn = zAuthedAction({
       if (!text) return
       spoken += text.length
       speaking = speaking.then(async () => {
-        const audio = await voice(ctx, text, name)
+        const audio = await voice(ctx, ctx.userId, text, name)
         firstMs ??= Date.now() - started
         await live({ piece: { text, ...audio } })
       })
@@ -391,7 +409,7 @@ const answer = zAuthedAction({
       ...call,
       text,
       callId,
-      audioUrl: await speak(ctx, text, call.from),
+      audioUrl: await speak(ctx, ctx.userId, text, call.from),
     }
   },
 })

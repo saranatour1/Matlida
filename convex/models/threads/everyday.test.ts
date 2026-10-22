@@ -1,10 +1,14 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { READ_ONLY_TOOLS, createAgent } from './lead'
 import type { Doc } from '../../_generated/dataModel'
+import type { ActionCtx } from '../../_generated/server'
+
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 
 const project = { name: 'Matilda', brief: '' } as Doc<'projects'>
+const ctx = {} as ActionCtx
 const toolsFor = (via?: 'chat' | 'text' | 'voice') =>
-  Object.keys(createAgent(project, { via }).options.tools ?? {})
+  Object.keys(createAgent(ctx, project, { via }).options.tools ?? {})
 
 test('cards show in the app, and texts and calls answer in words instead', () => {
   expect(toolsFor('chat')).toEqual(
@@ -42,7 +46,7 @@ test('calls can make pictures and videos, which show in the chat beside them, an
 test('every tool an email draft may use is a real tool, so a typo can’t drop one', () => {
   const ivy = { _id: 'ivy', name: 'Ivy', role: 'Researcher' } as Doc<'bots'>
   const all = Object.keys(
-    createAgent(project, { members: [ivy] }).options.tools ?? {},
+    createAgent(ctx, project, { members: [ivy] }).options.tools ?? {},
   )
   for (const tool of [...READ_ONLY_TOOLS, 'find_emails']) {
     expect(all).toContain(tool)

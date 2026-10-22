@@ -9,6 +9,7 @@ import { modules } from '../../test.setup'
 /** Every model id a reply asked the gateway for, beyond the default. */
 const asked = vi.hoisted(() => [] as Array<string>)
 
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
   const { mockModel } = await import('@convex-dev/agent')
   const model = (text: string) =>

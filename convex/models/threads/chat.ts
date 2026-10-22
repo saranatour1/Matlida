@@ -12,6 +12,7 @@ import { transcribe as transcribeAudio } from 'ai'
 import { components, internal } from '../../_generated/api'
 import { internalAction, internalQuery } from '../../_generated/server'
 import { transcriptionModel } from '../../lib/ai'
+import { budgetMessage, metered } from '../../lib/budget'
 import {
   authedAction,
   authedMutation,
@@ -22,7 +23,8 @@ import schema from '../../schema'
 import { findCommand, getCommand } from '../commands/functions'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { getOwnedProject } from '../projects/functions'
-import { MODEL_ID } from '../../lib/models'
+import { MODELS, MODEL_ID } from '../../lib/models'
+import { gatewayCost } from '../usage/functions'
 import { ensureMainThread, getMembers, getOwnedThread } from './functions'
 import { createAgent } from './lead'
 import type { Effort } from '../../lib/models'
@@ -227,7 +229,7 @@ export async function runReply(
     command?.markdown ??
     (command?.storageId &&
       (await (await ctx.storage.get(command.storageId))?.text()))
-  const agent = createAgent(project, {
+  const agent = createAgent(ctx, project, {
     bot,
     members,
     timeZone,
@@ -238,16 +240,32 @@ export async function runReply(
     command: command && markdown ? { name: command.name, markdown } : undefined,
   })
   const started = Date.now()
-  const result = await agent.streamText(
-    ctx,
-    { threadId, userId: project.ownerId },
-    { promptMessageId },
-    { saveStreamDeltas: true },
-  )
-  if (onText) {
-    for await (const delta of result.textStream) onText(delta, { project, bot })
+  let text: string
+  try {
+    const result = await agent.streamText(
+      ctx,
+      { threadId, userId: project.ownerId },
+      { promptMessageId },
+      { saveStreamDeltas: true },
+    )
+    if (onText) {
+      for await (const delta of result.textStream) {
+        onText(delta, { project, bot })
+      }
+    }
+    await result.consumeStream()
+    text = await result.text
+  } catch (error) {
+    // Over the month's budget: the chat says so, and a call reads it out.
+    const refused = budgetMessage(error)
+    if (!refused) throw error
+    await saveMessage(ctx, components.agent, {
+      threadId,
+      message: { role: 'assistant', content: refused },
+    })
+    onText?.(refused, { project, bot })
+    text = refused
   }
-  await result.consumeStream()
   await ctx.runMutation(internal.api.usage.record, {
     projectId: project._id,
     threadId,
@@ -258,7 +276,7 @@ export async function runReply(
     outputTokens: 0,
     computeMs: Date.now() - started,
   })
-  return { text: await result.text, project, bot }
+  return { text, project, bot }
 }
 
 /** Streams the reply from the thread's assistant into the thread. */
@@ -302,6 +320,7 @@ const voiceUploadUrl = authedMutation({
 /** Transcribes an uploaded recording, then deletes it. Returns the text and the gateway's metadata. */
 export async function transcribeClip(
   ctx: ActionCtx,
+  userId: Id<'users'>,
   storageId: Id<'_storage'>,
 ) {
   const audio = await ctx.storage.get(storageId)
@@ -310,10 +329,17 @@ export async function transcribeClip(
   if (audio.size > 10 * 1024 * 1024) {
     throw new ConvexError('Recordings can be at most 10 MB.')
   }
-  const { text, providerMetadata } = await transcribeAudio({
-    model: transcriptionModel,
-    audio: new Uint8Array(await audio.arrayBuffer()),
-  })
+  const { text, providerMetadata } = await metered(
+    ctx,
+    { userId, model: MODELS.transcription, estimate: 0.01 },
+    async () => {
+      const heard = await transcribeAudio({
+        model: transcriptionModel,
+        audio: new Uint8Array(await audio.arrayBuffer()),
+      })
+      return { result: heard, cost: gatewayCost(heard.providerMetadata) }
+    },
+  )
   return { text: text.trim(), providerMetadata }
 }
 
@@ -321,7 +347,7 @@ export async function transcribeClip(
 const transcribe = authedAction({
   args: { storageId: v.id('_storage') },
   handler: async (ctx, { storageId }) =>
-    (await transcribeClip(ctx, storageId)).text,
+    (await transcribeClip(ctx, ctx.userId, storageId)).text,
 })
 
 export const chatApi = {

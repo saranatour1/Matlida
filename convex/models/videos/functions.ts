@@ -32,9 +32,12 @@ const start = internalMutation({
   },
   returns: v.id('videos'),
   handler: async (ctx, video) => {
+    const project = await ctx.db.get('projects', video.projectId)
+    if (!project) throw new Error('No such workspace.')
     const id = await ctx.db.insert('videos', { ...video, status: 'working' })
     await ctx.scheduler.runAfter(0, internal.api.videoMake.make, {
       id,
+      userId: project.ownerId,
       ...video,
     })
     await ctx.scheduler.runAfter(GIVE_UP_MS, internal.api.videos.finish, {

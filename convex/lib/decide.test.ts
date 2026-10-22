@@ -37,6 +37,7 @@ test('decide asks Jev one choice question and returns its pick and odds', async 
   ).toEqual({
     choice: 'train',
     probabilities: { train: 0.78, flight: 0.22 },
+    cost: 0,
   })
   expect(model.doDecide).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -60,7 +61,7 @@ test('without probabilities, the pick counts as certain', async () => {
       options: [{ name: 'a' }, { name: 'b' }],
       context: '',
     }),
-  ).toEqual({ choice: 'a', probabilities: { a: 1 } })
+  ).toEqual({ choice: 'a', probabilities: { a: 1 }, cost: 0 })
 })
 
 test('needs_follow_up asks Jev both questions at once and names the open request', async () => {
@@ -92,6 +93,7 @@ test('needs_follow_up asks Jev both questions at once and names the open request
     probability: 0.91,
     request: 'Make me a video of a fox',
     openWork,
+    cost: 0,
   })
   expect(doDecide).toHaveBeenCalledOnce()
   expect(doDecide).toHaveBeenCalledWith(
@@ -143,6 +145,7 @@ test('the problem check asks Jev who should handle it and whether it is risky, i
     verdict: 'person',
     probabilities: { ai: 0.05, ai_then_person: 0.25, person: 0.7 },
     risky: true,
+    cost: 0,
   })
   expect(doDecide).toHaveBeenCalledOnce()
 })

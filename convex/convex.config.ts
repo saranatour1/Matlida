@@ -6,6 +6,7 @@ import authEmail from '@convex-dev/auth/components/email/convex.config.js'
 import authGithub from '@convex-dev/auth/components/github/convex.config.js'
 import authGoogle from '@convex-dev/auth/components/google/convex.config.js'
 import authPassword from '@convex-dev/auth/components/password/convex.config.js'
+import aiBudget from '@convex-dev/ai-budget/convex.config'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
@@ -30,12 +31,15 @@ const app = defineApp({
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
+    /** Each person's AI spend a month, in dollars. 12 when unset. */
+    AI_BUDGET_USD: v.optional(v.string()),
   },
 })
 
 app.use(agent)
 app.use(resend)
 app.use(rateLimiter)
+app.use(aiBudget)
 app.use(workflow)
 app.use(auth, {
   httpPrefix: '/auth',

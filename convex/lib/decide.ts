@@ -1,4 +1,5 @@
 import { experimental_decide } from 'ai'
+import { gatewayCost } from '../models/usage/functions'
 import type { Experimental_DecisionModel } from 'ai'
 
 /**
@@ -19,7 +20,7 @@ export async function decide(
   },
   abortSignal?: AbortSignal,
 ) {
-  const { answers } = await experimental_decide({
+  const { answers, providerMetadata } = await experimental_decide({
     model,
     state: { question, context },
     questions: {
@@ -35,7 +36,7 @@ export async function decide(
     abortSignal,
   })
   const { choice, probabilities = { [choice]: 1 } } = answers.decision
-  return { choice, probabilities }
+  return { choice, probabilities, cost: gatewayCost(providerMetadata) }
 }
 
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
@@ -59,7 +60,7 @@ export async function needsFollowUp(
     .filter((t) => t.role === 'user')
     .slice(-8)
     .map((t) => t.text)
-  const { answers } = await experimental_decide({
+  const { answers, providerMetadata } = await experimental_decide({
     model,
     state: { conversation, open_work: openWork },
     questions: {
@@ -95,6 +96,7 @@ export async function needsFollowUp(
     probability: answers.needs_follow_up.probability,
     request: index ? (requests[Number(index) - 1] ?? null) : null,
     openWork,
+    cost: gatewayCost(providerMetadata),
   }
 }
 
@@ -116,7 +118,7 @@ export async function whoShouldHandle(
   { problem, context }: { problem: string; context: string },
   abortSignal?: AbortSignal,
 ) {
-  const { answers } = await experimental_decide({
+  const { answers, providerMetadata } = await experimental_decide({
     model,
     state: { problem, context },
     questions: {
@@ -141,5 +143,6 @@ export async function whoShouldHandle(
     verdict: choice,
     probabilities,
     risky: answers.risky.probability >= 0.5,
+    cost: gatewayCost(providerMetadata),
   }
 }
