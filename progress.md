@@ -730,8 +730,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 ### Phone calls (2026-10-22)
 
-- Assistants can phone a number you type: a new `call_phone` tool. Photon only carries calls over SIP, so an ElevenLabs agent does the talking. Convex asks ElevenLabs to place the call (`POST /v1/convai/sip-trunk/outbound-call`, in `convex/lib/phone.ts`), and ElevenLabs dials out through the Photon number imported into it. Each call sends its own opening line and what it's about as overrides.
-- Only a number that's in your last message (the last 7 digits have to match, so "0791 234 567" works as +962…). Emails land in the chat as assistant messages, so a number from one never counts. At most 10 calls a day per person (`phoneCall`).
-- New optional env: `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_PHONE_NUMBER_ID`. Connections shows Phone calls as connected once they're set. Setup steps are in `docs/setup/channels.md`.
-- The chat shows "Calling +1…" or why it failed. Not yet: phone calls for reminders, and the call in the app's call history.
-- Verified with pnpm check and the tests (request body, missing env, a failed call, typed-number matching). No call was placed.
+- Assistants can phone a number you type (`call_phone`), all from Convex and Photon, with no voice company in between. A probe on dev showed a Convex Node action can use UDP (STUN answered) and reach `sip.spectrum.photon.codes:5061` over TLS.
+- `convex/models/calls/dial.ts` runs the whole call in one action: SIP over TLS with the Spectrum project id and secret as the digest login (MD5 or SHA-256), the caller ID from `SPECTRUM_PHONE_NUMBER`, CANCEL after 45 s of ringing, and BYE at the end. Audio is G.711 µ-law over UDP, offered at our public address from STUN. Convex's outgoing ports differ per destination, so audio is sent back to wherever Photon's comes from.
+- Each turn: a pause (0.7 s) ends what they said. The gateway transcribes it for the record while `audioChat` answers in voice, and the answer plays as it streams, turned from 24 kHz into 8 kHz µ-law. The opening line is spoken the same way, so it's one voice throughout.
+- Ends on their hang-up, a goodbye, 20 s of quiet, or 9 minutes (actions stop at 10). It's a `calls` row with `phone` (number, status, packets heard), so it's in Call history, and the transcript lands in the chat. The chat card shows ringing, on the phone, and how it ended.
+- Only a number in your last message, at most 10 a day per person.
+- Replaces the ElevenLabs version (#146, closed).
+- Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.

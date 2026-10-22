@@ -15,7 +15,7 @@ import {
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { rateLimiter } from '../../lib/limits'
-import { PHONE_NUMBER, callPhone, typedBy } from '../../lib/phone'
+import { PHONE_NUMBER, typedBy } from '../../lib/phone'
 import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
 import { iso, parseIso } from '../../lib/time'
@@ -584,7 +584,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     call_phone: createTool({
       description:
-        "Phone a number the user typed in their last message, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. A voice agent says `say` when they pick up, then talks with them about `about`. Tell the user the call is on its way; you won't hear how it went.",
+        'Phone a number the user typed in their last message, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends.',
       inputSchema: z.object({
         to: z
           .string()
@@ -603,7 +603,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           .string()
           .max(2000)
           .describe(
-            'What the call is for, and anything to tell or ask them, so the agent can answer their questions.',
+            'What the call is for, and anything to tell or ask them, so you can answer their questions.',
           ),
       }),
       execute: async (ctx, { to, say, about }) => {
@@ -620,12 +620,18 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         })
         if (!ok)
           throw new Error("That's 10 phone calls today, the daily limit.")
-        const { conversationId } = await callPhone({
-          to,
-          firstMessage: say,
-          prompt: `You are ${from}, an assistant, on a phone call you placed for the person you work for. You opened with: "${say}". What the call is for: ${about}\nKeep it short and friendly, answer from what you know here, and say you'll pass anything else on. End the call once it's done.`,
-        })
-        return { calling: to, conversationId }
+        const callId: string = await ctx.runMutation(
+          internal.api.calls.startPhone,
+          {
+            projectId: project._id,
+            threadId: ctx.threadId,
+            from,
+            to,
+            say,
+            about,
+          },
+        )
+        return { calling: to, callId }
       },
     }),
     set_reminder: createTool({

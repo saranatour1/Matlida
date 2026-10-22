@@ -100,7 +100,7 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 ## Open questions
 
 - Calls to your real phone: an assistant can phone a number you type
-  (`call_phone`, through ElevenLabs and the Photon number, see
+  (`call_phone`, on Convex through Photon's SIP server, see
   `docs/setup/channels.md`). Reminders still ring only an open Matilda tab.
 - The thresholds (`JEV_THRESHOLDS` in `convex/lib/decide.ts`: 0.3 to stop a
   recurring reminder, 0.7 to switch its channel, 0.7 for a check-in call,

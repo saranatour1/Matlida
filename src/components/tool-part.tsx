@@ -172,22 +172,44 @@ export function ReminderPart({
   )
 }
 
-/** A phone call an assistant placed, to a number you typed. */
+const PHONE_STATUS = {
+  dialing: 'Calling',
+  ringing: 'Ringing',
+  answered: 'On the phone with',
+  ended: 'Call ended with',
+  busy: 'Busy:',
+  no_answer: 'No answer from',
+  failed: "Couldn't call",
+}
+
+/** A phone call an assistant placed, to a number you typed, as it goes. */
 export function CallPhonePart({
   part,
 }: {
   part: Extract<ChatUIMessage['parts'][number], { type: 'tool-call_phone' }>
 }) {
-  const busy =
-    part.state === 'input-streaming' || part.state === 'input-available'
+  const callId =
+    part.state === 'output-available'
+      ? (part.output.callId as Id<'calls'>)
+      : null
+  const phone = useQuery(
+    api.api.calls.phoneState,
+    callId ? { id: callId } : 'skip',
+  )
+  const to = part.input?.to ?? '…'
+  const live = phone && !phone.endedAt
   return (
     <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
-      {busy ? <Spinner /> : <PhoneOutgoingIcon className="size-4" />}
-      {part.state === 'output-available'
-        ? `Calling ${part.output.calling}.`
-        : part.state === 'output-error'
-          ? `Couldn't call: ${part.errorText}`
-          : `Calling ${part.input?.to ?? '…'}…`}
+      {part.state === 'output-error' || (phone && !live) ? (
+        <PhoneOutgoingIcon className="size-4" />
+      ) : (
+        <Spinner />
+      )}
+      {part.state === 'output-error'
+        ? `Couldn't call: ${part.errorText}`
+        : phone
+          ? `${PHONE_STATUS[phone.status]} ${phone.to}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
+          : `Calling ${to}…`}
     </div>
   )
 }

@@ -11,4 +11,8 @@ export const {
   updateLive,
   live,
   forgetLive,
+  startPhone,
+  phoneCall,
+  setPhone,
+  phoneState,
 } = callLogApi

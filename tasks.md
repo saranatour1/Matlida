@@ -11,8 +11,9 @@
 
 ## Open
 
-- [x] Phone calls to a number you type, through ElevenLabs and the Photon number (`call_phone`)
-- [ ] Phone calls for reminders, and calls in the app's call history
+- [x] Phone calls to a number you type, all on Convex through Photon's SIP server (`call_phone`)
+- [ ] Phone calls for reminders and check-ins
+- [ ] Talking over a reply on a phone call
 - [x] Reminder calls answer in the call bar, with snooze, and Jev decides when to call again (PR 1 of the calls stack)
 - [x] Once vs recurring reminders, and Jev pausing or stopping them (PR 2)
 - [x] Check-in calls when Jev thinks it's a good time, at most 3 a day (PR 3)

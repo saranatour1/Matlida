@@ -1,10 +1,13 @@
+import { saveMessage } from '@convex-dev/agent'
 import { ConvexError, v } from 'convex/values'
+import { components, internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
+import schema from '../../schema'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/queries'
 import { zoned } from '../../lib/time'
-import { callLinesTable, liveTurnsTable } from './table'
+import { callLinesTable, liveTurnsTable, phoneStatus } from './table'
 import { getOwnedCall, linesOf } from './queries'
 import type { Doc } from '../../lib/ctx'
 
@@ -189,7 +192,125 @@ const forgetLive = internalMutation({
   },
 })
 
+/** Starts a phone call an assistant was asked to place: its record, then the call itself. */
+const startPhone = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    threadId: v.string(),
+    from: v.string(),
+    to: v.string(),
+    say: v.string(),
+    about: v.string(),
+  },
+  returns: v.id('calls'),
+  handler: async (ctx, { projectId, threadId, to, ...call }) => {
+    // ponytail: the call is filed under the lead, even when a bot placed it.
+    const id = await ctx.db.insert('calls', {
+      projectId,
+      threadId,
+      phone: { to, status: 'dialing' },
+    })
+    await ctx.scheduler.runAfter(0, internal.api.dial.dial, {
+      callId: id,
+      ...call,
+    })
+    return id
+  },
+})
+
+/** A phone call to place, with the project and the name of whoever the assistant calls for. */
+const phoneCall = internalQuery({
+  args: { id: v.id('calls') },
+  returns: v.object({
+    call: schema.doc('calls'),
+    project: schema.doc('projects'),
+    ownerName: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, { id }) => {
+    const call = await ctx.db.get('calls', id)
+    const project = call && (await ctx.db.get('projects', call.projectId))
+    if (!call?.phone || !project) throw new ConvexError('Call not found.')
+    const owner = await ctx.db.get('users', project.ownerId)
+    return { call, project, ownerName: owner?.name ?? null }
+  },
+})
+
+const ENDINGS = {
+  ended: 'it ended',
+  busy: 'the line was busy',
+  no_answer: 'no answer',
+  failed: "the call didn't go through",
+}
+
+/**
+ * Moves a phone call along. When it ends, the call is closed and the chat
+ * gets what was said, or why nobody picked up.
+ */
+const setPhone = internalMutation({
+  args: {
+    id: v.id('calls'),
+    status: phoneStatus,
+    note: v.optional(v.string()),
+    heard: v.optional(v.number()),
+    from: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { id, status, note, heard, from }) => {
+    const call = await ctx.db.get('calls', id)
+    if (!call?.phone) throw new ConvexError('Call not found.')
+    const phone = {
+      ...call.phone,
+      status,
+      ...(note === undefined ? {} : { note }),
+      ...(heard === undefined ? {} : { heard }),
+    }
+    if (!(status in ENDINGS)) {
+      await ctx.db.patch('calls', id, { phone })
+      return null
+    }
+    await ctx.db.patch('calls', id, { phone, endedAt: Date.now() })
+    if (!call.threadId) return null
+    const lines = await linesOf(ctx, id).take(40)
+    const said = lines
+      .map(
+        (l) =>
+          `> **${l.who === 'you' ? phone.to : (from ?? 'Me')}:** ${l.text}`,
+      )
+      .join('\n>\n')
+    const why = note ? ` (${note})` : ''
+    await saveMessage(ctx, components.agent, {
+      threadId: call.threadId,
+      agentName: from,
+      message: {
+        role: 'assistant',
+        content:
+          status !== 'ended'
+            ? `📞 I couldn't reach ${phone.to}: ${ENDINGS[status as keyof typeof ENDINGS]}${why}.`
+            : said
+              ? `📞 My call with ${phone.to}${why}:\n\n${said}`
+              : `📞 I called ${phone.to}, but nothing was said${why}.`,
+      },
+    })
+    return null
+  },
+})
+
+/** A phone call's progress, for its card in the chat. */
+const phoneState = authedQuery({
+  args: { id: v.id('calls') },
+  handler: async (ctx, { id }) => {
+    const call = await getOwnedCall(ctx, ctx.userId, id)
+    return call.phone
+      ? { ...call.phone, startedAt: call._creationTime, endedAt: call.endedAt }
+      : null
+  },
+})
+
 export const callLogApi = {
+  startPhone,
+  phoneCall,
+  setPhone,
+  phoneState,
   addLine,
   end,
   history,

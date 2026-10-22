@@ -20,7 +20,7 @@ export type ChannelId =
  * it works, and decides how its status is computed:
  * - `photon`: a messaging app linked through Photon's webhook.
  * - `email`: the user's address at `MAIL_DOMAIN`.
- * - `phone`: calls placed through ElevenLabs and the Photon number, once its env is set.
+ * - `phone`: calls through Photon's SIP server, once its env is set.
  * - `tool`: always on, through the Convex AI gateway.
  * - `planned`: shown as coming soon, with the reason.
  */
@@ -89,11 +89,11 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     name: 'Phone calls',
     via: 'phone',
     description:
-      'Ask an assistant to call a number you type. It rings from your Photon number, and an ElevenLabs agent does the talking.',
+      'Ask an assistant to call a number you type. It rings from your Photon iMessage line and talks in its own voice.',
     env: [
-      'ELEVENLABS_API_KEY',
-      'ELEVENLABS_AGENT_ID',
-      'ELEVENLABS_PHONE_NUMBER_ID',
+      'SPECTRUM_PROJECT_ID',
+      'SPECTRUM_PROJECT_SECRET',
+      'SPECTRUM_PHONE_NUMBER',
     ],
   },
   {

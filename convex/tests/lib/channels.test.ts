@@ -99,7 +99,7 @@ test('tools are always on', () => {
   })
 })
 
-test('phone calls work once ElevenLabs is set up', () => {
+test('phone calls work once the Photon line is set up', () => {
   expect(channelStatus(channel('phone'), nothing)).toMatchObject({
     status: 'needs_setup',
   })
@@ -107,9 +107,9 @@ test('phone calls work once ElevenLabs is set up', () => {
     channelStatus(channel('phone'), {
       ...nothing,
       env: [
-        'ELEVENLABS_API_KEY',
-        'ELEVENLABS_AGENT_ID',
-        'ELEVENLABS_PHONE_NUMBER_ID',
+        'SPECTRUM_PROJECT_ID',
+        'SPECTRUM_PROJECT_SECRET',
+        'SPECTRUM_PHONE_NUMBER',
       ],
     }),
   ).toMatchObject({ status: 'connected' })
