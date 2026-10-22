@@ -744,7 +744,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 ### Phone calls behind a feature flag (2026-10-22)
 
-- Calling numbers is off unless Cloudflare Flagship's `phone-calls` flag is on for the user, since anyone who signs up could otherwise make the app place calls (`flagOn` in `convex/lib/flags.ts`). The call tool asks Flagship's evaluation API before each call, with the user's Convex id as the targeting key.
-- A deployment can force flags on with `FLAGS_ON` (a comma list). Dev sets `phone-calls`; prod never should.
-- It fails closed: without `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN`, or when Flagship errors, calls are refused. The token needs only Flagship Evaluate.
-
+- Calling numbers is off unless Cloudflare Flagship's `phone-calls` flag is on for the user, since anyone who signs up could otherwise make the app place calls. The call tool asks before each call (`flagOn` in `convex/lib/flags.ts`).
+- Flagship is read by the Worker's binding (`NO_PHONE_CALLS_YET` in `wrangler.jsonc`), so Convex asks the Worker's `/api/flags` (`src/routes/api/flags.ts`) with a shared `FLAGS_SECRET`, and the user's Convex id as the targeting key. No Cloudflare API token is needed.
+- It fails closed: without the secret, or when the Worker doesn't answer, calls are refused. Dev points `FLAGS_URL` at the deployed Worker, since Convex can't reach localhost, or sets `FLAGS_ON=phone-calls` to turn calls on for everyone there.
+- The assistant is told to always try the call tool, since it kept repeating an earlier "calling is off" after calls were turned back on.

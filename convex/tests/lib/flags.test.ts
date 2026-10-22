@@ -6,19 +6,13 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const setUp = () => {
-  vi.stubEnv('FLAGSHIP_ACCOUNT_ID', 'acct')
-  vi.stubEnv('FLAGSHIP_APP_ID', 'app')
-  vi.stubEnv('FLAGSHIP_API_TOKEN', 'token')
-}
-
-test('phone calls are off without Flagship, and when it fails', async () => {
+test('phone calls are off without the Worker set up, and when it fails', async () => {
   const fetch = vi.fn()
   vi.stubGlobal('fetch', fetch)
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
   expect(fetch).not.toHaveBeenCalled()
-  setUp()
-  fetch.mockResolvedValue(new Response('nope', { status: 500 }))
+  vi.stubEnv('FLAGS_SECRET', 'shh')
+  fetch.mockResolvedValue(new Response('Not found', { status: 404 }))
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
   fetch.mockRejectedValue(new Error('offline'))
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
@@ -30,21 +24,19 @@ test('a deployment can turn them on for everyone, without Flagship', async () =>
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(true)
 })
 
-test('Flagship turns them on for one user', async () => {
-  setUp()
-  const fetch = vi.fn(() =>
-    Promise.resolve(Response.json({ result: { value: true } })),
-  )
+test("the Worker's Flagship binding turns them on for one user", async () => {
+  vi.stubEnv('FLAGS_SECRET', 'shh')
+  vi.stubEnv('FLAGS_URL', 'https://matilda.example')
+  const fetch = vi.fn(() => Promise.resolve(Response.json({ on: true })))
   vi.stubGlobal('fetch', fetch)
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(true)
   const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
-  expect(url).toBe(
-    'https://api.cloudflare.com/client/v4/accounts/acct/flagship/apps/app/evaluate',
-  )
+  expect(url).toBe('https://matilda.example/api/flags')
+  expect(init.headers).toMatchObject({ authorization: 'Bearer shh' })
   expect(JSON.parse(init.body as string)).toEqual({
-    flagKey: 'phone-calls',
-    context: { targetingKey: 'user_1' },
+    flag: 'phone-calls',
+    userId: 'user_1',
   })
-  fetch.mockResolvedValue(Response.json({ value: false }))
+  fetch.mockResolvedValue(Response.json({ on: false }))
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
 })

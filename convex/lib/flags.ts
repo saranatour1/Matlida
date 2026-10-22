@@ -7,44 +7,31 @@ export const FLAGS = {
 } as const
 
 /**
- * Whether `flag` is on for `userId`, asked of Flagship's evaluation API with
- * the user's id as the targeting key. Off when Flagship isn't set up, fails
- * or says no, so a risky feature stays off by default. A deployment can turn
- * flags on for everyone with `FLAGS_ON`, like dev with `phone-calls`.
+ * Whether `flag` is on for `userId`. Flagship is read through the Worker's
+ * binding, so this asks the Worker's /api/flags with `FLAGS_SECRET`, with the
+ * user's id as the targeting key. Off when that isn't set up, fails or says
+ * no, so a risky feature stays off by default. A deployment can turn flags on
+ * for everyone with `FLAGS_ON`, like dev with `phone-calls`.
  */
 export const flagOn = async (
   flag: (typeof FLAGS)[keyof typeof FLAGS],
   userId: string,
 ) => {
-  const {
-    FLAGSHIP_ACCOUNT_ID: account,
-    FLAGSHIP_APP_ID: app,
-    FLAGSHIP_API_TOKEN: token,
-  } = env
   if (env.FLAGS_ON?.split(',').some((on) => on.trim() === flag)) return true
-  if (!account || !app || !token) return false
+  const secret = env.FLAGS_SECRET
+  if (!secret) return false
   try {
-    const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${account}/flagship/apps/${app}/evaluate`,
-      {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          flagKey: flag,
-          context: { targetingKey: userId },
-        }),
+    const response = await fetch(`${env.FLAGS_URL ?? env.SITE_URL}/api/flags`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${secret}`,
+        'content-type': 'application/json',
       },
-    )
+      body: JSON.stringify({ flag, userId }),
+    })
     if (!response.ok) return false
-    const body = (await response.json()) as {
-      value?: unknown
-      result?: { value?: unknown }
-    }
-    // The API may wrap its answer in Cloudflare's usual `result`.
-    return (body.result?.value ?? body.value) === true
+    const { on } = (await response.json()) as { on?: unknown }
+    return on === true
   } catch (error) {
     console.error(error)
     return false

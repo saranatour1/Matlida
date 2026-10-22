@@ -121,16 +121,22 @@ Setup, in Photon's dashboard under Voice:
    SIP connection isn't `sip.photon.codes`, set `PHOTON_SIP_HOST` to it.
 
 Calling numbers is **off unless a feature flag turns it on**, since it costs
-money and could be abused. In Cloudflare's dashboard, under Flagship:
+money and could be abused. The flag lives in Cloudflare Flagship, which the
+Worker reads through its `NO_PHONE_CALLS_YET` binding (`wrangler.jsonc`).
+Convex asks the Worker's `/api/flags` before each call.
 
-1. Create an app, and in it a boolean flag `phone-calls`, off by default.
-2. Add a rule that turns it on for your Convex user id (the `targetingKey`).
-3. Create an API token with only the **Flagship Evaluate** permission.
-4. Set `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN` on the
-   deployment. Without them, or if Flagship doesn't answer, calls are refused.
+1. In Flagship's app, make a boolean flag `phone-calls`, off by default, with a
+   rule that serves on for `targetingKey` in a list of Convex user ids. Add or
+   remove ids there to turn calls on or off for people.
+2. Make a long random secret and set it as `FLAGS_SECRET` on both the Worker
+   (a secret, in its dashboard settings or with `wrangler secret put`) and the
+   Convex deployment.
+3. On dev, also set `FLAGS_URL=https://matilda-is-a-bot.app`: dev's
+   `SITE_URL` is localhost, which Convex can't reach.
 
-On dev, `FLAGS_ON=phone-calls` turns calls on for everyone without Flagship.
-Never set it on prod.
+Without the secret, or if the Worker doesn't answer, calls are refused. On dev,
+`FLAGS_ON=phone-calls` turns calls on for everyone without Flagship. Never set
+it on prod.
 
 Limits:
 

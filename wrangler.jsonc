@@ -8,4 +8,11 @@
   "observability": {
     "enabled": true,
   },
+  // Feature flags. Convex asks /api/flags, which reads them here (src/routes/api/flags.ts).
+  "flagship": [
+    {
+      "binding": "NO_PHONE_CALLS_YET",
+      "app_id": "3e920fef-5b9e-4d56-9884-561a4f797b3a",
+    },
+  ],
 }
