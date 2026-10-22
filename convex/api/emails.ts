@@ -2,6 +2,8 @@ import { emailsApi } from '../models/emails/functions'
 
 export const {
   latest,
+  unseen,
+  schedulePoll,
   receive,
   skip,
   settle,

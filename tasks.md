@@ -17,8 +17,10 @@
 - [x] Check-in calls when Jev thinks it's a good time, at most 3 a day (PR 3)
 - [x] "What can you do" as command pills (PR 4)
 - [x] Attachments, pasted or dropped into the prompt (PR 5)
-- [ ] Edit and retry (PR 6)
-- [ ] Flash cards and quizzes, with review calls (PR 7)
+- [x] Edit and retry (PR 6)
+- [x] Flash cards and quizzes, with review calls (PR 7)
+- [ ] Grade study cards by voice on a review call
+- [ ] Attach markdown, text and audio (needs the sweep to skip agent files)
 - Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats

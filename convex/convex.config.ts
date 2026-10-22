@@ -13,6 +13,7 @@ import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
 import spectrum from '@spectrum-ts/convex/convex.config.js'
 import shopping from './components/shopping/convex.config'
+import study from './components/study/convex.config'
 
 const app = defineApp({
   env: {
@@ -51,6 +52,7 @@ app.use(resend)
 app.use(rateLimiter)
 app.use(aiBudget)
 app.use(shopping)
+app.use(study)
 app.use(workflow)
 app.use(crons)
 app.use(auth, {

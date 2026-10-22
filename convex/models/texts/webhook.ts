@@ -51,7 +51,7 @@ export const photonWebhook = httpAction(async (ctx, request) => {
   const message = event.data.data.object
 
   if (message.platform === 'email') {
-    await ctx.scheduler.runAfter(0, internal.api.emails.poll, {})
+    await ctx.runMutation(internal.api.emails.schedulePoll, {})
   } else if (
     message.platform === 'telegram' &&
     message.content.type === 'text' &&

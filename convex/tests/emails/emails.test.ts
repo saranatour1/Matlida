@@ -361,3 +361,39 @@ test('two clicks on Send at once send one reply', async () => {
     (await chat('Matilda'))?.filter((m) => m.startsWith('↩️')),
   ).toHaveLength(1)
 })
+
+test('checking again only receives new email, and drafts nothing twice', async () => {
+  const { t, poll } = await setup()
+  received = [email('m1', 'bob@example.com', 'Lunch?')]
+  await poll()
+  const drafted = calls.length
+  received = [
+    email('m1', 'bob@example.com', 'Lunch?'),
+    email('m2', 'bob@example.com', 'Dinner?'),
+  ]
+  expect(
+    await t.query(internal.api.emails.unseen, { ids: ['m1', 'm2'] }),
+  ).toEqual(['m2'])
+  await poll()
+  await poll()
+  expect(calls.length).toBe(drafted + 1)
+})
+
+test('a burst of webhook events queues one email check', async () => {
+  vi.useFakeTimers()
+  const { t } = await setup()
+  for (let i = 0; i < 5; i++) {
+    await t.mutation(internal.api.emails.schedulePoll, {})
+  }
+  const pending = async () =>
+    (
+      await t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(20))
+    ).filter((f) => f.state.kind === 'pending')
+  expect(await pending()).toHaveLength(1)
+
+  vi.advanceTimersByTime(2_000)
+  await t.finishInProgressScheduledFunctions()
+  await t.mutation(internal.api.emails.schedulePoll, {})
+  expect(await pending()).toHaveLength(1)
+  vi.useRealTimers()
+})

@@ -26,6 +26,7 @@ import type * as api_projects from "../api/projects.js";
 import type * as api_reminders from "../api/reminders.js";
 import type * as api_sender from "../api/sender.js";
 import type * as api_shopping from "../api/shopping.js";
+import type * as api_study from "../api/study.js";
 import type * as api_tasks from "../api/tasks.js";
 import type * as api_texts from "../api/texts.js";
 import type * as api_threads from "../api/threads.js";
@@ -95,6 +96,7 @@ import type * as models_reminders_checkIns from "../models/reminders/checkIns.js
 import type * as models_reminders_functions from "../models/reminders/functions.js";
 import type * as models_reminders_table from "../models/reminders/table.js";
 import type * as models_shopping_functions from "../models/shopping/functions.js";
+import type * as models_study_functions from "../models/study/functions.js";
 import type * as models_tasks_functions from "../models/tasks/functions.js";
 import type * as models_tasks_table from "../models/tasks/table.js";
 import type * as models_texts_functions from "../models/texts/functions.js";
@@ -111,6 +113,7 @@ import type * as models_threads_lead from "../models/threads/lead.js";
 import type * as models_threads_pages from "../models/threads/pages.js";
 import type * as models_threads_queries from "../models/threads/queries.js";
 import type * as models_threads_shopping from "../models/threads/shopping.js";
+import type * as models_threads_study from "../models/threads/study.js";
 import type * as models_threads_tools from "../models/threads/tools.js";
 import type * as models_threads_voice from "../models/threads/voice.js";
 import type * as models_usage_functions from "../models/usage/functions.js";
@@ -147,6 +150,7 @@ declare const fullApi: ApiFromModules<{
   "api/reminders": typeof api_reminders;
   "api/sender": typeof api_sender;
   "api/shopping": typeof api_shopping;
+  "api/study": typeof api_study;
   "api/tasks": typeof api_tasks;
   "api/texts": typeof api_texts;
   "api/threads": typeof api_threads;
@@ -216,6 +220,7 @@ declare const fullApi: ApiFromModules<{
   "models/reminders/functions": typeof models_reminders_functions;
   "models/reminders/table": typeof models_reminders_table;
   "models/shopping/functions": typeof models_shopping_functions;
+  "models/study/functions": typeof models_study_functions;
   "models/tasks/functions": typeof models_tasks_functions;
   "models/tasks/table": typeof models_tasks_table;
   "models/texts/functions": typeof models_texts_functions;
@@ -232,6 +237,7 @@ declare const fullApi: ApiFromModules<{
   "models/threads/pages": typeof models_threads_pages;
   "models/threads/queries": typeof models_threads_queries;
   "models/threads/shopping": typeof models_threads_shopping;
+  "models/threads/study": typeof models_threads_study;
   "models/threads/tools": typeof models_threads_tools;
   "models/threads/voice": typeof models_threads_voice;
   "models/usage/functions": typeof models_usage_functions;
@@ -277,6 +283,7 @@ export declare const components: {
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
   shopping: import("../components/shopping/_generated/component.js").ComponentApi<"shopping">;
+  study: import("../components/study/_generated/component.js").ComponentApi<"study">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;

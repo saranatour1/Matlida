@@ -368,6 +368,97 @@ const respond = internalAction({
   },
 })
 
+/** Messages one `redo` can drop: 50 batches of 64. */
+const MAX_DELETE_BATCHES = 50
+
+/**
+ * Retry or edit: answers your message `messageId` again, dropping
+ * everything after it. With `prompt`, the message's text is replaced first,
+ * keeping its attachments. Refused while a reply is still coming.
+ */
+const redo = zAuthedMutation({
+  args: {
+    threadId: z.string(),
+    messageId: z.string(),
+    prompt: z
+      .string()
+      .trim()
+      .min(1, 'Write a message first.')
+      .max(4000, 'Messages can be at most 4000 characters.')
+      .optional(),
+    timeZone: zTimeZone.optional(),
+  },
+  handler: async (ctx, { threadId, messageId, prompt, timeZone }) => {
+    const found = await assistantOf(ctx, threadId)
+    if (!found || !(await ownsThread(ctx, ctx.userId, threadId))) {
+      throw new ConvexError('Chat not found.')
+    }
+    const [message] = await ctx.runQuery(
+      components.agent.messages.getMessagesByIds,
+      { messageIds: [messageId] },
+    )
+    if (message?.threadId !== threadId || message.message?.role !== 'user') {
+      throw new ConvexError('Message not found.')
+    }
+    const { page } = await ctx.runQuery(
+      components.agent.messages.listMessagesByThreadId,
+      {
+        threadId,
+        order: 'desc',
+        paginationOpts: { numItems: 1, cursor: null },
+      },
+    )
+    if (page[0]?.status === 'pending') {
+      throw new ConvexError('Wait for the reply to finish first.')
+    }
+    if (prompt !== undefined) {
+      const { content } = message.message
+      await ctx.runMutation(components.agent.messages.updateMessage, {
+        messageId,
+        patch: {
+          message: {
+            role: 'user',
+            content:
+              typeof content === 'string'
+                ? prompt
+                : [
+                    { type: 'text', text: prompt },
+                    ...content.filter((part) => part.type !== 'text'),
+                  ],
+          },
+        },
+      })
+    }
+    // ponytail: up to 3200 later messages; past that, edit a later message.
+    for (let batch = 0; ; batch++) {
+      if (batch === MAX_DELETE_BATCHES) {
+        throw new ConvexError('That message is too far back to redo.')
+      }
+      const { isDone } = await ctx.runMutation(
+        components.agent.messages.deleteByOrder,
+        {
+          threadId,
+          startOrder: message.order,
+          startStepOrder: message.stepOrder + 1,
+          endOrder: Number.MAX_SAFE_INTEGER,
+        },
+      )
+      if (isDone) break
+    }
+    const command = await findCommand(
+      ctx,
+      found.project._id,
+      prompt ?? message.text ?? '',
+    )
+    await ctx.scheduler.runAfter(0, internal.api.chat.respond, {
+      threadId,
+      promptMessageId: messageId,
+      command: command ?? undefined,
+      timeZone,
+    })
+  },
+})
+
 /** A thread's messages plus in-progress stream deltas, for `useUIMessages`. */
 const listMessages = authedQuery({
   args: {
@@ -429,6 +520,7 @@ const transcribe = authedAction({
 
 export const chatApi = {
   sendMessage,
+  redo,
   context,
   respond,
   listMessages,

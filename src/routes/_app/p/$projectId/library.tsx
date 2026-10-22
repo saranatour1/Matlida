@@ -4,6 +4,7 @@ import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
 import { MarkdownEditor } from '~/components/markdown-editor'
+import { StudyDeck } from '~/components/study-part'
 import { Button } from '~/components/ui/button'
 import { reminderWhen } from '~/lib/reminders'
 import { Input } from '~/components/ui/input'
@@ -51,6 +52,7 @@ function Library() {
           <h1 className="text-lg font-semibold">Library</h1>
           <Pages projectId={project._id} />
           <Reminders projectId={project._id} />
+          <Study projectId={project._id} />
           <Plans projectId={project._id} />
           <h2 className="mt-6 font-medium">Commands</h2>
           <p className="text-sm text-muted-foreground">
@@ -326,3 +328,102 @@ function Reminders({ projectId }: { projectId: Id<'projects'> }) {
     </section>
   )
 }
+
+/** Your flash cards and quizzes: open one to study it, delete it, or make a new one. */
+function Study({ projectId }: { projectId: Id<'projects'> }) {
+  const decks = useQuery(api.api.study.list, { projectId })
+  const make = useAction(api.api.study.make)
+  const remove = useMutation(api.api.study.remove)
+  const [open, setOpen] = React.useState<string>()
+  const [error, submit, isPending] = React.useActionState(
+    async (_previous: string | undefined, data: FormData) => {
+      try {
+        const { deckId } = await make({
+          projectId,
+          topic: String(data.get('topic')),
+          format: data.get('format') === 'quiz' ? 'quiz' : 'cards',
+          count: Number(data.get('count')),
+          level: String(data.get('level')) as
+            'beginner' | 'intermediate' | 'advanced',
+        })
+        setOpen(deckId)
+        return undefined
+      } catch (e) {
+        return errorMessage(e, 'Couldn’t make the deck. Try again.')
+      }
+    },
+    undefined,
+  )
+  return (
+    <section className="mt-4 flex flex-col gap-2">
+      <h2 className="font-medium">Study</h2>
+      <form
+        action={submit}
+        className="flex flex-wrap items-center gap-2 rounded-xl border p-3 text-sm"
+      >
+        <Input
+          name="topic"
+          required
+          minLength={2}
+          maxLength={500}
+          placeholder="What to study, like Spanish greetings"
+          className="min-w-48 flex-1"
+        />
+        <select name="format" aria-label="Format" className={SELECT}>
+          <option value="cards">Flash cards</option>
+          <option value="quiz">Quiz</option>
+        </select>
+        <Input
+          name="count"
+          type="number"
+          aria-label="How many"
+          min={3}
+          max={30}
+          defaultValue={10}
+          className="w-20"
+        />
+        <select name="level" aria-label="Level" className={SELECT}>
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+        <Button type="submit" size="sm" disabled={isPending}>
+          {isPending ? 'Making…' : 'Make'}
+        </Button>
+        {error && <p className="w-full text-destructive">{error}</p>}
+      </form>
+      <ul className="flex flex-col gap-2">
+        {decks?.map(({ deck, due }) => (
+          <li key={deck._id} className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 rounded-xl border p-3 text-sm">
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                aria-expanded={open === deck._id}
+                onClick={() =>
+                  setOpen(open === deck._id ? undefined : deck._id)
+                }
+              >
+                <p className="truncate">{deck.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {deck.format === 'quiz' ? 'Quiz' : 'Flash cards'} ·{' '}
+                  {due ? `${due} due` : 'nothing due'}
+                </p>
+              </button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void remove({ id: deck._id })}
+              >
+                Delete
+              </Button>
+            </div>
+            {open === deck._id && <StudyDeck deckId={deck._id} />}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+const SELECT = 'h-9 rounded-md border bg-background px-2 text-sm'
