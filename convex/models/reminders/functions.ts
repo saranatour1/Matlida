@@ -8,9 +8,13 @@ import {
   internalMutation,
   internalQuery,
 } from '../../_generated/server'
+import { decisionModel } from '../../lib/ai'
+import { metered } from '../../lib/budget'
+import { afterMissedCall, recentTurns } from '../../lib/decide'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
 import { rateLimiter } from '../../lib/limits'
+import { MODELS } from '../../lib/models'
 import { photonKeys, sendEmail, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getMailbox } from '../mailboxes/queries'
@@ -19,11 +23,34 @@ import { getLink } from '../texts/queries'
 import { assistantOf } from '../threads/queries'
 import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
+import type { AfterMissed } from '../../lib/decide'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 const YEAR_MS = 366 * 24 * 60 * 60 * 1000
 /** How long a call reminder rings before it counts as missed. */
 const RING_MS = 30_000
+/** Snooze on a ringing call rings again this much later. */
+const SNOOZE_MS = 10 * 60_000
+/** Missed calls before the assistant stops calling about a reminder. */
+const MAX_CALLS = 3
+const AGAIN_MS = { call_again_soon: 10 * 60_000, call_again_later: 60 * 60_000 }
+
+/** `at`, or 9am after it when it falls outside 9am–9pm in `timeZone`. */
+// ponytail: off by an hour across a DST change, fine for a call-again.
+export const inDaytime = (at: number, timeZone = 'UTC') => {
+  const local = new Date(new Date(at).toLocaleString('en-US', { timeZone }))
+  const hour = local.getHours()
+  if (hour >= 9 && hour < 21) return at
+  return at + (((9 - hour + 24) % 24) * 60 - local.getMinutes()) * 60_000
+}
+
+const localTime = (at: number, timeZone = 'UTC') =>
+  new Date(at).toLocaleString('en-US', {
+    timeZone,
+    weekday: 'long',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 
 /** Saves a reminder and schedules it. For assistants' `set_reminder` tool. */
 const schedule = internalMutation({
@@ -138,6 +165,8 @@ const delivery = internalQuery({
         v.object({ email: v.union(v.string(), v.null()), owner: v.string() }),
         v.null(),
       ),
+      ownerId: v.id('users'),
+      timeZone: v.optional(v.string()),
     }),
     v.null(),
   ),
@@ -169,6 +198,8 @@ const delivery = internalQuery({
           ? { spaceId: link.spaceId, agentId: link.agentId }
           : null,
       mail,
+      ownerId: project.ownerId,
+      timeZone: owner?.timeZone,
     }
   },
 })
@@ -247,6 +278,7 @@ const ringing = authedQuery({
           botId: bot?._id,
           from: reminder.from,
           portrait: (bot ?? project).portrait,
+          again: (reminder.attempts ?? 0) > 0,
         })
       }
     }
@@ -285,9 +317,52 @@ const decline = authedMutation({
     const reminder = await ctx.db.get('reminders', id)
     if (!reminder) throw new ConvexError('Reminder not found.')
     await getOwnedProject(ctx, ctx.userId, reminder.projectId)
-    if (reminder.status === 'ringing') {
-      await deliver(ctx, id, 'You declined the call.')
-    }
+    if (reminder.status !== 'ringing') return
+    // Out of `ringing` so it stops; `miss` decides what's next.
+    await ctx.db.patch('reminders', id, {
+      status: 'scheduled',
+      scheduledId: undefined,
+    })
+    await ctx.scheduler.runAfter(0, internal.api.reminders.miss, {
+      id,
+      declined: true,
+    })
+  },
+})
+
+/** Rings a ringing call again in `SNOOZE_MS`. */
+const snooze = authedMutation({
+  args: { id: v.id('reminders') },
+  handler: async (ctx, { id }) => {
+    const reminder = await ctx.db.get('reminders', id)
+    if (!reminder) throw new ConvexError('Reminder not found.')
+    await getOwnedProject(ctx, ctx.userId, reminder.projectId)
+    if (reminder.status !== 'ringing') return
+    await start(ctx, id, Date.now() + SNOOZE_MS)
+  },
+})
+
+/** Schedules another call at `at`, and says so in the chat. */
+const callAgain = internalMutation({
+  args: {
+    id: v.id('reminders'),
+    status: literals('scheduled', 'ringing'),
+    at: v.number(),
+    note: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { id, status, at, note }) => {
+    const reminder = await ctx.db.get('reminders', id)
+    if (reminder?.status !== status) return null
+    await ctx.db.patch('reminders', id, {
+      attempts: (reminder.attempts ?? 0) + 1,
+    })
+    await start(ctx, id, at)
+    await saveMessage(ctx, components.agent, {
+      threadId: reminder.threadId,
+      message: { role: 'assistant', content: `📞 _${note}_` },
+    })
+    return null
   },
 })
 
@@ -318,18 +393,50 @@ const textChat = async (
   return true
 }
 
-/** Nobody picked up: texts the reminder when texting is linked, and posts it in the chat. */
+/**
+ * Nobody picked up, or you declined: Jev decides whether to call again soon,
+ * later, text it, or leave it in the chat. Code keeps to `MAX_CALLS`, your
+ * 9am–9pm, and texting only when it's linked. Jev failing leaves it in the chat.
+ */
 const miss = internalAction({
-  args: { id: v.id('reminders') },
+  args: { id: v.id('reminders'), declined: v.optional(v.boolean()) },
   returns: v.null(),
-  handler: async (ctx, { id }) => {
+  handler: async (ctx, { id, declined = false }) => {
+    const status = declined ? 'scheduled' : 'ringing'
     const found = await ctx.runQuery(internal.api.reminders.delivery, {
       id,
-      status: 'ringing',
+      status,
     })
     if (!found) return null
-    const { reminder, chat } = found
+    const { reminder, chat, ownerId, timeZone } = found
+    const attempts = (reminder.attempts ?? 0) + 1
+    const next: AfterMissed =
+      attempts >= MAX_CALLS
+        ? 'text_instead'
+        : await nextAfterMiss(ctx, reminder, {
+            ownerId,
+            attempts,
+            declined,
+            timeZone,
+          })
+    const missed = declined ? 'You declined the call.' : 'You missed the call.'
+    if (next === 'call_again_soon' || next === 'call_again_later') {
+      const at = inDaytime(Date.now() + AGAIN_MS[next], timeZone)
+      const when = new Date(at).toLocaleString('en-US', {
+        timeZone,
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+      await ctx.runMutation(internal.api.reminders.callAgain, {
+        id,
+        status,
+        at,
+        note: `${missed} ${reminder.from} will call again at ${when}: ${reminder.message}`,
+      })
+      return null
+    }
     const texted =
+      next === 'text_instead' &&
       chat &&
       (await textChat(
         ctx,
@@ -339,14 +446,48 @@ const miss = internalAction({
       ))
     await ctx.runMutation(internal.api.reminders.markSent, {
       id,
-      note:
-        chat && !texted
-          ? 'You missed the call, and the text about it couldn’t be sent.'
-          : 'You missed the call.',
+      note: texted ? `${missed} It was texted to you too.` : missed,
     })
     return null
   },
 })
+
+const nextAfterMiss = async (
+  ctx: ActionCtx,
+  reminder: Doc<'reminders'>,
+  {
+    ownerId,
+    attempts,
+    declined,
+    timeZone,
+  }: {
+    ownerId: Id<'users'>
+    attempts: number
+    declined: boolean
+    timeZone?: string
+  },
+): Promise<AfterMissed> => {
+  try {
+    const conversation = (await recentTurns(ctx, reminder.threadId)).slice(-6)
+    return await metered(
+      ctx,
+      { userId: ownerId, model: MODELS.decide, estimate: 0.005 },
+      async () => {
+        const { next, cost } = await afterMissedCall(decisionModel, {
+          reminder: reminder.message,
+          attempts,
+          declined,
+          localTime: localTime(Date.now(), timeZone),
+          conversation,
+        })
+        return { result: next, cost }
+      },
+    )
+  } catch (error) {
+    console.error(error)
+    return 'leave_in_chat'
+  }
+}
 
 /**
  * Emails a contact the reminder's message, from the owner's assistant address
@@ -463,5 +604,7 @@ export const remindersApi = {
   ringing,
   pickUp,
   decline,
+  snooze,
+  callAgain,
   miss,
 }

@@ -12,6 +12,14 @@
 ## Open
 
 - [ ] Phone calls for reminders, once Photon ships SDK call control
+- [x] Reminder calls answer in the call bar, with snooze, and Jev decides when to call again (PR 1 of the calls stack)
+- [ ] Once vs recurring reminders, and Jev pausing or stopping them (PR 2)
+- [ ] Check-in calls when Jev thinks it's a good time, at most 3 a day (PR 3)
+- [ ] "What can you do" as command pills (PR 4)
+- [ ] Attachments, pasted or dropped into the prompt (PR 5)
+- [ ] Edit and retry (PR 6)
+- [ ] Flash cards and quizzes, with review calls (PR 7)
+- Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
 - [x] Orb avatars, settings, library and thread members

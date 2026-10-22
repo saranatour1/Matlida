@@ -25,4 +25,6 @@ export const remindersTable = defineTable({
   /** What happened on delivery, e.g. that texting wasn't linked. */
   note: v.optional(v.string()),
   scheduledId: v.optional(v.id('_scheduled_functions')),
+  /** Calls you didn't pick up so far. Jev decides on another, up to `MAX_CALLS`. */
+  attempts: v.optional(v.number()),
 }).index('by_project_and_status', ['projectId', 'status', 'dueAt'])

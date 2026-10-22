@@ -1,11 +1,16 @@
-import { createTool, listMessages } from '@convex-dev/agent'
+import { createTool } from '@convex-dev/agent'
 import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
-import { components, internal } from '../../_generated/api'
+import { internal } from '../../_generated/api'
 import { decisionModel, imageModel } from '../../lib/ai'
 import { budgetedModel, metered } from '../../lib/budget'
 import { searchConvexDocs } from '../../lib/convexDocs'
-import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
+import {
+  decide,
+  needsFollowUp,
+  recentTurns,
+  whoShouldHandle,
+} from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
@@ -13,8 +18,7 @@ import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
-import type { Turn } from '../../lib/decide'
-import type { MessageDoc, ToolCtx } from '@convex-dev/agent'
+import type { ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
 import type { Doc } from '../../lib/ctx'
 
@@ -30,38 +34,6 @@ const IMAGE_SIZES = {
   wide: '1536x1024',
   tall: '1024x1536',
 } as const
-
-/** The chat's last 30 messages for Jev, with which tools ran and which failed. */
-const recentTurns = async (ctx: ToolCtx, threadId: string) => {
-  const { page } = await listMessages(ctx, components.agent, {
-    threadId,
-    paginationOpts: { numItems: 30, cursor: null },
-  })
-  return page
-    .sort((a, b) => a.order - b.order || a.stepOrder - b.stepOrder)
-    .flatMap((m): Array<Turn> => {
-      const text = turnText(m).slice(0, 500)
-      if (!text) return []
-      return [{ role: m.message?.role === 'user' ? 'user' : 'assistant', text }]
-    })
-}
-
-const turnText = ({ message, text, status, error }: MessageDoc) => {
-  const parts = Array.isArray(message?.content) ? message.content : []
-  return [
-    text?.trim(),
-    ...parts.map((part) =>
-      part.type === 'tool-call'
-        ? `[used ${part.toolName}]`
-        : part.type === 'tool-result' && part.output?.type.startsWith('error')
-          ? `[${part.toolName} failed]`
-          : '',
-    ),
-    status === 'failed' ? `[this reply failed: ${error ?? 'no reason'}]` : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
 
 /** How long a post can be on each platform, in characters. Previews flag anything over. */
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }

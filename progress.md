@@ -558,3 +558,12 @@
 ### No call button in the chat header (2026-10-22)
 
 - The phone button at the top right of a chat is gone, with the `onCall` prop that fed it. Calls still start from the voice bar in the prompt and from incoming calls.
+
+### Matilda calls again (2026-10-22)
+
+- Answering a reminder call opens it in the call bar under the chat input. The side panel is gone; its voice settings and Fast voice moved into the call bar, and a small "On a call with …" pill shows on other pages.
+- The incoming call has a Snooze button: it rings again in 10 minutes.
+- Missed or declined, Jev decides what's next: call again in 10 minutes or an hour, text you, or leave it in the chat. Code caps it at 3 calls, keeps call-agains between 9am and 9pm in your time zone, and texts only when texting is linked. The chat says when she'll call again.
+- Your time zone is saved from the chat (`users.timeZone`).
+- Findings, every Jev judgment, the limits and the next PRs: `docs/decisions/2026-10-22-calls-and-reminders.md`.
+- Verified with pnpm check and the tests (195), including call-again, the cap, 9am, snooze and decline. Not rung live: no test calls.
