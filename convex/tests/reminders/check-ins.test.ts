@@ -44,11 +44,15 @@ const setup = async (user: { checkIns?: boolean } = {}) => {
   await t.mutation(internal.api.threads.startMain, { projectId })
   /** Ada last messaged Matilda `ago` before now. */
   const chatted = (ago: number) =>
-    t.run((ctx) =>
-      ctx.db.patch('users', ada, {
-        lastChat: { projectId, at: Date.now() - ago },
-      }),
-    )
+    t.run(async (ctx) => {
+      const last = await ctx.db
+        .query('userActivity')
+        .withIndex('by_user', (q) => q.eq('userId', ada))
+        .unique()
+      const at = Date.now() - ago
+      if (last) await ctx.db.patch('userActivity', last._id, { at })
+      else await ctx.db.insert('userActivity', { userId: ada, projectId, at })
+    })
   await chatted(3 * HOUR)
   const run = async () => {
     await t.action(internal.api.checkIns.run, {})

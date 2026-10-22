@@ -77,7 +77,10 @@ export const postMessage = async (
   }
 }
 
-/** Saves your time zone and the assistant you last messaged, writing at most every 10 minutes. */
+/**
+ * Saves your time zone (when it changed) and the assistant you last messaged
+ * (on `userActivity`, at most every 10 minutes), so most messages write nothing.
+ */
 const noteChat = async (
   ctx: MutationCtx,
   userId: Id<'users'>,
@@ -87,20 +90,25 @@ const noteChat = async (
     timeZone,
   }: { projectId: Id<'projects'>; botId?: Id<'bots'>; timeZone?: string },
 ) => {
-  const user = await ctx.db.get('users', userId)
-  if (!user) return
-  const last = user.lastChat
   const now = Date.now()
-  const moved =
-    !last ||
+  const last = await ctx.db
+    .query('userActivity')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .unique()
+  if (!last) {
+    await ctx.db.insert('userActivity', { userId, projectId, botId, at: now })
+  } else if (
     last.projectId !== projectId ||
     last.botId !== botId ||
     now - last.at > 10 * 60_000
-  if (!moved && (!timeZone || user.timeZone === timeZone)) return
-  await ctx.db.patch('users', userId, {
-    timeZone: timeZone ?? user.timeZone,
-    lastChat: moved ? { projectId, botId, at: now } : last,
-  })
+  ) {
+    await ctx.db.patch('userActivity', last._id, { projectId, botId, at: now })
+  }
+  if (!timeZone) return
+  const user = await ctx.db.get('users', userId)
+  if (user && user.timeZone !== timeZone) {
+    await ctx.db.patch('users', userId, { timeZone })
+  }
 }
 
 /**

@@ -122,6 +122,13 @@ test('a page kept up to date is updated by the lead once its period is up', asyn
   )
   await t.action(internal.api.pages.refreshDue, {})
   expect(await t.query(internal.api.pages.due, {})).toEqual([])
+  vi.setSystemTime(start + 3 * 24 * 60 * 60_000)
+  await t.mutation(internal.api.pages.keepUpdated, {
+    projectId,
+    pageId,
+    every: 'off',
+  })
+  expect(await t.query(internal.api.pages.due, {})).toEqual([])
   await expect(
     t.mutation(internal.api.pages.keepUpdated, {
       projectId,

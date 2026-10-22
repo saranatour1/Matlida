@@ -35,4 +35,8 @@ export const pagesTable = defineTable({
     v.object({ instructions: v.string(), every: literals('day', 'week') }),
   ),
   refreshedAt: v.optional(v.number()),
-}).index('by_project', ['projectId'])
+  /** When it's next due a refresh. Unset when it isn't kept up to date. */
+  nextRefreshAt: v.optional(v.number()),
+})
+  .index('by_project', ['projectId'])
+  .index('by_nextRefreshAt', ['nextRefreshAt'])

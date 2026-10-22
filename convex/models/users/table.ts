@@ -14,16 +14,22 @@ export const usersTable = defineTable({
   username: v.optional(v.string()),
   /** IANA zone from the browser's last message, so calls keep to your daytime. */
   timeZone: v.optional(v.string()),
-  /** The assistant you last messaged, and when (to within 10 minutes), for check-in calls. */
-  lastChat: v.optional(
-    v.object({
-      projectId: v.id('projects'),
-      botId: v.optional(v.id('bots')),
-      at: v.number(),
-    }),
-  ),
   /** False when you turned off check-in calls. On by default. */
   checkIns: v.optional(v.boolean()),
+})
+
+/**
+ * What changes often about a user, kept off `users` so writing it doesn't
+ * conflict with everything that reads the profile. One row per user.
+ */
+export const userActivityTable = defineTable({
+  userId: v.id('users'),
+  /** The assistant you last messaged, and when (to within 10 minutes), for check-in calls. */
+  projectId: v.id('projects'),
+  botId: v.optional(v.id('bots')),
+  at: v.number(),
   /** When an assistant last called to check in. */
   checkInAt: v.optional(v.number()),
-}).index('by_lastChat', ['lastChat.at'])
+})
+  .index('by_user', ['userId'])
+  .index('by_at', ['at'])
