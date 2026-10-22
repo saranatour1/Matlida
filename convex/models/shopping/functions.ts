@@ -8,9 +8,9 @@ import {
   internalQuery,
 } from '../../_generated/server'
 import {
-  authedAction,
   authedMutation,
   authedQuery,
+  zAuthedAction,
   zAuthedMutation,
 } from '../../lib/functions'
 import { checkoutLink, lookupVariant } from '../../lib/shopify'
@@ -161,8 +161,11 @@ export async function addToCartFor(
 }
 
 /** A product card's Add to cart. */
-const addToCart = authedAction({
-  args: { variantId: v.string(), quantity: v.optional(v.number()) },
+const addToCart = zAuthedAction({
+  args: {
+    variantId: z.string().min(1),
+    quantity: z.number().int().min(1).max(20).optional(),
+  },
   handler: async (ctx, { variantId, quantity = 1 }) => {
     await addToCartFor(ctx, ctx.userId, variantId, quantity)
   },

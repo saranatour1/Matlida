@@ -8,7 +8,8 @@ export function useUpload() {
   return async (file: Blob) => {
     const res = await fetch(await uploadUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': file.type },
+      // A type always, so the hourly sweep of untyped leftovers never takes it.
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
       body: file,
     })
     if (!res.ok) throw new Error('The upload failed. Try again.')
