@@ -107,8 +107,34 @@ export const VOICES = [
   'bm_george',
 ] as const
 
+/** How the Kokoro voices are shown. */
+export const VOICE_NAMES: Record<(typeof VOICES)[number], string> = {
+  af_heart: 'Heart',
+  af_bella: 'Bella',
+  af_nicole: 'Nicole',
+  am_adam: 'Adam',
+  am_michael: 'Michael',
+  bm_george: 'George',
+}
+
+/** Languages a call can be held in, by ISO 639-1 code. Unset means whatever you speak. */
+export const LANGUAGES = {
+  en: 'English',
+  ar: 'Arabic',
+  fr: 'French',
+  es: 'Spanish',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  tr: 'Turkish',
+  hi: 'Hindi',
+  ja: 'Japanese',
+  zh: 'Chinese',
+} as const
+export type Language = keyof typeof LANGUAGES
+
 /** An assistant's voice, stable for its name. Matilda's is hers alone. */
-export function voiceFor(name: string): (typeof VOICES)[number] {
+export const voiceFor = (name: string): (typeof VOICES)[number] => {
   if (name === 'Matilda') return VOICES[0]
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
@@ -175,7 +201,7 @@ export const CHAT_MODELS = {
 export type ChatModelId = keyof typeof CHAT_MODELS
 
 /** Whether `id` is one of the chat models the menus list. */
-export function isListedModel(id: string | undefined): id is ChatModelId {
+export const isListedModel = (id: string | undefined): id is ChatModelId => {
   return id !== undefined && Object.hasOwn(CHAT_MODELS, id)
 }
 
@@ -183,7 +209,7 @@ export function isListedModel(id: string | undefined): id is ChatModelId {
 export const MODEL_ID = /^~?[a-z0-9-]+\/[a-z0-9._:-]+$/i
 
 /** The model's name when it's one we list, else its id. */
-export function modelName(id: string | undefined) {
+export const modelName = (id: string | undefined) => {
   const model = id ?? MODELS.chat
   return isListedModel(model) ? CHAT_MODELS[model].name : model
 }

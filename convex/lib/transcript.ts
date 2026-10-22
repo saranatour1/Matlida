@@ -1,5 +1,5 @@
 /** A call's transcript as plain text: who said what, when, and how long each reply took. */
-export function formatTranscript({
+export const formatTranscript = ({
   name,
   when,
   call,
@@ -23,7 +23,7 @@ export function formatTranscript({
     cutOff?: boolean
     _creationTime: number
   }>
-}) {
+}) => {
   const start = call._creationTime
   const end = call.endedAt ?? lines.at(-1)?._creationTime ?? start
   const head = [
@@ -46,12 +46,12 @@ export function formatTranscript({
 }
 
 /** "4.3 s". */
-function seconds(ms: number) {
+const seconds = (ms: number) => {
   return `${(ms / 1000).toFixed(1)} s`
 }
 
 /** "1:05" for 65 seconds. */
-function clock(ms: number) {
+const clock = (ms: number) => {
   const total = Math.max(0, Math.round(ms / 1000))
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
 }

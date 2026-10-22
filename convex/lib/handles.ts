@@ -93,9 +93,9 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
  * Normalizes what the user typed (trimmed, lowercased) and says what's wrong
  * with it, in words for the form. Reserved names are refused here too.
  */
-export function parseHandle(
+export const parseHandle = (
   input: string,
-): { ok: true; handle: string } | { ok: false; reason: string } {
+): { ok: true; handle: string } | { ok: false; reason: string } => {
   const handle = input.trim().toLowerCase()
   if (handle.length < HANDLE_MIN || handle.length > HANDLE_MAX) {
     return {
@@ -123,12 +123,12 @@ export function parseHandle(
 }
 
 /** `handle@domain`, the address people write to. */
-export function addressOf(handle: string, domain: string) {
+export const addressOf = (handle: string, domain: string) => {
   return `${handle}@${domain}`
 }
 
 /** The handle of an address at `domain`, or null when it's another domain or malformed. */
-export function handleOf(address: string, domain: string) {
+export const handleOf = (address: string, domain: string) => {
   const at = address.lastIndexOf('@')
   if (at < 1) return null
   if (address.slice(at + 1).toLowerCase() !== domain.toLowerCase()) return null

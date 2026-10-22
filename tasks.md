@@ -12,6 +12,14 @@
 ## Open
 
 - [ ] Phone calls for reminders, once Photon ships SDK call control
+- [x] Reminder calls answer in the call bar, with snooze, and Jev decides when to call again (PR 1 of the calls stack)
+- [x] Once vs recurring reminders, and Jev pausing or stopping them (PR 2)
+- [x] Check-in calls when Jev thinks it's a good time, at most 3 a day (PR 3)
+- [x] "What can you do" as command pills (PR 4)
+- [x] Attachments, pasted or dropped into the prompt (PR 5)
+- [ ] Edit and retry (PR 6)
+- [ ] Flash cards and quizzes, with review calls (PR 7)
+- Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
 - [x] Orb avatars, settings, library and thread members
@@ -40,7 +48,7 @@
 - [x] One chat per assistant, and no bot members unless you add them
 - [x] Email and texts go only to the lead; Reply to any email with an editable draft
 - [x] find_emails and find_texts: the lead searches your earlier email and texts
-- [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed
+- [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed (#71), then restored (2026-10-22)
 - [x] decide tool and /decide command: Jev picks between options
 - [x] Everyday commands, part 1: live lists, drafts, tables and recipes, with /todo, /shopping, /meals, /recipe, /pack, /rewrite, /reply, /translate, /tldr, /compare, /workout, /explain
 - [x] Everyday commands, part 2: /today, /dayplan, /trip, /split, /meet, /focus, /convert
@@ -56,6 +64,9 @@
 - [x] Models as an object map
 - [x] Audio chat: talk hands-free in the chat with a speaking animation, and Fast voice on calls
 - [x] A mute toggle on the volume bar
+- [x] Voice, speed and language settings on calls
+- [x] One thread per assistant: the app's threads table and sub-threads are gone
+- [x] A cheaper fast check for Telegram messages
 - [x] Pictures: /image makes one with GPT Image 1, saved in Convex storage
 - [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
 - [x] Pictures and videos on calls, shown in the chat beside the call
@@ -66,8 +77,10 @@
 - [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
 - [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
 - [x] Record every assistant's chat once, then stop guessing
+- [x] Dropped the chat fields the messaging apps and email used to keep
+- [x] Dead code out, reads in `queries.ts`, contexts in `lib/ctx.ts`, arrow functions with a lint rule
+- [x] Shopping as a Convex component, a trial of the pattern
 - [x] An AI budget per person: $12 a month ($30 on dev), every model metered
-- [ ] Run `api/threads:recordMainThreads` on production after this deploys
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn

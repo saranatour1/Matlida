@@ -20,17 +20,18 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { findCommand, getCommand } from '../commands/functions'
+import { findCommand, getCommand } from '../commands/queries'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
-import { getOwnedProject } from '../projects/functions'
-import { MODELS, MODEL_ID } from '../../lib/models'
+import { MAX_FILES, MAX_FILE_BYTES, attachable } from '../../lib/attachments'
+import { getOwnedProject } from '../projects/queries'
+import { MODELS } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
-import { ensureMainThread, getMembers, getOwnedThread } from './functions'
+import { ensureMainThread } from './functions'
+import { assistantOf, getMembers, ownsThread } from './queries'
 import { createAgent } from './lead'
-import type { Effort } from '../../lib/models'
+import type { Language } from '../../lib/models'
 import type { Via } from './lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx, MutationCtx } from '../../_generated/server'
+import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** An IANA time zone the runtime knows, like Europe/London. */
 export const zTimeZone = z.string().refine((tz) => {
@@ -42,44 +43,132 @@ export const zTimeZone = z.string().refine((tz) => {
   }
 }, 'Unknown time zone.')
 
+/** An uploaded file, and its type as the browser saw it. */
+type Attachment = {
+  storageId: Id<'_storage'>
+  filename: string
+  mediaType: string
+}
+
+/** Checks uploaded files and registers them with the agent component, returning their message parts and file ids. */
+const attach = async (ctx: MutationCtx, files: Array<Attachment>) => {
+  if (files.length > MAX_FILES) {
+    throw new ConvexError(`Attach at most ${MAX_FILES} files.`)
+  }
+  const attached = []
+  for (const { storageId, filename, mediaType: declared } of files) {
+    const file = await ctx.db.system.get('_storage', storageId)
+    const url = await ctx.storage.getUrl(storageId)
+    if (!file || !url) {
+      throw new ConvexError('An attachment was lost. Attach it again.')
+    }
+    // The type it was uploaded with wins; a file stored without one has the browser's.
+    const mediaType = file.contentType ?? declared
+    if (!mediaType || !attachable(mediaType)) {
+      throw new ConvexError('You can attach pictures and PDFs.')
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      throw new ConvexError('Attachments can be at most 10 MB.')
+    }
+    const { fileId } = await ctx.runMutation(components.agent.files.addFile, {
+      storageId,
+      hash: file.sha256,
+      filename,
+      mediaType,
+    })
+    attached.push({
+      fileId,
+      part: mediaType.startsWith('image/')
+        ? { type: 'image' as const, image: new URL(url), mediaType }
+        : { type: 'file' as const, data: new URL(url), mediaType, filename },
+    })
+  }
+  return attached
+}
+
 /**
- * Saves the user's message to the one thread of `botId` (the lead when
- * unset), starting it on the first message. Checks that it's all `userId`'s.
+ * Saves the user's message, with any attachments, to the one thread of
+ * `botId` (the lead when unset), starting it on the first message. Checks
+ * that it's all `userId`'s.
  */
-export async function postMessage(
+export const postMessage = async (
   ctx: MutationCtx,
   userId: Id<'users'>,
   {
     projectId,
     botId,
     prompt,
-    model,
-    effort,
+    files = [],
   }: {
     projectId: Id<'projects'>
     botId?: Id<'bots'>
     prompt: string
-    /** For a new chat: the model it starts on. */
-    model?: string
-    /** For a new chat: the effort it starts on. */
-    effort?: Effort
+    files?: Array<Attachment>
   },
-) {
+) => {
   const project = await getOwnedProject(ctx, userId, projectId)
   const bot = botId ? await ctx.db.get('bots', botId) : null
   if (botId && bot?.projectId !== projectId) {
     throw new ConvexError('Assistant not found.')
   }
   const command = await findCommand(ctx, projectId, prompt)
-  const id = await ensureMainThread(ctx, project, bot, { model, effort })
-  const { messageId } = await saveMessage(ctx, components.agent, {
-    threadId: id,
-    prompt,
-  })
+  const id = await ensureMainThread(ctx, project, bot)
+  const attached = await attach(ctx, files)
+  const { messageId } = await saveMessage(
+    ctx,
+    components.agent,
+    attached.length
+      ? {
+          threadId: id,
+          message: {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              ...attached.map((a) => a.part),
+            ],
+          },
+          metadata: { fileIds: attached.map((a) => a.fileId) },
+        }
+      : { threadId: id, prompt },
+  )
   return {
     threadId: id,
     promptMessageId: messageId,
     command: command ?? undefined,
+  }
+}
+
+/**
+ * Saves your time zone (when it changed) and the assistant you last messaged
+ * (on `userActivity`, at most every 10 minutes), so most messages write nothing.
+ */
+const noteChat = async (
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  {
+    projectId,
+    botId,
+    timeZone,
+  }: { projectId: Id<'projects'>; botId?: Id<'bots'>; timeZone?: string },
+) => {
+  const now = Date.now()
+  const last = await ctx.db
+    .query('userActivity')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .unique()
+  if (!last) {
+    await ctx.db.insert('userActivity', { userId, projectId, botId, at: now })
+  } else if (
+    last.projectId !== projectId ||
+    last.botId !== botId ||
+    now - last.at > 10 * 60_000
+  ) {
+    await ctx.db.patch('userActivity', last._id, { projectId, botId, at: now })
+  }
+  if (!timeZone) return
+  const user = await ctx.db.get('users', userId)
+  if (user && user.timeZone !== timeZone) {
+    await ctx.db.patch('users', userId, { timeZone })
   }
 }
 
@@ -97,17 +186,19 @@ const sendMessage = zAuthedMutation({
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
-    /** For a new chat: the model it starts on. */
-    model: z
-      .string()
-      .trim()
-      .max(80)
-      .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
+    files: z
+      .array(
+        z.object({
+          storageId: zid('_storage'),
+          filename: z.string().max(200),
+          mediaType: z.string().max(100),
+        }),
+      )
+      .max(MAX_FILES)
       .optional(),
-    /** For a new chat: the effort it starts on. */
-    effort: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, { timeZone, ...message }) => {
+    await noteChat(ctx, ctx.userId, { ...message, timeZone })
     const { threadId, promptMessageId, command } = await postMessage(
       ctx,
       ctx.userId,
@@ -138,37 +229,22 @@ const context = internalQuery({
       }),
       v.null(),
     ),
-    /** The chat's own model, when one was picked. */
-    model: v.union(v.string(), v.null()),
-    /** The chat's own effort, when one was picked. */
-    effort: v.union(
-      v.literal('low'),
-      v.literal('medium'),
-      v.literal('high'),
-      v.null(),
-    ),
   }),
   handler: async (ctx, { threadId, command: name }) => {
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
-    const project = thread && (await ctx.db.get('projects', thread.projectId))
-    if (!project) throw new Error(`No project for thread ${threadId}`)
-    const stored = name ? await getCommand(ctx, thread.projectId, name) : null
+    const found = await assistantOf(ctx, threadId)
+    if (!found) throw new Error(`No project for thread ${threadId}`)
+    const { project, bot } = found
+    const stored = name ? await getCommand(ctx, project._id, name) : null
     const builtIn = BUILT_IN_COMMANDS.find((c) => c.name === name)
-    const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
     return {
       project,
       bot,
-      members: await getMembers(ctx, thread),
+      members: await getMembers(ctx, project, bot),
       command: stored
         ? { name: stored.name, storageId: stored.storageId }
         : builtIn
           ? { name: builtIn.name, markdown: builtIn.markdown }
           : null,
-      model: thread.model ?? null,
-      effort: thread.effort ?? null,
     }
   },
 })
@@ -177,7 +253,7 @@ const context = internalQuery({
  * Streams the reply from the thread's assistant into the thread, and returns
  * its text. `via` decides how it's written: for the chat, or out loud.
  */
-export async function runReply(
+export const runReply = async (
   ctx: ActionCtx,
   {
     threadId,
@@ -186,6 +262,7 @@ export async function runReply(
     timeZone,
     via,
     cutOff,
+    language,
     onText,
   }: {
     threadId: string
@@ -196,20 +273,20 @@ export async function runReply(
     via?: Via
     /** On a call: the user talked over the last reply. */
     cutOff?: boolean
+    /** On a call: the language to speak. */
+    language?: Language
     /** Each piece of the reply's text as it streams, with who is replying. */
     onText?: (
       delta: string,
       who: { project: Doc<'projects'>; bot: Doc<'bots'> | null },
     ) => void
   },
-) {
+) => {
   const {
     project,
     bot,
     members,
     command,
-    model,
-    effort,
   }: {
     project: Doc<'projects'>
     bot: Doc<'bots'> | null
@@ -219,8 +296,6 @@ export async function runReply(
       markdown?: string
       storageId?: Id<'_storage'>
     } | null
-    model: string | null
-    effort: Effort | null
   } = await ctx.runQuery(internal.api.chat.context, {
     threadId,
     command: commandName,
@@ -235,8 +310,7 @@ export async function runReply(
     timeZone,
     via,
     cutOff,
-    model: model ?? undefined,
-    effort: effort ?? undefined,
+    language,
     command: command && markdown ? { name: command.name, markdown } : undefined,
   })
   const started = Date.now()
@@ -302,7 +376,7 @@ const listMessages = authedQuery({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
-    if (!(await getOwnedThread(ctx, ctx.userId, args.threadId))) {
+    if (!(await ownsThread(ctx, ctx.userId, args.threadId))) {
       throw new ConvexError('Chat not found.')
     }
     const paginated = await listUIMessages(ctx, components.agent, args)
@@ -311,18 +385,20 @@ const listMessages = authedQuery({
   },
 })
 
-/** Where the browser uploads a voice recording before `transcribe`. */
+/** Where the browser uploads a voice recording before `transcribe`, or an attachment before `sendMessage`. */
 const voiceUploadUrl = authedMutation({
   args: {},
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
 })
 
 /** Transcribes an uploaded recording, then deletes it. Returns the text and the gateway's metadata. */
-export async function transcribeClip(
+export const transcribeClip = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   storageId: Id<'_storage'>,
-) {
+  /** What's spoken, as an ISO 639-1 code, when the user set it. */
+  language?: Language,
+) => {
   const audio = await ctx.storage.get(storageId)
   await ctx.storage.delete(storageId)
   if (!audio) throw new ConvexError('The recording was lost. Try again.')
@@ -336,6 +412,7 @@ export async function transcribeClip(
       const heard = await transcribeAudio({
         model: transcriptionModel,
         audio: new Uint8Array(await audio.arrayBuffer()),
+        ...(language && { providerOptions: { convexGateway: { language } } }),
       })
       return { result: heard, cost: gatewayCost(heard.providerMetadata) }
     },

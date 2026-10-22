@@ -5,6 +5,7 @@ import { api } from '../../../../../convex/_generated/api'
 import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
 import { MarkdownEditor } from '~/components/markdown-editor'
 import { Button } from '~/components/ui/button'
+import { reminderWhen } from '~/lib/reminders'
 import { Input } from '~/components/ui/input'
 import { useProject } from '~/hooks/use-project'
 import { errorMessage } from '~/lib/errors'
@@ -277,10 +278,12 @@ function Pages({ projectId }: { projectId: Id<'projects'> }) {
   )
 }
 
-/** Reminders waiting to go out. */
+/** Reminders waiting to go out. Recurring ones can be paused and resumed. */
 function Reminders({ projectId }: { projectId: Id<'projects'> }) {
   const reminders = useQuery(api.api.reminders.list, { projectId })
   const cancel = useMutation(api.api.reminders.cancel)
+  const pause = useMutation(api.api.reminders.pause)
+  const resume = useMutation(api.api.reminders.resume)
   if (!reminders?.length) return null
   return (
     <section className="mt-4 flex flex-col gap-2">
@@ -294,19 +297,28 @@ function Reminders({ projectId }: { projectId: Id<'projects'> }) {
             <div className="min-w-0 flex-1">
               <p className="truncate">{r.message}</p>
               <p className="text-xs text-muted-foreground">
-                {new Date(r.dueAt).toLocaleString(undefined, {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}{' '}
-                · {r.via} · from {r.from}
+                {r.status === 'paused' && 'Paused · '}
+                {reminderWhen(r.dueAt, r.repeat?.every)} · {r.via} · from{' '}
+                {r.from}
               </p>
             </div>
+            {r.repeat && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  void (r.status === 'paused' ? resume : pause)({ id: r._id })
+                }
+              >
+                {r.status === 'paused' ? 'Resume' : 'Pause'}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => void cancel({ id: r._id })}
             >
-              Cancel
+              {r.repeat ? 'Stop' : 'Cancel'}
             </Button>
           </li>
         ))}

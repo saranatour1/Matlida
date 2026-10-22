@@ -1,11 +1,17 @@
-import { createTool, listMessages } from '@convex-dev/agent'
+import { createTool } from '@convex-dev/agent'
 import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
-import { components, internal } from '../../_generated/api'
+import { internal } from '../../_generated/api'
 import { decisionModel, imageModel } from '../../lib/ai'
 import { budgetedModel, metered } from '../../lib/budget'
 import { searchConvexDocs } from '../../lib/convexDocs'
-import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
+import {
+  decide,
+  howOften,
+  needsFollowUp,
+  recentTurns,
+  whoShouldHandle,
+} from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
@@ -13,10 +19,9 @@ import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
-import type { Turn } from '../../lib/decide'
-import type { Doc } from '../../_generated/dataModel'
-import type { MessageDoc, ToolCtx } from '@convex-dev/agent'
+import type { ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
+import type { Doc } from '../../lib/ctx'
 
 const vSteps = z
   .array(z.string().min(1))
@@ -31,43 +36,11 @@ const IMAGE_SIZES = {
   tall: '1024x1536',
 } as const
 
-/** The chat's last 30 messages for Jev, with which tools ran and which failed. */
-async function recentTurns(ctx: ToolCtx, threadId: string) {
-  const { page } = await listMessages(ctx, components.agent, {
-    threadId,
-    paginationOpts: { numItems: 30, cursor: null },
-  })
-  return page
-    .sort((a, b) => a.order - b.order || a.stepOrder - b.stepOrder)
-    .flatMap((m): Array<Turn> => {
-      const text = turnText(m).slice(0, 500)
-      if (!text) return []
-      return [{ role: m.message?.role === 'user' ? 'user' : 'assistant', text }]
-    })
-}
-
-function turnText({ message, text, status, error }: MessageDoc) {
-  const parts = Array.isArray(message?.content) ? message.content : []
-  return [
-    text?.trim(),
-    ...parts.map((part) =>
-      part.type === 'tool-call'
-        ? `[used ${part.toolName}]`
-        : part.type === 'tool-result' && part.output?.type.startsWith('error')
-          ? `[${part.toolName} failed]`
-          : '',
-    ),
-    status === 'failed' ? `[this reply failed: ${error ?? 'no reason'}]` : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-}
-
 /** How long a post can be on each platform, in characters. Previews flag anything over. */
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
 
 /** Tools every assistant (`from`) gets: the web, plans saved to the Library, and reminders. */
-export function assistantTools(project: Doc<'projects'>, from: string) {
+export const assistantTools = (project: Doc<'projects'>, from: string) => {
   /** One Jev call under the owner's budget, without its cost in the tool's answer. */
   const judged = <T extends { cost: number }>(
     ctx: ToolCtx,
@@ -81,6 +54,25 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         return { result, cost }
       },
     )
+  /** Jev's read on whether the reminder the user just asked for repeats. Once when Jev can't say. */
+  const repeatOf = async (
+    ctx: ToolCtx,
+    reminder: string,
+    abortSignal?: AbortSignal,
+  ) => {
+    try {
+      const turns = ctx.threadId ? await recentTurns(ctx, ctx.threadId) : []
+      const request =
+        turns.filter((t) => t.role === 'user').at(-1)?.text ?? reminder
+      const { repeat } = await judged(ctx, () =>
+        howOften(decisionModel, { request, reminder }, abortSignal),
+      )
+      return repeat
+    } catch (error) {
+      console.error(error)
+      return 'once'
+    }
+  }
   const record = async (
     ctx: ToolCtx,
     kind: 'search' | 'research',
@@ -379,6 +371,16 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           })),
         }),
     }),
+    show_commands: createTool({
+      description:
+        'Show the commands the user can run, as buttons they can tap. Use it when they ask what you can do, what commands there are, or how to get started.',
+      inputSchema: z.object({}),
+      execute: async (ctx) => ({
+        commands: await ctx.runQuery(internal.api.commands.described, {
+          projectId: project._id,
+        }),
+      }),
+    }),
     save_command: createTool({
       description:
         "Save a new reusable command the user can run as /name. The markdown is the instructions you follow when it runs, written to you. It can't change an existing command: the user edits those in the Library.",
@@ -554,25 +556,30 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     }),
     find_texts: createTool({
       description:
-        'Search what the user has texted you on Telegram, by words in the message.',
+        'Search what the user has texted you from Telegram, WhatsApp or iMessage, by words in the message, optionally from one app.',
       inputSchema: z.object({
         query: z.string().trim().min(1).describe('Words to look for.'),
+        platform: z
+          .enum(['telegram', 'whatsapp_business', 'imessage'])
+          .optional()
+          .describe('Only messages from this app.'),
       }),
-      execute: async (ctx, { query }) => {
+      execute: async (ctx, { query, platform }) => {
         const found: Array<{ platform: string; text: string; sentAt: number }> =
           await ctx.runQuery(internal.api.texts.search, {
             userId: project.ownerId,
             query,
+            platform,
           })
         return found.map((t) => ({
-          text: t.text,
+          ...t,
           sentAt: new Date(t.sentAt).toISOString(),
         }))
       },
     }),
     set_reminder: createTool({
       description:
-        'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
+        'Remind the user about something later, once or on repeat ("every weekday at 9"): Jev works out which from what they asked. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
       inputSchema: z.object({
         message: z
           .string()
@@ -602,8 +609,19 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           .describe(
             "With `to`: the message, written to them in the second person, saying who it's from. Like: Hi Luke, Sara asked me to remind you to check on your car insurance.",
           ),
+        cron: z
+          .string()
+          .max(100)
+          .optional()
+          .describe(
+            'Only for a repeat that isn\'t daily, weekdays, weekly or monthly, like "every Tuesday and Thursday at 9": five cron fields in the user\'s time zone, like "0 9 * * 2,4". `at` is still the first time.',
+          ),
       }),
-      execute: async (ctx, { message, at, via, to, say }) => {
+      execute: async (
+        ctx,
+        { message, at, via, to, say, cron },
+        { abortSignal },
+      ) => {
         const dueAt = Date.parse(at)
         if (Number.isNaN(dueAt))
           throw new Error(`Couldn't read the time "${at}".`)
@@ -636,9 +654,21 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           }
           if (!say) throw new Error('Write the message to them in `say`.')
         }
+        const every = contact
+          ? 'once'
+          : cron
+            ? 'custom'
+            : await repeatOf(ctx, message, abortSignal)
+        if (every === 'custom' && !cron) {
+          throw new Error(
+            'This sounds like it repeats on its own pattern. Call set_reminder again with `cron`.',
+          )
+        }
         const reminderId: string = await ctx.runMutation(
           internal.api.reminders.schedule,
           {
+            every,
+            cron,
             projectId: project._id,
             threadId: ctx.threadId,
             from,
@@ -658,6 +688,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           to: contact?.name ?? null,
           at: new Date(dueAt).toISOString(),
           via,
+          every,
         }
       },
     }),

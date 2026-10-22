@@ -36,7 +36,7 @@ import { errorMessage } from '~/lib/errors'
 import { RULES } from '~/lib/rules'
 
 /** Where the notes on an editor's text live. */
-export type CommentTarget = {
+type CommentTarget = {
   projectId: Id<'projects'>
   kind: 'project' | 'bot' | 'command'
   targetId: string

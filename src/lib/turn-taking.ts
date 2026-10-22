@@ -21,7 +21,7 @@ export const IDLE_RESTART_MS = 15_000
 /** A dip shorter than this doesn't break a run of talking. */
 const DIP_MS = 150
 
-export type Listening = {
+type Listening = {
   began: number
   /** Start of the current run of talking, if one is going. */
   voiceFrom: number | null
@@ -43,12 +43,12 @@ export type TurnEvent =
   /** Nothing was said: start a fresh recording. */
   | 'restart'
 
-export function startListening(now: number): Listening {
+export const startListening = (now: number): Listening => {
   return { began: now, voiceFrom: null, heardAt: null, lastVoice: now }
 }
 
 /** One microphone sample. `replying` is the assistant audibly talking; `paused` is its reply on hold for you. */
-export function hear(
+export const hear = (
   state: Listening,
   {
     level,
@@ -56,7 +56,7 @@ export function hear(
     replying,
     paused,
   }: { level: number; now: number; replying: boolean; paused: boolean },
-): { next: Listening; event: TurnEvent } {
+): { next: Listening; event: TurnEvent } => {
   const { heardAt } = state
   let { voiceFrom, lastVoice } = state
   if (level > (replying ? OVER_REPLY_LEVEL : SPEECH_LEVEL)) {

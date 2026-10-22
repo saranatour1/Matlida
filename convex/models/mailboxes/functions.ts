@@ -7,20 +7,8 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import { addressOf, zHandle } from '../../lib/handles'
-import { getOwnedProject } from '../projects/functions'
-import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-/** The user's mailbox, or null before they claim a handle. */
-export async function getMailbox(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-) {
-  return await ctx.db
-    .query('mailboxes')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .unique()
-}
+import { getOwnedProject } from '../projects/queries'
+import { getMailbox } from './queries'
 
 /**
  * Your assistant address and where it answers, with the address replies go
@@ -72,13 +60,7 @@ const claim = zAuthedMutation({
       throw new ConvexError('That handle is taken. Pick another.')
     }
     if (existing) {
-      // The email chats belong to the old workspace, so the new one starts its own.
-      const moved = existing.projectId !== projectId
-      await ctx.db.patch('mailboxes', existing._id, {
-        handle,
-        projectId,
-        ...(moved && { threadId: undefined, inboxThreadId: undefined }),
-      })
+      await ctx.db.patch('mailboxes', existing._id, { handle, projectId })
       return existing._id
     }
     return await ctx.db.insert('mailboxes', {

@@ -9,22 +9,8 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
-import { getOwnedProject } from '../projects/functions'
-import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-export const MAX_BOTS = 20
-
-/** A project's bots, at most `MAX_BOTS`. */
-export async function getBots(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  return await ctx.db
-    .query('bots')
-    .withIndex('by_project_and_name', (q) => q.eq('projectId', projectId))
-    .take(MAX_BOTS)
-}
+import { getOwnedProject } from '../projects/queries'
+import { MAX_BOTS, getBots } from './queries'
 
 const list = authedQuery({
   args: { projectId: v.id('projects') },

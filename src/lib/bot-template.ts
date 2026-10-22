@@ -15,7 +15,7 @@ export type BotTemplate = z.infer<typeof templateSchema>
  * The template as a URL-safe string. A template link carries the bot in the
  * URL, so nothing is stored or shared beyond what the link holds.
  */
-export function encodeTemplate(template: BotTemplate) {
+export const encodeTemplate = (template: BotTemplate) => {
   const bytes = new TextEncoder().encode(JSON.stringify(template))
   return btoa(String.fromCharCode(...bytes))
     .replaceAll('+', '-')
@@ -24,7 +24,9 @@ export function encodeTemplate(template: BotTemplate) {
 }
 
 /** The template in a link, or null when it's missing or malformed. */
-export function decodeTemplate(text: string | undefined): BotTemplate | null {
+export const decodeTemplate = (
+  text: string | undefined,
+): BotTemplate | null => {
   if (!text) return null
   try {
     const binary = atob(text.replaceAll('-', '+').replaceAll('_', '/'))

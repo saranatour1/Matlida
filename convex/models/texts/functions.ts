@@ -11,12 +11,14 @@ import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { budgetMessage } from '../../lib/budget'
-import { ensureMainThread, getMembers } from '../threads/functions'
+import { ensureMainThread } from '../threads/functions'
+import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { MutationCtx, QueryCtx } from '../../_generated/server'
+import { spectrum } from './spectrum'
+import { getLinks } from './queries'
+import type { Doc, MutationCtx } from '../../lib/ctx'
 
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -25,7 +27,7 @@ const UNBIASED_BYTES = 256 - (256 % CODE_ALPHABET.length)
 
 const CODE_TTL_MS = 10 * 60_000
 
-function newCode() {
+const newCode = () => {
   let code = ''
   while (code.length < 6) {
     const [byte] = crypto.getRandomValues(new Uint8Array(1))
@@ -33,31 +35,6 @@ function newCode() {
       code += CODE_ALPHABET[byte % CODE_ALPHABET.length]
   }
   return code
-}
-
-/** A project's links: one per app, plus a pending code. */
-export async function getLinks(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  return await ctx.db
-    .query('phoneLinks')
-    .withIndex('by_project', (q) => q.eq('projectId', projectId))
-    .order('desc')
-    .take(10)
-}
-
-/** The project's linked Telegram chat, where reminders text. */
-export async function getLink(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  const links = await getLinks(ctx, projectId)
-  return (
-    links.find(
-      (l) => l.status === 'linked' && l.platform === 'telegram' && !!l.agentId,
-    ) ?? null
-  )
 }
 
 const links = authedQuery({
@@ -122,7 +99,10 @@ const claim = internalMutation({
       .take(10)
     for (const row of previous) await ctx.db.delete('phoneLinks', row._id)
     for (const row of await getLinks(ctx, pending.projectId)) {
-      if (row.status === 'linked' && row.platform === platform) {
+      if (
+        row.status === 'linked' &&
+        (row.platform ?? 'imessage') === platform
+      ) {
         await ctx.db.delete('phoneLinks', row._id)
       }
     }
@@ -144,11 +124,11 @@ const claim = internalMutation({
  * from a linked chat count against its owner, so one person can't run up
  * the model from several apps; anything else counts against the chat.
  */
-async function admitText(
+const admitText = async (
   ctx: MutationCtx,
   spaceId: string,
   kind: 'message' | 'link',
-) {
+) => {
   if (kind === 'link') {
     const tries = await rateLimiter.limit(ctx, 'linkAttempt', {
       key: `space:${spaceId}`,
@@ -209,11 +189,7 @@ const forSpace = internalMutation({
       })
     }
     const threadId = await ensureMainThread(ctx, project, null)
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
-    return { project, members: await getMembers(ctx, thread), threadId }
+    return { project, members: await getMembers(ctx, project, null), threadId }
   },
 })
 
@@ -303,15 +279,23 @@ const received = internalMutation({
       .unique()
     if (seen) return false
     await ctx.db.insert('photonMessages', { messageId })
-    // A chat is active: check every few seconds for a while, starting the loop unless it's running.
+    // A chat is active: check every few seconds for a while, starting the loop unless one is running.
     const until = Date.now() + FAST_FOR_MS
     const poll = await ctx.db.query('telegramPolls').first()
-    if (!poll) await ctx.db.insert('telegramPolls', { until })
-    else await ctx.db.patch('telegramPolls', poll._id, { until })
-    if (!poll || poll.until < Date.now()) {
-      await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-        fast: true,
-      })
+    const next =
+      poll?.scheduled &&
+      (await ctx.db.system.get('_scheduled_functions', poll.scheduled))
+    const scheduled =
+      poll?.scheduled && next?.state.kind === 'pending'
+        ? poll.scheduled
+        : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
+            fast: true,
+          })
+    // Every message reads this one row; writing it only when it moves keeps a
+    // burst of messages from conflicting with each other and with `nextPoll`.
+    if (!poll) await ctx.db.insert('telegramPolls', { until, scheduled })
+    else if (scheduled !== poll.scheduled || until - poll.until > 15_000) {
+      await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
     }
     // The limit is taken here, one message at a time, not in the replies that
     // run side by side, so two quick messages don't conflict on the same bucket.
@@ -380,11 +364,45 @@ const FAST_POLL_MS = 3_000
 const FAST_FOR_MS = 2 * 60_000
 
 /** Until when the fast Telegram check should keep going, or 0. */
-const pollingUntil = internalQuery({
+/** Which of `ids` haven't been received yet, so a check only records what's new. */
+const unseen = internalQuery({
+  args: { ids: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { ids }) => {
+    const fresh: Array<string> = []
+    for (const id of ids) {
+      const seen = await ctx.db
+        .query('photonMessages')
+        .withIndex('by_messageId', (q) => q.eq('messageId', id))
+        .first()
+      if (!seen) fresh.push(id)
+    }
+    return fresh
+  },
+})
+
+/** Every 3 seconds right after a message, then every 10 until the window ends. */
+const SLOW_POLL_MS = 10_000
+const SLOW_AFTER_MS = 30_000
+
+/** The fast check's next run, while its window lasts: soon after a message, slower later. */
+const nextPoll = internalMutation({
   args: {},
-  returns: v.number(),
-  handler: async (ctx) =>
-    (await ctx.db.query('telegramPolls').first())?.until ?? 0,
+  returns: v.null(),
+  handler: async (ctx) => {
+    const poll = await ctx.db.query('telegramPolls').first()
+    const left = (poll?.until ?? 0) - Date.now()
+    if (!poll || left <= 0) return null
+    const delay =
+      left > FAST_FOR_MS - SLOW_AFTER_MS ? FAST_POLL_MS : SLOW_POLL_MS
+    const scheduled = await ctx.scheduler.runAfter(
+      delay,
+      internal.api.texts.poll,
+      { fast: true },
+    )
+    await ctx.db.patch('telegramPolls', poll._id, { scheduled })
+    return null
+  },
 })
 
 /**
@@ -400,7 +418,12 @@ const poll = internalAction({
     const keys = photonKeys(env)
     if (!keys) return null
     const since = new Date(Date.now() - TELEGRAM_LOOKBACK_MS).toISOString()
-    for (const message of await listTexts(keys, 'telegram', since)) {
+    const messages = await listTexts(keys, 'telegram', since)
+    const fresh: Array<string> = await ctx.runQuery(internal.api.texts.unseen, {
+      ids: messages.map((m) => m.id),
+    })
+    for (const message of messages) {
+      if (!fresh.includes(message.id)) continue
       await ctx.runMutation(internal.api.texts.received, {
         messageId: message.id,
         spaceId: message.space.id,
@@ -409,33 +432,28 @@ const poll = internalAction({
         text: message.content.text,
       })
     }
-    if (fast) {
-      const until: number = await ctx.runQuery(
-        internal.api.texts.pollingUntil,
-        {},
-      )
-      if (Date.now() < until) {
-        await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-          fast: true,
-        })
-      }
-    }
+    if (fast) await ctx.runMutation(internal.api.texts.nextPoll, {})
     return null
   },
 })
 
-/** `userId`'s texts to the lead matching `query`, best first. For `find_texts`. */
+/** `userId`'s texts to the lead matching `query`, best first, optionally from one app. For `find_texts`. */
 const search = internalQuery({
-  args: { userId: v.id('users'), query: v.string() },
+  args: {
+    userId: v.id('users'),
+    query: v.string(),
+    platform: v.optional(v.string()),
+  },
   returns: v.array(
     v.object({ platform: v.string(), text: v.string(), sentAt: v.number() }),
   ),
-  handler: async (ctx, { userId, query }) => {
+  handler: async (ctx, { userId, query, platform }) => {
     const rows = await ctx.db
       .query('receivedTexts')
-      .withSearchIndex('search_text', (q) =>
-        q.search('text', query).eq('userId', userId),
-      )
+      .withSearchIndex('search_text', (q) => {
+        const mine = q.search('text', query).eq('userId', userId)
+        return platform ? mine.eq('platform', platform) : mine
+      })
       .take(10)
     return rows.map((r) => ({
       platform: r.platform,
@@ -445,7 +463,63 @@ const search = internalQuery({
   },
 })
 
+/** The text of an inbound Spectrum message, or '' for anything else (photos, reactions). */
+const textOf = (message: unknown) => {
+  const content = (message as { content?: { type?: unknown; text?: unknown } })
+    .content
+  return content?.type === 'text' && typeof content.text === 'string'
+    ? content.text
+    : ''
+}
+
+/** The Spectrum SDK's batch handler: one turn per burst of texts from a chat on iMessage, WhatsApp or Telegram. */
+const respond = internalAction({
+  args: {
+    spaceId: v.string(),
+    chainId: v.string(),
+    messages: v.array(v.any()),
+    carried: v.array(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const text = [...args.carried, ...args.messages]
+      .map(textOf)
+      .filter(Boolean)
+      .join('\n')
+    try {
+      if (text) {
+        const reply: string = await ctx
+          .runAction(internal.api.texts.answer, {
+            spaceId: args.spaceId,
+            platform:
+              (await spectrum.getSpace(ctx, { spaceId: args.spaceId }))
+                ?.platform ?? 'imessage',
+            text,
+          })
+          .catch((error: unknown) => {
+            console.error(error)
+            return (
+              budgetMessage(error) ??
+              'Sorry, something went wrong. Try again in a minute.'
+            )
+          })
+        // A newer text may have superseded this turn while the lead was thinking.
+        if (!reply || (await spectrum.isCancelled(ctx, args))) return null
+        await spectrum.send(ctx, {
+          spaceId: args.spaceId,
+          chainId: args.chainId,
+          content: { type: 'text', text: reply },
+        })
+      }
+    } finally {
+      await spectrum.completeChain(ctx, args)
+    }
+    return null
+  },
+})
+
 export const textsApi = {
+  respond,
   links,
   startLink,
   unlink,
@@ -456,6 +530,7 @@ export const textsApi = {
   answer,
   received,
   replyOnPhoton,
-  pollingUntil,
+  unseen,
+  nextPoll,
   poll,
 }

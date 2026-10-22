@@ -1,39 +1,64 @@
 import * as React from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useMatch, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation } from 'convex/react'
 import {
   MicIcon,
   MicOffIcon,
   PhoneOffIcon,
+  SettingsIcon,
   Volume1Icon,
   Volume2Icon,
   VolumeXIcon,
 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import { AUDIO_VOICES, audioVoiceName } from '../../convex/lib/audio'
+import { LANGUAGES, VOICES, VOICE_NAMES } from '../../convex/lib/models'
 import type { Id } from '../../convex/_generated/dataModel'
 import type { Portrait } from '../../convex/lib/portraits'
+import type { Language } from '../../convex/lib/models'
 import { BotAvatar } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'
 import {
   MAX_VOLUME,
+  SPEEDS,
   clampVolume,
+  getCallAudioVoice,
+  getCallLanguage,
+  getCallSpeed,
+  getCallVoice,
   getCallVolume,
   getFastVoice,
+  saveCallAudioVoice,
+  saveCallLanguage,
+  saveCallSpeed,
+  saveCallVoice,
   saveCallVolume,
   saveFastVoice,
+  useCallAudioVoice,
+  useCallLanguage,
+  useCallSpeed,
+  useCallVoice,
   useCallVolume,
   useFastVoice,
 } from '~/hooks/use-call-settings'
+
 import { useUpload } from '~/hooks/use-upload'
 import { toWav } from '~/lib/wav'
 import { hear, startListening } from '~/lib/turn-taking'
+
+type CallVoice = (typeof VOICES)[number]
+type AudioVoice = (typeof AUDIO_VOICES)[number]
+
+/** A saved setting as the call takes it, or undefined for "their own" and "auto". The server checks the value. */
+const pick = <T extends string>(saved: string) =>
+  saved ? (saved as T) : undefined
 
 type Status =
   'idle' | 'starting' | 'listening' | 'hearing' | 'thinking' | 'speaking'
 
 /** Who the call is with. `threadId` fills in when the first turn starts a chat. */
-export type CallTarget = {
+type CallTarget = {
   projectId: Id<'projects'>
   botId?: Id<'bots'>
   threadId?: string
@@ -56,20 +81,16 @@ type Session = CallTarget & {
   ended: boolean
 }
 
-/** A spoken reply arriving a piece at a time, played in order as each piece is ready. */
+/** A spoken reply arriving a piece at a time, played in order as each piece arrives. */
 type Reply = {
-  /** Each piece's audio, decoding or decoded (null if it couldn't be). */
-  pieces: Array<Promise<AudioBuffer | null>>
+  /** Each piece's audio, by URL. An `<audio>` element plays it, so the speed setting keeps the pitch. */
+  pieces: Array<string>
   /** The next piece to play. */
   next: number
   /** Every piece is in. */
   done: boolean
-  playing?: {
-    source: AudioBufferSourceNode
-    buffer: AudioBuffer
-    startedAt: number
-  }
-  /** On hold while you talk over it: where it stopped in the current piece. */
+  playing?: { el: HTMLAudioElement }
+  /** On hold while you talk over it: where it stopped in the current piece, in seconds. */
   paused?: { offset: number }
   stopWatching: () => void
 }
@@ -93,7 +114,7 @@ type Opening = Promise<{
  * the clip as one turn, play the spoken reply, then listen again. Start it
  * from a click, so the browser allows the microphone and audio playback.
  */
-export function useVoiceCall({
+function useVoiceCall({
   onThread,
 }: {
   /** Called when the first turn starts a new chat. */
@@ -190,6 +211,9 @@ export function useVoiceCall({
         interrupted: cutOff || undefined,
         liveKey,
         fast: fast || undefined,
+        voice: fast ? undefined : pick<CallVoice>(getCallVoice()),
+        audioVoice: fast ? pick<AudioVoice>(getCallAudioVoice()) : undefined,
+        language: pick<Language>(getCallLanguage()),
       })
       // The user may have hung up while we waited.
       if (session.current !== s) return
@@ -239,7 +263,7 @@ export function useVoiceCall({
         setLines((l) => [...l, { who: 'you', text: heard }])
       }
       for (const piece of state.pieces.slice(reply.pieces.length)) {
-        reply.pieces.push(decode(s, piece.url))
+        reply.pieces.push(piece.url)
       }
       const text = state.pieces.map((piece) => piece.text).join(' ')
       if (text) {
@@ -262,15 +286,6 @@ export function useVoiceCall({
     update()
   }
 
-  async function decode(s: Session, url: string) {
-    try {
-      const sound = await (await fetch(url)).arrayBuffer()
-      return await s.audio.decodeAudioData(sound)
-    } catch {
-      return null
-    }
-  }
-
   /** Plays the reply's next piece once it's ready, or finishes the reply when every piece has played. */
   function playNext(s: Session) {
     const reply = s.reply
@@ -283,42 +298,38 @@ export function useVoiceCall({
       }
       return
     }
-    void reply.pieces[index]?.then((buffer) => {
-      if (s.reply !== reply || reply.playing || reply.paused) return
-      if (reply.next !== index) return
-      if (buffer) play(s, reply, buffer, 0)
-      else {
-        reply.next++
-        playNext(s)
-      }
-    })
+    play(s, reply, reply.pieces[index], 0)
   }
 
-  function play(s: Session, reply: Reply, buffer: AudioBuffer, offset: number) {
-    const source = s.audio.createBufferSource()
-    source.buffer = buffer
-    source.connect(s.gain)
-    source.onended = () => {
+  /** Plays one piece from `offset` seconds in, through the call's volume, at the speed setting. */
+  function play(s: Session, reply: Reply, url: string, offset: number) {
+    const el = new Audio(url)
+    el.crossOrigin = 'anonymous'
+    el.playbackRate = getCallSpeed()
+    el.currentTime = offset
+    s.audio.createMediaElementSource(el).connect(s.gain)
+    const next = () => {
       // Not when paused or hung up: those clear `playing` first.
-      if (reply.playing?.source !== source) return
+      if (reply.playing?.el !== el) return
       reply.playing = undefined
       reply.next++
       playNext(s)
     }
-    reply.playing = { source, buffer, startedAt: s.audio.currentTime - offset }
+    el.onended = next
+    // A piece that won't play is skipped, so the reply carries on.
+    el.onerror = next
+    reply.playing = { el }
     setStatus('speaking')
-    source.start(0, offset)
+    void el.play().catch(next)
   }
 
   function pause(s: Session) {
     const reply = s.reply
     if (!reply) return
     const playing = reply.playing
-    reply.paused = {
-      offset: playing ? s.audio.currentTime - playing.startedAt : 0,
-    }
+    reply.paused = { offset: playing?.el.currentTime ?? 0 }
     reply.playing = undefined
-    playing?.source.stop()
+    playing?.el.pause()
   }
 
   /** Carries on with the paused reply from where it stopped. */
@@ -328,12 +339,8 @@ export function useVoiceCall({
     const { offset } = reply.paused
     reply.paused = undefined
     setStatus('thinking')
-    if (!offset) return playNext(s)
-    void reply.pieces[reply.next]?.then((buffer) => {
-      if (buffer && s.reply === reply && !reply.playing && !reply.paused) {
-        play(s, reply, buffer, offset)
-      }
-    })
+    if (!offset || reply.next >= reply.pieces.length) return playNext(s)
+    play(s, reply, reply.pieces[reply.next], offset)
   }
 
   /** Stops the reply and stops waiting for the rest of it. */
@@ -344,7 +351,7 @@ export function useVoiceCall({
     reply.stopWatching()
     const playing = reply.playing
     reply.playing = undefined
-    playing?.source.stop()
+    playing?.el.pause()
   }
 
   /**
@@ -388,7 +395,7 @@ export function useVoiceCall({
       s.callId = first?.callId
       if (first?.audioUrl) {
         s.reply = {
-          pieces: [decode(s, first.audioUrl)],
+          pieces: [first.audioUrl],
           next: 0,
           done: true,
           stopWatching: () => {},
@@ -435,6 +442,13 @@ export function useVoiceCall({
     s?.gain.gain.setTargetAtTime(clampVolume(next), s.audio.currentTime, 0.03)
   }
 
+  /** Saved for next time, and applied to the piece playing now. */
+  function setSpeed(next: number) {
+    saveCallSpeed(next)
+    const playing = session.current?.reply?.playing
+    if (playing) playing.el.playbackRate = next
+  }
+
   /** How loud you and the assistant are right now, 0 to 1, read each animation frame. */
   const levels = {
     you: () => levelOf(session.current?.analyser),
@@ -452,6 +466,7 @@ export function useVoiceCall({
     hangUp,
     toggleMute,
     setVolume,
+    setSpeed,
   }
 }
 
@@ -465,20 +480,9 @@ function levelOf(analyser: AnalyserNode | undefined) {
   return Math.min(1, Math.sqrt(sum / samples.length) * 8)
 }
 
-const STATUS_LABEL: Record<Status, string> = {
-  idle: '',
-  starting: 'Connecting…',
-  listening: 'Listening…',
-  hearing: 'Hearing you…',
-  thinking: 'Thinking…',
-  speaking: 'Speaking…',
-}
-
 type Caller = {
   name: string
   portrait: Portrait
-  /** Shown in the chat's box, in place of the side panel. */
-  inline?: boolean
 }
 
 const CallContext = React.createContext<{
@@ -489,7 +493,7 @@ const CallContext = React.createContext<{
   startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
 } | null>(null)
 
-/** The app's one call, so a ring can't start a second call over the first. `CallPanel` shows it. */
+/** The app's one call, so a ring can't start a second call over the first. Its chat's `VoiceBar` shows it, and `CallPill` everywhere else. */
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const [caller, setCaller] = React.useState<Caller & { target: CallTarget }>()
@@ -519,97 +523,134 @@ export function useCall() {
   return context
 }
 
-/**
- * The call, docked at the side of the app: who it's with, what's happening,
- * and everything said so far. Full screen on phones.
- */
-export function CallPanel() {
+/** The call, on any page but its chat: who it's with, a way back, and hang up. */
+export function CallPill() {
   const { call, caller } = useCall()
-  if (!caller || caller.inline || (call.status === 'idle' && !call.error)) {
+  const chat = useMatch({ from: '/_app/p/$projectId/', shouldThrow: false })
+  if (!caller || (call.status === 'idle' && !call.error)) return null
+  const { projectId, botId } = caller.target
+  if (chat?.params.projectId === projectId && chat.search.bot === botId) {
     return null
   }
-  const live = call.status === 'speaking' || call.status === 'hearing'
   return (
-    <aside
-      role="dialog"
-      aria-label={`Call with ${caller.name}`}
-      className="fixed inset-0 z-40 flex flex-col bg-background md:sticky md:top-0 md:h-svh md:w-80 md:shrink-0 md:border-l lg:w-96"
+    <div
+      role="status"
+      className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full border bg-popover p-1.5 pl-2 text-popover-foreground shadow-lg"
     >
-      <div className="flex items-center gap-3 border-b p-4">
-        <div
-          className={`rounded-[28%] p-1 ${
-            live
-              ? call.status === 'speaking'
-                ? 'animate-pulse ring-2 ring-emerald-400/70'
-                : 'ring-2 ring-sky-400/70'
-              : 'ring-2 ring-transparent'
-          }`}
-        >
-          <BotAvatar portrait={caller.portrait} className="size-12" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate font-medium">{caller.name}</p>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {call.muted ? 'Muted' : STATUS_LABEL[call.status]}
-          </p>
-        </div>
-      </div>
-      <ol
-        aria-label="Transcript"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 text-sm"
+      <BotAvatar portrait={caller.portrait} className="size-8" />
+      <Link
+        to="/p/$projectId"
+        params={{ projectId }}
+        search={{ bot: botId }}
+        className="pr-1 text-sm font-medium hover:underline"
       >
-        {call.lines.length === 0 && !call.error && (
-          <li className="text-muted-foreground">
-            What you and {caller.name} say shows up here.
-          </li>
+        On a call with {caller.name}
+      </Link>
+      <Button
+        variant="destructive"
+        size="icon-sm"
+        className="rounded-full"
+        aria-label="Hang up"
+        onClick={call.hangUp}
+      >
+        <PhoneOffIcon />
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * The call's voice, speed and language, kept on this browser. The voice list
+ * follows Fast voice, which has voices of its own. Changes apply from the
+ * next thing the assistant says; the speed applies to what's playing too.
+ */
+function CallSettings({ onSpeed }: { onSpeed: (speed: number) => void }) {
+  const fast = useFastVoice()
+  const voice = useCallVoice()
+  const audioVoice = useCallAudioVoice()
+  const speed = useCallSpeed()
+  const language = useCallLanguage()
+  return (
+    <dl className="flex flex-col divide-y border-b text-sm">
+      <SettingRow label="Voice">
+        {fast ? (
+          <select
+            aria-label="Voice"
+            value={audioVoice}
+            onChange={(e) => saveCallAudioVoice(e.target.value)}
+            className={SELECT}
+          >
+            <option value="">Their own</option>
+            {AUDIO_VOICES.map((v) => (
+              <option key={v} value={v}>
+                {audioVoiceName(v)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            aria-label="Voice"
+            value={voice}
+            onChange={(e) => saveCallVoice(e.target.value)}
+            className={SELECT}
+          >
+            <option value="">Their own</option>
+            {VOICES.map((v) => (
+              <option key={v} value={v}>
+                {VOICE_NAMES[v]}
+              </option>
+            ))}
+          </select>
         )}
-        {call.lines.map((line, i) => (
-          <li
-            key={i}
-            ref={i === call.lines.length - 1 ? scrollIntoView : undefined}
-            className={
-              line.who === 'you'
-                ? 'max-w-[85%] self-end rounded-2xl bg-muted px-3 py-2'
-                : 'max-w-[85%]'
-            }
-          >
-            {line.text}
-            {line.cutOff && (
-              <span className="text-muted-foreground"> (cut off)</span>
-            )}
-          </li>
-        ))}
-        {call.error && (
-          <li role="alert" className="text-destructive">
-            {call.error}
-          </li>
-        )}
-      </ol>
-      <div className="flex flex-col gap-3 border-t p-4">
-        <FastVoice />
-        <VolumeBar volume={call.volume} onChange={call.setVolume} />
-        <div className="flex justify-center gap-4">
-          <Button
-            variant="outline"
-            className="size-12 rounded-full"
-            aria-label={call.muted ? 'Unmute' : 'Mute'}
-            disabled={call.status === 'idle' || call.status === 'starting'}
-            aria-pressed={call.muted}
-            onClick={call.toggleMute}
-          >
-            {call.muted ? <MicOffIcon /> : <MicIcon />}
-          </Button>
-          <Button
-            variant="destructive"
-            className="size-12 rounded-full"
-            aria-label="Hang up"
-            onClick={call.hangUp}
-          >
-            <PhoneOffIcon />
-          </Button>
-        </div>
-      </div>
-    </aside>
+      </SettingRow>
+      <SettingRow label="Speed">
+        <select
+          aria-label="Speed"
+          value={speed}
+          onChange={(e) => onSpeed(Number(e.target.value))}
+          className={SELECT}
+        >
+          {SPEEDS.map((s) => (
+            <option key={s} value={s}>
+              {s}x
+            </option>
+          ))}
+        </select>
+      </SettingRow>
+      <SettingRow label="Language">
+        <select
+          aria-label="Language"
+          value={language}
+          onChange={(e) => saveCallLanguage(e.target.value)}
+          className={SELECT}
+        >
+          <option value="">Auto-detect</option>
+          {Object.entries(LANGUAGES).map(([code, name]) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </SettingRow>
+    </dl>
+  )
+}
+
+const SELECT =
+  'rounded-md border bg-background px-2 py-1 text-sm text-foreground'
+
+function SettingRow({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd>{children}</dd>
+    </div>
   )
 }
 
@@ -689,11 +730,6 @@ function VolumeBar({
   )
 }
 
-/** Keeps the newest line in view as the transcript grows. */
-function scrollIntoView(element: HTMLLIElement | null) {
-  element?.scrollIntoView({ block: 'nearest' })
-}
-
 /**
  * Talking hands-free in the chat, in place of the message box: you and the
  * assistant side by side, each swelling with your voice as you talk, and a
@@ -702,6 +738,7 @@ function scrollIntoView(element: HTMLLIElement | null) {
  */
 export function VoiceBar() {
   const { call, caller } = useCall()
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   if (!caller) return null
   const you = call.status === 'hearing'
   const them = call.status === 'speaking'
@@ -747,7 +784,24 @@ export function VoiceBar() {
         </p>
       )}
       <VolumeBar volume={call.volume} onChange={call.setVolume} />
+      {settingsOpen && (
+        <div className="flex flex-col gap-3 overflow-hidden rounded-xl border">
+          <CallSettings onSpeed={call.setSpeed} />
+          <div className="px-4 pb-3">
+            <FastVoice />
+          </div>
+        </div>
+      )}
       <div className="flex justify-center gap-3">
+        <Button
+          variant={settingsOpen ? 'secondary' : 'outline'}
+          className="size-11 rounded-full"
+          aria-label="Voice settings"
+          aria-pressed={settingsOpen}
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          <SettingsIcon />
+        </Button>
         <Button
           variant="outline"
           className="size-11 rounded-full"

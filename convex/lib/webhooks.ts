@@ -13,14 +13,14 @@ export type WebhookCheck =
   | { ok: true; id: string }
   | { ok: false; reason: 'missing_headers' | 'stale' | 'mismatch' }
 
-function decodeBase64(text: string) {
+const decodeBase64 = (text: string) => {
   const binary = atob(text)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   return bytes
 }
 
-async function hmacKey(secret: string, use: 'sign' | 'verify') {
+const hmacKey = async (secret: string, use: 'sign' | 'verify') => {
   const raw = decodeBase64(
     secret.startsWith('whsec_') ? secret.slice(6) : secret,
   )
@@ -33,11 +33,11 @@ async function hmacKey(secret: string, use: 'sign' | 'verify') {
   )
 }
 
-function signedContent(
+const signedContent = (
   id: string,
   timestamp: string,
   body: Uint8Array<ArrayBuffer>,
-) {
+) => {
   const prefix = new TextEncoder().encode(`${id}.${timestamp}.`)
   const signed = new Uint8Array(prefix.length + body.length)
   signed.set(prefix, 0)
@@ -45,7 +45,7 @@ function signedContent(
   return signed
 }
 
-export async function verifyWebhook({
+export const verifyWebhook = async ({
   body,
   headers,
   secret,
@@ -55,7 +55,7 @@ export async function verifyWebhook({
   headers: Headers
   secret: string
   now?: number
-}): Promise<WebhookCheck> {
+}): Promise<WebhookCheck> => {
   const header = (name: string) =>
     headers.get(`webhook-${name}`) ?? headers.get(`svix-${name}`)
   const id = header('id')
@@ -89,7 +89,7 @@ export async function verifyWebhook({
 }
 
 /** Signs a body the way a Standard Webhooks sender does, for tests. */
-export async function signWebhook({
+export const signWebhook = async ({
   body,
   id,
   timestamp,
@@ -99,7 +99,7 @@ export async function signWebhook({
   id: string
   timestamp: number
   secret: string
-}) {
+}) => {
   const key = await hmacKey(secret, 'sign')
   const mac = new Uint8Array(
     await crypto.subtle.sign(

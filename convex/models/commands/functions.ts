@@ -8,59 +8,9 @@ import { languageModel } from '../../lib/ai'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { authedMutation, authedQuery, zAuthedAction } from '../../lib/functions'
 import { removeComments } from '../comments/functions'
-import { getOwnedProject } from '../projects/functions'
-import type { Id } from '../../_generated/dataModel'
-import type { ActionCtx, QueryCtx } from '../../_generated/server'
-
-export const MAX_COMMANDS = 50
-
-/** A project's commands, at most `MAX_COMMANDS`. */
-export async function getCommands(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  return await ctx.db
-    .query('commands')
-    .withIndex('by_project_and_name', (q) => q.eq('projectId', projectId))
-    .take(MAX_COMMANDS)
-}
-
-/** The project's own command called `name`, or null. */
-export async function getCommand(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-  name: string,
-) {
-  return await ctx.db
-    .query('commands')
-    .withIndex('by_project_and_name', (q) =>
-      q.eq('projectId', projectId).eq('name', name),
-    )
-    .unique()
-}
-
-/**
- * The name of the command a message runs when it starts with `/name`, or
- * null for a plain message: one of the project's, or a built-in. Throws a
- * user-facing error when there's no such command.
- */
-export async function findCommand(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-  prompt: string,
-) {
-  const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i
-    .exec(prompt)?.[1]
-    ?.toLowerCase()
-  if (!name) return null
-  if (
-    (await getCommand(ctx, projectId, name)) ||
-    BUILT_IN_COMMANDS.some((c) => c.name === name)
-  ) {
-    return name
-  }
-  throw new ConvexError(`There's no /${name} command.`)
-}
+import { getOwnedProject } from '../projects/queries'
+import { MAX_COMMANDS, getCommands } from './queries'
+import type { ActionCtx, Id } from '../../lib/ctx'
 
 const list = authedQuery({
   args: { projectId: v.id('projects') },
@@ -100,7 +50,7 @@ const commandArgs = {
 }
 
 /** The markdown's SHA-256, in hex. */
-async function sha256(text: string) {
+const sha256 = async (text: string) => {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(text),
@@ -116,7 +66,7 @@ async function sha256(text: string) {
  * run again: saving what's already saved changes nothing and returns the same
  * command. A file left by a run that stopped before saving is swept later.
  */
-export async function saveCommand(
+export const saveCommand = async (
   ctx: ActionCtx,
   {
     markdown,
@@ -130,7 +80,7 @@ export async function saveCommand(
     description: string
     markdown: string
   },
-): Promise<Id<'commands'>> {
+): Promise<Id<'commands'>> => {
   const storageId = await ctx.storage.store(
     new Blob([markdown], { type: 'text/markdown' }),
   )
@@ -232,6 +182,21 @@ const remove = authedMutation({
 })
 
 /** The project's command names, once its owner is checked. For `draft`. */
+/** Every command the workspace can run, its own first, for `show_commands`. */
+const described = internalQuery({
+  args: { projectId: v.id('projects') },
+  returns: v.array(v.object({ name: v.string(), description: v.string() })),
+  handler: async (ctx, { projectId }) => {
+    const own = await getCommands(ctx, projectId)
+    return [
+      ...own.map(({ name, description }) => ({ name, description })),
+      ...BUILT_IN_COMMANDS.filter(
+        (b) => !own.some((c) => c.name === b.name),
+      ).map(({ name, description }) => ({ name, description })),
+    ]
+  },
+})
+
 const names = internalQuery({
   args: { projectId: v.id('projects'), userId: v.id('users') },
   returns: v.array(v.string()),
@@ -322,7 +287,7 @@ const HOUR = 60 * 60_000
  * and call audio, which are only kept by a row. Pictures, videos and
  * anything else, a file with no type included, are kept.
  */
-export function sweepable({ contentType }: { contentType?: string }) {
+export const sweepable = ({ contentType }: { contentType?: string }) => {
   return contentType === 'text/markdown' || !!contentType?.startsWith('audio/')
 }
 
@@ -361,6 +326,7 @@ export const commandsApi = {
   write,
   remove,
   names,
+  described,
   draft,
   sweepFiles,
 }

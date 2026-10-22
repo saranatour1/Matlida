@@ -2,14 +2,14 @@ import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { compareTimes, isTimeZone, splitCosts } from '../../lib/everyday'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc } from '../../lib/ctx'
 
 /**
  * Tools for everyday commands. Most only show a card in the chat (`show_*`):
  * their output is their input, and the card does the rest. The rest keep
  * lists the user ticks off.
  */
-export function everydayTools(project: Doc<'projects'>) {
+export const everydayTools = (project: Doc<'projects'>) => {
   return {
     add_to_list: createTool({
       description:
@@ -270,6 +270,7 @@ export function everydayTools(project: Doc<'projects'>) {
 
 /** Tools that only show a card, which texts, calls and emails can't show. */
 const CARD_TOOLS = new Set([
+  'show_commands',
   'show_chart',
   'preview_post',
   'preview_posts',
@@ -289,7 +290,7 @@ const CARD_TOOLS = new Set([
 const CALL_CARDS = new Set(['generate_image', 'generate_video'])
 
 /** Whether `tool` belongs in a reply that goes out `via` (unset means the chat). */
-export function showsVia(tool: string, via?: string) {
+export const showsVia = (tool: string, via?: string) => {
   if (!via || via === 'chat' || !CARD_TOOLS.has(tool)) return true
   return via === 'voice' && CALL_CARDS.has(tool)
 }

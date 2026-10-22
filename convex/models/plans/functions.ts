@@ -1,10 +1,9 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { plansTable } from './table'
-import type { Id } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
+import type { Id, MutationCtx } from '../../lib/ctx'
 
 const vSteps = plansTable.validator.fields.steps
 const vItems = v.array(
@@ -15,7 +14,7 @@ const vItems = v.array(
  * Adds `items` to the workspace's list called `title`, like To-do or
  * Shopping list, starting it if there's none. Returns the list.
  */
-async function addToList(
+const addToList = async (
   ctx: MutationCtx,
   list: {
     projectId: Id<'projects'>
@@ -23,7 +22,7 @@ async function addToList(
     title: string
     items: Array<{ text: string; section?: string }>
   },
-) {
+) => {
   const steps = list.items.map((item) => ({ ...item, done: false }))
   const existing = (
     await ctx.db

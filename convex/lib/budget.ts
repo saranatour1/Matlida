@@ -5,8 +5,7 @@ import { components } from '../_generated/api'
 import { env } from '../_generated/server'
 import { chatModel, languageModel } from './ai'
 import { MODELS } from './models'
-import type { Id } from '../_generated/dataModel'
-import type { ActionCtx, MutationCtx, QueryCtx } from '../_generated/server'
+import type { ActionCtx, Id, MutationCtx, QueryCtx } from './ctx'
 
 /** Each person's AI spend a month, in dollars: `AI_BUDGET_USD` on the deployment, or 12. */
 export const BUDGET_USD = Number(env.AI_BUDGET_USD) || 12
@@ -25,10 +24,10 @@ export const budget = new AIBudget(components.aiBudget, {
 const capped = new Set<string>()
 
 /** Gives `userId` the month's cap, once per isolate. Runs before their first metered call. */
-export async function ensureBudget(
+export const ensureBudget = async (
   ctx: MutationCtx | ActionCtx,
   userId: Id<'users'>,
-) {
+) => {
   if (capped.has(userId)) return
   const bucket = await budget.users.get(ctx, { userId })
   if (bucket?.monthlySpendLimitNanos !== BUDGET_USD * NANOS) {
@@ -41,11 +40,11 @@ export async function ensureBudget(
 }
 
 /** A chat model for `userId`, metered and limit-checked: any id the gateway serves. */
-export function budgetedModel(
+export const budgetedModel = (
   ctx: ActionCtx,
   userId: Id<'users'>,
   model: string,
-) {
+) => {
   const tracked = budget.languageModel(ctx, { userId, model })
   // The SDK's `LanguageModel` also admits a bare gateway id, which the component never returns.
   if (typeof tracked === 'string') throw new Error('Expected a model object.')
@@ -69,7 +68,7 @@ export function budgetedModel(
  * transcription, a decision), under `userId`'s budget: `estimate` dollars are
  * held first, then it's charged at the `cost` it returns.
  */
-export async function metered<T>(
+export const metered = async <T>(
   ctx: ActionCtx,
   {
     userId,
@@ -77,7 +76,7 @@ export async function metered<T>(
     estimate,
   }: { userId: Id<'users'>; model: string; estimate: number },
   run: () => Promise<{ result: T; cost: number }>,
-): Promise<T> {
+): Promise<T> => {
   await ensureBudget(ctx, userId)
   let result: T | undefined
   await budget.meter(
@@ -98,7 +97,7 @@ export async function metered<T>(
 }
 
 /** What `userId` has spent this month, and their cap, in dollars. */
-export async function budgetOf(ctx: QueryCtx, userId: Id<'users'>) {
+export const budgetOf = async (ctx: QueryCtx, userId: Id<'users'>) => {
   const bucket = await budget.users.get(ctx, { userId })
   return {
     spent: (bucket?.spendThisMonthNanos ?? 0) / NANOS,
@@ -107,7 +106,7 @@ export async function budgetOf(ctx: QueryCtx, userId: Id<'users'>) {
 }
 
 /** The budget's refusal in the user's words, or null when `error` is something else. Looks inside wrapped errors. */
-export function budgetMessage(error: unknown): string | null {
+export const budgetMessage = (error: unknown): string | null => {
   if (error instanceof ConvexError) {
     const data = error.data as { kind?: string } | undefined
     if (data?.kind === 'AIBudgetLimit') {

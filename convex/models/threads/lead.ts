@@ -4,19 +4,18 @@ import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { budgetedModel } from '../../lib/budget'
-import { EFFORTS, MODELS } from '../../lib/models'
+import { EFFORTS, LANGUAGES, MODELS } from '../../lib/models'
 import { showsVia } from './everyday'
 import { assistantTools } from './tools'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx } from '../../_generated/server'
 import type { UsageHandler } from '@convex-dev/agent'
-import type { Effort } from '../../lib/models'
+import type { Effort, Language } from '../../lib/models'
 import type { ToolSet } from 'ai'
+import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 
 type Project = Doc<'projects'>
 type Bot = Doc<'bots'>
 
-function guidelines(project: Project) {
+const guidelines = (project: Project) => {
   return project.guidelines
     ? `\nProject guidelines, which always apply:\n${project.guidelines}`
     : ''
@@ -29,7 +28,7 @@ export type RunCommand = { name: string; markdown: string }
 export type Via = 'chat' | 'text' | 'email' | 'voice'
 
 const STYLE: Record<Via, string> = {
-  chat: 'Keep replies concise and use markdown.',
+  chat: 'Keep replies concise and use markdown. When asked what you can do, show your commands with show_commands and add one line.',
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
     'You are drafting a reply to an email, which the user checks and sends: plain text with no markdown, short paragraphs, no subject line and no signature. Look up earlier emails with find_emails when they would help.',
@@ -49,17 +48,20 @@ export type ReplyOptions = {
   timeZone?: string
   /** On a call: the user talked over the last reply. */
   cutOff?: boolean
+  /** On a call: the language to speak, as its ISO 639-1 code. Unset means the user's. */
+  language?: Language
 }
 
-/** How to write the reply, and whether the user missed the end of the last one. */
-function style(via: Via, cutOff?: boolean) {
-  return cutOff
+/** How to write the reply, whether the user missed the end of the last one, and what language to use. */
+const style = (via: Via, cutOff?: boolean, language?: Language) => {
+  const base = cutOff
     ? `${STYLE[via]} The user just talked over your last reply, so they may not have heard the end of it. Answer what they said now, and don't repeat yourself unless they ask.`
     : STYLE[via]
+  return language ? `${base} Speak ${LANGUAGES[language]}.` : base
 }
 
 /** The current time in the user's zone, for reminders and anything date-relative. */
-function now(timeZone = 'UTC') {
+const now = (timeZone = 'UTC') => {
   const local = new Date().toLocaleString('en-US', {
     timeZone,
     dateStyle: 'full',
@@ -68,11 +70,11 @@ function now(timeZone = 'UTC') {
   return `\nIt is now ${local} (${timeZone}).`
 }
 
-function leadInstructions(
+const leadInstructions = (
   project: Project,
   bots: Array<Bot>,
-  { command, via = 'chat', timeZone, cutOff }: ReplyOptions,
-) {
+  { command, via = 'chat', timeZone, cutOff, language }: ReplyOptions,
+) => {
   const team = bots.length
     ? `Your bots:
 ${bots.map((b) => `- ${b.name}: ${b.role}`).join('\n')}
@@ -81,41 +83,41 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'No bots are in this chat, so answer yourself. The user can add bots to it from the chat header.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(
+${style(via, cutOff, language)}${now(timeZone)}${guidelines(project)}${ranCommand(
     command,
   )}`
 }
 
 /** The command the user ran, for the instructions. */
-function ranCommand(command?: RunCommand) {
+const ranCommand = (command?: RunCommand) => {
   return command
     ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
     : ''
 }
 
-function botInstructions(
+const botInstructions = (
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  { command, via = 'chat', timeZone, cutOff }: ReplyOptions = {},
-) {
+  { command, via = 'chat', timeZone, cutOff, language }: ReplyOptions = {},
+) => {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
 ${bot.instructions}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
+${style(via, cutOff, language)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
 }
 
 /**
  * What an assistant answers with, for replies made outside `createAgent`
  * like audio chat, which can't use tools: no bots to ask, and a line saying so.
  */
-export function instructionsFor(
+export const instructionsFor = (
   project: Project,
   bot: Bot | null,
   options: ReplyOptions,
-) {
+) => {
   const base = bot
     ? botInstructions(project, bot, [], options)
     : leadInstructions(project, [], options)
@@ -123,12 +125,12 @@ export function instructionsFor(
 }
 
 /** The gateway model `id`, metered against the owner's budget. */
-function modelFor(
+const modelFor = (
   ctx: ActionCtx,
   userId: Id<'users'>,
   id: string,
   effort: Effort,
-) {
+) => {
   return wrapLanguageModel({
     model: budgetedModel(ctx, userId, id),
     // The gateway sends this on as the request's `reasoning_effort`.
@@ -141,11 +143,11 @@ function modelFor(
 }
 
 /** Records each model step's tokens and cost, charged to `chargeTo` or the agent's own thread. */
-function recordUsage(
+const recordUsage = (
   project: Project,
   model: string,
   chargeTo?: string,
-): UsageHandler {
+): UsageHandler => {
   return async (ctx, { threadId, agentName, usage, providerMetadata }) => {
     const thread = chargeTo ?? threadId
     if (!thread) return
@@ -163,12 +165,11 @@ function recordUsage(
 }
 
 /** `ask_bot` over the chat's members, for whoever is answering, at most `budget` times a reply. None without members. */
-function askTools(
+const askTools = (
   project: Project,
   bots: Array<Bot>,
-  from: string,
   budget: number,
-): ToolSet {
+): ToolSet => {
   if (bots.length === 0) return {}
   const [first, ...rest] = bots
   let botCalls = 0
@@ -191,16 +192,10 @@ function askTools(
           )
         }
         const b = bots.find((candidate) => candidate.name === bot) ?? first
+        // The bot's own chat: it sees what it's been asked before, and the user can read it there.
         const threadId: string = await ctx.runMutation(
-          internal.api.threads.start,
-          {
-            projectId: project._id,
-            kind: 'subagent',
-            title: `${from} → ${b.name}`,
-            parentThreadId: ctx.threadId,
-            botId: b._id,
-            userId: project.ownerId,
-          },
+          internal.api.threads.startMain,
+          { projectId: project._id, botId: b._id },
         )
         const agent = createAgent(ctx, project, {
           bot: b,
@@ -212,7 +207,7 @@ function askTools(
           { threadId },
           { prompt: task, abortSignal },
         )
-        return { name: b.name, role: b.role, reply: text, threadId }
+        return { name: b.name, role: b.role, reply: text, botId: b._id }
       },
     }),
   }
@@ -237,6 +232,7 @@ export const READ_ONLY_TOOLS = [
   'preview_post',
   'preview_posts',
   'ask_bot',
+  'show_commands',
 ]
 
 /** Who answers one reply, and how. See `createAgent`. */
@@ -257,11 +253,11 @@ export type AgentOptions = ReplyOptions & {
  * instructions, its tools (`assistantTools` and `ask_bot` over `members`) and
  * usage recording, so callers only run it.
  */
-export function createAgent(
+export const createAgent = (
   ctx: ActionCtx,
   project: Project,
   { bot, members = [], chargeTo, tools = true, ...options }: AgentOptions = {},
-) {
+) => {
   const model =
     options.model ?? (bot ? bot.model : project.model) ?? MODELS.chat
   const effort =
@@ -277,7 +273,7 @@ export function createAgent(
       ? Object.fromEntries(
           Object.entries({
             ...assistantTools(project, name),
-            ...askTools(project, members, name, EFFORTS[effort].botCalls),
+            ...askTools(project, members, EFFORTS[effort].botCalls),
           }).filter(
             ([tool]) =>
               (tools === true || tools.includes(tool)) &&

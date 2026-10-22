@@ -8,10 +8,11 @@ import { errorMessage } from '~/lib/errors'
 
 type FormState = { error?: string; saved?: boolean }
 
-/** Your name and the email you signed in with. */
+/** Your name, the email you signed in with, and whether assistants may call to check in. */
 export function AccountForm() {
   const user = useQuery(api.api.users.current)
   const updateProfile = useMutation(api.api.users.updateProfile)
+  const setCheckIns = useMutation(api.api.users.setCheckIns)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       try {
@@ -53,6 +54,22 @@ export function AccountForm() {
           maxLength={60}
           placeholder="Your name"
         />
+      </label>
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={user.checkIns !== false}
+          onChange={(e) => void setCheckIns({ on: e.target.checked })}
+          className="mt-1 accent-primary"
+        />
+        <span>
+          Let assistants call to check in
+          <span className="block text-xs text-muted-foreground">
+            Only between 9am and 9pm, at most 3 times a day, when something
+            you talked about may need a follow-up.
+          </span>
+        </span>
       </label>
       {state.error && <p className="text-destructive">{state.error}</p>}
       <div className="flex items-center justify-end gap-2">

@@ -14,23 +14,11 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { createAgent } from '../threads/lead'
 import { pagesTable, vMetric } from './table'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-/** The page when `userId` owns its workspace, or null. `id` may come from a model, so it may not be an id. */
-async function getOwnedPage(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-  id: string,
-) {
-  const pageId = ctx.db.normalizeId('pages', id)
-  const page = pageId && (await ctx.db.get('pages', pageId))
-  const project = page && (await ctx.db.get('projects', page.projectId))
-  return project?.ownerId === userId ? page : null
-}
+import { getOwnedPage } from './queries'
+import type { Doc } from '../../lib/ctx'
 
 const list = authedQuery({
   args: { projectId: v.id('projects') },
@@ -68,6 +56,18 @@ const save = zAuthedMutation({
   },
 })
 
+const HOUR = 60 * 60_000
+const PERIOD = { day: 23 * HOUR, week: 7 * 24 * HOUR - HOUR }
+
+/** Refreshed now, and next due a period from now, or never when `every` is unset. */
+const refreshTimes = (every?: 'day' | 'week') => {
+  const now = Date.now()
+  return {
+    refreshedAt: now,
+    nextRefreshAt: every ? now + PERIOD[every] : undefined,
+  }
+}
+
 /** The page's "Keep up to date" setting. Null `every` turns it off. */
 const setRefresh = authedMutation({
   args: {
@@ -86,8 +86,7 @@ const setRefresh = authedMutation({
       refresh: every
         ? { every, instructions: instructions.trim().slice(0, 1000) }
         : undefined,
-      // The first refresh waits a full period from now.
-      refreshedAt: Date.now(),
+      ...refreshTimes(every ?? undefined),
     })
   },
 })
@@ -163,33 +162,31 @@ const keepUpdated = internalMutation({
     await ctx.db.patch('pages', page._id, {
       refresh:
         every === 'off' || !instructions ? undefined : { every, instructions },
-      // The first refresh waits a full period from now.
-      refreshedAt: Date.now(),
+      ...refreshTimes(every === 'off' || !instructions ? undefined : every),
     })
     return null
   },
 })
 
-const HOUR = 60 * 60_000
-const PERIOD = { day: 23 * HOUR, week: 7 * 24 * HOUR - HOUR }
-
-/** Pages due a refresh. ponytail: scans recent pages, fine until there are thousands. */
+/** Pages due a refresh: only those, by `nextRefreshAt`, oldest first. */
 const due = internalQuery({
   args: {},
   returns: v.array(schema.doc('pages')),
-  handler: async (ctx) => {
-    const now = Date.now()
-    return (await ctx.db.query('pages').order('desc').take(500)).filter(
-      (p) => p.refresh && now - (p.refreshedAt ?? 0) >= PERIOD[p.refresh.every],
-    )
-  },
+  handler: async (ctx) =>
+    await ctx.db
+      .query('pages')
+      .withIndex('by_nextRefreshAt', (q) =>
+        q.gte('nextRefreshAt', 0).lte('nextRefreshAt', Date.now()),
+      )
+      .take(50),
 })
 
 const refreshed = internalMutation({
   args: { id: v.id('pages') },
   returns: v.null(),
   handler: async (ctx, { id }) => {
-    await ctx.db.patch('pages', id, { refreshedAt: Date.now() })
+    const page = await ctx.db.get('pages', id)
+    if (page) await ctx.db.patch('pages', id, refreshTimes(page.refresh?.every))
     return null
   },
 })
@@ -215,15 +212,10 @@ const refreshDue = internalAction({
       })
       if (!project || !page.refresh) continue
       try {
+        // The lead's chat, for its history, with nothing saved: the page is the result.
         const threadId: string = await ctx.runMutation(
-          internal.api.threads.start,
-          {
-            projectId: project._id,
-            kind: 'subagent',
-            title: `Updating ${page.title}`,
-            parentThreadId: page.threadId || undefined,
-            userId: project.ownerId,
-          },
+          internal.api.threads.startMain,
+          { projectId: project._id },
         )
         const agent = createAgent(ctx, project, {
           tools: [
@@ -242,6 +234,7 @@ const refreshDue = internalAction({
           {
             prompt: `Keep the page "${page.title}" (pageId ${page._id}) up to date: ${page.refresh.instructions}\nRead it first with read_page and keep the user's own edits and structure. Change only what's out of date, then save the whole page with write_page.`,
           },
+          { storageOptions: { saveMessages: 'none' } },
         )
       } catch (error) {
         console.error(error)

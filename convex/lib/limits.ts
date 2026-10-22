@@ -10,6 +10,8 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   /** `link <code>` tries from one chat: 5, then 10 an hour, so a code can't be guessed. */
   linkAttempt: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 5 },
   /** Messages one workspace can send to its contacts: 10 at once, then 20 a day. */
+  /** Check-in calls an assistant can start for one user: 3 a day, counted per UTC day (without `start` a window begins at a random time). */
+  checkInCall: { kind: 'fixed window', rate: 3, period: 24 * HOUR, start: 0 },
   contactMessage: {
     kind: 'token bucket',
     rate: 20,

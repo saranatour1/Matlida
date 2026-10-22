@@ -25,7 +25,6 @@ import { Route as AppPProjectIdMessagingRouteImport } from './routes/_app/p/$pro
 import { Route as AppPProjectIdModelsRouteImport } from './routes/_app/p/$projectId/models'
 import { Route as AppPProjectIdSettingsRouteImport } from './routes/_app/p/$projectId/settings'
 import { Route as AppPProjectIdPagesPageIdRouteImport } from './routes/_app/p/$projectId/pages/$pageId'
-import { Route as AppPProjectIdThreadsThreadIdRouteImport } from './routes/_app/p/$projectId/threads/$threadId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -107,12 +106,6 @@ const AppPProjectIdPagesPageIdRoute =
     path: '/p/$projectId/pages/$pageId',
     getParentRoute: () => AppRouteRoute,
   } as any)
-const AppPProjectIdThreadsThreadIdRoute =
-  AppPProjectIdThreadsThreadIdRouteImport.update({
-    id: '/p/$projectId/threads/$threadId',
-    path: '/p/$projectId/threads/$threadId',
-    getParentRoute: () => AppRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -129,7 +122,6 @@ export interface FileRoutesByFullPath {
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
-  '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -146,7 +138,6 @@ export interface FileRoutesByTo {
   '/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/p/$projectId': typeof AppPProjectIdIndexRoute
   '/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
-  '/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -166,7 +157,6 @@ export interface FileRoutesById {
   '/_app/p/$projectId/settings': typeof AppPProjectIdSettingsRoute
   '/_app/p/$projectId/': typeof AppPProjectIdIndexRoute
   '/_app/p/$projectId/pages/$pageId': typeof AppPProjectIdPagesPageIdRoute
-  '/_app/p/$projectId/threads/$threadId': typeof AppPProjectIdThreadsThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,7 +175,6 @@ export interface FileRouteTypes {
     | '/p/$projectId/settings'
     | '/p/$projectId/'
     | '/p/$projectId/pages/$pageId'
-    | '/p/$projectId/threads/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -202,7 +191,6 @@ export interface FileRouteTypes {
     | '/p/$projectId/settings'
     | '/p/$projectId'
     | '/p/$projectId/pages/$pageId'
-    | '/p/$projectId/threads/$threadId'
   id:
     | '__root__'
     | '/_app'
@@ -221,7 +209,6 @@ export interface FileRouteTypes {
     | '/_app/p/$projectId/settings'
     | '/_app/p/$projectId/'
     | '/_app/p/$projectId/pages/$pageId'
-    | '/_app/p/$projectId/threads/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -343,13 +330,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdPagesPageIdRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/p/$projectId/threads/$threadId': {
-      id: '/_app/p/$projectId/threads/$threadId'
-      path: '/p/$projectId/threads/$threadId'
-      fullPath: '/p/$projectId/threads/$threadId'
-      preLoaderRoute: typeof AppPProjectIdThreadsThreadIdRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
   }
 }
 
@@ -363,7 +343,6 @@ interface AppRouteRouteChildren {
   AppPProjectIdSettingsRoute: typeof AppPProjectIdSettingsRoute
   AppPProjectIdIndexRoute: typeof AppPProjectIdIndexRoute
   AppPProjectIdPagesPageIdRoute: typeof AppPProjectIdPagesPageIdRoute
-  AppPProjectIdThreadsThreadIdRoute: typeof AppPProjectIdThreadsThreadIdRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -376,7 +355,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppPProjectIdSettingsRoute: AppPProjectIdSettingsRoute,
   AppPProjectIdIndexRoute: AppPProjectIdIndexRoute,
   AppPProjectIdPagesPageIdRoute: AppPProjectIdPagesPageIdRoute,
-  AppPProjectIdThreadsThreadIdRoute: AppPProjectIdThreadsThreadIdRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

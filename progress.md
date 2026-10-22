@@ -497,3 +497,111 @@
 - The deployment's own ceiling is the gateway's spend limit in the Convex dashboard; the component's global cap isn't set.
 - Verified with pnpm check, the tests (`lib/budget` is mocked by `test.budget.ts`, which hands back each test's mocked models) and live on `dev/matilda`: one call cost $0.0000096 from the gateway's own figure, and a one-cent cap refused the next with "You've used this month's AI budget".
 
+### Dead code (2026-10-22)
+
+- knip found two unused UI files (`card`, `collapsible`), three packages left from the WhatsApp removal (`@grpc/grpc-js`, `nice-grpc`, `nice-grpc-common`) and twelve exports nothing imports (`TaskCard`, `useVoiceCall`, the turn-taking thresholds, four types). The files and packages are gone; the exports are plain locals now. shadcn's spare exports stay.
+
+### Reads in `queries.ts`, contexts in `lib/ctx.ts` (2026-10-22)
+
+- Each table's read helpers (`getOwnedProject`, `getOwnedThread`, `findContacts`, `getCommands` and the rest, twelve tables) live in `convex/models/<table>/queries.ts`; `functions.ts` keeps the registered functions and the writes. The `MAX_*` limits moved with the reads that apply them.
+- `convex/lib/ctx.ts` re-exports `QueryCtx`, `MutationCtx`, `ActionCtx`, `Doc` and `Id`, plus `Db = Pick<QueryCtx, 'db'>`, which 24 helpers had spelled out. No file under `models/` or `lib/` imports types from `_generated` any more.
+- No behavior change: pnpm check and all 186 tests pass.
+
+### Arrow functions (2026-10-22)
+
+- Every function in `convex/`, `src/lib/` and `src/hooks/` is an arrow function now (198 converted by a codemod), except one generator, which is a function expression. React components stay declarations. ESLint's `func-style` keeps it that way, and the rule is in the table in AGENTS.md.
+
+### The old chat fields are gone (2026-10-22)
+
+- `mailboxes.threadId`, `inboxThreadId`, `phoneLinks.threadId`, `botThreads` and `activeBotId` are out of the schema. A one-off mutation unset them on `dev/matilda` first (one mailbox, one link; a second run changed nothing). Production has no rows from before, so nothing to run there.
+- With them went the lookup of an assistant's old chat and `recordMainThreads`: every assistant's chat is recorded on it, and a new assistant starts one on its first message.
+
+### Shopping is a Convex component (2026-10-22)
+
+- A trial of the component pattern: `convex/components/shopping/` has its own `convex.config.ts`, schema (`details`, `items`, `watches`, with user ids as strings) and functions (`details.get/save`, `cart.add/list/setQuantity/clearShop`, `watches.start/get/stop/due/recordCheck`), and the app registers it with `app.use(shopping)`. Its functions carry `returns` validators, since the generated component types are `any` without them.
+- The app's `models/shopping/functions.ts` is wrappers now: they check who you are, look the catalog up (`lib/shopify.ts` stays in the app) and hand the component your user id. The hourly price check reads due watches from the component and posts what it returns in the chat. The UI and the tools call the same `api.api.shopping.*` names as before.
+- `shoppingDetails`, `cartItems` and `priceWatches` left the app schema; dev had no rows in them. Tests register the component with `registerShopping(t)` from `test.setup.ts`.
+- Verdict on the pattern: it fits a feature that only needs its own rows and a user id. Threads, emails and texts write into the agent's thread, so they'd stay in the app.
+
+### Tests in their own folders (2026-10-22)
+
+- Backend tests live in `convex/tests/<table>/` and `convex/tests/lib/`, frontend ones in `src/tests/`. Only the relative imports changed. `test.setup.ts` and `test.budget.ts` stay at `convex/`, since convex-test keys modules by paths from there.
+
+### Spectrum is back: iMessage, WhatsApp and Telegram through Photon's SDK (2026-10-22)
+
+- `@spectrum-ts/convex` is mounted again, with `@spectrum-ts/core`, `imessage`, `telegram`, `whatsapp-business`, `@photon-ai/advanced-imessage` and the gRPC packages they need, at the versions the app ran before #71. The `SPECTRUM_*` and `TELEGRAM_BOT_TOKEN` env vars are declared again; dev still had the two Spectrum keys.
+- Back as they were: `/spectrum/webhook`, the `respond` batch handler (one turn per burst of texts, replies through the outbox), the Node `sender` (iMessage through Photon's cloud sender, Telegram and WhatsApp through their SDK providers), reminders texting through the outbox when a chat wasn't linked on the platform API, `find_texts` by app, the iMessage and WhatsApp channels on Connections, the Messaging page for any app, and the setup docs.
+- Telegram through the platform API (`/photon/webhook`) stays as it is; a chat linked there keeps replying that way.
+- Verified with pnpm check and the tests (189, the Spectrum ones restored: a failed reply still texts back, an ignored message closes its turn, replies go out through each app's provider). Dev remounted the component cleanly. pnpm audit is still clean.
+
+### Voice settings on calls (2026-10-22)
+
+- A gear in the call panel's header opens three rows, kept on this browser like the volume: **Voice** (a Kokoro voice, or the assistant's own; Fast voice lists its own voices), **Speed** (0.75x to 1.5x) and **Language** (auto, or one of eleven).
+- The voice and language go with each turn: the voice is spoken in, the language is passed to Whisper as a hint and to the reply as "Speak French.", on Fast voice too.
+- Speed is the browser's: replies now play through `<audio>` elements routed into the call's volume and level meter, so a faster speed keeps the pitch, and a change applies to the piece playing. Pausing when you talk over a reply resumes from the same second as before.
+- Verified with pnpm check and the tests (the voice reaches the speech model, the language reaches transcription and the reply's instructions). The panel isn't tried in the browser.
+
+### One thread per assistant, and no threads table (2026-10-22)
+
+- The app's `threads` table is gone. The agent component's threads are the only threads: each assistant's chat is recorded on it (`projects.threadId`, `bots.threadId`), and `assistantOf(threadId)` finds the assistant by those. Owners are checked through the component's thread (`ownsThread`), so nothing of ours stores who a thread belongs to.
+- No sub-threads. `ask_bot` runs in the bot's own chat, where it sees what it's been asked before and the user can read it (the card opens that chat). A task's steps and a page refresh run in the chat's thread with nothing saved there: the task card and the page are the result, and each step is told what the earlier steps found.
+- A chat is its assistant, so the chat header's model, effort and members now set the assistant's own (`threads.setModel`, `setEffort`, `setMembers` take the project and bot). "Default" on the menus is the app's default. Members live on `bots.memberIds` and `projects.memberIds`.
+- Dev: a one-off moved 15 chat rows' members, model and effort onto their assistants and deleted 5 sub-thread rows. Production has no rows from before.
+- Verified with pnpm check and the tests (190: the ask lands in Ivy's chat, six asks make six turns there, a model picked before the first message is the one it starts on).
+
+### A cheaper Telegram check (2026-10-22)
+
+- The fast check after a Telegram message ran every 3 seconds for 2 minutes, re-recording every message of the last 3 minutes each time: about 40 checks and 120 function calls per message. Now one query says which messages are new before anything is recorded, the check runs every 3 seconds for 30 seconds and then every 10, and a second message can't start a second loop: the row remembers the scheduled run and checks it's still pending.
+- It was never endless: the window ends 2 minutes after the last message, and dev's logs showed it stopping on time.
+
+
+### No call button in the chat header (2026-10-22)
+
+- The phone button at the top right of a chat is gone, with the `onCall` prop that fed it. Calls still start from the voice bar in the prompt and from incoming calls.
+
+### Matilda calls again (2026-10-22)
+
+- Answering a reminder call opens it in the call bar under the chat input. The side panel is gone; its voice settings and Fast voice moved into the call bar, and a small "On a call with …" pill shows on other pages.
+- The incoming call has a Snooze button: it rings again in 10 minutes.
+- Missed or declined, Jev decides what's next: call again in 10 minutes or an hour, text you, or leave it in the chat. Code caps it at 3 calls, keeps call-agains between 9am and 9pm in your time zone, and texts only when texting is linked. The chat says when she'll call again.
+- Your time zone is saved from the chat (`users.timeZone`).
+- Findings, every Jev judgment, the limits and the next PRs: `docs/decisions/2026-10-22-calls-and-reminders.md`.
+- Verified with pnpm check and the tests (195), including call-again, the cap, 9am, snooze and decline. Not rung live: no test calls.
+
+### Recurring reminders (2026-10-22)
+
+- "Every weekday at 9" works. Jev decides whether a reminder you ask for happens once or repeats (daily, weekdays, weekly, monthly or a custom cron). Once uses the scheduler as before; repeats use the `@convex-dev/crons` component, in your time zone.
+- Each time a repeat comes due, Jev checks the recent chat: it stops one that sounds done, pauses one you need a break from, skips one you already did, and only switches between chat, text, call and email when it's sure (0.7). Each stop or pause is explained in the chat.
+- Pause, Resume and Stop are in the Library's Reminders; the details panel shows "every weekday, from …" or Paused.
+- luxon does the date math now (`inDaytime`, `cronFor`, labels), and AGENTS.md says to keep using it.
+- Verified with pnpm check and the tests (202), and pushed to dev.
+
+### Check-in calls (2026-10-22)
+
+- Once an hour, for people who messaged an assistant this week (but not in the last hour), Jev reads that chat and decides whether a short call now would help, and about what. At 0.7 or above the assistant rings: "Hi, it's Matilda. Checking in about: …".
+- Limits: 9am–9pm in your zone, 3 a day, 2 hours from any other call or check-in, never right after you chatted. A missed check-in is left in the chat without another call. You can turn them off in Settings → Account.
+- Found while testing: a rate limiter fixed window with no `start` begins at a random time, so "3 a day" could let a 4th through. Pinned to UTC days.
+- Verified with pnpm check and the tests (207), and pushed to dev, where the hourly check is now running.
+
+### Command pills (2026-10-22)
+
+- Asked "what can you do?", an assistant calls `show_commands`, and the chat shows each command as a pill: your own first, then the built-ins it doesn't replace. Tapping one sends `/name`. The pills are off while a reply is running.
+- Verified with pnpm check and the tests.
+
+### Fewer write conflicts (2026-10-22)
+
+From Convex's "high-throughput mutations via precise queries" post. A mutation conflicts with any write to something it read, so reads were narrowed and often-written fields moved off rows that many things read:
+
+- **Hot and cold tables:** `users.lastChat` and `users.checkInAt` (written while you chat, and by check-in calls) moved to a new `userActivity` table, one row per user. The profile on `users` only changes when you edit it or your time zone changes, so the email, mailbox and reminder mutations that read it stop conflicting with chatting.
+- **Precise queries:** `pages.due` read the 500 newest pages and filtered them in code. Pages now store `nextRefreshAt`, with an index, and it reads only the pages that are due.
+- **Fewer writes to a shared row:** every Telegram message read and rewrote the one `telegramPolls` row, so messages from different people conflicted with each other and with the fast check. It's now written only when the loop needs a new run or the window moves by more than 15 seconds.
+- **Bounded:** the daily-news scan read every row with a daily time; it now takes at most 1000.
+- Dev had no rows to migrate. Verified with pnpm check and the tests (208), and pushed to dev.
+
+### Attachments (2026-10-22)
+
+- The message box takes pictures and PDFs: the paperclip, pasting a screenshot, or dropping files on it. Up to 5 files, 10 MB each. Each one shows as a chip while it uploads, and you can remove it before sending. A message can be only files.
+- Files upload to Convex storage and are registered with the agent component (`files.addFile`). The message saves them as image and file parts with `metadata.fileIds`, so the model sees them and the component counts their references. Your bubble shows them as thumbnails and chips that open them.
+- Only pictures and PDFs: the hourly `commands.sweepFiles` deletes markdown and audio that no command points to, so those would vanish. Pasted text already works.
+- The server checks the type and size in `_storage`. The browser's type is used only when a file was stored without one (convex-test stores none).
+- Verified with pnpm check and the tests (210), and pushed to dev. Not tried live: whether each gateway model reads PDFs is untested.

@@ -1,3 +1,4 @@
+import { FileTextIcon } from 'lucide-react'
 import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -7,6 +8,7 @@ import type { assistantTools } from '../../convex/models/threads/tools'
 import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
+import { CommandsPart } from '~/components/commands-part'
 import { CopyButton } from '~/components/copy-button'
 import { DraftsPart } from '~/components/drafts-part'
 import { ProblemCheckPart } from '~/components/problem-check-part'
@@ -44,7 +46,7 @@ export type ChatUIMessage = UIMessage<
   InferUITools<ReturnType<typeof assistantTools>> & {
     ask_bot: {
       input: { bot: string; task: string }
-      output: { name: string; role: string; reply: string; threadId: string }
+      output: { name: string; role: string; reply: string; botId: string }
     }
   }
 >
@@ -101,12 +103,22 @@ function textOf(message: ChatUIMessage) {
     .join('\n\n')
 }
 
-/** One chat message. User messages are bubbles, replies are markdown and tool cards. */
-export function ChatMessage({ message }: { message: ChatUIMessage }) {
+/**
+ * One chat message. User messages are bubbles, replies are markdown and tool
+ * cards. `onSend` lets a card send a message, like a command pill.
+ */
+export function ChatMessage({
+  message,
+  onSend,
+}: {
+  message: ChatUIMessage
+  onSend?: (prompt: string) => void
+}) {
   if (message.role === 'user') {
     return (
       <Message align="end">
         <MessageContent>
+          <Attachments parts={message.parts} />
           <Bubble align="end" variant="muted">
             <BubbleContent>{message.text}</BubbleContent>
           </Bubble>
@@ -125,7 +137,7 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
       <MessageContent>
         {message.parts.map((part, index) => (
           <PartBoundary key={'toolCallId' in part ? part.toolCallId : index}>
-            {renderPart(part, index)}
+            {renderPart(part, index, onSend)}
           </PartBoundary>
         ))}
         {textOf(message) && (
@@ -143,7 +155,39 @@ export function ChatMessage({ message }: { message: ChatUIMessage }) {
 
 type Part = ChatUIMessage['parts'][number]
 
-function renderPart(part: Part, index: number) {
+/** Pictures and PDFs sent with a message: thumbnails and chips that open them. */
+function Attachments({ parts }: { parts: Array<Part> }) {
+  const files = parts.filter((p) => p.type === 'file')
+  if (files.length === 0) return null
+  return (
+    <ul aria-label="Attachments" className="flex flex-wrap justify-end gap-2">
+      {files.map((file) => (
+        <li key={file.url}>
+          <a href={file.url} target="_blank" rel="noreferrer">
+            {file.mediaType.startsWith('image/') ? (
+              <img
+                src={file.url}
+                alt={file.filename ?? 'Attached picture'}
+                className="max-h-40 max-w-56 rounded-xl border object-cover"
+              />
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs">
+                <FileTextIcon className="size-4 text-muted-foreground" />
+                {file.filename ?? 'Attached file'}
+              </span>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function renderPart(
+  part: Part,
+  index: number,
+  onSend?: (prompt: string) => void,
+) {
   switch (part.type) {
     case 'text':
       return part.text.trim() ? <Markdown key={index} text={part.text} /> : null
@@ -206,6 +250,8 @@ function renderPart(part: Part, index: number) {
       return <PostPreviewsPart key={part.toolCallId} part={part} />
     case 'tool-generate_image':
       return <ImagePart key={part.toolCallId} part={part} />
+    case 'tool-show_commands':
+      return <CommandsPart key={part.toolCallId} part={part} onSend={onSend} />
     case 'tool-generate_video':
       return <VideoPart key={part.toolCallId} part={part} />
     default:

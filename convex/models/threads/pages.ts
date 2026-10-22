@@ -1,7 +1,7 @@
 import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc } from '../../lib/ctx'
 
 const zMetric = z.object({
   label: z.string().min(1).max(40),
@@ -21,7 +21,7 @@ const zMetric = z.object({
  * Pages the user and the assistants edit together: reports, memos and
  * dashboards. An assistant can keep one up to date on a schedule.
  */
-export function pageTools(project: Doc<'projects'>, from: string) {
+export const pageTools = (project: Doc<'projects'>, from: string) => {
   return {
     write_page: createTool({
       description:

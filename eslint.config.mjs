@@ -12,6 +12,11 @@ export default defineConfig([
       '@convex-dev/require-access-control': 'error',
     },
   },
+  // Arrow functions everywhere but React components, which stay declarations.
+  {
+    files: ['convex/**/*.ts', 'src/lib/**/*.ts', 'src/hooks/**/*.ts'],
+    rules: { 'func-style': ['error', 'expression'] },
+  },
   {
     files: ['convex/*.ts'],
     ignores: [
@@ -37,6 +42,7 @@ export default defineConfig([
   // Generated code, build output and other checkouts.
   globalIgnores([
     'convex/_generated',
+    'convex/**/_generated',
     'src/components/ui',
     'src/routeTree.gen.ts',
     'dist',

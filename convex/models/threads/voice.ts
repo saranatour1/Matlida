@@ -4,15 +4,16 @@ import { components, internal } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { audioChat, audioVoiceFor } from '../../lib/audio'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { gatewayCost } from '../usage/functions'
 import { metered } from '../../lib/budget'
 import { MODELS } from '../../lib/models'
 import { transcribeClip } from './chat'
 import { ensureMainThread } from './functions'
 import { instructionsFor } from './lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx } from '../../_generated/server'
+import type { AudioVoice } from '../../lib/audio'
+import type { ActionCtx, Doc, Id } from '../../lib/ctx'
+import type { Language } from '../../lib/models'
 
 /** The assistant's one chat, where a voice turn goes, and who answers. */
 const prepare = internalMutation({
@@ -63,7 +64,7 @@ const save = internalMutation({
 })
 
 /** The chat so far as text, oldest first, for the audio model. */
-async function history(ctx: ActionCtx, threadId: string) {
+const history = async (ctx: ActionCtx, threadId: string) => {
   const { page } = await listMessages(ctx, components.agent, {
     threadId,
     paginationOpts: { numItems: 20, cursor: null },
@@ -80,7 +81,7 @@ async function history(ctx: ActionCtx, threadId: string) {
     })
 }
 
-function toBase64(bytes: Uint8Array) {
+const toBase64 = (bytes: Uint8Array) => {
   let binary = ''
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
@@ -88,7 +89,7 @@ function toBase64(bytes: Uint8Array) {
   return btoa(binary)
 }
 
-export function concat(chunks: Array<Uint8Array>) {
+export const concat = (chunks: Array<Uint8Array>) => {
   const all = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0))
   let at = 0
   for (const chunk of chunks) {
@@ -114,7 +115,7 @@ export type SpokenTurn = {
  * same time, for the chat; when that comes back empty the answer is
  * cancelled, so silence gets no reply. Saving is up to the caller.
  */
-export async function speakWith(
+export const speakWith = async (
   ctx: ActionCtx,
   turn: {
     userId: Id<'users'>
@@ -123,10 +124,13 @@ export async function speakWith(
     storageId: Id<'_storage'>
     timeZone?: string
     cutOff?: boolean
+    /** From the call's settings: a voice instead of the assistant's own, and the language. */
+    voice?: AudioVoice
+    language?: Language
     onHeard?: (text: string) => Promise<unknown>
     onAudio: (pcm: Uint8Array, transcript: string) => Promise<void> | void
   },
-): Promise<SpokenTurn> {
+): Promise<SpokenTurn> => {
   const { threadId, project, bot } = await ctx.runMutation(
     internal.api.voice.prepare,
     { userId: turn.userId, projectId: turn.projectId, botId: turn.botId },
@@ -140,13 +144,16 @@ export async function speakWith(
   const said = await history(ctx, threadId)
   const name = (bot ?? project).name
   const stop = new AbortController()
-  const hearing = transcribeClip(ctx, turn.userId, turn.storageId).then(
-    async (heard) => {
-      if (!heard.text) stop.abort()
-      await turn.onHeard?.(heard.text)
-      return heard
-    },
-  )
+  const hearing = transcribeClip(
+    ctx,
+    turn.userId,
+    turn.storageId,
+    turn.language,
+  ).then(async (heard) => {
+    if (!heard.text) stop.abort()
+    await turn.onHeard?.(heard.text)
+    return heard
+  })
   const answering = metered(
     ctx,
     { userId: turn.userId, model: MODELS.audioChat, estimate: 0.05 },
@@ -157,11 +164,12 @@ export async function speakWith(
             via: 'voice',
             timeZone: turn.timeZone,
             cutOff: turn.cutOff,
+            language: turn.language,
           }),
           history: said,
           audio,
           format: 'wav',
-          voice: audioVoiceFor(name),
+          voice: turn.voice ?? audioVoiceFor(name),
         },
         turn.onAudio,
         stop.signal,

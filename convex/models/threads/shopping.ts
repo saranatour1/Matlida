@@ -7,12 +7,12 @@ import {
   searchProducts,
 } from '../../lib/shopify'
 import { addToCartFor } from '../shopping/functions'
-import type { Doc } from '../../_generated/dataModel'
 import type { ToolCtx } from '@convex-dev/agent'
 import type { Offer } from '../../lib/shopify'
+import type { Doc } from '../../lib/ctx'
 
 /** An offer as the model and the cards see it: prices in major units. */
-function shown(offer: Offer) {
+const shown = (offer: Offer) => {
   return {
     productId: offer.productId,
     variantId: offer.variantId,
@@ -35,7 +35,7 @@ function shown(offer: Offer) {
  * size or color, add to their cart. Nothing is paid here: the cart's Buy
  * button opens the store's checkout with their details filled in.
  */
-export function shoppingTools(project: Doc<'projects'>) {
+export const shoppingTools = (project: Doc<'projects'>) => {
   const buyer = (ctx: ToolCtx) =>
     ctx.runQuery(internal.api.shopping.forAssistant, {
       userId: project.ownerId,

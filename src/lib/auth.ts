@@ -53,7 +53,7 @@ export type FormState = {
 }
 
 /** The state for a submit that failed the schema. */
-export function invalid(error: z.ZodError, data: FormData): FormState {
+export const invalid = (error: z.ZodError, data: FormData): FormState => {
   return {
     fieldErrors: z.flattenError(error).fieldErrors,
     email: data.get('email')?.toString(),
@@ -72,7 +72,7 @@ type AuthError = ErrorOf<
 >
 
 /** A sentence for each way the email and password flows can fail. */
-export function authErrorMessage(userError: AuthError): string {
+export const authErrorMessage = (userError: AuthError): string => {
   switch (userError.error) {
     case 'USER_NOT_FOUND':
     case 'EMAIL_NOT_FOUND':

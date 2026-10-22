@@ -1,23 +1,11 @@
 import { zid } from 'convex-helpers/server/zod4'
-import { ConvexError, v } from 'convex/values'
+import { v } from 'convex/values'
 import { z } from 'zod'
 import { MODEL_ID } from '../../lib/models'
 import { zPortrait } from '../../lib/portraits'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import { internalQuery } from '../../_generated/server'
-import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-/** The project when `userId` owns it. Throws a user-facing error otherwise. */
-export async function getOwnedProject(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-  projectId: Id<'projects'>,
-) {
-  const project = await ctx.db.get('projects', projectId)
-  if (project?.ownerId !== userId) throw new ConvexError('Project not found.')
-  return project
-}
+import { getOwnedProject } from './queries'
 
 const list = authedQuery({
   args: {},

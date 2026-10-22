@@ -14,5 +14,10 @@ export const {
   ringing,
   pickUp,
   decline,
+  pause,
+  resume,
+  settle,
+  snooze,
+  callAgain,
   miss,
 } = remindersApi

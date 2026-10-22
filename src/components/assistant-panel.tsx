@@ -23,6 +23,7 @@ import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
+import { reminderWhen } from '~/lib/reminders'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,7 +67,6 @@ export function AssistantPanel({
     threadId ? { threadId } : 'skip',
   )
   const budget = useQuery(api.api.usage.budget, {})
-  const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
   const tasks = useQuery(
@@ -86,7 +86,7 @@ export function AssistantPanel({
   )
   const computeMs = rows.reduce((sum, r) => sum + (r.computeMs ?? 0), 0)
   const others = (bots ?? []).filter((b) => b._id !== bot?._id)
-  const memberIds = thread?.memberIds ?? []
+  const memberIds = (bot ?? project).memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
   const name = bot?.name ?? project.name
 
@@ -202,7 +202,7 @@ export function AssistantPanel({
               <dd className="truncate">{project.name}</dd>
               <dt className="text-muted-foreground">Model</dt>
               <dd className="truncate">
-                {thread?.model ?? bot?.model ?? project.model ?? MODELS.chat}
+                {bot?.model ?? project.model ?? MODELS.chat}
               </dd>
               <dt className="text-muted-foreground">Gateway</dt>
               <dd>Convex AI gateway</dd>
@@ -220,10 +220,9 @@ export function AssistantPanel({
                     <AlarmClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 truncate">{r.message}</span>
                     <span className="shrink-0 text-muted-foreground">
-                      {new Date(r.dueAt).toLocaleString(undefined, {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
+                      {r.status === 'paused'
+                        ? 'Paused'
+                        : reminderWhen(r.dueAt, r.repeat?.every)}
                     </span>
                   </li>
                 ))}

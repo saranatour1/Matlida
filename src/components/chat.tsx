@@ -2,12 +2,12 @@ import * as React from 'react'
 import { useUIMessages } from '@convex-dev/agent/react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { PanelRightIcon, PhoneIcon } from 'lucide-react'
+import { PanelRightIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
-import type { Effort } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
+import type { Attachment } from '~/components/prompt-form'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
@@ -47,14 +47,11 @@ export function Chat({
   project,
   bot,
   panel,
-  onCall,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
   /** Whether the right sidebar is open. It lives in the URL as `?panel=true`. */
   panel?: boolean
-  /** Starts a voice call with this chat's assistant. */
-  onCall: () => void
 }) {
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
@@ -63,16 +60,12 @@ export function Chat({
       projectId: project._id,
       botId: bot?._id,
     }) ?? undefined
-  const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
-  // A new chat's model, until the first message starts the thread.
-  const [startModel, setStartModel] = React.useState<string>()
-  const [startEffort, setStartEffort] = React.useState<Effort>()
   const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
   const { call, caller, startCall } = useCall()
-  // Talking in this chat: the call is on, started from here, with this assistant.
+  // Talking in this chat: the call is on, with this assistant.
   const talking =
-    caller?.inline === true &&
+    caller !== undefined &&
     caller.target.projectId === project._id &&
     caller.target.botId === bot?._id &&
     (call.status !== 'idle' || call.error !== undefined)
@@ -103,14 +96,16 @@ export function Chat({
     )
 
   const [error, send] = React.useActionState(
-    async (_previous: string | undefined, prompt: string) => {
+    async (
+      _previous: string | undefined,
+      { prompt, files }: { prompt: string; files?: Array<Attachment> },
+    ) => {
       try {
         await sendMessage({
           projectId: project._id,
           botId: bot?._id,
           prompt,
-          model: threadId ? undefined : startModel,
-          effort: threadId ? undefined : startEffort,
+          files,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         return undefined
@@ -128,19 +123,8 @@ export function Chat({
           <SidebarTrigger />
           <BotAvatar portrait={portraitOf(bot ?? project)} className="size-6" />
           <h1 className="truncate text-sm font-medium">{lead}</h1>
-          {threadId && (
-            <ThreadMembers project={project} bot={bot} threadId={threadId} />
-          )}
+          <ThreadMembers project={project} bot={bot} />
           <div className="ml-auto flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Call ${lead}`}
-              title={`Call ${lead}`}
-              onClick={onCall}
-            >
-              <PhoneIcon />
-            </Button>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -190,7 +174,7 @@ export function Chat({
               <EmptyContent>
                 <Suggestions
                   onSelect={(prompt) =>
-                    React.startTransition(() => send(prompt))
+                    React.startTransition(() => send({ prompt }))
                   }
                 />
                 {!bot && commands && commands.length > 0 && (
@@ -202,7 +186,9 @@ export function Chat({
                         size="sm"
                         title={c.description}
                         onClick={() =>
-                          React.startTransition(() => send(`/${c.name}`))
+                          React.startTransition(() =>
+                            send({ prompt: `/${c.name}` }),
+                          )
                         }
                       >
                         /{c.name}
@@ -228,7 +214,17 @@ export function Chat({
                           key={message.key}
                           messageId={message.key}
                         >
-                          <ChatMessage message={message} />
+                          <ChatMessage
+                            message={message}
+                            onSend={
+                              isBusy
+                                ? undefined
+                                : (prompt) =>
+                                    React.startTransition(() =>
+                                      send({ prompt }),
+                                    )
+                            }
+                          />
                           {email && (
                             <EmailReply
                               email={email}
@@ -270,7 +266,7 @@ export function Chat({
             <PromptForm
               placeholder={`Message ${lead}…`}
               isBusy={isBusy}
-              onSubmit={send}
+              onSubmit={(prompt, files) => send({ prompt, files })}
               commands={[
                 ...BUILT_IN_COMMANDS.filter(
                   (b) => !commands?.some((c) => c.name === b.name),
@@ -284,23 +280,20 @@ export function Chat({
                   {
                     name: lead,
                     portrait: portraitOf(bot ?? project),
-                    inline: true,
                   },
                 )
               }
               tools={
                 <>
                   <EffortMenu
-                    threadId={threadId}
-                    effort={threadId ? thread?.effort : startEffort}
-                    own={bot ? bot.effort : project.effort}
-                    onPick={setStartEffort}
+                    projectId={project._id}
+                    botId={bot?._id}
+                    effort={bot ? bot.effort : project.effort}
                   />
                   <ModelMenu
-                    threadId={threadId}
-                    model={threadId ? thread?.model : startModel}
-                    own={bot ? bot.model : project.model}
-                    onPick={setStartModel}
+                    projectId={project._id}
+                    botId={bot?._id}
+                    model={bot ? bot.model : project.model}
                   />
                 </>
               }

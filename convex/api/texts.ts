@@ -1,6 +1,7 @@
 import { textsApi } from '../models/texts/functions'
 
 export const {
+  respond,
   links,
   startLink,
   unlink,
@@ -11,6 +12,7 @@ export const {
   answer,
   received,
   replyOnPhoton,
-  pollingUntil,
+  unseen,
+  nextPoll,
   poll,
 } = textsApi

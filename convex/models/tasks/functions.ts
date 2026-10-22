@@ -18,11 +18,10 @@ import {
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
-import { getMembers, getOwnedThread, startThread } from '../threads/functions'
+import { getOwnedProject } from '../projects/queries'
+import { assistantOf, getMembers, ownsThread } from '../threads/queries'
 import { createAgent } from '../threads/lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
+import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** The user's answer on a task's card: Start, or Don't start. */
 const startEvent = defineEvent({
@@ -51,30 +50,16 @@ const startPlan = internalMutation({
     if (!plan || plan.projectId !== projectId) {
       throw new Error('No such plan in this workspace.')
     }
-    const chat = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
-    if (chat?.kind !== 'chat') {
-      throw new Error("A plan can't start another plan.")
-    }
-    const project = await ctx.db.get('projects', projectId)
-    if (!project) throw new Error('No such workspace.')
-    const workThreadId = await startThread(ctx, {
-      projectId,
-      kind: 'subagent',
-      title: `Task: ${plan.title}`,
-      parentThreadId: threadId,
-      userId: project.ownerId,
-    })
+    const chat = await assistantOf(ctx, threadId)
+    if (!chat) throw new Error('No such chat.')
+    const { project } = chat
     const taskId = await ctx.db.insert('tasks', {
       projectId,
       threadId,
-      workThreadId,
       kind: 'run_plan',
       title: plan.title,
       planId: plan._id,
-      effort: chat.effort ?? project.effort,
+      effort: (chat.bot ?? project).effort,
       status: 'waiting_for_you',
       steps: plan.steps.map((s) => ({ name: s.text, status: 'todo' })),
     })
@@ -172,12 +157,13 @@ const stepContext = internalQuery({
     const task = await ctx.db.get('tasks', taskId)
     const project = task && (await ctx.db.get('projects', task.projectId))
     if (!task || !project) throw new Error(`Task ${taskId} is gone.`)
-    // The steps can hand work to the bots in the chat that started the task.
-    const chat = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', task.threadId))
-      .unique()
-    return { task, project, bots: await getMembers(ctx, chat) }
+    // The steps can hand work to the bots of the assistant whose chat started the task.
+    const chat = await assistantOf(ctx, task.threadId)
+    return {
+      task,
+      project,
+      bots: chat ? await getMembers(ctx, project, chat.bot) : [],
+    }
   },
 })
 
@@ -200,12 +186,19 @@ const doStep = internalAction({
       effort: task.effort,
     })
     const step = task.steps[index]
+    const before = task.steps
+      .slice(0, index)
+      .filter((s) => s.detail)
+      .map((s, i) => `${i + 1}. ${s.name}: ${s.detail}`)
+      .join('\n')
+    // In the chat's thread for its history, but nothing saved: the card shows the steps.
     const { text }: { text: string } = await agent.generateText(
       ctx,
-      { threadId: task.workThreadId, userId: project.ownerId },
+      { threadId: task.threadId, userId: project.ownerId },
       {
-        prompt: `You're working through the plan "${task.title}", step ${index + 1} of ${task.steps.length}: ${step.name}\n\nDo this step now with your tools. The earlier steps' results are above. End with what you did or found, in a few sentences.`,
+        prompt: `You're working through the plan "${task.title}", step ${index + 1} of ${task.steps.length}: ${step.name}\n\n${before ? `The earlier steps found:\n${before}\n\n` : ''}Do this step now with your tools. End with what you did or found, in a few sentences.`,
       },
+      { storageOptions: { saveMessages: 'none' } },
     )
     return text.length > DETAIL_CHARS
       ? `${text.slice(0, DETAIL_CHARS - 1)}…`
@@ -251,18 +244,18 @@ const finished = internalMutation({
   },
 })
 
-async function say(ctx: MutationCtx, task: Doc<'tasks'>, content: string) {
+const say = async (ctx: MutationCtx, task: Doc<'tasks'>, content: string) => {
   await saveMessage(ctx, components.agent, {
     threadId: task.threadId,
     message: { role: 'assistant', content },
   })
 }
 
-async function getOwnedTask(
+const getOwnedTask = async (
   ctx: MutationCtx,
   userId: Id<'users'>,
   taskId: Id<'tasks'>,
-) {
+) => {
   const task = await ctx.db.get('tasks', taskId)
   if (!task) throw new ConvexError('Task not found.')
   await getOwnedProject(ctx, userId, task.projectId)
@@ -321,7 +314,7 @@ const get = authedQuery({
 const forThread = authedQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) => {
-    if (!(await getOwnedThread(ctx, ctx.userId, threadId))) return []
+    if (!(await ownsThread(ctx, ctx.userId, threadId))) return []
     return await ctx.db
       .query('tasks')
       .withIndex('by_threadId', (q) => q.eq('threadId', threadId))

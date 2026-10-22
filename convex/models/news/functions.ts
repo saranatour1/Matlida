@@ -13,18 +13,11 @@ import { MODELS } from '../../lib/models'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import { briefingMarkdown, dueDay, fetchNews } from '../../lib/news'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { zTimeZone } from '../threads/chat'
 import { ensureMainThread } from '../threads/functions'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-async function getSettings(ctx: Pick<QueryCtx, 'db'>, userId: Id<'users'>) {
-  return await ctx.db
-    .query('newsSettings')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .unique()
-}
+import { getSettings } from './queries'
+import type { Doc } from '../../lib/ctx'
 
 /** Your news settings, for the setup card. Null before you save them. */
 const settings = authedQuery({
@@ -73,18 +66,16 @@ const forUser = internalQuery({
   handler: async (ctx, { userId }) => await getSettings(ctx, userId),
 })
 
-/** Everyone with a daily time, all of them, by the `by_dailyHour` index. */
+/** Everyone with a daily time, by the `by_dailyHour` index. */
 const withDailyTime = internalQuery({
   args: {},
   returns: v.array(schema.doc('newsSettings')),
   handler: async (ctx) => {
-    const daily = []
-    for await (const row of ctx.db
+    // ponytail: first 1000 by hour; page through them past that.
+    return await ctx.db
       .query('newsSettings')
-      .withIndex('by_dailyHour', (q) => q.gte('dailyHour', 0))) {
-      daily.push(row)
-    }
-    return daily
+      .withIndex('by_dailyHour', (q) => q.gte('dailyHour', 0))
+      .take(1000)
   },
 })
 
