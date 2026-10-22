@@ -13,11 +13,15 @@ import { useCall } from '~/components/voice-call'
  * again in 10 minutes.
  */
 export function IncomingCall() {
-  const rings = useQuery(api.api.reminders.ringing)
+  const { call, startCall } = useCall()
+  // Nothing rings over a call, so there's nothing to ask about during one.
+  const rings = useQuery(
+    api.api.reminders.ringing,
+    call.status === 'idle' ? {} : 'skip',
+  )
   const answer = useAction(api.api.calls.answer)
   const decline = useMutation(api.api.reminders.decline)
   const snooze = useMutation(api.api.reminders.snooze)
-  const { call, startCall } = useCall()
   const navigate = useNavigate()
   const ring = rings?.[0]
   if (!ring || call.status !== 'idle') return null

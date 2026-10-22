@@ -662,3 +662,11 @@ Not done (finding #6): every email sent still looks up both Photon users first, 
 - ESLint refuses a relative path into `convex/` from `src/`, and AGENTS.md says so. Backend files keep their short paths within `convex/`.
 - A running dev server only picks up a new alias after a restart; it 500'd until it was restarted.
 - Verified with pnpm check (build included), the tests (223), and the dev server serving the app after a restart.
+
+### Fewer subscriptions on the frontend (2026-10-22)
+
+- **The details panel** subscribed to everything for all its tabs as soon as it opened: bots, connectors, reminders, tasks, plans, usage and budget. Each tab is now its own component with its own queries, and Base UI unmounts a hidden tab, so only the open tab subscribes. The default Details tab went from 7 subscriptions to 2.
+- **The chat** asked which messages are emails, passing every message id. That re-subscribed with new arguments on every message, in every chat. Only messages starting with 📨 can be emails, so it now asks about just those, and skips the query when there are none, which is most chats.
+- **The incoming-call ring** query is skipped during a call, since nothing rings over one.
+- Already fine: transcripts load only when opened, and identical queries (like `bots.list` in the sidebar, chat header and search) share one subscription in the Convex client.
+- Verified with pnpm check and the tests (223).
