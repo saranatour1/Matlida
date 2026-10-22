@@ -6,6 +6,7 @@ import {
   PaperclipIcon,
   PlusIcon,
   SparklesIcon,
+  SquareIcon,
   XIcon,
 } from 'lucide-react'
 import {
@@ -59,10 +60,13 @@ export function PromptForm({
   commands = [],
   onCreateCommand,
   onTalk,
+  onStop,
   tools,
 }: {
   placeholder: string
   isBusy: boolean
+  /** Stops the reply in progress. While one runs, it takes the send button's place. */
+  onStop?: () => void
   onSubmit: (prompt: string, files: Array<Attachment>) => void
   /** Commands the "+" menu offers: the built-ins, then the workspace's own. */
   commands?: Array<{ name: string; description: string; builtIn?: boolean }>
@@ -387,15 +391,28 @@ export function PromptForm({
           )}
           <div className="ml-auto" />
           {tools}
-          <InputGroupButton
-            type="submit"
-            size="icon-sm"
-            variant="default"
-            aria-label="Send message"
-            disabled={isBusy || uploading}
-          >
-            <ArrowUpIcon />
-          </InputGroupButton>
+          {isBusy && onStop ? (
+            <InputGroupButton
+              type="button"
+              size="icon-sm"
+              variant="default"
+              aria-label="Stop the reply"
+              title="Stop the reply"
+              onClick={onStop}
+            >
+              <SquareIcon className="fill-current" />
+            </InputGroupButton>
+          ) : (
+            <InputGroupButton
+              type="submit"
+              size="icon-sm"
+              variant="default"
+              aria-label="Send message"
+              disabled={isBusy || uploading}
+            >
+              <ArrowUpIcon />
+            </InputGroupButton>
+          )}
         </InputGroupAddon>
       </InputGroup>
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}

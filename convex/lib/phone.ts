@@ -1,6 +1,19 @@
 /** How the app shows a number it called: its last 4 digits, like "…0123". */
 export const maskNumber = (to: string) => `…${to.slice(-4)}`
 
+/**
+ * Text with each phone number shown as its last 4 digits, for display: one
+ * written with + or 00, or locally from 0, with 8 to 15 digits. Dates and
+ * prices don't start that way, so they stay.
+ */
+export const redactNumbers = (text: string) =>
+  text.replace(/(?:\+|\b0)\d[\d ()-]{6,}\d/g, (typed) => {
+    const digits = typed.replace(/\D/g, '')
+    return digits.length >= 8 && digits.length <= 15
+      ? maskNumber(digits)
+      : typed
+  })
+
 /** A number in international format, like +14155550123. */
 export const PHONE_NUMBER = /^\+[1-9]\d{6,14}$/
 

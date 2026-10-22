@@ -66,7 +66,12 @@ export function CallHistory({
             )}
           </button>
           {open === call._id && (
-            <Transcript call={call} botId={botId} name={name} />
+            <Transcript
+              call={call}
+              recordingUrl={call.recordingUrl}
+              botId={botId}
+              name={name}
+            />
           )}
         </li>
       ))}
@@ -76,10 +81,13 @@ export function CallHistory({
 
 function Transcript({
   call,
+  recordingUrl,
   botId,
   name,
 }: {
   call: Doc<'calls'>
+  /** Both sides of a phone call, to listen to. */
+  recordingUrl: string | null
   botId?: Id<'bots'>
   name: string
 }) {
@@ -100,6 +108,15 @@ function Transcript({
   }
   return (
     <div className="flex flex-col gap-2 px-2 pt-1 pb-3 text-xs">
+      {recordingUrl && (
+        <audio
+          controls
+          preload="none"
+          src={recordingUrl}
+          aria-label="Recording of the call"
+          className="h-8 w-full"
+        />
+      )}
       {lines.length === 0 ? (
         <p className="text-muted-foreground">Nothing was said.</p>
       ) : (

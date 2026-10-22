@@ -5,6 +5,7 @@ import {
   fromMuLaw,
   listener,
   readRtp,
+  recorder,
   rtpPacket,
   toMuLaw,
 } from '../../lib/rtp'
@@ -67,4 +68,17 @@ test('the listener hears speech, then a pause, and ignores quiet', () => {
   ear.push(loud)
   ear.push(loud)
   for (let i = 0; i < 50; i++) expect(ear.push(quiet)).toBeNull()
+})
+
+test('the recording mixes both sides, a frame at a time', () => {
+  const tape = recorder()
+  tape.hear(new Int16Array(FRAME).fill(1000))
+  tape.tick(new Uint8Array(FRAME).fill(toMuLaw(500)))
+  // Nothing from them this time: just our side.
+  tape.tick(new Uint8Array(FRAME).fill(toMuLaw(500)))
+  const samples = tape.samples()
+  expect(samples).toHaveLength(2 * FRAME)
+  expect(samples?.[0]).toBe(1000 + fromMuLaw(toMuLaw(500)))
+  expect(samples?.[FRAME]).toBe(fromMuLaw(toMuLaw(500)))
+  expect(recorder().samples()).toBeNull()
 })

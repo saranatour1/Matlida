@@ -1,4 +1,6 @@
 import {
+  abortStream,
+  listStreams,
   listUIMessages,
   saveMessage,
   syncStreams,
@@ -453,6 +455,53 @@ const redo = zAuthedMutation({
   },
 })
 
+/**
+ * Stops the reply in progress. Its stream is aborted, which stops the reply
+ * at its next word, and its message is marked failed. This also clears a
+ * reply whose action died, like one out of memory, and was left pending. A
+ * short note ends the chat, so it reads as stopped rather than failed.
+ */
+const stop = authedMutation({
+  args: { threadId: v.string() },
+  handler: async (ctx, { threadId }) => {
+    if (!(await ownsThread(ctx, ctx.userId, threadId))) {
+      throw new ConvexError('Chat not found.')
+    }
+    let stopped = false
+    for (const stream of await listStreams(ctx, components.agent, {
+      threadId,
+    })) {
+      stopped =
+        (await abortStream(ctx, components.agent, {
+          streamId: stream.streamId,
+          reason: 'Stopped.',
+        })) || stopped
+    }
+    const { page } = await ctx.runQuery(
+      components.agent.messages.listMessagesByThreadId,
+      {
+        threadId,
+        order: 'desc',
+        paginationOpts: { numItems: 10, cursor: null },
+      },
+    )
+    for (const message of page) {
+      if (message.status !== 'pending') continue
+      await ctx.runMutation(components.agent.messages.finalizeMessage, {
+        messageId: message._id,
+        result: { status: 'failed', error: 'Stopped.' },
+      })
+      stopped = true
+    }
+    if (stopped) {
+      await saveMessage(ctx, components.agent, {
+        threadId,
+        message: { role: 'assistant', content: '_Stopped._' },
+      })
+    }
+  },
+})
+
 /** A thread's messages plus in-progress stream deltas, for `useUIMessages`. */
 const listMessages = authedQuery({
   args: {
@@ -515,6 +564,7 @@ const transcribe = authedAction({
 export const chatApi = {
   sendMessage,
   redo,
+  stop,
   context,
   respond,
   listMessages,

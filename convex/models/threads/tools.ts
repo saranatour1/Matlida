@@ -16,7 +16,7 @@ import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { FLAGS, flagOn } from '../../lib/flags'
 import { rateLimiter } from '../../lib/limits'
-import { PHONE_NUMBER, typedBy } from '../../lib/phone'
+import { PHONE_NUMBER, maskNumber, typedBy } from '../../lib/phone'
 import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
 import { iso, parseIso } from '../../lib/time'
@@ -585,7 +585,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     call_phone: createTool({
       description:
-        'Phone a number the user typed in one of their recent messages, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends. Always call this tool to try, even if an earlier call in the chat failed or was turned off: it may work now.',
+        "Phone a number the user typed in one of their recent messages, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends. In your replies, call the person by the number's last 4 digits, like …0123, never the full number. Always call this tool to try, even if an earlier call in the chat failed or was turned off: it may work now.",
       inputSchema: z.object({
         to: z
           .string()
@@ -622,7 +622,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           .join('\n')
         if (!typedBy(asked, to)) {
           throw new Error(
-            `${to} isn't in the user's recent messages. Only call a number they type: ask them to.`,
+            `${maskNumber(to)} isn't in the user's recent messages. Only call a number they type: ask them to.`,
           )
         }
         const { ok } = await rateLimiter.limit(ctx, 'phoneCall', {
@@ -641,7 +641,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
             about,
           },
         )
-        return { calling: to, callId }
+        return { calling: maskNumber(to), callId }
       },
     }),
     set_reminder: createTool({

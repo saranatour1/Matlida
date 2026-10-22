@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { api } from '../../_generated/api'
+import { api, components } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -63,7 +63,7 @@ const setup = async () => {
       })
     ).page.map((m) => ({ id: m.id, role: m.role, text: m.text }))
   const asBob = t.withIdentity({ subject: bob })
-  return { asAda, asBob, projectId, threadId, settle, chat }
+  return { t, asAda, asBob, projectId, threadId, settle, chat }
 }
 
 test('retry answers the last message again, in place of the old reply', async () => {
@@ -113,4 +113,37 @@ test('only your own messages, in your own chat, can be redone', async () => {
   await expect(
     asAda.mutation(api.api.chat.redo, { threadId, messageId: reply.id }),
   ).rejects.toThrow('Message not found.')
+})
+
+test('stop clears a reply left pending, so the chat can go on', async () => {
+  const { t, asAda, asBob, threadId } = await setup()
+  // A reply whose action died, like one out of memory, stays pending.
+  await t.run((ctx) =>
+    ctx.runMutation(components.agent.messages.addMessages, {
+      threadId,
+      messages: [
+        { message: { role: 'assistant', content: '' }, status: 'pending' },
+      ],
+    }),
+  )
+  const last = async () =>
+    (
+      await asAda.query(api.api.chat.listMessages, {
+        threadId,
+        paginationOpts: { numItems: 20, cursor: null },
+      })
+    ).page.at(-1)
+  expect(await last()).toMatchObject({ status: 'pending' })
+  await expect(asBob.mutation(api.api.chat.stop, { threadId })).rejects.toThrow(
+    'Chat not found.',
+  )
+  await asAda.mutation(api.api.chat.stop, { threadId })
+  expect(await last()).toMatchObject({ status: 'success', text: '_Stopped._' })
+  // Nothing left to stop: no second note.
+  await asAda.mutation(api.api.chat.stop, { threadId })
+  const { page } = await asAda.query(api.api.chat.listMessages, {
+    threadId,
+    paginationOpts: { numItems: 20, cursor: null },
+  })
+  expect(page.filter((m) => m.text === '_Stopped._')).toHaveLength(1)
 })

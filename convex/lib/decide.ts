@@ -57,6 +57,8 @@ export const JEV_THRESHOLDS = {
   checkInCall: 0.7,
   /** At least this for a study answer to count as right. */
   correctAnswer: 0.5,
+  /** At least this sure a phone call is over before hanging up. */
+  hangUp: 0.7,
 }
 
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
@@ -422,6 +424,31 @@ export const shouldCallNow = async (
     review: answers.about.choice === 'review',
     cost: gatewayCost(providerMetadata),
   }
+}
+
+/**
+ * Whether a phone call the assistant placed has done its job and should end
+ * now. In `conversation`, `user` is the person called. The call hangs up at
+ * `JEV_THRESHOLDS.hangUp`.
+ */
+export const callIsOver = async (
+  model: Experimental_DecisionModel,
+  { about, conversation }: { about: string; conversation: Array<Turn> },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state: { call_purpose: about, conversation },
+    questions: {
+      over: {
+        type: 'boolean',
+        instructions:
+          'The assistant phoned someone for `call_purpose`. Should it say goodbye and hang up now? Yes when the purpose is done (the message was delivered and acknowledged, or the question answered) and the person has nothing more to ask, or when they are wrapping up, saying bye or asking to end the call. No while they are still asking or telling something, or the purpose is not done yet.',
+      },
+    },
+    abortSignal,
+  })
+  return { over: answers.over.probability, cost: gatewayCost(providerMetadata) }
 }
 
 /** Whether a short answer to a study question is right, given the expected one. Right at `JEV_THRESHOLDS.correctAnswer`. */
