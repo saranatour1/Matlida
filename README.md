@@ -83,7 +83,8 @@ The full list, with what each one does, is in `convex/lib/commands.ts`. A test c
 | `pnpm check`                                                       | Type check, ESLint and a production build. Run it before every push                              |
 | `pnpm test`                                                        | The Vitest suite (`convex/tests`, `src/tests`)                                                   |
 | `pnpm build`                                                       | Type check, then a production build                                                              |
-| `pnpm start`                                                       | Run the production build                                                                         |
+| `pnpm preview` | Serve the production build locally, in Cloudflare's runtime |
+| `pnpm run deploy` | Build, then deploy the `matlida` Worker to Cloudflare (`pnpm deploy` is a different, built-in pnpm command) |
 | `pnpm lint`                                                        | Type check and ESLint                                                                            |
 | `pnpm format`                                                      | Prettier                                                                                         |
 | `scripts/pr-size.sh origin/master`                                 | Lines a PR changes, against the 2000 limit                                                       |

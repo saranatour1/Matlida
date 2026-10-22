@@ -690,3 +690,11 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **Cards don't pop in or vanish:** six chat cards (task, page, video, price watch, checklist, study deck) rendered nothing while loading, so the chat jumped when they arrived. They show a skeleton the size of a card now. The task and price-watch cards also say when what they showed was removed, instead of disappearing.
 - **Error pages:** a crashed page showed users a raw stack trace, and an unknown URL showed "not found" in plain text. There's now an error page with Try again and Home (the stack only in development), and a proper not-found page.
 - Verified with pnpm check and the tests (223), and the not-found page on the dev server.
+
+### Hosting on Cloudflare Workers (2026-10-22)
+
+- The app builds for Cloudflare Workers, following Cloudflare's TanStack Start guide. `@cloudflare/vite-plugin` runs server rendering in Cloudflare's runtime, in `pnpm dev` too. `wrangler.jsonc` targets the existing `matlida` Worker, which Workers Builds already has connected to this repo, with `nodejs_compat` and observability on.
+- Compatibility date 2026-10-19, the newest the installed local runtime supports; with today's date, `pnpm dev` refused to start.
+- `.env.production` points the built app at production Convex (`knowing-magpie-554`). It's a public URL; secrets stay on Convex.
+- Scripts: `pnpm run deploy` (build, then `wrangler deploy`), `pnpm preview`, `pnpm cf-typegen`. The old Node `start` script is gone. `.wrangler` and `.dev.vars` are ignored. pnpm may run `workerd`'s install script.
+- Checked: `pnpm check`, the tests, `wrangler deploy --dry-run` (1.37 MiB gzipped), and `pnpm dev` serving pages from Cloudflare's runtime. Not deployed yet: production Convex has no environment variables, and `convex.config.ts` requires them.
