@@ -37,6 +37,7 @@ import type * as api_voice from "../api/voice.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_attachments from "../lib/attachments.js";
 import type * as lib_audio from "../lib/audio.js";
 import type * as lib_budget from "../lib/budget.js";
 import type * as lib_channels from "../lib/channels.js";
@@ -157,6 +158,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   "lib/ai": typeof lib_ai;
+  "lib/attachments": typeof lib_attachments;
   "lib/audio": typeof lib_audio;
   "lib/budget": typeof lib_budget;
   "lib/channels": typeof lib_channels;

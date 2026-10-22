@@ -597,3 +597,11 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - **Fewer writes to a shared row:** every Telegram message read and rewrote the one `telegramPolls` row, so messages from different people conflicted with each other and with the fast check. It's now written only when the loop needs a new run or the window moves by more than 15 seconds.
 - **Bounded:** the daily-news scan read every row with a daily time; it now takes at most 1000.
 - Dev had no rows to migrate. Verified with pnpm check and the tests (208), and pushed to dev.
+
+### Attachments (2026-10-22)
+
+- The message box takes pictures and PDFs: the paperclip, pasting a screenshot, or dropping files on it. Up to 5 files, 10 MB each. Each one shows as a chip while it uploads, and you can remove it before sending. A message can be only files.
+- Files upload to Convex storage and are registered with the agent component (`files.addFile`). The message saves them as image and file parts with `metadata.fileIds`, so the model sees them and the component counts their references. Your bubble shows them as thumbnails and chips that open them.
+- Only pictures and PDFs: the hourly `commands.sweepFiles` deletes markdown and audio that no command points to, so those would vanish. Pasted text already works.
+- The server checks the type and size in `_storage`. The browser's type is used only when a file was stored without one (convex-test stores none).
+- Verified with pnpm check and the tests (210), and pushed to dev. Not tried live: whether each gateway model reads PDFs is untested.

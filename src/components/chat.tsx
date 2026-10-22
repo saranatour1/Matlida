@@ -7,6 +7,7 @@ import { api } from '../../convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
+import type { Attachment } from '~/components/prompt-form'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
@@ -95,12 +96,16 @@ export function Chat({
     )
 
   const [error, send] = React.useActionState(
-    async (_previous: string | undefined, prompt: string) => {
+    async (
+      _previous: string | undefined,
+      { prompt, files }: { prompt: string; files?: Array<Attachment> },
+    ) => {
       try {
         await sendMessage({
           projectId: project._id,
           botId: bot?._id,
           prompt,
+          files,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         return undefined
@@ -169,7 +174,7 @@ export function Chat({
               <EmptyContent>
                 <Suggestions
                   onSelect={(prompt) =>
-                    React.startTransition(() => send(prompt))
+                    React.startTransition(() => send({ prompt }))
                   }
                 />
                 {!bot && commands && commands.length > 0 && (
@@ -181,7 +186,9 @@ export function Chat({
                         size="sm"
                         title={c.description}
                         onClick={() =>
-                          React.startTransition(() => send(`/${c.name}`))
+                          React.startTransition(() =>
+                            send({ prompt: `/${c.name}` }),
+                          )
                         }
                       >
                         /{c.name}
@@ -213,7 +220,9 @@ export function Chat({
                               isBusy
                                 ? undefined
                                 : (prompt) =>
-                                    React.startTransition(() => send(prompt))
+                                    React.startTransition(() =>
+                                      send({ prompt }),
+                                    )
                             }
                           />
                           {email && (
@@ -257,7 +266,7 @@ export function Chat({
             <PromptForm
               placeholder={`Message ${lead}…`}
               isBusy={isBusy}
-              onSubmit={send}
+              onSubmit={(prompt, files) => send({ prompt, files })}
               commands={[
                 ...BUILT_IN_COMMANDS.filter(
                   (b) => !commands?.some((c) => c.name === b.name),
