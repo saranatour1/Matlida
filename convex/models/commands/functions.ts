@@ -320,14 +320,10 @@ const HOUR = 60 * 60_000
 /**
  * Whether the sweep may delete a file nothing points to: command markdown
  * and call audio, which are only kept by a row. Pictures, videos and
- * anything else are kept. Files with no type (only in tests) count as left over.
+ * anything else, a file with no type included, are kept.
  */
 export function sweepable({ contentType }: { contentType?: string }) {
-  return (
-    !contentType ||
-    contentType === 'text/markdown' ||
-    contentType.startsWith('audio/')
-  )
+  return contentType === 'text/markdown' || !!contentType?.startsWith('audio/')
 }
 
 const sweepFiles = internalMutation({

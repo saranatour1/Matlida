@@ -1,12 +1,18 @@
 import { literals } from 'convex-helpers/validators'
+import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
+import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import {
   internalAction,
   internalMutation,
   internalQuery,
 } from '../../_generated/server'
-import { authedMutation, authedQuery } from '../../lib/functions'
+import {
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import { createAgent } from '../threads/lead'
@@ -44,18 +50,21 @@ const get = authedQuery({
 })
 
 /** Your edits from the page's editor. */
-const save = authedMutation({
-  args: { id: v.id('pages'), title: v.string(), markdown: v.string() },
+const save = zAuthedMutation({
+  args: {
+    id: zid('pages'),
+    title: z
+      .string()
+      .trim()
+      .min(1, 'Give the page a title.')
+      .max(120, 'Titles can be at most 120 characters.'),
+    markdown: z.string().max(50_000, 'Pages can be at most 50,000 characters.'),
+  },
   handler: async (ctx, { id, title, markdown }) => {
     if (!(await getOwnedPage(ctx, ctx.userId, id))) {
       throw new ConvexError('Page not found.')
     }
-    if (!title.trim()) throw new ConvexError('Give the page a title.')
-    await ctx.db.patch('pages', id, {
-      title: title.trim().slice(0, 120),
-      markdown: markdown.slice(0, 50_000),
-      updatedBy: 'You',
-    })
+    await ctx.db.patch('pages', id, { title, markdown, updatedBy: 'You' })
   },
 })
 

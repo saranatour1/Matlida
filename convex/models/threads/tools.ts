@@ -211,9 +211,10 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         shape: z.enum(['wide', 'tall']).default('wide'),
       }),
       execute: async (ctx, video) => {
+        if (!ctx.threadId) throw new Error('Videos need a chat.')
         const videoId: string = await ctx.runMutation(
           internal.api.videos.start,
-          { projectId: project._id, threadId: ctx.threadId ?? '', ...video },
+          { projectId: project._id, threadId: ctx.threadId, ...video },
         )
         return { videoId, prompt: video.prompt }
       },
@@ -361,7 +362,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
     }),
     save_command: createTool({
       description:
-        'Save a reusable command the user can run as /name, or replace their command with the same name. The markdown is the instructions you follow when it runs, written to you.',
+        "Save a new reusable command the user can run as /name. The markdown is the instructions you follow when it runs, written to you. It can't change an existing command: the user edits those in the Library.",
       inputSchema: z.object({
         name: z
           .string()
@@ -373,12 +374,13 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         markdown: z.string().min(1).max(20_000),
       }),
       execute: async (ctx, command) => {
-        // Replaces their command with this name, or adds it; saving the same again changes nothing.
+        // Adds it, or changes nothing when the same is already saved. Never
+        // replaces a command the user has: that would let a planted
+        // instruction change what /name does later.
         await saveCommand(ctx, {
           ...command,
           projectId: project._id,
           userId: project.ownerId,
-          replace: true,
         })
         return { saved: true, run: `/${command.name}` }
       },

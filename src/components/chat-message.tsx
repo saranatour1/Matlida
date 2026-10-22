@@ -60,12 +60,22 @@ export function Markdown({ text }: { text: string }) {
     <div className="typeset typeset-docs px-1.5">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{ pre: CodeBlock }}
+        components={{ pre: CodeBlock, img: NoImage }}
       >
         {text}
       </ReactMarkdown>
     </div>
   )
+}
+
+/** An image in a reply or a quoted email, as a link: fetching it would tell its host when you read this. */
+function NoImage({ src, alt }: { src?: string | Blob; alt?: string }) {
+  const url = typeof src === 'string' ? src : ''
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer">
+      {alt || 'image'}
+    </a>
+  ) : null
 }
 
 /** A code block, with Copy in its corner. */

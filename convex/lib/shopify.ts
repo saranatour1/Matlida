@@ -21,11 +21,16 @@ const zVariant = z.object({
   availability: z.object({ available: z.boolean() }).optional(),
   seller: z.object({ name: z.string() }).optional(),
 })
+/** A web link, or nothing: a store's own `javascript:` or `data:` link never reaches a card. */
+const zWebUrl = z
+  .url({ protocol: /^https?$/ })
+  .optional()
+  .catch(undefined)
 const zProduct = z.object({
   id: z.string(),
   title: z.string(),
-  url: z.string().optional(),
-  media: z.array(z.object({ url: z.string() })).optional(),
+  url: zWebUrl,
+  media: z.array(z.object({ url: zWebUrl })).optional(),
   options: z
     .array(
       z.object({

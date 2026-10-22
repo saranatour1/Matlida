@@ -170,8 +170,19 @@ test('the sweep deletes files nothing keeps, once they are an hour old', async (
   vi.useFakeTimers({ now: start, toFake: ['Date'] })
   const { t, asAda, projectId, fileCount } = await setup()
   await asAda.action(api.api.commands.save, { projectId, ...standup })
+  // convex-test doesn't record a stored blob's type, so it's set by hand.
   const store = (type: string) =>
-    t.run((ctx) => ctx.storage.store(new Blob(['x'], { type })))
+    t.run(async (ctx) => {
+      const id = await ctx.storage.store(new Blob(['x'], { type }))
+      await ctx.db.patch(
+        '_storage' as never,
+        id as never,
+        {
+          contentType: type,
+        } as never,
+      )
+      return id
+    })
   // Left by a save that stopped before saving the command, and by a call.
   await store('text/markdown')
   await store('audio/wav')
@@ -196,4 +207,5 @@ test('the sweep never touches pictures or videos', () => {
   expect(sweepable({ contentType: 'image/png' })).toBe(false)
   expect(sweepable({ contentType: 'video/mp4' })).toBe(false)
   expect(sweepable({ contentType: 'application/pdf' })).toBe(false)
+  expect(sweepable({})).toBe(false)
 })
