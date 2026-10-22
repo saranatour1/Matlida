@@ -2,9 +2,18 @@
 export const PHONE_NUMBER = /^\+[1-9]\d{6,14}$/
 
 /**
- * Whether `to` is a number the user typed in `text`. The model may rewrite
- * "0791 234 567" as +962791234567, so the last 7 digits have to match, and
- * a number read from an email or a web page never does.
+ * Whether `to` is a number the user typed in `text`, so a number read from
+ * an email or a web page is never called. A number typed with + (or 00) has
+ * to match exactly. One typed locally, like "0791 234 567" (8 digits or more
+ * after the 0), has to match the end of `to`, since its country code is the
+ * model's guess.
  */
-export const typedBy = (text: string, to: string) =>
-  text.replace(/\D/g, '').includes(to.replace(/\D/g, '').slice(-7))
+export const typedBy = (text: string, to: string) => {
+  const want = to.replace(/\D/g, '')
+  return (text.match(/\+?\d[\d\s().-]{5,}\d/g) ?? []).some((typed) => {
+    const digits = typed.replace(/\D/g, '')
+    if (typed.startsWith('+')) return digits === want
+    const national = digits.replace(/^0+/, '')
+    return national.length >= 8 && want.endsWith(national)
+  })
+}

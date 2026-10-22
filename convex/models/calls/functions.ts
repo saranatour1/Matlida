@@ -273,10 +273,11 @@ const setPhone = internalMutation({
     const lines = await linesOf(ctx, id).take(40)
     const said = lines
       .map(
-        (l) =>
-          `> **${l.who === 'you' ? phone.to : (from ?? 'Me')}:** ${l.text}`,
+        (l) => `> **${l.who === 'you' ? 'Them' : (from ?? 'Me')}:** ${l.text}`,
       )
       .join('\n>\n')
+    // The chat goes to the model with every reply, so it only names the number's end.
+    const number = `the number ending ${phone.to.slice(-4)}`
     const why = note ? ` (${note})` : ''
     await saveMessage(ctx, components.agent, {
       threadId: call.threadId,
@@ -285,10 +286,10 @@ const setPhone = internalMutation({
         role: 'assistant',
         content:
           status !== 'ended'
-            ? `📞 I couldn't reach ${phone.to}: ${ENDINGS[status as keyof typeof ENDINGS]}${why}.`
+            ? `📞 I couldn't reach ${number}: ${ENDINGS[status as keyof typeof ENDINGS]}${why}.`
             : said
-              ? `📞 My call with ${phone.to}${why}:\n\n${said}`
-              : `📞 I called ${phone.to}, but nothing was said${why}.`,
+              ? `📞 My call with ${number}${why}:\n\n${said}`
+              : `📞 I called ${number}, but nothing was said${why}.`,
       },
     })
     return null

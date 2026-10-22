@@ -735,6 +735,8 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Each turn: a pause (0.7 s) ends what they said. The gateway transcribes it for the record while `audioChat` answers in voice, and the answer plays as it streams, turned from 24 kHz into 8 kHz µ-law. The opening line is spoken the same way, so it's one voice throughout.
 - Ends on their hang-up, a goodbye, 20 s of quiet, or 9 minutes (actions stop at 10). It's a `calls` row with `phone` (number, status, packets heard), so it's in Call history, and the transcript lands in the chat. The chat card shows ringing, on the phone, and how it ended.
 - Only a number in your recent messages, at most 10 a day per person.
+- Review fixes: sockets and timers always close, even when a call errors (Convex reuses machines, so a stray audio timer could outlive the call); an answer racing the cancel is acknowledged and hung up; after "Goodbye" it hangs up without listening again; audio only follows the first source that answers; STUN falls back to Cloudflare; SDP reads the audio section's own address.
+- The number check is exact for numbers typed with + or 00, so the model can't swap a country code, and a local number needs 8 digits or more. The chat's call summaries name only the number's last 4 digits, since the chat goes to the model with every reply.
 - Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.

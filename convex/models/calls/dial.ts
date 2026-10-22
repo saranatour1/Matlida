@@ -54,8 +54,12 @@ type Ending = {
   heard?: number
 }
 
-/** Our public address for `socket`, from Google's STUN server. */
-const publicAddress = (socket: dgram.Socket) =>
+/** Our public address for `socket`, from Google's STUN server, or Cloudflare's. */
+const publicAddress = async (socket: dgram.Socket) =>
+  (await askStun(socket, 'stun.l.google.com', 19302)) ??
+  (await askStun(socket, 'stun.cloudflare.com', 3478))
+
+const askStun = (socket: dgram.Socket, host: string, port: number) =>
   new Promise<{ ip: string; port: number } | null>((resolve) => {
     const id = randomBytes(12)
     const done = (address: { ip: string; port: number } | null) => {
@@ -85,7 +89,7 @@ const publicAddress = (socket: dgram.Socket) =>
       Buffer.from([0x00, 0x01, 0x00, 0x00, 0x21, 0x12, 0xa4, 0x42]),
       id,
     ])
-    socket.send(request, 19302, 'stun.l.google.com')
+    socket.send(request, port, host)
   })
 
 /** A TLS connection to Photon's SIP server: send messages, and wait for responses. */
@@ -184,6 +188,7 @@ const placeCall = async (
     from,
     say,
     about,
+    cleanups,
   }: {
     call: Doc<'calls'> & { phone: NonNullable<Doc<'calls'>['phone']> }
     project: Doc<'projects'>
@@ -191,6 +196,8 @@ const placeCall = async (
     from: string
     say: string
     about: string
+    /** Closes sockets and stops timers. `dial` runs them however the call ends. */
+    cleanups: Array<() => void>
   },
 ): Promise<Ending> => {
   // The outbound SIP credential from the line's Voice profile in Photon.
@@ -209,6 +216,7 @@ const placeCall = async (
   const userId = project.ownerId
 
   const rtp = dgram.createSocket('udp4')
+  cleanups.push(() => rtp.close())
   rtp.on('error', (error) => console.error('RTP socket', error))
   await new Promise<void>((resolve) => rtp.bind(0, resolve))
   const mapped = await publicAddress(rtp)
@@ -217,6 +225,7 @@ const placeCall = async (
     return { status: 'failed', note: "couldn't find our public address" }
   }
   const sip = await openSip(host)
+  cleanups.push(() => sip.close())
   const offer = sdpOffer(mapped.ip, mapped.port)
   const target = `sip:${to}@${host}`
   const fromHeader = `<sip:${line}@${host}>;tag=${randomHex(4)}`
@@ -247,6 +256,24 @@ const placeCall = async (
         body,
       ),
     )
+
+  /** Requests within the call a 200 answer set up: where they go, and their headers. */
+  const dialogOf = (ok: SipMessage) => {
+    const toHeader = header(ok, 'to') ?? `<${target}>`
+    const routes = headers(ok, 'record-route').flatMap(splitList).reverse()
+    return {
+      remoteTarget: uriOf(header(ok, 'contact') ?? target),
+      inDialog: (method: string, number: number): Array<[string, string]> => [
+        ['Via', via()],
+        ['Max-Forwards', '70'],
+        ['From', fromHeader],
+        ['To', toHeader],
+        ['Call-ID', callId],
+        ['CSeq', `${number} ${method}`],
+        ...routes.map((r): [string, string] => ['Route', r]),
+      ],
+    }
+  }
 
   // Photon's keep-alives (OPTIONS) and the like get a plain OK.
   sip.onRequest((request) => {
@@ -353,7 +380,19 @@ const placeCall = async (
         ]),
       )
       const ended = await sip.next(`${n} INVITE`, 3000)
-      if (ended) {
+      if (ended?.status && ended.status < 300) {
+        // They picked up just as it was cancelled: acknowledge, then hang up.
+        const late = dialogOf(ended)
+        sip.send(
+          format(`ACK ${late.remoteTarget} SIP/2.0`, late.inDialog('ACK', n)),
+        )
+        sip.send(
+          format(
+            `BYE ${late.remoteTarget} SIP/2.0`,
+            late.inDialog('BYE', cseq++),
+          ),
+        )
+      } else if (ended) {
         sip.send(
           format(`ACK ${target} SIP/2.0`, [
             ['Via', inviteVia],
@@ -387,21 +426,7 @@ const placeCall = async (
   }
 
   // Answered. Acknowledge it, then talk until someone hangs up.
-  const toHeader = header(answer, 'to') ?? `<${target}>`
-  const remoteTarget = uriOf(header(answer, 'contact') ?? target)
-  const routes = headers(answer, 'record-route').flatMap(splitList).reverse()
-  const inDialog = (
-    method: string,
-    number: number,
-  ): Array<[string, string]> => [
-    ['Via', via()],
-    ['Max-Forwards', '70'],
-    ['From', fromHeader],
-    ['To', toHeader],
-    ['Call-ID', callId],
-    ['CSeq', `${number} ${method}`],
-    ...routes.map((r): [string, string] => ['Route', r]),
-  ]
+  const { remoteTarget, inDialog } = dialogOf(answer)
   sip.send(format(`ACK ${remoteTarget} SIP/2.0`, inDialog('ACK', n)))
   remote = sdpAnswer(answer.body) ?? remote
   if (!remote) {
@@ -417,6 +442,9 @@ const placeCall = async (
   })
 
   let theyHungUp = false as boolean
+  // Aborts a reply still streaming when the call ends.
+  const over = new AbortController()
+  cleanups.push(() => over.abort())
   let resolveEnd: (ending: Ending) => void = () => {}
   const ended = new Promise<Ending>((resolve) => {
     resolveEnd = resolve
@@ -485,6 +513,7 @@ const placeCall = async (
     pumpTimer = setTimeout(pump, Math.max(0, nextAt - performance.now()))
   }
   pump()
+  cleanups.push(() => clearTimeout(pumpTimer))
   const drained = () =>
     new Promise<void>((resolve) => {
       const check = () => (outBytes === 0 ? resolve() : setTimeout(check, 40))
@@ -497,17 +526,19 @@ const placeCall = async (
   let lastHeard = performance.now()
   const ear = listener()
   let onSpeech = (_samples: Int16Array) => {}
+  let latched = false
   rtp.on('message', (msg, source) => {
     const samples = readRtp(new Uint8Array(msg))
     if (!samples) return
-    heard++
-    // Send where their audio really comes from, which can differ from their SDP.
-    if (
-      remote &&
-      (remote.ip !== source.address || remote.port !== source.port)
-    ) {
+    // Send where their audio really comes from, which can differ from their
+    // SDP, but only follow the first source: a stray packet can't redirect us.
+    if (!latched) {
+      latched = true
       remote = { ip: source.address, port: source.port }
+    } else if (remote?.ip !== source.address || remote.port !== source.port) {
+      return
     }
+    heard++
     if (busy) return
     const said = ear.push(samples)
     if (said) onSpeech(said)
@@ -540,7 +571,7 @@ const placeCall = async (
             out.push(mu)
             outBytes += mu.length
           },
-          signal,
+          signal ? AbortSignal.any([signal, over.signal]) : over.signal,
         )
         return { result, cost: result.cost }
       },
@@ -587,6 +618,7 @@ const placeCall = async (
     await addLine('them', opening || say)
     await listen()
     onSpeech = (samples) => {
+      if (over.signal.aborted) return
       busy = true
       void (async () => {
         const wav = pcmToWav(pcmBytes(samples), 8000)
@@ -615,8 +647,12 @@ const placeCall = async (
           history.push({ role: 'assistant', content: reply })
           await addLine('them', reply)
         }
+        if (reply && goodbye(reply)) {
+          await drained()
+          resolveEnd({ status: 'ended' })
+          return
+        }
         await listen()
-        if (reply && goodbye(reply)) resolveEnd({ status: 'ended' })
       })().catch((error: unknown) => {
         console.error(error)
         resolveEnd({
@@ -654,6 +690,7 @@ const placeCall = async (
       resolveEnd({ status: 'ended', note: 'it went quiet' })
     }
   }, 1000)
+  cleanups.push(() => clearInterval(watch))
 
   const ending = await ended
   clearInterval(watch)
@@ -706,6 +743,7 @@ const dial = internalAction({
       { id: callId },
     )
     let ending: Ending
+    const cleanups: Array<() => void> = []
     try {
       ending = call.phone
         ? await placeCall(ctx, {
@@ -715,6 +753,7 @@ const dial = internalAction({
             from,
             say,
             about,
+            cleanups,
           })
         : { status: 'failed', note: 'not a phone call' }
     } catch (error) {
@@ -722,6 +761,15 @@ const dial = internalAction({
       ending = {
         status: 'failed',
         note: error instanceof Error ? error.message : String(error),
+      }
+    } finally {
+      // Convex can reuse this machine, so nothing may keep running after the call.
+      for (const cleanup of cleanups) {
+        try {
+          cleanup()
+        } catch {
+          // Already closed.
+        }
       }
     }
     await ctx.runMutation(internal.api.calls.setPhone, {

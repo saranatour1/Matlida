@@ -217,8 +217,11 @@ export const sdpOffer = (ip: string, port: number) => {
 
 /** Where the other side wants our audio, from its SDP answer. Null without PCMU. */
 export const sdpAnswer = (sdp: string) => {
-  const ip = /^c=IN IP4 (\S+)/m.exec(sdp)?.[1]
   const media = /^m=audio (\d+) RTP\/S?AVP ([\d ]+)/m.exec(sdp)
+  // The audio section's own c= line wins over the session's.
+  const ip =
+    /^c=IN IP4 (\S+)/m.exec(sdp.slice(media?.index ?? sdp.length))?.[1] ??
+    /^c=IN IP4 (\S+)/m.exec(sdp)?.[1]
   if (!ip || !media) return null
   if (!media[2].trim().split(/\s+/).includes('0')) return null
   return { ip, port: Number(media[1]) }
