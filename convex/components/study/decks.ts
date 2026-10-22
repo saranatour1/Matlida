@@ -129,6 +129,17 @@ export const list = query({
   },
 })
 
+/** One of the user's items, or null, for grading an answer to it. */
+export const ownItem = query({
+  args: { userId: v.string(), id: v.string() },
+  returns: v.union(schema.doc('items'), v.null()),
+  handler: async (ctx, { userId, id }) => {
+    const itemId = ctx.db.normalizeId('items', id)
+    const found = itemId && (await ctx.db.get('items', itemId))
+    return found && found.userId === userId ? found : null
+  },
+})
+
 /** Records how an item went, and schedules its next review. */
 export const grade = mutation({
   args: { userId: v.string(), id: v.string(), grade: vGrade },
@@ -148,9 +159,7 @@ export const grade = mutation({
 /** Items due for review across a user's decks, soonest first, with their deck's title. */
 export const due = query({
   args: { userId: v.string(), limit: v.number() },
-  returns: v.array(
-    v.object({ item: schema.doc('items'), deck: v.string() }),
-  ),
+  returns: v.array(v.object({ item: schema.doc('items'), deck: v.string() })),
   handler: async (ctx, { userId, limit }) => {
     const items = await ctx.db
       .query('items')

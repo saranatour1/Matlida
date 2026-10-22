@@ -632,6 +632,12 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - The stopped task's card has a **Try again** button (`tasks.retry`). It restarts the workflow from the step that failed, with `restart(…, { from: doStep })`. The steps before it keep their results and aren't paid for again. The chat says to press it.
 - Verified with pnpm check and the tests (221): a failing step runs once, and Try again runs only that step, then finishes the task.
 
+### Answers by voice on a review call (2026-10-22)
+
+- A review call opened with the due questions, but nothing recorded what you said back. Assistants now have `due_cards` (up to 5 due questions, with their ids) and `check_answer` (Jev grades your words against the card, then records good or again on your review schedule, like a typed answer). They work by voice on a call and in the chat. Fast voice can't use tools, so it can't grade.
+- The typed check on quiz cards and the spoken one share `checkAnswer`, which looks the card up by id through a new component query (`decks.ownItem`) that only returns your own cards. `check_answer` isn't read-only, so email drafts don't get it.
+- Verified with pnpm check and the tests.
+
 ### PDFs work on every chat model (2026-10-22)
 
 - Checked on dev with a one-page PDF ("The secret word is MARMALADE."), sent the way an attachment is: a Convex storage URL in a `file` part with `application/pdf`. All 10 chat models answered MARMALADE: Claude Sonnet 5, Opus 5 and Haiku 4.5, GPT-5 and GPT-5 mini, Gemini 2.5 Pro and Flash, DeepSeek V3.2, Grok 4.7 and Muse Spark 1.3. So no model needs PDFs turned off.
