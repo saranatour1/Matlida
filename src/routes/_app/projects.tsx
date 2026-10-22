@@ -5,7 +5,7 @@ import { api } from '@convex/_generated/api'
 import { ProjectForm } from '~/components/project-form'
 import { Button } from '~/components/ui/button'
 
-export const Route = createFileRoute('/_app/')({
+export const Route = createFileRoute('/_app/projects')({
   validateSearch: z.object({
     create: z.boolean().optional(),
     /** A template link lands here and opens in your first workspace. */

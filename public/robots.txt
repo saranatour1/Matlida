@@ -1,0 +1,11 @@
+# Matilda: https://matilda-is-a-bot.app
+# The front page and sign-in are public. Workspaces, chats and one-time
+# links are private, and stay out of search.
+User-agent: *
+Allow: /
+Disallow: /projects
+Disallow: /p/
+Disallow: /reset-password
+Disallow: /verify-email
+
+Sitemap: https://matilda-is-a-bot.app/sitemap.xml

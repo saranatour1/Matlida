@@ -10,16 +10,16 @@ import { Databuddy } from '@databuddy/sdk/react'
 import type { QueryClient } from '@tanstack/react-query'
 import { NotFoundScreen } from '~/components/error-screen'
 import appCss from '~/styles/app.css?url'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '~/lib/site'
 
 // Set at build time (Workers Builds variable, or .env.local for dev). Unset, nothing is sent.
 const databuddyClientId = import.meta.env.VITE_DATABUDDY_CLIENT_ID as
   string | undefined
 
-const title = 'Matilda'
-const description =
-  "Matilda is the only assistant you need, doesn't f**k around"
-// Crawlers want an absolute og:image, so set VITE_SITE_URL when deploying.
-const ogImage = `${import.meta.env.VITE_SITE_URL ?? ''}/og.png`
+const title = SITE_NAME
+const description = SITE_DESCRIPTION
+// Crawlers want absolute URLs; SITE_URL falls back to the production domain.
+const ogImage = `${SITE_URL}/og.png`
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -30,14 +30,16 @@ export const Route = createRootRouteWithContext<{
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title },
       { name: 'description', content: description },
+      { name: 'theme-color', content: '#0a0a0a' },
       { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: `${SITE_URL}/` },
       { property: 'og:site_name', content: title },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:image', content: ogImage },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
-      { property: 'og:image:alt', content: 'The Matilda kite logo' },
+      { property: 'og:image:alt', content: 'Matilda, the assistant that actually calls you' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },

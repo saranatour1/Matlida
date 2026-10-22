@@ -45,7 +45,7 @@ function ProjectPage() {
         </header>
         <div className="px-6 text-sm">
           Project not found.{' '}
-          <Link to="/" className="underline">
+          <Link to="/projects" className="underline">
             Back to projects
           </Link>
         </div>
