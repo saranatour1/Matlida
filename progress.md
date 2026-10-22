@@ -606,6 +606,20 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - The server checks the type and size in `_storage`. The browser's type is used only when a file was stored without one (convex-test stores none).
 - Verified with pnpm check and the tests (210), and pushed to dev. Not tried live: whether each gateway model reads PDFs is untested.
 
+### Edit and retry (2026-10-22)
+
+- The last reply has a Retry button: it answers your last message again, in place of the old reply.
+- Your messages have an Edit button: change the text and send, and the assistant answers that instead. Everything after it is dropped, and the edit box says so. Attachments on the message stay.
+- One mutation, `chat.redo`, does both. It checks the chat is yours and the message is one of yours, refuses while a reply is still running, rewrites the text with the agent component's `updateMessage` when editing, drops later messages with `deleteByOrder` (which also stops their streams), and schedules `chat.respond` again, running a `/command` again if the message has one.
+- Verified with pnpm check and the tests (213), and pushed to dev.
+
+### Flash cards and quizzes (2026-10-22)
+
+- A new `study` component keeps decks and their review schedule. Ask in the chat ("quiz me on Spanish greetings"), run `/study` or `/quiz`, or use New deck in the Library's Study section: you choose flash cards or a quiz, how many, and the level. The assistant asks one short question if you didn't say which or how many.
+- The deck shows as a card in the chat and in the Library. Flash cards flip, and you mark them Again, Hard, Good or Easy. Quiz questions are multiple choice or answered in your own words, which Jev checks for meaning. Each answer schedules the next review (SM-2, simplified), and the Library shows how many are due.
+- When cards are due, the hourly check-in can call to review them; that call opens with up to 5 questions. Grading answers given by voice is a follow-up.
+- Verified with pnpm check and the tests (218): review spacing, quiz clean-up, ownership, Jev grading, and the review call. Pushed to dev; the component is installed there.
+
 ### A cheaper email check (2026-10-22)
 
 - The email check (every minute, and on each webhook email event) ran the `receive` mutation for every email of the last 10 minutes, already recorded or not. Now one query (`emails.unseen`) says which are new first, so a quiet minute costs one query instead of one mutation per recent email.

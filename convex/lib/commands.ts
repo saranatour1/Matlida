@@ -77,6 +77,18 @@ export const BUILT_IN_COMMANDS = [
       'Solve the problem after /fix as fast as you can. Lead with the most likely cause and the fix, in a few lines, with code if it is code. Then how to check it worked, and the next thing to try if it did not. Look up anything current with web_search (or convex_docs for Convex) instead of guessing. Ask only for what you truly need, in one short question.',
   },
   {
+    name: 'study',
+    description: 'Make flash cards to study',
+    markdown:
+      'Make flash cards on what the user wrote after /study with make_study_set, format cards, 10 unless they say how many, at the level they say or beginner. If no topic was given, ask for it in one short question. After the card, say in one line that cards come back in the Library when they are due, and that you can quiz them on a call.',
+  },
+  {
+    name: 'quiz',
+    description: 'Make a quiz to test yourself',
+    markdown:
+      'Make a quiz on what the user wrote after /quiz with make_study_set, format quiz, 8 questions unless they say how many, at the level they say or beginner. If no topic was given, ask for it in one short question. After the card, say in one line that short answers are checked for meaning, not exact words.',
+  },
+  {
     name: 'image',
     description: 'Make a picture',
     markdown:

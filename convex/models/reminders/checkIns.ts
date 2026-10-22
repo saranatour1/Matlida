@@ -1,6 +1,6 @@
 import { HOUR } from '@convex-dev/rate-limiter'
 import { v } from 'convex/values'
-import { internal } from '../../_generated/api'
+import { components, internal } from '../../_generated/api'
 import {
   internalAction,
   internalMutation,
@@ -35,6 +35,7 @@ const candidates = internalQuery({
       from: v.string(),
       timeZone: v.optional(v.string()),
       lastChatAt: v.number(),
+      cardsDue: v.number(),
     }),
   ),
   handler: async (ctx) => {
@@ -64,6 +65,10 @@ const candidates = internalQuery({
         .order('desc')
         .first()
       if (call && now - call._creationTime < GAP_MS) continue
+      const due = await ctx.runQuery(components.study.decks.due, {
+        userId: last.userId,
+        limit: 100,
+      })
       people.push({
         userId: last.userId,
         projectId: project._id,
@@ -71,6 +76,7 @@ const candidates = internalQuery({
         from: assistant.name,
         timeZone: user.timeZone,
         lastChatAt: last.at,
+        cardsDue: due.length,
       })
     }
     return people
@@ -85,9 +91,11 @@ const call = internalMutation({
     threadId: v.string(),
     from: v.string(),
     about: v.union(v.string(), v.null()),
+    /** A review call: it opens with up to 5 due study cards. */
+    review: v.boolean(),
   },
   returns: v.boolean(),
-  handler: async (ctx, { userId, about, ...reminder }) => {
+  handler: async (ctx, { userId, about, review, ...reminder }) => {
     const { ok } = await rateLimiter.limit(ctx, 'checkInCall', { key: userId })
     if (!ok) return false
     const now = Date.now()
@@ -98,11 +106,18 @@ const call = internalMutation({
     if (activity) {
       await ctx.db.patch('userActivity', activity._id, { checkInAt: now })
     }
+    const cards = review
+      ? await ctx.runQuery(components.study.decks.due, { userId, limit: 5 })
+      : []
     const id = await ctx.db.insert('reminders', {
       ...reminder,
-      message: about
-        ? `Checking in about: ${about.slice(0, 300)}`
-        : 'Just checking in to see how things are going.',
+      message: cards.length
+        ? `Time to review ${cards.length} study ${cards.length === 1 ? 'card' : 'cards'}: ${cards
+            .map(({ item }, i) => `${i + 1}) ${item.front.slice(0, 120)}`)
+            .join(' ')}. Let's start with the first.`
+        : about
+          ? `Checking in about: ${about.slice(0, 300)}`
+          : 'Just checking in to see how things are going.',
       dueAt: now,
       via: 'call',
       kind: 'checkin',
@@ -131,7 +146,7 @@ const run = internalAction({
             threadId: person.threadId,
           }),
         ])
-        const { callNow, about } = await metered(
+        const { callNow, about, review } = await metered(
           ctx,
           { userId: person.userId, model: MODELS.decide, estimate: 0.005 },
           async () => {
@@ -142,6 +157,7 @@ const run = internalAction({
               hoursSinceLastChat: Math.round(
                 (Date.now() - person.lastChatAt) / HOUR,
               ),
+              cardsDue: person.cardsDue,
             })
             return { result, cost }
           },
@@ -153,6 +169,7 @@ const run = internalAction({
           threadId: person.threadId,
           from: person.from,
           about,
+          review,
         })
       } catch (error) {
         console.error(error)
