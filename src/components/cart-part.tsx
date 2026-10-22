@@ -6,6 +6,7 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { money } from '~/lib/money'
+import { attempt } from '~/lib/attempt'
 
 type CartToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -78,10 +79,12 @@ function Cart() {
                 size="icon-sm"
                 aria-label={item.quantity === 1 ? 'Remove' : 'One fewer'}
                 onClick={() =>
-                  void setQuantity({
-                    id: item._id,
-                    quantity: item.quantity - 1,
-                  })
+                  void attempt(
+                    setQuantity({
+                      id: item._id,
+                      quantity: item.quantity - 1,
+                    }),
+                  )
                 }
               >
                 <MinusIcon />
@@ -94,10 +97,12 @@ function Cart() {
                 size="icon-sm"
                 aria-label="One more"
                 onClick={() =>
-                  void setQuantity({
-                    id: item._id,
-                    quantity: item.quantity + 1,
-                  })
+                  void attempt(
+                    setQuantity({
+                      id: item._id,
+                      quantity: item.quantity + 1,
+                    }),
+                  )
                 }
               >
                 <PlusIcon />
@@ -124,7 +129,7 @@ function Cart() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void clearShop({ shop: shop.shop })}
+              onClick={() => void attempt(clearShop({ shop: shop.shop }))}
             >
               Bought it, clear
             </Button>

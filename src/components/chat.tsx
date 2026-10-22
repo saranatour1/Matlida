@@ -77,9 +77,14 @@ export function Chat({
     { initialNumItems: 50, stream: true },
   )
   const messages = results as Array<ChatUIMessage>
+  // Only messages that start with 📨 can be emails (`emails.receive`), so
+  // most chats never ask, and a new message from you doesn't re-ask.
+  const emailIds = messages
+    .filter((m) => m.role === 'assistant' && m.text.startsWith('📨'))
+    .map((m) => m.id)
   const emails = useQuery(
     api.api.emails.forMessages,
-    threadId ? { threadId, messageIds: messages.map((m) => m.id) } : 'skip',
+    threadId && emailIds.length ? { threadId, messageIds: emailIds } : 'skip',
   )
   const last = messages.at(-1)
   const lastPrompt = messages.filter((m) => m.role === 'user').at(-1)

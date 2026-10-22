@@ -6,6 +6,8 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc } from '@convex/_generated/dataModel'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
+import { attempt } from '~/lib/attempt'
+import { CardSkeleton } from '~/components/card-skeleton'
 
 type ChecklistToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -46,7 +48,7 @@ function Checklist({ id }: { id: string }) {
     },
   )
   const clearDone = useMutation(api.api.plans.clearDone)
-  if (plan === undefined) return null
+  if (plan === undefined) return <CardSkeleton />
   if (plan === null) {
     return (
       <p className="px-1.5 text-sm text-muted-foreground">
@@ -82,7 +84,7 @@ function Checklist({ id }: { id: string }) {
               <input
                 type="checkbox"
                 checked={step.done}
-                onChange={() => void toggle({ id: plan._id, index })}
+                onChange={() => void attempt(toggle({ id: plan._id, index }))}
                 className="mt-1"
               />
               <span
@@ -102,7 +104,7 @@ function Checklist({ id }: { id: string }) {
             variant="ghost"
             size="sm"
             className="h-7 px-2"
-            onClick={() => void clearDone({ id: plan._id })}
+            onClick={() => void attempt(clearDone({ id: plan._id }))}
           >
             Clear done
           </Button>

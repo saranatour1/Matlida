@@ -34,6 +34,7 @@ import {
 import { Textarea } from '~/components/ui/textarea'
 import { errorMessage } from '~/lib/errors'
 import { RULES } from '~/lib/rules'
+import { attempt } from '~/lib/attempt'
 
 /** Where the notes on an editor's text live. */
 type CommentTarget = {
@@ -426,7 +427,9 @@ function Notes({ notes }: { notes: Array<Note> }) {
             variant="ghost"
             size="sm"
             onClick={() =>
-              void setResolved({ id: note._id, resolved: !note.resolved })
+              void attempt(
+                setResolved({ id: note._id, resolved: !note.resolved }),
+              )
             }
           >
             {note.resolved ? 'Reopen' : 'Resolve'}
@@ -436,7 +439,7 @@ function Notes({ notes }: { notes: Array<Note> }) {
             variant="ghost"
             size="sm"
             aria-label="Delete note"
-            onClick={() => void remove({ id: note._id })}
+            onClick={() => void attempt(remove({ id: note._id }))}
           >
             Delete
           </Button>

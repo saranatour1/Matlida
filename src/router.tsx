@@ -5,6 +5,7 @@ import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
 import { api } from '@convex/_generated/api'
 import { routeTree } from './routeTree.gen'
+import { ErrorScreen, NotFoundScreen } from '~/components/error-screen'
 
 export function getRouter() {
   const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!
@@ -30,10 +31,8 @@ export function getRouter() {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0, // Let React Query handle all caching
-    defaultErrorComponent: ({ error }) => (
-      <p>{error instanceof Error ? error.stack : String(error)}</p>
-    ),
-    defaultNotFoundComponent: () => <p>not found</p>,
+    defaultErrorComponent: ErrorScreen,
+    defaultNotFoundComponent: NotFoundScreen,
     Wrap: ({ children }) => (
       <ConvexAuthProvider
         client={convexQueryClient.convexClient}

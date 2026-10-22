@@ -675,8 +675,18 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - A running dev server only picks up a new alias after a restart; it 500'd until it was restarted.
 - Verified with pnpm check (build included), the tests (223), and the dev server serving the app after a restart.
 
-### README: commands, and what's next (2026-10-22)
+### Fewer subscriptions on the frontend (2026-10-22)
 
-- **Commands in the chat:** all 44 built-in commands in eight groups, with how to use them. A test fails if a built-in command is missing from the table.
-- **Scripts and commands:** `pnpm check` and `pnpm test` are now in the table, plus the commands this repo actually uses: PR size, pushing to dev, insights, logs, env names only, the judgments summary and the call dump. The one `npx` became `pnpm exec`.
-- **What's next:** four directions, each with what exists and what comes next: workflows with AI and Convex, looped projects that report and guide, custom frontend features, and the feedback loop. Its rule: broken or blocking first, then the feedback loop, then the rest; one PR on master each. AGENTS.md points to it.
+- **The details panel** subscribed to everything for all its tabs as soon as it opened: bots, connectors, reminders, tasks, plans, usage and budget. Each tab is now its own component with its own queries, and Base UI unmounts a hidden tab, so only the open tab subscribes. The default Details tab went from 7 subscriptions to 2.
+- **The chat** asked which messages are emails, passing every message id. That re-subscribed with new arguments on every message, in every chat. Only messages starting with 📨 can be emails, so it now asks about just those, and skips the query when there are none, which is most chats.
+- **The incoming-call ring** query is skipped during a call, since nothing rings over one.
+- Already fine: transcripts load only when opened, and identical queries (like `bots.list` in the sidebar, chat header and search) share one subscription in the Convex client.
+- Verified with pnpm check and the tests (223).
+
+### A sturdier frontend (2026-10-22)
+
+- **Clicks don't fail silently:** 32 buttons, menus and checkboxes fired a mutation with `void`, so a failure (offline, over budget, already gone) showed nothing and surfaced as an unhandled rejection. They now go through `attempt` (`src/lib/attempt.ts`), which shows the error as a toast (sonner, added) with the server's message when there is one.
+- **One click at a time:** the one-shot buttons wait while they run, via React's `useTransition`: the task card's Start, Don't start, Try again and Cancel, the contact message's Send and Cancel, and the incoming call's Snooze and Decline.
+- **Cards don't pop in or vanish:** six chat cards (task, page, video, price watch, checklist, study deck) rendered nothing while loading, so the chat jumped when they arrived. They show a skeleton the size of a card now. The task and price-watch cards also say when what they showed was removed, instead of disappearing.
+- **Error pages:** a crashed page showed users a raw stack trace, and an unknown URL showed "not found" in plain text. There's now an error page with Try again and Home (the stack only in development), and a proper not-found page.
+- Verified with pnpm check and the tests (223), and the not-found page on the dev server.

@@ -12,6 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { attempt } from '~/lib/attempt'
 
 /** Who the chat's assistant can hand work to, for the chat's header. None until you add them. */
 export function ThreadMembers({
@@ -71,13 +72,15 @@ export function ThreadMembers({
                   key={b._id}
                   checked={memberIds.includes(b._id)}
                   onCheckedChange={(checked) =>
-                    void setMembers({
-                      projectId: project._id,
-                      botId: bot?._id,
-                      memberIds: checked
-                        ? [...memberIds, b._id]
-                        : memberIds.filter((id) => id !== b._id),
-                    })
+                    void attempt(
+                      setMembers({
+                        projectId: project._id,
+                        botId: bot?._id,
+                        memberIds: checked
+                          ? [...memberIds, b._id]
+                          : memberIds.filter((id) => id !== b._id),
+                      }),
+                    )
                   }
                 >
                   <BotAvatar portrait={portraitOf(b)} />
