@@ -1,3 +1,4 @@
+import { FileTextIcon } from 'lucide-react'
 import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -117,6 +118,7 @@ export function ChatMessage({
     return (
       <Message align="end">
         <MessageContent>
+          <Attachments parts={message.parts} />
           <Bubble align="end" variant="muted">
             <BubbleContent>{message.text}</BubbleContent>
           </Bubble>
@@ -152,6 +154,34 @@ export function ChatMessage({
 }
 
 type Part = ChatUIMessage['parts'][number]
+
+/** Pictures and PDFs sent with a message: thumbnails and chips that open them. */
+function Attachments({ parts }: { parts: Array<Part> }) {
+  const files = parts.filter((p) => p.type === 'file')
+  if (files.length === 0) return null
+  return (
+    <ul aria-label="Attachments" className="flex flex-wrap justify-end gap-2">
+      {files.map((file) => (
+        <li key={file.url}>
+          <a href={file.url} target="_blank" rel="noreferrer">
+            {file.mediaType.startsWith('image/') ? (
+              <img
+                src={file.url}
+                alt={file.filename ?? 'Attached picture'}
+                className="max-h-40 max-w-56 rounded-xl border object-cover"
+              />
+            ) : (
+              <span className="flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs">
+                <FileTextIcon className="size-4 text-muted-foreground" />
+                {file.filename ?? 'Attached file'}
+              </span>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function renderPart(
   part: Part,
