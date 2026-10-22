@@ -77,12 +77,6 @@ export const BUILT_IN_COMMANDS = [
       'Solve the problem after /fix as fast as you can. Lead with the most likely cause and the fix, in a few lines, with code if it is code. Then how to check it worked, and the next thing to try if it did not. Look up anything current with web_search (or convex_docs for Convex) instead of guessing. Ask only for what you truly need, in one short question.',
   },
   {
-    name: 'draw',
-    description: 'Draw a diagram in Excalidraw',
-    markdown:
-      'Draw what the user describes after /draw with draw_diagram: pick the Mermaid kind that fits (a flowchart for steps and decisions, a sequenceDiagram for who talks to whom, a classDiagram for how things relate) and keep labels to a few words. If they gave nothing to go on, ask what to draw in one short question. After it shows, say in one line that they can edit it on the canvas and download it.',
-  },
-  {
     name: 'image',
     description: 'Make a picture',
     markdown:

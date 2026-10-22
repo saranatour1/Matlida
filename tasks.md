@@ -62,8 +62,7 @@
 - [x] needs_follow_up: Jev checks what from earlier is still not done, in chats, texts and calls
 - [x] The chat stays at the bottom when you send
 - [x] Copy on messages, code blocks, drafts and post previews
-- [x] Diagrams on an Excalidraw canvas (/draw)
-- [ ] Diagrams: see one render in the browser, and rank docs pages with Jev if word overlap misses
+- [ ] Diagrams: Excalidraw was dropped (its Mermaid parser pulled 13 audit holes); find a lighter way
 - [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
 - [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
 - [x] Record every assistant's chat once, then stop guessing
