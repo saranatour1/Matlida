@@ -742,6 +742,25 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
 
+### Old attachments no longer crash replies (2026-10-22)
+
+- On dev, replies in Matilda's main chat (`api/chat:respond`, and `api/texts:replyOnPhoton` before it) ran out of memory: "maximum memory usage: 64 MB". The chat had a 10.1 MB PDF attached earlier. Every reply sent the whole history, and before each model call the AI SDK downloads every attached file and encodes it, so a reply of a few steps passed the 64 MB a Convex action gets.
+- Now only the message being answered sends its attachments. Older pictures and files go to the model as a note, like `[menu.pdf attached earlier]` (`withoutAttachments` in `convex/lib/attachments.ts`, through the agent's `contextHandler` in `lead.ts`). What's stored and what the chat shows don't change.
+- Ceiling: the model can't look at a file from an earlier message again; attach it again to ask about it. A 10 MB file on the message being answered is still downloaded once per step of that reply.
+- Verified with pnpm check and the tests (230), including one that checks what the model receives for a PDF and then for the next message.
+
+### Stop a reply (2026-10-22)
+
+- While a reply runs, the send button turns into Stop (`chat.stop`). It aborts the reply's stream, which stops the reply at its next word, and marks any pending message failed. A "_Stopped._" note then ends the chat, so it doesn't read as an error.
+- It also unsticks a chat whose reply died, like one that ran out of memory: that reply was left pending forever, which kept the send button disabled.
+- Verified with pnpm check and the tests (230), including a stuck pending reply cleared by Stop, and Stop on someone else's chat refused.
+
+### Phone numbers redacted on screen (2026-10-22)
+
+- Every phone number shown in the chat, in your messages, the assistants' replies and quoted emails, appears as its last 4 digits, like "…0123" (`redactNumbers` in `convex/lib/phone.ts`). Only the display changes: the stored message keeps the full number, so the call tool can still check it, and Copy copies what you wrote.
+- The person called is named by that fragment: the call tool hands the model "…0123" in its result and errors, and asks it to use that in replies. On the call, the assistant isn't told the number, and is told never to say it.
+- It counts as a number when it starts with + or 00, or locally with 0, and has 8 to 15 digits, so dates, times and prices stay as they are.
+
 ### Call recordings, and hanging up when it's done (2026-10-22)
 
 - Each phone call is recorded: both sides mixed into one 8 kHz WAV (`recorder` in `convex/lib/rtp.ts`, about 1 MB a minute), saved when the call ends however it ends. Call history plays it above the transcript, and the chat summary says where it is.

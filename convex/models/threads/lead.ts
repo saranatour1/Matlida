@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
+import { withoutAttachments } from '../../lib/attachments'
 import { budgetedModel } from '../../lib/budget'
 import { EFFORTS, LANGUAGES, MODELS } from '../../lib/models'
 import { zoned } from '../../lib/time'
@@ -281,6 +282,12 @@ export const createAgent = (
         )
       : {},
     stopWhen: tools ? stepCountIs(EFFORTS[effort].steps) : undefined,
+    // Only the message being answered sends its attachments; older ones are notes.
+    contextHandler: (_ctx, c) => [
+      ...[...c.search, ...c.recent, ...c.inputMessages].map(withoutAttachments),
+      ...c.inputPrompt,
+      ...c.existingResponses,
+    ],
     usageHandler: recordUsage(project, model, chargeTo),
   })
 }
