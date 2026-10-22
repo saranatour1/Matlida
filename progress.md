@@ -728,3 +728,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The "Made with Convex" pill uses Convex's own symbol (`public/convex-symbol.svg`), copied unaltered from their brand kit at convex.dev/brand, as their rules ask.
 - `public/og.png` is redrawn to match the page: Matilda's photo, "She actually calls you.", the call button, "because I made her that way", the domain, and the Convex pill. It's 1200×630.
 
+### Stop a reply (2026-10-22)
+
+- While a reply runs, the send button turns into Stop (`chat.stop`). It aborts the reply's stream, which stops the reply at its next word, and marks any pending message failed. A "_Stopped._" note then ends the chat, so it doesn't read as an error.
+- It also unsticks a chat whose reply died, like one that ran out of memory: that reply was left pending forever, which kept the send button disabled.
+- Verified with pnpm check and the tests (230), including a stuck pending reply cleared by Stop, and Stop on someone else's chat refused.
+
