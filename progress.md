@@ -474,3 +474,7 @@
 - Smaller: texts over the limit aren't kept for find_texts (#70); a missed-call text that couldn't go out says so (#71); no link on a price watch without a URL (#76); "Keep up to date" waits a full period (#79); needs_follow_up names no request when nothing's owed (#90); a diagram that fails to parse can be tried again (#93).
 - Left as is: a reply whose chat line fails after Photon sent it stays Replied (it was sent); plan titles beyond the newest 50 (#73); a union type for emails; #67's DoH status (on its own branch).
 
+### Dependency audit (2026-10-22)
+
+- `pnpm audit` found 13 holes, all under Excalidraw's Mermaid parser: nanoid, lodash-es and katex. Pinned to patched releases, each over two weeks old, in `pnpm-workspace.yaml` overrides. One is left: `braces` (a stack overflow on deeply nested glob patterns) under `sass`, which Excalidraw lists but the app never runs; it has no patched release.
+

@@ -11,3 +11,10 @@ overrides:
   '@ai-sdk/provider': 4.0.29
   '@ai-sdk/provider-utils': 5.0.62
   '@ai-sdk/gateway': 4.0.110
+  # Excalidraw and its Mermaid parser pin old nanoid, lodash-es and katex
+  # with known holes (pnpm audit, 2026-10-22). Patched releases, each over
+  # two weeks old. Drop these once @excalidraw/mermaid-to-excalidraw updates.
+  'nanoid@3': 3.3.19
+  'nanoid@>=4 <6': 5.1.16
+  lodash-es: 4.18.1
+  katex: 0.18.9
