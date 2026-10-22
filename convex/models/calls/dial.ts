@@ -47,8 +47,10 @@ import type { phoneStatus } from './table'
 const RING_MS = 45_000
 /** Actions stop at 10 minutes, so a call hangs up before. */
 const MAX_CALL_MS = 9 * 60_000
-/** Hang up after this long without hearing them. */
+/** After this long without hearing them, ask if they're still there. */
 const QUIET_MS = 12_000
+/** Then wait this long for an answer before saying goodbye and hanging up. */
+const GRACE_MS = 10_000
 
 type Ending = {
   status: Infer<typeof phoneStatus>
@@ -529,6 +531,8 @@ const placeCall = async (
   // Audio in: count every packet, and listen for speech when it's their turn.
   let heard = 0
   let busy = true
+  /** Whether it already asked "are you still there?" since they last spoke. */
+  let askedIfThere = false
   let lastHeard = performance.now()
   const ear = listener()
   let onSpeech = (_samples: Int16Array) => {}
@@ -650,6 +654,7 @@ const placeCall = async (
     onSpeech = (samples) => {
       if (over.signal.aborted) return
       busy = true
+      askedIfThere = false
       void (async () => {
         const wav = pcmToWav(pcmBytes(samples), 8000)
         const stop = new AbortController()
@@ -728,8 +733,27 @@ const placeCall = async (
     if (now - answeredAt > MAX_CALL_MS) {
       resolveEnd({ status: 'ended', note: 'calls last at most 9 minutes' })
     }
-    if (!busy && now - lastHeard > QUIET_MS) {
-      resolveEnd({ status: 'ended', note: 'it went quiet' })
+    if (!busy && now - lastHeard > (askedIfThere ? GRACE_MS : QUIET_MS)) {
+      busy = true
+      const asking = !askedIfThere
+      askedIfThere = true
+      // Quiet: ask once if they're still there, then after 10 more seconds, say goodbye.
+      speak({
+        text: asking
+          ? 'Nobody has said anything for a while. Ask briefly if they are still there.'
+          : 'They have gone quiet. Say a short goodbye that ends with "Goodbye."',
+      })
+        .then(async (said) => {
+          history.push({ role: 'assistant', content: said })
+          await addLine('them', said)
+          if (asking) return listen()
+          await drained()
+          resolveEnd({ status: 'ended', note: 'it went quiet' })
+        })
+        .catch((error: unknown) => {
+          console.error(error)
+          resolveEnd({ status: 'ended', note: 'it went quiet' })
+        })
     }
   }, 1000)
   cleanups.push(() => clearInterval(watch))
