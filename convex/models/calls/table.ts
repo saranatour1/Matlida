@@ -26,6 +26,9 @@ export const callsTable = defineTable({
     v.object({
       to: v.string(),
       status: phoneStatus,
+      /** Who asked for the call, and what it was for. The assistant that placed it is the call's `botId` (unset for the lead). */
+      askedBy: v.optional(v.id('users')),
+      about: v.optional(v.string()),
       /** Why it failed, or how it ended. */
       note: v.optional(v.string()),
       /** Audio packets that came back. 0 on an answered call means their side never reached us. */

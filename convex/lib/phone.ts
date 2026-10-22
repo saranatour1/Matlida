@@ -1,3 +1,6 @@
+/** How the app shows a number it called: its last 4 digits, like "…0123". */
+export const maskNumber = (to: string) => `…${to.slice(-4)}`
+
 /** A number in international format, like +14155550123. */
 export const PHONE_NUMBER = /^\+[1-9]\d{6,14}$/
 

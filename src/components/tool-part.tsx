@@ -10,6 +10,7 @@ import {
   TelescopeIcon,
 } from 'lucide-react'
 import { api } from '@convex/_generated/api'
+import { maskNumber } from '@convex/lib/phone'
 import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '@convex/_generated/dataModel'
@@ -212,7 +213,7 @@ export function CallPhonePart({
     callId ? { id: callId } : 'skip',
   )
   const hangUp = useMutation(api.api.calls.hangUpPhone)
-  const to = part.input?.to ?? '…'
+  const to = part.input?.to ? maskNumber(part.input.to) : '…'
   const live = phone && !phone.endedAt
   return (
     <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
@@ -224,7 +225,7 @@ export function CallPhonePart({
       {failed !== null
         ? `Couldn't call: ${failed}`
         : phone
-          ? `${PHONE_STATUS[phone.status]} ${phone.to}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
+          ? `${PHONE_STATUS[phone.status]} ${maskNumber(phone.to)}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
           : `Calling ${to}…`}
       {live && callId && !phone.hangUp && (
         <Button

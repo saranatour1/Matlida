@@ -4,6 +4,7 @@ import { components, internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import schema from '../../schema'
 import { authedMutation, authedQuery } from '../../lib/functions'
+import { maskNumber } from '../../lib/phone'
 import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/queries'
 import { zoned } from '../../lib/time'
@@ -204,11 +205,28 @@ const startPhone = internalMutation({
   },
   returns: v.id('calls'),
   handler: async (ctx, { projectId, threadId, to, ...call }) => {
-    // ponytail: the call is filed under the lead, even when a bot placed it.
+    const project = await ctx.db.get('projects', projectId)
+    if (!project) throw new ConvexError('Project not found.')
+    // Filed under the assistant that placed it, so it's in that one's Call history.
+    const bot =
+      call.from === project.name
+        ? null
+        : await ctx.db
+            .query('bots')
+            .withIndex('by_project_and_name', (q) =>
+              q.eq('projectId', projectId).eq('name', call.from),
+            )
+            .first()
     const id = await ctx.db.insert('calls', {
       projectId,
+      botId: bot?._id,
       threadId,
-      phone: { to, status: 'dialing' },
+      phone: {
+        to,
+        status: 'dialing',
+        askedBy: project.ownerId,
+        about: call.about,
+      },
     })
     await ctx.scheduler.runAfter(0, internal.api.dial.dial, {
       callId: id,
@@ -277,7 +295,7 @@ const setPhone = internalMutation({
       )
       .join('\n>\n')
     // The chat goes to the model with every reply, so it only names the number's end.
-    const number = `the number ending ${phone.to.slice(-4)}`
+    const number = maskNumber(phone.to)
     const why = note ? ` (${note})` : ''
     await saveMessage(ctx, components.agent, {
       threadId: call.threadId,
