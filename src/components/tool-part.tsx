@@ -186,13 +186,27 @@ const PHONE_STATUS = {
 /** A phone call an assistant placed, to a number you typed, as it goes. */
 export function CallPhonePart({
   part,
+  stopped,
 }: {
   part: Extract<ChatUIMessage['parts'][number], { type: 'tool-call_phone' }>
+  /** Its reply died or was stopped before the call started. */
+  stopped: boolean
 }) {
+  // A tool's error can come back as plain text in place of its result.
+  const output: unknown =
+    part.state === 'output-available' ? part.output : undefined
   const callId =
-    part.state === 'output-available'
-      ? (part.output.callId as Id<'calls'>)
+    output && typeof output === 'object' && 'callId' in output
+      ? (output.callId as Id<'calls'>)
       : null
+  const failed =
+    part.state === 'output-error'
+      ? part.errorText
+      : typeof output === 'string'
+        ? output.replace(/^Error: /, '')
+        : stopped && !callId
+          ? 'the reply stopped first.'
+          : null
   const phone = useQuery(
     api.api.calls.phoneState,
     callId ? { id: callId } : 'skip',
@@ -202,13 +216,13 @@ export function CallPhonePart({
   const live = phone && !phone.endedAt
   return (
     <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
-      {part.state === 'output-error' || (phone && !live) ? (
+      {failed !== null || (phone && !live) ? (
         <PhoneOutgoingIcon className="size-4" />
       ) : (
         <Spinner />
       )}
-      {part.state === 'output-error'
-        ? `Couldn't call: ${part.errorText}`
+      {failed !== null
+        ? `Couldn't call: ${failed}`
         : phone
           ? `${PHONE_STATUS[phone.status]} ${phone.to}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
           : `Calling ${to}…`}

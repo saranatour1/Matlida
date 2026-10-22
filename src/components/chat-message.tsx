@@ -139,7 +139,7 @@ export function ChatMessage({
       <MessageContent>
         {message.parts.map((part, index) => (
           <PartBoundary key={'toolCallId' in part ? part.toolCallId : index}>
-            {renderPart(part, index, onSend)}
+            {renderPart(part, index, onSend, message.status === 'failed')}
           </PartBoundary>
         ))}
         <div className="flex gap-0.5">
@@ -278,6 +278,8 @@ function renderPart(
   part: Part,
   index: number,
   onSend?: (prompt: string) => void,
+  /** The reply died or was stopped, so a tool still waiting won't finish. */
+  stopped = false,
 ) {
   switch (part.type) {
     case 'text':
@@ -322,7 +324,9 @@ function renderPart(
     case 'tool-keep_page_updated':
       return <KeepUpdatedPart key={part.toolCallId} part={part} />
     case 'tool-call_phone':
-      return <CallPhonePart key={part.toolCallId} part={part} />
+      return (
+        <CallPhonePart key={part.toolCallId} part={part} stopped={stopped} />
+      )
     case 'tool-set_reminder':
       return <ReminderPart key={part.toolCallId} part={part} />
     case 'tool-run_plan':
