@@ -695,6 +695,6 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 - The app builds for Cloudflare Workers, following Cloudflare's TanStack Start guide. `@cloudflare/vite-plugin` runs server rendering in Cloudflare's runtime, in `pnpm dev` too. `wrangler.jsonc` targets the existing `matlida` Worker, which Workers Builds already has connected to this repo, with `nodejs_compat` and observability on.
 - Compatibility date 2026-10-19, the newest the installed local runtime supports; with today's date, `pnpm dev` refused to start.
-- `.env.production` points the built app at production Convex (`knowing-magpie-554`). It's a public URL; secrets stay on Convex.
+- The production build gets `VITE_CONVEX_URL` (production Convex, `knowing-magpie-554`) from the environment: on the command line, or Workers Builds' build variables. No `.env*` file is committed; `.gitignore` covers them all.
 - Scripts: `pnpm run deploy` (build, then `wrangler deploy`), `pnpm preview`, `pnpm cf-typegen`. The old Node `start` script is gone. `.wrangler` and `.dev.vars` are ignored. pnpm may run `workerd`'s install script.
 - Checked: `pnpm check`, the tests, `wrangler deploy --dry-run` (1.37 MiB gzipped), and `pnpm dev` serving pages from Cloudflare's runtime. Not deployed yet: production Convex has no environment variables, and `convex.config.ts` requires them.
