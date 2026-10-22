@@ -662,6 +662,12 @@ Not done (finding #6): every email sent still looks up both Photon users first, 
 - ESLint now refuses `new Date()`, `Date.parse`, `Date.UTC`, `toISOString`, `toLocaleDateString`, `toLocaleTimeString` and `Intl.DateTimeFormat` outside the tests, pointing to `convex/lib/time.ts`. A date's `toLocaleString` can't be told from a number's by syntax, so that one stays judgment. AGENTS.md says so.
 - Verified with pnpm check and the tests (223), and pushed to dev.
 
+### Texts: a replaced turn doesn't pay (2026-10-22)
+
+From the Photon review (finding #5). In collapse mode a newer text replaces the turn before it, but `respond` only checked that after the model had answered, so a replaced turn still paid for its reply and saved it in the chat. It now checks before calling the model too. A text that lands in the few seconds while the model is already running still pays for that reply. Stopping mid-way needs a timer that checks during generation, and that's left until costs show it's worth it (`ponytail` note in `respond`).
+- New test: a second text that lands while the first reply is queued means one model call and one reply. It fails without the check.
+- Verified with pnpm check and the tests (224), and pushed to dev.
+
 ### `@convex/…` instead of `../../../../../../convex/…` (2026-10-22)
 
 - The frontend imported the backend through relative paths up to six levels deep (97 imports). `tsconfig.json` now has an `@convex/*` alias next to `~/*`, and Vite reads it through `resolve.tsconfigPaths`, so they read `import { api } from '@convex/_generated/api'`.

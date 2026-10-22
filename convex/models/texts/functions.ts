@@ -501,7 +501,11 @@ const batch = internalMutation({
   },
 })
 
-/** Replies to a Spectrum burst, unless a newer text superseded it, then closes the turn. */
+/**
+ * Replies to a Spectrum burst, then closes the turn. A newer text replaces
+ * the turn (collapse mode), so it checks before calling the model, not only
+ * after: a turn replaced while it waited doesn't pay for an answer nobody gets.
+ */
 const respond = internalAction({
   args: {
     spaceId: v.string(),
@@ -514,6 +518,8 @@ const respond = internalAction({
   handler: async (ctx, { chainId, ...message }) => {
     const chain = { spaceId: message.spaceId, chainId }
     try {
+      // ponytail: a text that lands while the model runs still pays for this reply; abort mid-way if that shows up in costs.
+      if (await spectrum.isCancelled(ctx, chain)) return null
       const reply = await answer(ctx, message).catch((error: unknown) => {
         console.error(error)
         return (
