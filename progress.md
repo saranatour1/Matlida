@@ -626,6 +626,12 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - A webhook email event used to start a full check right away, so a burst of mail ran several checks side by side. It now queues one check 2 seconds out unless one is already queued (`emails.schedulePoll`, with its scheduled run kept on the one `emailPolls` row, written only when queuing).
 - Same shape as the Telegram fix (#112). Verified with pnpm check and the tests (210), and pushed to dev.
 
+### Task steps aren't retried on their own (2026-10-22)
+
+- A task step that failed was retried automatically, up to the workflow's default number of attempts. Each try paid for the model again, and a step that had already set a reminder or added to a list could do it twice. Now a failed step stops the task once (`retry: false`).
+- The stopped task's card has a **Try again** button (`tasks.retry`). It restarts the workflow from the step that failed, with `restart(…, { from: doStep })`. The steps before it keep their results and aren't paid for again. The chat says to press it.
+- Verified with pnpm check and the tests (221): a failing step runs once, and Try again runs only that step, then finishes the task.
+
 ### PDFs work on every chat model (2026-10-22)
 
 - Checked on dev with a one-page PDF ("The secret word is MARMALADE."), sent the way an attachment is: a Convex storage URL in a `file` part with `application/pdf`. All 10 chat models answered MARMALADE: Claude Sonnet 5, Opus 5 and Haiku 4.5, GPT-5 and GPT-5 mini, Gemini 2.5 Pro and Flash, DeepSeek V3.2, Grok 4.7 and Muse Spark 1.3. So no model needs PDFs turned off.
