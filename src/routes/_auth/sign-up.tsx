@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button'
 import { useSignInMethods } from '~/hooks/use-sign-in-methods'
 import { FieldError, FieldGroup, FieldSeparator } from '~/components/ui/field'
 import { authErrorMessage, invalid, signUpSchema } from '~/lib/auth'
+import { trackEvent } from '~/lib/analytics'
 
 export const Route = createFileRoute('/_auth/sign-up')({
   component: SignUp,
@@ -24,6 +25,7 @@ function SignUp() {
       if (!parsed.success) return invalid(parsed.error, data)
       const { email, password } = parsed.data
       const result = await signUp({ email, password })
+      if (result.success) trackEvent('signed_up', { method: 'email' })
       return result.success
         ? { sentTo: email }
         : { error: authErrorMessage(result.userError), email }

@@ -14,6 +14,7 @@ import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
 import { attempt } from '~/lib/attempt'
 import { CardGone, CardSkeleton } from '~/components/card-skeleton'
+import { trackEvent } from '~/lib/analytics'
 
 type RunPlanPart = Extract<
   ChatUIMessage['parts'][number],
@@ -106,7 +107,10 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
             size="sm"
             disabled={busy}
             onClick={() =>
-              startTransition(() => attempt(answer({ taskId, start: true })))
+              startTransition(() => {
+                trackEvent('task_answered', { started: true })
+                return attempt(answer({ taskId, start: true }))
+              })
             }
           >
             Start
@@ -116,7 +120,10 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
             variant="ghost"
             disabled={busy}
             onClick={() =>
-              startTransition(() => attempt(answer({ taskId, start: false })))
+              startTransition(() => {
+                trackEvent('task_answered', { started: false })
+                return attempt(answer({ taskId, start: false }))
+              })
             }
           >
             Don&rsquo;t start
@@ -128,7 +135,12 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
           <Button
             size="sm"
             disabled={busy}
-            onClick={() => startTransition(() => attempt(retry({ taskId })))}
+            onClick={() =>
+              startTransition(() => {
+                trackEvent('task_retried', {})
+                return attempt(retry({ taskId }))
+              })
+            }
           >
             Try again
           </Button>

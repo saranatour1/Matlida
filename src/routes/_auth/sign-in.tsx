@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button'
 import { useSignInMethods } from '~/hooks/use-sign-in-methods'
 import { FieldError, FieldGroup, FieldSeparator } from '~/components/ui/field'
 import { authErrorMessage, invalid, signInSchema } from '~/lib/auth'
+import { rememberSignInMethod } from '~/components/identify-user'
 
 export const Route = createFileRoute('/_auth/sign-in')({
   component: SignIn,
@@ -22,6 +23,7 @@ function SignIn() {
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const parsed = signInSchema.safeParse(Object.fromEntries(data))
       if (!parsed.success) return invalid(parsed.error, data)
+      rememberSignInMethod('email')
       const result = await signIn(parsed.data)
       return result.status === 'complete'
         ? {}

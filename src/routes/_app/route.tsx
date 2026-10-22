@@ -16,6 +16,7 @@ import {
 } from '~/components/ui/sidebar'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { useProject } from '~/hooks/use-project'
+import { IdentifyUser } from '~/components/identify-user'
 
 export const Route = createFileRoute('/_app')({
   component: AppLayout,
@@ -39,6 +40,7 @@ function AppLayout() {
           </SidebarInset>
         </SidebarProvider>
         <IncomingCall />
+        <IdentifyUser />
         <CallPill />
       </CallProvider>
     </TooltipProvider>
