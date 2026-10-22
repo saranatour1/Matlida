@@ -21,7 +21,7 @@ const zMetric = z.object({
  * Pages the user and the assistants edit together: reports, memos and
  * dashboards. An assistant can keep one up to date on a schedule.
  */
-export function pageTools(project: Doc<'projects'>, from: string) {
+export const pageTools = (project: Doc<'projects'>, from: string) => {
   return {
     write_page: createTool({
       description:

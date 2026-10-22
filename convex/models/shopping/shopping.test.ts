@@ -20,14 +20,14 @@ const details = {
   notes: 'Shoe size 38 EU',
 }
 
-function shopify(
+const shopify = (
   variants: Array<{
     id: string
     price: number
     shop: string
     available?: boolean
   }>,
-) {
+) => {
   vi.stubGlobal('fetch', (_url: string, init?: RequestInit) => {
     const { params } = JSON.parse(init?.body as string) as {
       params: { arguments: { catalog: { ids: Array<string> } } }
@@ -57,7 +57,7 @@ function shopify(
   })
 }
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { email: 'ada@example.com' }),

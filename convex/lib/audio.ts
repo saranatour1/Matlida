@@ -20,7 +20,7 @@ export const AUDIO_VOICES = [
 ] as const
 
 /** An assistant's audio chat voice, stable for its name. Matilda's is hers alone. */
-export function audioVoiceFor(name: string): (typeof AUDIO_VOICES)[number] {
+export const audioVoiceFor = (name: string): (typeof AUDIO_VOICES)[number] => {
   if (name === 'Matilda') return AUDIO_VOICES[0]
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
@@ -56,7 +56,8 @@ type Chunk = {
 }
 
 /** The JSON of each `data:` line in a server-sent event stream, until `[DONE]`. */
-export async function* streamedJson(body: ReadableStream<Uint8Array>) {
+// A generator can't be an arrow function, so it's a function expression.
+export const streamedJson = async function* (body: ReadableStream<Uint8Array>) {
   const decoder = new TextDecoder()
   let buffer = ''
   for await (const bytes of body) {
@@ -72,7 +73,7 @@ export async function* streamedJson(body: ReadableStream<Uint8Array>) {
   }
 }
 
-export function base64ToBytes(base64: string) {
+export const base64ToBytes = (base64: string) => {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
@@ -84,11 +85,11 @@ export function base64ToBytes(base64: string) {
  * words said so far, so playback can start before the answer ends. Returns
  * the whole transcript and the token usage.
  */
-export async function audioChat(
+export const audioChat = async (
   turn: AudioChatTurn,
   onAudio: (pcm: Uint8Array, transcript: string) => Promise<void> | void,
   abortSignal?: AbortSignal,
-) {
+) => {
   const response = await fetch(GATEWAY, {
     method: 'POST',
     signal: abortSignal,
@@ -141,7 +142,7 @@ export async function audioChat(
 }
 
 /** 16-bit mono PCM wrapped as a WAV file, so a browser can play it. */
-export function pcmToWav(pcm: Uint8Array, rate = PCM_RATE) {
+export const pcmToWav = (pcm: Uint8Array, rate = PCM_RATE) => {
   const wav = new Uint8Array(44 + pcm.length)
   const view = new DataView(wav.buffer)
   const text = (at: number, value: string) => {

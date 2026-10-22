@@ -2,7 +2,7 @@
 const RATE = 16_000
 
 /** Mono samples from -1 to 1 as a 16-bit PCM WAV file. */
-export function encodeWav(samples: Float32Array, rate: number) {
+export const encodeWav = (samples: Float32Array, rate: number) => {
   const wav = new Uint8Array(44 + samples.length * 2)
   const view = new DataView(wav.buffer)
   const text = (at: number, value: string) => {
@@ -31,7 +31,7 @@ export function encodeWav(samples: Float32Array, rate: number) {
 }
 
 /** A recording as a 16 kHz mono WAV: decoded and resampled by the browser, channels averaged. */
-export async function toWav(recording: Blob) {
+export const toWav = async (recording: Blob) => {
   const decoded = await new OfflineAudioContext(1, 1, RATE).decodeAudioData(
     await recording.arrayBuffer(),
   )

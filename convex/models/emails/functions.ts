@@ -26,7 +26,7 @@ import type { Doc } from '../../lib/ctx'
 
 /** Photon's message list is eventually consistent, so each check looks back this far and skips what's recorded. */
 /** `text` as a markdown blockquote, line by line. */
-function quoted(text: string) {
+const quoted = (text: string) => {
   return text
     .split('\n')
     .map((line) => `> ${line}`)

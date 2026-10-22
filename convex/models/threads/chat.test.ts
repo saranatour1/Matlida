@@ -22,7 +22,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [
@@ -41,7 +41,7 @@ async function setup() {
 const firstPage = { numItems: 10, cursor: null }
 
 /** Runs the lead's scheduled reply. Its stream needs real timers, so fake ones only start it. */
-async function finishReply(t: ReturnType<typeof convexTest>) {
+const finishReply = async (t: ReturnType<typeof convexTest>) => {
   vi.runAllTimers()
   vi.useRealTimers()
   await t.finishInProgressScheduledFunctions()

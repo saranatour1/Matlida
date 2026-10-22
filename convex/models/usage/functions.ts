@@ -7,9 +7,9 @@ import { usageTable } from './table'
 import type { ImageModelProviderMetadata, ProviderMetadata } from 'ai'
 
 /** The gateway's dollar cost from a model call's provider metadata, or 0. */
-export function gatewayCost(
+export const gatewayCost = (
   metadata: ProviderMetadata | ImageModelProviderMetadata | undefined,
-) {
+) => {
   // Absent when the call didn't go through the gateway, whatever the record type says.
   const gateway = metadata?.convexGateway as { cost?: unknown } | undefined
   const cost = gateway?.cost

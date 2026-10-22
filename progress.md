@@ -507,3 +507,7 @@
 - `convex/lib/ctx.ts` re-exports `QueryCtx`, `MutationCtx`, `ActionCtx`, `Doc` and `Id`, plus `Db = Pick<QueryCtx, 'db'>`, which 24 helpers had spelled out. No file under `models/` or `lib/` imports types from `_generated` any more.
 - No behavior change: pnpm check and all 186 tests pass.
 
+### Arrow functions (2026-10-22)
+
+- Every function in `convex/`, `src/lib/` and `src/hooks/` is an arrow function now (198 converted by a codemod), except one generator, which is a function expression. React components stay declarations. ESLint's `func-style` keeps it that way, and the rule is in the table in AGENTS.md.
+

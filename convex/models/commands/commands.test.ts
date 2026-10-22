@@ -6,7 +6,7 @@ import { modules } from '../../test.setup'
 import { sweepable } from './functions'
 import type { Id } from '../../lib/ctx'
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', {}),

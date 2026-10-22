@@ -41,7 +41,7 @@ afterEach(() => {
 
 const HOUR = 60 * 60 * 1000
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   rateLimiterTest.register(t)

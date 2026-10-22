@@ -7,7 +7,7 @@ import type { Experimental_DecisionModel } from 'ai'
  * `question`, given `context`. Returns the pick and each option's
  * probability, so a close call shows.
  */
-export async function decide(
+export const decide = async (
   model: Experimental_DecisionModel,
   {
     question,
@@ -19,7 +19,7 @@ export async function decide(
     context: string
   },
   abortSignal?: AbortSignal,
-) {
+) => {
   const { answers, providerMetadata } = await experimental_decide({
     model,
     state: { question, context },
@@ -48,14 +48,14 @@ export type Turn = { role: 'user' | 'assistant'; text: string }
  * said it would do later, or work in `openWork` that hasn't finished. Jev
  * answers that and which request it is in one call, as two questions.
  */
-export async function needsFollowUp(
+export const needsFollowUp = async (
   model: Experimental_DecisionModel,
   {
     conversation,
     openWork,
   }: { conversation: Array<Turn>; openWork: Array<string> },
   abortSignal?: AbortSignal,
-) {
+) => {
   const requests = conversation
     .filter((t) => t.role === 'user')
     .slice(-8)
@@ -113,11 +113,11 @@ export const HANDLERS = {
  * The "make my problems go away" check: who should handle `problem`, and
  * whether getting it wrong could really hurt. Jev answers both in one call.
  */
-export async function whoShouldHandle(
+export const whoShouldHandle = async (
   model: Experimental_DecisionModel,
   { problem, context }: { problem: string; context: string },
   abortSignal?: AbortSignal,
-) {
+) => {
   const { answers, providerMetadata } = await experimental_decide({
     model,
     state: { problem, context },

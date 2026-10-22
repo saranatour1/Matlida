@@ -32,7 +32,7 @@ const IMAGE_SIZES = {
 } as const
 
 /** The chat's last 30 messages for Jev, with which tools ran and which failed. */
-async function recentTurns(ctx: ToolCtx, threadId: string) {
+const recentTurns = async (ctx: ToolCtx, threadId: string) => {
   const { page } = await listMessages(ctx, components.agent, {
     threadId,
     paginationOpts: { numItems: 30, cursor: null },
@@ -46,7 +46,7 @@ async function recentTurns(ctx: ToolCtx, threadId: string) {
     })
 }
 
-function turnText({ message, text, status, error }: MessageDoc) {
+const turnText = ({ message, text, status, error }: MessageDoc) => {
   const parts = Array.isArray(message?.content) ? message.content : []
   return [
     text?.trim(),
@@ -67,7 +67,7 @@ function turnText({ message, text, status, error }: MessageDoc) {
 const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
 
 /** Tools every assistant (`from`) gets: the web, plans saved to the Library, and reminders. */
-export function assistantTools(project: Doc<'projects'>, from: string) {
+export const assistantTools = (project: Doc<'projects'>, from: string) => {
   /** One Jev call under the owner's budget, without its cost in the tool's answer. */
   const judged = <T extends { cost: number }>(
     ctx: ToolCtx,

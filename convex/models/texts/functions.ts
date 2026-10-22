@@ -26,7 +26,7 @@ const UNBIASED_BYTES = 256 - (256 % CODE_ALPHABET.length)
 
 const CODE_TTL_MS = 10 * 60_000
 
-function newCode() {
+const newCode = () => {
   let code = ''
   while (code.length < 6) {
     const [byte] = crypto.getRandomValues(new Uint8Array(1))
@@ -120,11 +120,11 @@ const claim = internalMutation({
  * from a linked chat count against its owner, so one person can't run up
  * the model from several apps; anything else counts against the chat.
  */
-async function admitText(
+const admitText = async (
   ctx: MutationCtx,
   spaceId: string,
   kind: 'message' | 'link',
-) {
+) => {
   if (kind === 'link') {
     const tries = await rateLimiter.limit(ctx, 'linkAttempt', {
       key: `space:${spaceId}`,

@@ -3,11 +3,11 @@ import type { Db, Id } from '../../lib/ctx'
 export const keyOf = (name: string) => name.trim().toLowerCase()
 
 /** Contacts whose name starts with `name`, ignoring case. An exact match comes first. */
-export async function findContacts(
+export const findContacts = async (
   ctx: Db,
   projectId: Id<'projects'>,
   name: string,
-) {
+) => {
   const key = keyOf(name)
   return await ctx.db
     .query('contacts')

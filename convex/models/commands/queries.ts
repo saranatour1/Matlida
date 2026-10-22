@@ -5,7 +5,7 @@ import type { Db, Id } from '../../lib/ctx'
 export const MAX_COMMANDS = 50
 
 /** A project's commands, at most `MAX_COMMANDS`. */
-export async function getCommands(ctx: Db, projectId: Id<'projects'>) {
+export const getCommands = async (ctx: Db, projectId: Id<'projects'>) => {
   return await ctx.db
     .query('commands')
     .withIndex('by_project_and_name', (q) => q.eq('projectId', projectId))
@@ -13,11 +13,11 @@ export async function getCommands(ctx: Db, projectId: Id<'projects'>) {
 }
 
 /** The project's own command called `name`, or null. */
-export async function getCommand(
+export const getCommand = async (
   ctx: Db,
   projectId: Id<'projects'>,
   name: string,
-) {
+) => {
   return await ctx.db
     .query('commands')
     .withIndex('by_project_and_name', (q) =>
@@ -31,11 +31,11 @@ export async function getCommand(
  * null for a plain message: one of the project's, or a built-in. Throws a
  * user-facing error when there's no such command.
  */
-export async function findCommand(
+export const findCommand = async (
   ctx: Db,
   projectId: Id<'projects'>,
   prompt: string,
-) {
+) => {
   const name = /^\/([a-z0-9][a-z0-9-]*)(?:\s|$)/i
     .exec(prompt)?.[1]
     ?.toLowerCase()

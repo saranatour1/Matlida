@@ -44,7 +44,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const ada = await t.run((ctx) =>
@@ -103,7 +103,7 @@ test('a due text reminder lands in the chat when texting is not linked', async (
 })
 
 /** Email set up on the deployment, and Ada's address claimed. */
-async function withEmail(setupResult: Awaited<ReturnType<typeof setup>>) {
+const withEmail = async (setupResult: Awaited<ReturnType<typeof setup>>) => {
   vi.stubEnv('MAIL_DOMAIN', 'mail.example.com')
   vi.stubEnv('PHOTON_PROJECT_ID', 'pho_prj_test')
   vi.stubEnv('PHOTON_API_KEY', 'pho_sk_test')
@@ -111,7 +111,7 @@ async function withEmail(setupResult: Awaited<ReturnType<typeof setup>>) {
   await asAda.mutation(api.api.mailboxes.claim, { projectId, handle: 'ada' })
 }
 
-async function emailReminder(t: Awaited<ReturnType<typeof setup>>) {
+const emailReminder = async (t: Awaited<ReturnType<typeof setup>>) => {
   return await t.t.mutation(internal.api.reminders.schedule, {
     projectId: t.projectId,
     threadId: t.threadId,

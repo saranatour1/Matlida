@@ -59,12 +59,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function email(
+const email = (
   id: string,
   from: string,
   text: string,
   { to = 'ada@mail.example.com', spam = false, name = 'Ada' } = {},
-) {
+) => {
   return {
     id,
     createdAt: new Date().toISOString(),
@@ -83,7 +83,7 @@ function email(
   }
 }
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   rateLimiterTest.register(t)

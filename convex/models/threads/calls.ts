@@ -48,12 +48,12 @@ const forget = internalMutation({
 })
 
 /** Reads `text` out in `name`'s voice and stores it. */
-async function voice(
+const voice = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   text: string,
   name: string,
-) {
+) => {
   const { audio } = await metered(
     ctx,
     { userId, model: MODELS.speech, estimate: 0.01 },
@@ -73,12 +73,12 @@ async function voice(
 }
 
 /** `voice`, deleted after 10 minutes. Returns its URL. */
-async function speak(
+const speak = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   text: string,
   name: string,
-) {
+) => {
   const { storageId, url } = await voice(ctx, userId, text, name)
   await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
     storageId,
@@ -263,7 +263,7 @@ const PIECE_BYTES = PCM_RATE * 2 * 2
  * voice, cut into pieces as it streams so it starts playing early. Saved to
  * the chat and the call's transcript like any turn. No tools.
  */
-async function fastTurn(
+const fastTurn = async (
   ctx: ActionCtx & { userId: Id<'users'> },
   fast: {
     projectId: Id<'projects'>
@@ -279,7 +279,7 @@ async function fastTurn(
       done?: boolean
     }) => Promise<unknown>
   },
-): Promise<Turn> {
+): Promise<Turn> => {
   let pending: Array<Uint8Array> = []
   let pendingBytes = 0
   let saidChars = 0

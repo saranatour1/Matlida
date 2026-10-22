@@ -5,12 +5,12 @@ import type { Db, Doc, Id } from '../../lib/ctx'
 export const MAX_COMMENTS = 100
 
 /** Throws unless the target is in `project`: the project itself, one of its bots, or one of its commands. */
-export async function checkTarget(
+export const checkTarget = async (
   ctx: Db,
   project: Doc<'projects'>,
   kind: Doc<'comments'>['kind'],
   targetId: string,
-) {
+) => {
   if (kind === 'project') {
     if (targetId !== project._id)
       throw new ConvexError('Not in this workspace.')
@@ -25,22 +25,22 @@ export async function checkTarget(
   }
 }
 
-export async function botById(ctx: Db, targetId: string) {
+export const botById = async (ctx: Db, targetId: string) => {
   const id = ctx.db.normalizeId('bots', targetId)
   return id ? await ctx.db.get('bots', id) : null
 }
 
-export async function commandById(ctx: Db, targetId: string) {
+export const commandById = async (ctx: Db, targetId: string) => {
   const id = ctx.db.normalizeId('commands', targetId)
   return id ? await ctx.db.get('commands', id) : null
 }
 
-export async function getComments(
+export const getComments = async (
   ctx: Db,
   projectId: Id<'projects'>,
   kind: Doc<'comments'>['kind'],
   targetId: string,
-) {
+) => {
   return await ctx.db
     .query('comments')
     .withIndex('by_target', (q) =>
@@ -49,11 +49,11 @@ export async function getComments(
     .take(MAX_COMMENTS)
 }
 
-export async function getOwnedComment(
+export const getOwnedComment = async (
   ctx: Db,
   userId: Id<'users'>,
   id: Id<'comments'>,
-) {
+) => {
   const comment = await ctx.db.get('comments', id)
   if (!comment) throw new ConvexError('Note not found.')
   await getOwnedProject(ctx, userId, comment.projectId)

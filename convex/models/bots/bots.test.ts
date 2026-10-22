@@ -10,7 +10,7 @@ const ivy = {
   instructions: 'You dig into questions and summarize what matters.',
 }
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', {}),

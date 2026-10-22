@@ -28,7 +28,7 @@ vi.mock('../../lib/ai', async () => {
 const calls = (languageModel as unknown as { doGenerateCalls: Array<unknown> })
   .doGenerateCalls
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', {}),

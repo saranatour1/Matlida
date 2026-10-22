@@ -27,7 +27,7 @@ vi.mock('convex/server', async (original) => ({
 }))
 
 /** The gateway answering "Paris it is." in two audio chunks. */
-function gateway() {
+const gateway = () => {
   const pcm = (n: number) => btoa(String.fromCharCode(...new Array(n).fill(1)))
   const events = [
     {
@@ -61,7 +61,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [

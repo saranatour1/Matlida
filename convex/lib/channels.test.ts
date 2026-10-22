@@ -10,7 +10,7 @@ const telegramEnv = [
   'PHOTON_WEBHOOK_SECRET',
 ] as const
 
-function channel(id: Channel['id']) {
+const channel = (id: Channel['id']) => {
   const found = CHANNELS.find((c) => c.id === id)
   if (!found) throw new Error(`No channel ${id}`)
   return found

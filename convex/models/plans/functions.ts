@@ -14,7 +14,7 @@ const vItems = v.array(
  * Adds `items` to the workspace's list called `title`, like To-do or
  * Shopping list, starting it if there's none. Returns the list.
  */
-async function addToList(
+const addToList = async (
   ctx: MutationCtx,
   list: {
     projectId: Id<'projects'>
@@ -22,7 +22,7 @@ async function addToList(
     title: string
     items: Array<{ text: string; section?: string }>
   },
-) {
+) => {
   const steps = list.items.map((item) => ({ ...item, done: false }))
   const existing = (
     await ctx.db

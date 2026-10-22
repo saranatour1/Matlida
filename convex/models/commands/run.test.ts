@@ -28,7 +28,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const ada = await t.run((ctx) => ctx.db.insert('users', {}))
@@ -82,10 +82,10 @@ test('an unknown /name is rejected before a chat starts', async () => {
 })
 
 /** Sends `prompt` and runs the reply, returning what the model was sent. */
-async function send(
+const send = async (
   t: Awaited<ReturnType<typeof setup>>['t'],
   run: () => Promise<unknown>,
-) {
+) => {
   calls.length = 0
   await run()
   vi.runAllTimers()

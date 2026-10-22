@@ -33,7 +33,7 @@ afterEach(() => {
 
 const firstPage = { numItems: 10, cursor: null }
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [
@@ -192,7 +192,7 @@ test('a bot asked by the lead answers on its own model', async () => {
 })
 
 /** The reasoning effort each streamed reply asked the default model for, in order. */
-function effortsAsked() {
+const effortsAsked = () => {
   const calls = (
     languageModel as unknown as {
       doStreamCalls: Array<{

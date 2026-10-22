@@ -4,7 +4,7 @@ import { ConvexError } from 'convex/values'
  * The message to show when a mutation fails: a `ConvexError` message or the first
  * Zod issue from `zMutation` args. Anything else gets `fallback`.
  */
-export function errorMessage(error: unknown, fallback: string): string {
+export const errorMessage = (error: unknown, fallback: string): string => {
   if (!(error instanceof ConvexError)) return fallback
   const data: unknown = error.data
   if (typeof data === 'string') return data

@@ -45,11 +45,11 @@ const createUser = internalMutation({
   },
 })
 
-async function profileOf(
+const profileOf = async (
   ctx: MutationCtx,
   provider: Infer<typeof vProvider>,
   userId: Id<'users'>,
-) {
+) => {
   switch (provider.name) {
     case 'emailPassword': {
       const email = await ctx.runQuery(

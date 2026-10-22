@@ -49,7 +49,7 @@ const zProduct = z.object({
 type Product = z.infer<typeof zProduct>
 type Variant = z.infer<typeof zVariant>
 
-async function call(tool: string, catalog: Record<string, unknown>) {
+const call = async (tool: string, catalog: Record<string, unknown>) => {
   const response = await fetch(CATALOG, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -95,7 +95,7 @@ export type Offer = {
 }
 
 /** An offer from a catalog variant, or null without a price or a cart link on the store. */
-function toOffer(product: Product, variant: Variant): Offer | null {
+const toOffer = (product: Product, variant: Variant): Offer | null => {
   if (!variant.price || !variant.checkout_url) return null
   const link = new URL(variant.checkout_url)
   const number = /^\/cart\/(\d+):/.exec(link.pathname)?.[1]
@@ -126,7 +126,7 @@ function toOffer(product: Product, variant: Variant): Offer | null {
 }
 
 /** Products matching `query` that ship to `country`, one offer each: the first variant in stock. */
-export async function searchProducts({
+export const searchProducts = async ({
   query,
   country,
   maxPrice,
@@ -139,7 +139,7 @@ export async function searchProducts({
   maxPrice?: number
   minRating?: number
   limit: number
-}) {
+}) => {
   const found = await call('search_catalog', {
     query,
     context: country ? { address_country: country } : undefined,
@@ -162,11 +162,11 @@ export async function searchProducts({
 }
 
 /** A product's options (sizes, colors) and the variants matching `selected`. */
-export async function productOptions(
+export const productOptions = async (
   productId: string,
   selected: Array<{ name: string; label: string }>,
   country?: string,
-) {
+) => {
   const found = await call('get_product', {
     id: productId,
     selected,
@@ -184,7 +184,7 @@ export async function productOptions(
 }
 
 /** The current offer for one variant, or null when the catalog no longer has it. */
-export async function lookupVariant(variantId: string, country?: string) {
+export const lookupVariant = async (variantId: string, country?: string) => {
   const found = await call('lookup_catalog', {
     ids: [variantId],
     context: country ? { address_country: country } : undefined,
@@ -215,11 +215,11 @@ export type Buyer = {
  * address (shopify.dev/docs/apps/build/checkout/create-cart-permalinks).
  * You pay on the store's own checkout.
  */
-export function checkoutLink(
+export const checkoutLink = (
   shop: string,
   items: Array<{ variantNumber: string; quantity: number }>,
   buyer: Buyer | null,
-) {
+) => {
   const link = new URL(
     `/cart/${items.map((i) => `${i.variantNumber}:${i.quantity}`).join(',')}`,
     shop,

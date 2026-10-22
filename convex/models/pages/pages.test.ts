@@ -19,7 +19,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [

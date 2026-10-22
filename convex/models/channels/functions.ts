@@ -9,7 +9,7 @@ import { getLinks } from '../texts/queries'
 import type { EnvName } from '../../lib/channels'
 
 /** The env vars the channels need that are set on this deployment. Names only, never values. */
-function presentEnv(): Array<EnvName> {
+const presentEnv = (): Array<EnvName> => {
   const names = new Set(CHANNELS.flatMap((channel) => channel.env))
   return [...names].filter((name) => Boolean(env[name]))
 }

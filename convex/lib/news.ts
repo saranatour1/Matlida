@@ -28,7 +28,7 @@ const zStory = z.object({
  * The stories in a search model's answer: the first JSON array in it, with
  * badly formed stories and non-web links dropped, at most `max`.
  */
-export function parseStories(text: string, max: number): Array<Story> {
+export const parseStories = (text: string, max: number): Array<Story> => {
   const start = text.indexOf('[')
   const end = text.lastIndexOf(']')
   if (start < 0 || end < start) return []
@@ -50,11 +50,11 @@ export function parseStories(text: string, max: number): Array<Story> {
 }
 
 /** The news for each topic, searched side by side, with each search's usage for recording. */
-export async function fetchNews(
+export const fetchNews = async (
   model: LanguageModel,
   { topics, regions, avoid, perTopic }: NewsRequest,
   abortSignal?: AbortSignal,
-) {
+) => {
   const where = regions.length ? ` Focus on ${regions.join(', ')}.` : ''
   const skip = avoid ? ` Leave out ${avoid}.` : ''
   return await Promise.all(
@@ -75,7 +75,7 @@ export async function fetchNews(
 }
 
 /** The day and hour it is in `timeZone`. */
-function localNow(now: number, timeZone: string) {
+const localNow = (now: number, timeZone: string) => {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
       timeZone,
@@ -92,10 +92,10 @@ function localNow(now: number, timeZone: string) {
 }
 
 /** Whether a daily briefing should go out now: its hour in the user's zone, and not sent today. Returns the day to mark sent. */
-export function dueDay(
+export const dueDay = (
   settings: { dailyHour?: number; timeZone?: string; lastSentDay?: string },
   now: number,
-) {
+) => {
   if (settings.dailyHour === undefined) return null
   const { day, hour } = localNow(now, settings.timeZone ?? 'UTC')
   return hour === settings.dailyHour && day !== settings.lastSentDay
@@ -104,9 +104,9 @@ export function dueDay(
 }
 
 /** A briefing as a chat message, for the daily one, which posts without a card. */
-export function briefingMarkdown(
+export const briefingMarkdown = (
   sections: Array<{ topic: string; stories: Array<Story> }>,
-) {
+) => {
   return [
     '**Your news for today**',
     ...sections

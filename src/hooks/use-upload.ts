@@ -3,7 +3,7 @@ import { api } from '../../convex/_generated/api'
 import type { Id } from '../../convex/_generated/dataModel'
 
 /** Uploads a file to Convex storage in one call, returning its storage id. */
-export function useUpload() {
+export const useUpload = () => {
   const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
   return async (file: Blob) => {
     const res = await fetch(await uploadUrl(), {

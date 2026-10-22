@@ -6,7 +6,7 @@ export const MAX_PROMPT_CHARS = 20_000
  * line, signatures after `-- ` and forwarded headers are cut. Trimmed and
  * capped at `MAX_PROMPT_CHARS`.
  */
-export function stripQuotes(text: string) {
+export const stripQuotes = (text: string) => {
   const lines = text.replace(/\r\n?/g, '\n').split('\n')
   const kept: Array<string> = []
   for (const line of lines) {

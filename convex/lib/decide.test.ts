@@ -2,10 +2,10 @@ import { expect, test, vi } from 'vitest'
 import { decide, needsFollowUp, whoShouldHandle } from './decide'
 import type { Experimental_DecisionModelV4 } from '@ai-sdk/provider'
 
-function jev(answer: {
+const jev = (answer: {
   choice: string
   probabilities?: Record<string, number>
-}) {
+}) => {
   return {
     specificationVersion: 'v4',
     provider: 'convex-gateway',

@@ -6,7 +6,7 @@ import type { Experimental_DecisionModel } from 'ai'
 export const languageModel = convexGateway(MODELS.chat)
 
 /** Any other chat model the gateway serves, by its `provider/model` id. */
-export function chatModel(id: string) {
+export const chatModel = (id: string) => {
   return convexGateway(id)
 }
 

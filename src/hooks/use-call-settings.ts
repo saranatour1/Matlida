@@ -9,7 +9,7 @@ export const MAX_VOLUME = 1.5
 
 const listeners = new Set<() => void>()
 
-function read(key: string) {
+const read = (key: string) => {
   try {
     return localStorage.getItem(key)
   } catch {
@@ -17,7 +17,7 @@ function read(key: string) {
   }
 }
 
-function save(key: string, value: string) {
+const save = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value)
   } catch {
@@ -26,7 +26,7 @@ function save(key: string, value: string) {
   for (const listener of listeners) listener()
 }
 
-function subscribe(listener: () => void) {
+const subscribe = (listener: () => void) => {
   listeners.add(listener)
   window.addEventListener('storage', listener)
   return () => {
@@ -35,35 +35,35 @@ function subscribe(listener: () => void) {
   }
 }
 
-export function clampVolume(volume: number) {
+export const clampVolume = (volume: number) => {
   return Math.round(Math.min(Math.max(volume, 0), MAX_VOLUME) * 100) / 100
 }
 
 /** The call volume saved on this browser, 1 when there's none or storage is blocked. */
-export function getCallVolume() {
+export const getCallVolume = () => {
   const saved = read(VOLUME)
   const volume = saved === null ? 1 : Number(saved)
   return Number.isFinite(volume) ? clampVolume(volume) : 1
 }
 
-export function saveCallVolume(volume: number) {
+export const saveCallVolume = (volume: number) => {
   save(VOLUME, String(clampVolume(volume)))
 }
 
 /** The call volume, 0 to 1.5, kept in step across tabs. */
-export function useCallVolume() {
+export const useCallVolume = () => {
   return React.useSyncExternalStore(subscribe, getCallVolume, () => 1)
 }
 
 /** Whether calls use Fast voice: an audio chat model, quicker but without tools. */
-export function getFastVoice() {
+export const getFastVoice = () => {
   return read(FAST) === 'on'
 }
 
-export function saveFastVoice(on: boolean) {
+export const saveFastVoice = (on: boolean) => {
   save(FAST, on ? 'on' : 'off')
 }
 
-export function useFastVoice() {
+export const useFastVoice = () => {
   return React.useSyncExternalStore(subscribe, getFastVoice, () => false)
 }

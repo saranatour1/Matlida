@@ -15,7 +15,7 @@ import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 type Project = Doc<'projects'>
 type Bot = Doc<'bots'>
 
-function guidelines(project: Project) {
+const guidelines = (project: Project) => {
   return project.guidelines
     ? `\nProject guidelines, which always apply:\n${project.guidelines}`
     : ''
@@ -51,14 +51,14 @@ export type ReplyOptions = {
 }
 
 /** How to write the reply, and whether the user missed the end of the last one. */
-function style(via: Via, cutOff?: boolean) {
+const style = (via: Via, cutOff?: boolean) => {
   return cutOff
     ? `${STYLE[via]} The user just talked over your last reply, so they may not have heard the end of it. Answer what they said now, and don't repeat yourself unless they ask.`
     : STYLE[via]
 }
 
 /** The current time in the user's zone, for reminders and anything date-relative. */
-function now(timeZone = 'UTC') {
+const now = (timeZone = 'UTC') => {
   const local = new Date().toLocaleString('en-US', {
     timeZone,
     dateStyle: 'full',
@@ -67,11 +67,11 @@ function now(timeZone = 'UTC') {
   return `\nIt is now ${local} (${timeZone}).`
 }
 
-function leadInstructions(
+const leadInstructions = (
   project: Project,
   bots: Array<Bot>,
   { command, via = 'chat', timeZone, cutOff }: ReplyOptions,
-) {
+) => {
   const team = bots.length
     ? `Your bots:
 ${bots.map((b) => `- ${b.name}: ${b.role}`).join('\n')}
@@ -86,18 +86,18 @@ ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(
 }
 
 /** The command the user ran, for the instructions. */
-function ranCommand(command?: RunCommand) {
+const ranCommand = (command?: RunCommand) => {
   return command
     ? `\n\nThe user ran the /${command.name} command. Follow it for this reply:\n${command.markdown}`
     : ''
 }
 
-function botInstructions(
+const botInstructions = (
   project: Project,
   bot: Bot,
   members: Array<Bot>,
   { command, via = 'chat', timeZone, cutOff }: ReplyOptions = {},
-) {
+) => {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
@@ -110,11 +110,11 @@ ${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)
  * What an assistant answers with, for replies made outside `createAgent`
  * like audio chat, which can't use tools: no bots to ask, and a line saying so.
  */
-export function instructionsFor(
+export const instructionsFor = (
   project: Project,
   bot: Bot | null,
   options: ReplyOptions,
-) {
+) => {
   const base = bot
     ? botInstructions(project, bot, [], options)
     : leadInstructions(project, [], options)
@@ -122,12 +122,12 @@ export function instructionsFor(
 }
 
 /** The gateway model `id`, metered against the owner's budget. */
-function modelFor(
+const modelFor = (
   ctx: ActionCtx,
   userId: Id<'users'>,
   id: string,
   effort: Effort,
-) {
+) => {
   return wrapLanguageModel({
     model: budgetedModel(ctx, userId, id),
     // The gateway sends this on as the request's `reasoning_effort`.
@@ -140,11 +140,11 @@ function modelFor(
 }
 
 /** Records each model step's tokens and cost, charged to `chargeTo` or the agent's own thread. */
-function recordUsage(
+const recordUsage = (
   project: Project,
   model: string,
   chargeTo?: string,
-): UsageHandler {
+): UsageHandler => {
   return async (ctx, { threadId, agentName, usage, providerMetadata }) => {
     const thread = chargeTo ?? threadId
     if (!thread) return
@@ -162,12 +162,12 @@ function recordUsage(
 }
 
 /** `ask_bot` over the chat's members, for whoever is answering, at most `budget` times a reply. None without members. */
-function askTools(
+const askTools = (
   project: Project,
   bots: Array<Bot>,
   from: string,
   budget: number,
-): ToolSet {
+): ToolSet => {
   if (bots.length === 0) return {}
   const [first, ...rest] = bots
   let botCalls = 0
@@ -256,11 +256,11 @@ export type AgentOptions = ReplyOptions & {
  * instructions, its tools (`assistantTools` and `ask_bot` over `members`) and
  * usage recording, so callers only run it.
  */
-export function createAgent(
+export const createAgent = (
   ctx: ActionCtx,
   project: Project,
   { bot, members = [], chargeTo, tools = true, ...options }: AgentOptions = {},
-) {
+) => {
   const model =
     options.model ?? (bot ? bot.model : project.model) ?? MODELS.chat
   const effort =

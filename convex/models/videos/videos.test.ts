@@ -29,7 +29,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function setup() {
+const setup = async () => {
   vi.useFakeTimers()
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
