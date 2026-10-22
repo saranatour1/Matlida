@@ -3,7 +3,8 @@ import { vGoogleProfile } from '@convex-dev/auth/methods/google/server'
 import { v } from 'convex/values'
 import { z } from 'zod'
 import { components } from '../../_generated/api'
-import { internalMutation } from '../../_generated/server'
+import { env, internalMutation, query } from '../../_generated/server'
+import { enabledMethods } from '../../lib/authMethods'
 import {
   authedMutation,
   authedQuery,
@@ -110,6 +111,12 @@ const setCheckIns = authedMutation({
   },
 })
 
+/** Which sign-in methods this deployment offers, for the sign-in pages. Public: you aren't signed in yet. */
+const signInMethods = query({
+  args: {},
+  handler: () => enabledMethods(env.AUTH_METHODS),
+})
+
 const current = authedQuery({
   args: {},
   handler: async (ctx) => await ctx.db.get('users', ctx.userId),
@@ -120,5 +127,6 @@ export const usersApi = {
   syncProfile,
   updateProfile,
   setCheckIns,
+  signInMethods,
   current,
 }

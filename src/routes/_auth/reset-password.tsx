@@ -3,9 +3,10 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompletePasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '@convex/_generated/api'
 import type { FormState } from '~/lib/auth'
-import { AuthPage } from '~/components/auth-page'
+import { AuthPage, NoPasswords } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
+import { useSignInMethods } from '~/hooks/use-sign-in-methods'
 import { FieldError, FieldGroup } from '~/components/ui/field'
 import {
   authErrorMessage,
@@ -20,7 +21,15 @@ export const Route = createFileRoute('/_auth/reset-password')({
   component: ResetPassword,
 })
 
+/** The form only mounts with email sign-in on: it checks the link as it opens, with a function that's off otherwise. */
 function ResetPassword() {
+  const methods = useSignInMethods()
+  if (!methods) return <AuthPage title="Reset your password" />
+  if (!methods.includes('email')) return <NoPasswords />
+  return <ResetPasswordForm />
+}
+
+function ResetPasswordForm() {
   const { code } = Route.useSearch()
   const recovery = useCompletePasswordRecovery(api.api.auth, {
     emailCode: code,
