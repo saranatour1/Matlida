@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { MAX_VOLUME, clampVolume } from './use-call-settings'
+import { MAX_VOLUME, clampVolume } from '../hooks/use-call-settings'
 
 test('the volume stays between silent and 150%, in whole percents', () => {
   expect(clampVolume(-0.2)).toBe(0)

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { formatAmount } from './amounts'
+import { formatAmount } from '../lib/amounts'
 
 test('amounts read like a recipe', () => {
   expect(formatAmount(2)).toBe('2')

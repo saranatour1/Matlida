@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
-import { assistantTools } from './tools'
+import { assistantTools } from '../../models/threads/tools'
 import type { Doc, Id } from '../../lib/ctx'
 
 const project = {

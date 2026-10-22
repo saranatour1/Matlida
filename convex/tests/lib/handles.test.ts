@@ -1,5 +1,10 @@
 import { expect, test } from 'vitest'
-import { RESERVED_HANDLES, addressOf, handleOf, parseHandle } from './handles'
+import {
+  RESERVED_HANDLES,
+  addressOf,
+  handleOf,
+  parseHandle,
+} from '../../lib/handles'
 
 test('a handle is trimmed, lowercased and checked', () => {
   expect(parseHandle('  Ada.Lovelace ')).toEqual({

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
-import { CHANNELS, channelStatus } from './channels'
-import type { Channel, ChannelFacts } from './channels'
+import { CHANNELS, channelStatus } from '../../lib/channels'
+import type { Channel, ChannelFacts } from '../../lib/channels'
 
 const nothing: ChannelFacts = { env: [], linked: [], mailbox: null }
 

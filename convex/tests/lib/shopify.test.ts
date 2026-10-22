@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { checkoutLink } from '../components/shopping/checkout'
-import { lookupVariant, searchProducts } from './shopify'
+import { checkoutLink } from '../../components/shopping/checkout'
+import { lookupVariant, searchProducts } from '../../lib/shopify'
 
 afterEach(() => {
   vi.unstubAllGlobals()

@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { READ_ONLY_TOOLS, createAgent } from './lead'
+import { READ_ONLY_TOOLS, createAgent } from '../../models/threads/lead'
 import type { ActionCtx, Doc } from '../../lib/ctx'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))

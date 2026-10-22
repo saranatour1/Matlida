@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { hear, startListening } from './turn-taking'
-import type { TurnEvent } from './turn-taking'
+import { hear, startListening } from '../lib/turn-taking'
+import type { TurnEvent } from '../lib/turn-taking'
 
 const LOUD = 0.2
 const QUIET = 0.001

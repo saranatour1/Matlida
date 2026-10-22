@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { audioChat, audioVoiceFor, pcmToWav } from './audio'
+import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 
 vi.mock('convex/server', () => ({
   getServiceToken: () => Promise.resolve('token'),

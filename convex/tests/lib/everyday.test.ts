@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { compareTimes, isTimeZone, splitCosts } from './everyday'
+import { compareTimes, isTimeZone, splitCosts } from '../../lib/everyday'
 
 test('splitting costs: shares, odd cents and the fewest payments', () => {
   const result = splitCosts(
