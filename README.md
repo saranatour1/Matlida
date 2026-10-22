@@ -32,7 +32,7 @@ pnpm dev
 
 ### Environment variables
 
-Set these on the Convex deployment (`npx convex env set NAME value`):
+Set these on the Convex deployment (`pnpm exec convex env set NAME value`):
 
 | Name                                                                        | What it's for                                                                                  |
 | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -58,12 +58,88 @@ And in the app's environment when deploying:
 
 Every assistant runs on `anthropic/claude-sonnet-5` through the Convex AI gateway unless you pick another in its form, and any chat can switch models from the menu in its header without losing its history. The list is in `convex/lib/models.ts`; any id from the gateway catalog can be typed in.
 
-## Scripts
+## Commands in the chat
 
-| Command       | Does                              |
-| ------------- | --------------------------------- |
-| `pnpm dev`    | Convex + Vite dev servers         |
-| `pnpm build`  | Type check, then production build |
-| `pnpm start`  | Run the production build          |
-| `pnpm lint`   | Type check and ESLint             |
-| `pnpm format` | Prettier                          |
+Type `/` in the message box to pick one, or ask an assistant "what can you do?" to get them as buttons. Write what it's about after the name, like `/quiz the French Revolution`. Commands you save in the Library work the same way, and one with the same name replaces the built-in.
+
+| Group                      | Commands                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Make things                | `/create` (say what you want made, and it works out how), `/image`, `/video`, `/chart`, `/doc`, `/email`, `/posts`, `/preview`                                            |
+| Pages that stay up to date | `/report`, `/memo`, `/dashboard`                                                                                                                                          |
+| Plan and do                | `/plan` (save a plan), `/run` (plan it and work through it step by step), `/today`, `/dayplan`, `/trip`, `/todo`, `/focus`, `/workout`                                    |
+| Decide and solve           | `/decide` (Jev picks between options), `/make-my-problems-go-away` (can AI do this, or should a person?), `/fix`, `/convex`, `/compare`, `/research`, `/explain`, `/tldr` |
+| Learn                      | `/study` (flash cards), `/quiz` (test yourself)                                                                                                                           |
+| Shopping                   | `/shop`, `/gift`, `/watch` (hear when a price drops), `/cart`, `/shopping` (list by aisle), `/meals`, `/recipe`                                                           |
+| Everyday                   | `/news`, `/split` (who owes whom), `/meet` (a time across time zones), `/convert`, `/pack`                                                                                |
+| Words                      | `/rewrite`, `/reply`, `/translate`                                                                                                                                        |
+
+The full list, with what each one does, is in `convex/lib/commands.ts`. A test checks that this table names every built-in command.
+
+## Scripts and commands
+
+| Command                                                            | Does                                                                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `pnpm dev`                                                         | Convex and Vite dev servers, on port 3000                                                        |
+| `pnpm check`                                                       | Type check, ESLint and a production build. Run it before every push                              |
+| `pnpm test`                                                        | The Vitest suite (`convex/tests`, `src/tests`)                                                   |
+| `pnpm build`                                                       | Type check, then a production build                                                              |
+| `pnpm start`                                                       | Run the production build                                                                         |
+| `pnpm lint`                                                        | Type check and ESLint                                                                            |
+| `pnpm format`                                                      | Prettier                                                                                         |
+| `scripts/pr-size.sh origin/master`                                 | Lines a PR changes, against the 2000 limit                                                       |
+| `pnpm exec convex dev --once --typecheck disable`                  | Push functions and schema to the dev deployment once                                             |
+| `pnpm exec convex insights`                                        | Write conflicts and limits over the last 72 hours (`--prod` for production)                      |
+| `pnpm exec convex logs --history 200`                              | Recent function runs                                                                             |
+| `pnpm exec convex env list \| cut -d= -f1`                         | Environment variable names only, since values are secrets                                        |
+| `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` | How Jev's answers spread, before moving a threshold (`recurring`, `after_missed_call`, `answer`) |
+| `pnpm exec convex run api/calls:dump`                              | The latest call's transcript and timings                                                         |
+
+## What's next
+
+Matilda is heading four ways. **The rule:** pick the next piece of work from this list, in this order:
+
+1. Whatever is broken or blocking.
+2. The feedback loop, because it makes everything else measurable.
+3. The rest, by what you'd use this week.
+
+Each piece is one PR on master, merged before the next starts. When it ships, move it from here into progress.md, and add what it made possible.
+
+### Workflows with AI and Convex
+
+Long jobs that run as durable steps, wait for you, and pick up where they stopped.
+
+- **Today:** `/run` works through a plan on `@convex-dev/workflow`, with Start, Cancel and Try again from the failed step. Reminders recur on `@convex-dev/crons`, and Jev pauses or stops them.
+- **Next:**
+  - Workflows with an approval step, like drafting posts, waiting for your OK, posting, then reporting links.
+  - Commands that start a workflow instead of a reply.
+  - Each step choosing its own model and effort.
+
+### Looped projects that report and guide
+
+Projects that check themselves on a schedule and tell you where they stand.
+
+- **Today:** pages from `/report` and `/dashboard` refresh themselves daily or weekly. The news arrives daily. Matilda calls to check in when Jev thinks something is owed.
+- **Next:** a project loop, a recurring task that reviews a project's plans, tasks and pages. Each run:
+  - writes a weekly report page;
+  - says what's slipping and what to do next;
+  - stops or pauses itself the way recurring reminders do.
+
+### Custom frontend features
+
+Show what you want, the way you want it.
+
+- **Today:** replies render as cards: charts, tables, timelines, recipes, carts, decks and quizzes, pages with metrics, tasks, reminders.
+- **Next:**
+  - Cards you can pin to a project's home.
+  - A layout you choose for each project.
+  - New card types described in a command, rendered from a small set of building blocks rather than new code each time.
+
+### Feedback loop
+
+Learn from what happened, then change what happens next.
+
+- **Today:** every Jev answer and what code did with it is kept in `judgments`. Costs are tracked per chat and per person, and `convex insights` shows conflicts.
+- **Next:**
+  - Thumbs up or down on replies and cards, kept with the reply.
+  - A weekly look at the judgments summary that moves `JEV_THRESHOLDS` where the outcomes say they're wrong.
+  - What you corrected goes back into each assistant's instructions.

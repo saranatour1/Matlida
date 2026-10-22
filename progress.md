@@ -674,3 +674,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - ESLint refuses a relative path into `convex/` from `src/`, and AGENTS.md says so. Backend files keep their short paths within `convex/`.
 - A running dev server only picks up a new alias after a restart; it 500'd until it was restarted.
 - Verified with pnpm check (build included), the tests (223), and the dev server serving the app after a restart.
+
+### README: commands, and what's next (2026-10-22)
+
+- **Commands in the chat:** all 44 built-in commands in eight groups, with how to use them. A test fails if a built-in command is missing from the table.
+- **Scripts and commands:** `pnpm check` and `pnpm test` are now in the table, plus the commands this repo actually uses: PR size, pushing to dev, insights, logs, env names only, the judgments summary and the call dump. The one `npx` became `pnpm exec`.
+- **What's next:** four directions, each with what exists and what comes next: workflows with AI and Convex, looped projects that report and guide, custom frontend features, and the feedback loop. Its rule: broken or blocking first, then the feedback loop, then the rest; one PR on master each. AGENTS.md points to it.

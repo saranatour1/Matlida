@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { expect, test } from 'vitest'
 import { assistantTools } from '../../models/threads/tools'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
@@ -19,4 +21,12 @@ test('every tool a built-in command names exists', () => {
 test('built-in command names are unique', () => {
   const names = BUILT_IN_COMMANDS.map((c) => c.name)
   expect(new Set(names).size).toBe(names.length)
+})
+
+test('the README lists every built-in command', () => {
+  const readme = readFileSync(join(process.cwd(), 'README.md'), 'utf8')
+  const missing = BUILT_IN_COMMANDS.filter(
+    (c) => !readme.includes(`\`/${c.name}\``),
+  ).map((c) => c.name)
+  expect(missing).toEqual([])
 })
