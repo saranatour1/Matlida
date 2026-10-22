@@ -657,3 +657,9 @@ From the Photon review (findings #3 and #4).
 - **No action calling an action:** `texts.answer` was an action that both reply actions called with `ctx.runAction`, so each reply was two function calls with two timeouts. It's now a plain function both run in place. `texts.admit` is gone too: both paths pass the limit they took.
 - The texts tests now send every message through the real Spectrum path (webhook, then `batch`, then `respond`, then the provider) and read the reply the provider sent.
 - Verified with pnpm check and the tests (223), and pushed to dev.
+
+### Texts: a replaced turn doesn't pay (2026-10-22)
+
+From the Photon review (finding #5). In collapse mode a newer text replaces the turn before it, but `respond` only checked that after the model had answered, so a replaced turn still paid for its reply and saved it in the chat. It now checks before calling the model too. A text that lands in the few seconds while the model is already running still pays for that reply. Stopping mid-way needs a timer that checks during generation, and that's left until costs show it's worth it (`ponytail` note in `respond`).
+- New test: a second text that lands while the first reply is queued means one model call and one reply. It fails without the check.
+- Verified with pnpm check and the tests (224), and pushed to dev.

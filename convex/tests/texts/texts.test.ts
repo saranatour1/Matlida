@@ -412,3 +412,34 @@ test('Telegram and WhatsApp chats link through the Spectrum webhook and get repl
     },
   ])
 })
+
+test('a text that replaces a queued reply means one answer, and the replaced turn never calls the model', async () => {
+  const { t, asAda, projectId, text } = await setup()
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await text('space-1', `link ${code}`, 'imessage')
+  const answered = delivered.length
+  const send = (message: string) =>
+    t.run(async (ctx) => {
+      await ctx.runMutation(components.spectrum.inbound.enqueue, {
+        spaceId: 'space-1',
+        messageId: `burst-${message}`,
+        platform: 'iMessage',
+        content: { type: 'text', text: message },
+        mode: 'collapse',
+        onBatch: await createFunctionHandle(internal.api.texts.batch),
+      })
+    })
+  await send('What is on today?')
+  // The first burst is handed over and its reply queued, but not run yet.
+  for (let i = 0; i < 2; i++) {
+    vi.advanceTimersByTime(1)
+    await t.finishInProgressScheduledFunctions()
+  }
+  await send('And tomorrow?')
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  expect(calls).toHaveLength(1)
+  expect(JSON.stringify(calls[0])).toContain('And tomorrow?')
+  expect(delivered.slice(answered)).toMatchObject([
+    { content: { text: 'Hi from Matilda.' } },
+  ])
+})
