@@ -281,7 +281,7 @@ const poll = internalAction({
       let draft: string | undefined
       try {
         if (turn.owner) {
-          const agent = createAgent(turn.project, {
+          const agent = createAgent(ctx, turn.project, {
             members: turn.owner.members,
             tools: READ_ONLY_TOOLS,
             via: 'email',
@@ -301,7 +301,7 @@ const poll = internalAction({
         } else {
           // Someone else's words: drafted with no chat history, and only
           // able to look up earlier emails.
-          const agent = createAgent(turn.project, {
+          const agent = createAgent(ctx, turn.project, {
             tools: ['find_emails'],
             via: 'email',
             chargeTo: turn.inboxThreadId,

@@ -8,6 +8,7 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider'
 
 const leadPrompts = vi.hoisted(() => [] as Array<LanguageModelV4Prompt>)
 
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
   const { mockModel } = await import('@convex-dev/agent')
   const askFour = (step: number) =>

@@ -2,13 +2,8 @@ import { createTool, listMessages } from '@convex-dev/agent'
 import { generateImage, generateText } from 'ai'
 import { z } from 'zod'
 import { components, internal } from '../../_generated/api'
-import {
-  decisionModel,
-  imageModel,
-  researchModel,
-  searchModel,
-  summaryModel,
-} from '../../lib/ai'
+import { decisionModel, imageModel } from '../../lib/ai'
+import { budgetedModel, metered } from '../../lib/budget'
 import { searchConvexDocs } from '../../lib/convexDocs'
 import { decide, needsFollowUp, whoShouldHandle } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
@@ -73,6 +68,19 @@ const POST_LIMITS = { linkedin: 3000, x: 280, reddit: 40_000, discord: 2000 }
 
 /** Tools every assistant (`from`) gets: the web, plans saved to the Library, and reminders. */
 export function assistantTools(project: Doc<'projects'>, from: string) {
+  /** One Jev call under the owner's budget, without its cost in the tool's answer. */
+  const judged = <T extends { cost: number }>(
+    ctx: ToolCtx,
+    ask: () => Promise<T>,
+  ): Promise<Omit<T, 'cost'>> =>
+    metered(
+      ctx,
+      { userId: project.ownerId, model: MODELS.decide, estimate: 0.005 },
+      async () => {
+        const { cost, ...result } = await ask()
+        return { result, cost }
+      },
+    )
   const record = async (
     ctx: ToolCtx,
     kind: 'search' | 'research',
@@ -103,7 +111,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       inputSchema: z.object({ query: z.string().min(1) }),
       execute: async (ctx, { query }, { abortSignal }) => {
         const result = await generateText({
-          model: searchModel,
+          model: budgetedModel(ctx, project.ownerId, MODELS.search),
           prompt: query,
           abortSignal,
         })
@@ -127,7 +135,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
           return { needsSetup: true, date: Date.now(), sections: [] }
         }
         const sections = await fetchNews(
-          searchModel,
+          budgetedModel(ctx, project.ownerId, MODELS.search),
           {
             topics: follow,
             regions: settings?.regions ?? [],
@@ -159,7 +167,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       }),
       execute: async (ctx, { text, focus }, { abortSignal }) => {
         const result = await generateText({
-          model: summaryModel,
+          model: budgetedModel(ctx, project.ownerId, MODELS.summary),
           system:
             'Summarize for a busy reader: a one-line TL;DR in bold, then at most five short key points, then any dates, numbers or action items. Markdown. No preamble. Only what the text says.',
           prompt: focus ? `Focus on: ${focus}\n\n${text}` : text,
@@ -177,12 +185,23 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
         shape: z.enum(['square', 'wide', 'tall']).default('square'),
       }),
       execute: async (ctx, { prompt, shape }, { abortSignal }) => {
-        const { image, usage, providerMetadata } = await generateImage({
-          model: imageModel,
-          prompt,
-          size: IMAGE_SIZES[shape],
-          abortSignal,
-        })
+        const { image, usage, providerMetadata } = await metered(
+          ctx,
+          { userId: project.ownerId, model: MODELS.image, estimate: 0.08 },
+          async () => {
+            const made = await generateImage({
+              model: imageModel,
+              prompt,
+              size: IMAGE_SIZES[shape],
+              abortSignal,
+            })
+            // ponytail: the gateway sends no cost for pictures yet, so each counts as 8 cents.
+            return {
+              result: made,
+              cost: gatewayCost(made.providerMetadata) || 0.08,
+            }
+          },
+        )
         const storageId = await ctx.storage.store(
           new Blob([new Uint8Array(image.uint8Array)], {
             type: image.mediaType,
@@ -225,7 +244,7 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
       inputSchema: z.object({ question: z.string().min(1) }),
       execute: async (ctx, { question }, { abortSignal }) => {
         const result = await generateText({
-          model: researchModel,
+          model: budgetedModel(ctx, project.ownerId, MODELS.research),
           system:
             'Write a thorough, well-organized research brief in markdown: key findings first, then details, then open questions.',
           prompt: question,
@@ -480,8 +499,8 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             "What matters for the choice: the user's goals, limits and preferences from the chat.",
           ),
       }),
-      execute: async (_ctx, input, { abortSignal }) =>
-        await decide(decisionModel, input, abortSignal),
+      execute: async (ctx, input, { abortSignal }) =>
+        await judged(ctx, () => decide(decisionModel, input, abortSignal)),
     }),
     convex_docs: createTool({
       description:
@@ -509,9 +528,11 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             'What matters from the chat: who they are, what they tried.',
           ),
       }),
-      execute: async (_ctx, input, { abortSignal }) => ({
+      execute: async (ctx, input, { abortSignal }) => ({
         problem: input.problem,
-        ...(await whoShouldHandle(decisionModel, input, abortSignal)),
+        ...(await judged(ctx, () =>
+          whoShouldHandle(decisionModel, input, abortSignal),
+        )),
       }),
     }),
     needs_follow_up: createTool({
@@ -526,10 +547,8 @@ export function assistantTools(project: Doc<'projects'>, from: string) {
             threadId: ctx.threadId,
           }),
         ])
-        return await needsFollowUp(
-          decisionModel,
-          { conversation, openWork },
-          abortSignal,
+        return await judged(ctx, () =>
+          needsFollowUp(decisionModel, { conversation, openWork }, abortSignal),
         )
       },
     }),

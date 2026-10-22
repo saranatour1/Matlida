@@ -225,7 +225,7 @@ const refreshDue = internalAction({
             userId: project.ownerId,
           },
         )
-        const agent = createAgent(project, {
+        const agent = createAgent(ctx, project, {
           tools: [
             'read_page',
             'write_page',

@@ -36,6 +36,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_audio from "../lib/audio.js";
+import type * as lib_budget from "../lib/budget.js";
 import type * as lib_channels from "../lib/channels.js";
 import type * as lib_commands from "../lib/commands.js";
 import type * as lib_convexDocs from "../lib/convexDocs.js";
@@ -140,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/ai": typeof lib_ai;
   "lib/audio": typeof lib_audio;
+  "lib/budget": typeof lib_budget;
   "lib/channels": typeof lib_channels;
   "lib/commands": typeof lib_commands;
   "lib/convexDocs": typeof lib_convexDocs;
@@ -240,6 +242,7 @@ export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;

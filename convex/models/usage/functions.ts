@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { internalMutation } from '../../_generated/server'
+import { budgetOf } from '../../lib/budget'
 import { authedQuery } from '../../lib/functions'
 import { getOwnedThread } from '../threads/functions'
 import { usageTable } from './table'
@@ -37,4 +38,10 @@ const forThread = authedQuery({
   },
 })
 
-export const usageApi = { record, forThread }
+/** What you've spent on AI this month, and your cap. */
+const budget = authedQuery({
+  args: {},
+  handler: async (ctx) => await budgetOf(ctx, ctx.userId),
+})
+
+export const usageApi = { record, forThread, budget }

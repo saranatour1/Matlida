@@ -25,6 +25,9 @@ importers:
       '@convex-dev/agent':
         specifier: ^0.7.8
         version: 0.7.8(@ai-sdk/provider-utils@5.0.62(zod@4.6.6))(@ai-sdk/provider@4.0.29)(ai@7.0.143(zod@4.6.6))(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6))(convex@1.47.0(react@19.3.0))(react@19.3.0)
+      '@convex-dev/ai-budget':
+        specifier: 1.1.2
+        version: 1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6)
       '@convex-dev/ai-sdk-provider':
         specifier: ^0.3.0
         version: 0.3.0(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0))
@@ -324,6 +327,17 @@ packages:
       react:
         optional: true
 
+  '@convex-dev/ai-budget@1.1.2':
+    resolution: {integrity: sha512-erJOL2I38bexQS3g/MBLohDWqV6y/+Q5iZg3K2K2HYsEZauGWxXdlcuSuKqMC/O/TPCZCYLiByNe4pUqAGs07A==}
+    peerDependencies:
+      '@convex-dev/ai-sdk-provider': '>=0.2.1'
+      ai: ^5.0.0 || ^6.0.0 || ^7.0.0
+      convex: ^1.46.0
+      eslint: '>=8.57.0'
+    peerDependenciesMeta:
+      eslint:
+        optional: true
+
   '@convex-dev/ai-sdk-provider@0.3.0':
     resolution: {integrity: sha512-0ENjkOgiCBybI/luPW8d9rszpb01FIXaU88Ff/5nXHRfFAVj0Xc1UW7XMtmq39rPlSPqyOdimJ+66AoFN7pzsw==}
     engines: {node: '>=22'}
@@ -397,6 +411,11 @@ packages:
     peerDependencies:
       convex: ^1.43.0
       convex-helpers: ^0.1.106
+
+  '@convex-dev/sharded-counter@0.2.3':
+    resolution: {integrity: sha512-rKiUHt/cThlj9qiLUe8nGXWQOvotqynyv4WcH5chwfQmXn2SJvt9yMFkVudXRuJl+NIAxSwY9JY0POfB2YZDEg==}
+    peerDependencies:
+      convex: ^1.25.4
 
   '@convex-dev/workflow@0.4.10':
     resolution: {integrity: sha512-BHEDZEJUhZQOuqtop4bZRgomoKFA+JNECat+c9/cAuQmCegn7F0xlAiFiCPtYNm2xyUh3Rv+fJuNhnqs4th1cw==}
@@ -3986,6 +4005,23 @@ snapshots:
       '@ungap/structured-clone': 1.4.0
       react: 19.3.0
 
+  '@convex-dev/ai-budget@1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6)':
+    dependencies:
+      '@convex-dev/ai-sdk-provider': 0.3.0(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0))
+      '@convex-dev/rate-limiter': 0.4.2(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6)
+      '@convex-dev/sharded-counter': 0.2.3(convex@1.47.0(react@19.3.0))
+      ai: 7.0.143(zod@4.6.6)
+      convex: 1.47.0(react@19.3.0)
+      convex-helpers: 0.1.128(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6)
+    optionalDependencies:
+      eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - react
+      - typescript
+      - zod
+
   '@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.6))(convex@1.47.0(react@19.3.0))':
     dependencies:
       '@ai-sdk/anthropic': 4.0.40(zod@4.6.6)
@@ -4090,6 +4126,10 @@ snapshots:
     transitivePeerDependencies:
       - '@react-email/render'
       - react
+
+  '@convex-dev/sharded-counter@0.2.3(convex@1.47.0(react@19.3.0))':
+    dependencies:
+      convex: 1.47.0(react@19.3.0)
 
   '@convex-dev/workflow@0.4.10(@convex-dev/workpool@0.4.14(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6))(convex@1.47.0(react@19.3.0))(react@19.3.0))(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.47.0(react@19.3.0))(hono@4.13.13)(react@19.3.0)(zod@4.6.6))(convex@1.47.0(react@19.3.0))':
     dependencies:

@@ -66,6 +66,7 @@
 - [x] convex_docs, /convex and /fix: fast answers from the live Convex docs
 - [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
 - [x] Record every assistant's chat once, then stop guessing
+- [x] An AI budget per person: $12 a month ($30 on dev), every model metered
 - [ ] Run `api/threads:recordMainThreads` on production after this deploys
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window

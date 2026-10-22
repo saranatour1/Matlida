@@ -5,6 +5,7 @@ import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
   const { mockModel } = await import('@convex-dev/agent')
   return {

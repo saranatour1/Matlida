@@ -12,6 +12,7 @@ import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
+import { budgetMessage } from '../../lib/budget'
 import { ensureMainThread, getMembers } from '../threads/functions'
 import { createAgent } from '../threads/lead'
 import type { Doc, Id } from '../../_generated/dataModel'
@@ -271,7 +272,7 @@ const answer = internalAction({
       return "You're sending a lot of messages. Give me a few minutes and try again."
     }
     const { project, members, threadId } = linked
-    const agent = createAgent(project, { members, via: 'text' })
+    const agent = createAgent(ctx, project, { members, via: 'text' })
     const reply = await agent.generateText(
       ctx,
       { threadId, userId: project.ownerId },
@@ -355,7 +356,10 @@ const replyOnPhoton = internalAction({
       })
       .catch((error: unknown) => {
         console.error(error)
-        return 'Sorry, something went wrong. Try again in a minute.'
+        return (
+          budgetMessage(error) ??
+          'Sorry, something went wrong. Try again in a minute.'
+        )
       })
     if (!reply) return null
     await sendText(keys, {

@@ -8,7 +8,8 @@ import {
   internalMutation,
   internalQuery,
 } from '../../_generated/server'
-import { searchModel } from '../../lib/ai'
+import { budgetedModel } from '../../lib/budget'
+import { MODELS } from '../../lib/models'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import { briefingMarkdown, dueDay, fetchNews } from '../../lib/news'
 import schema from '../../schema'
@@ -124,7 +125,10 @@ const sendDaily = internalAction({
       if (!day) continue
       try {
         // ponytail: daily searches aren't recorded in usage, which needs a reply's thread.
-        const sections = await fetchNews(searchModel, found)
+        const sections = await fetchNews(
+          budgetedModel(ctx, found.userId, MODELS.search),
+          found,
+        )
         if (!sections.some((s) => s.stories.length)) continue
         await ctx.runMutation(internal.api.news.postBriefing, {
           id: found._id,

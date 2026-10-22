@@ -7,6 +7,7 @@ import { modules } from '../../test.setup'
 import type * as Ai from 'ai'
 import type * as Server from 'convex/server'
 
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', () => ({
   transcriptionModel: {},
   speechModel: {},

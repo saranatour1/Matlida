@@ -6,6 +6,8 @@ import { audioChat, audioVoiceFor } from '../../lib/audio'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/functions'
 import { gatewayCost } from '../usage/functions'
+import { metered } from '../../lib/budget'
+import { MODELS } from '../../lib/models'
 import { transcribeClip } from './chat'
 import { ensureMainThread } from './functions'
 import { instructionsFor } from './lead'
@@ -138,25 +140,34 @@ export async function speakWith(
   const said = await history(ctx, threadId)
   const name = (bot ?? project).name
   const stop = new AbortController()
-  const hearing = transcribeClip(ctx, turn.storageId).then(async (heard) => {
-    if (!heard.text) stop.abort()
-    await turn.onHeard?.(heard.text)
-    return heard
-  })
-  const answering = audioChat(
-    {
-      instructions: instructionsFor(project, bot, {
-        via: 'voice',
-        timeZone: turn.timeZone,
-        cutOff: turn.cutOff,
-      }),
-      history: said,
-      audio,
-      format: 'wav',
-      voice: audioVoiceFor(name),
+  const hearing = transcribeClip(ctx, turn.userId, turn.storageId).then(
+    async (heard) => {
+      if (!heard.text) stop.abort()
+      await turn.onHeard?.(heard.text)
+      return heard
     },
-    turn.onAudio,
-    stop.signal,
+  )
+  const answering = metered(
+    ctx,
+    { userId: turn.userId, model: MODELS.audioChat, estimate: 0.05 },
+    async () => {
+      const spoken = await audioChat(
+        {
+          instructions: instructionsFor(project, bot, {
+            via: 'voice',
+            timeZone: turn.timeZone,
+            cutOff: turn.cutOff,
+          }),
+          history: said,
+          audio,
+          format: 'wav',
+          voice: audioVoiceFor(name),
+        },
+        turn.onAudio,
+        stop.signal,
+      )
+      return { result: spoken, cost: spoken.cost }
+    },
   ).catch((error: unknown) => {
     if (stop.signal.aborted) return null
     throw error

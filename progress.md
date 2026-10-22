@@ -489,3 +489,11 @@
 
 - The `draw_diagram` tool, `/draw` and the diagram card are gone, with `@excalidraw/excalidraw` and `@excalidraw/mermaid-to-excalidraw`. Their Mermaid parser pulled in 13 `pnpm audit` holes (nanoid, lodash-es, katex) and an unfixable one in `braces` through `sass`. The audit is clean now. A diagram tool can come back with a lighter renderer.
 
+### An AI budget per person (2026-10-22)
+
+- `@convex-dev/ai-budget` meters every gateway call per user and refuses one that would pass their month's cap: $12, or `AI_BUDGET_USD` on the deployment (30 on dev). The cap is given to a user before their first metered call (`ensureBudget`, once per isolate), so no backfill.
+- Chat models go through `budgetedModel(ctx, userId, id)`, which the agents, web search, research, quick summaries and news use. Pictures, videos, transcription, speech on calls, Fast voice and Jev decisions go through `metered`, which holds an estimate first (8 cents a picture, 80 a video, a cent or less for the rest) and charges the gateway's real cost after. Pictures count as 8 cents, since the gateway sends no cost for them yet.
+- Over the cap, the chat says so instead of failing, a call reads it out, and a text says it. The Costs tab shows this month's spend against the cap.
+- The deployment's own ceiling is the gateway's spend limit in the Convex dashboard; the component's global cap isn't set.
+- Verified with pnpm check, the tests (`lib/budget` is mocked by `test.budget.ts`, which hands back each test's mocked models) and live on `dev/matilda`: one call cost $0.0000096 from the gateway's own figure, and a one-cent cap refused the next with "You've used this month's AI budget".
+

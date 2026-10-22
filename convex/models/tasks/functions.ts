@@ -195,7 +195,7 @@ const doStep = internalAction({
       project: Doc<'projects'>
       bots: Array<Doc<'bots'>>
     } = await ctx.runQuery(internal.api.tasks.stepContext, { taskId })
-    const agent = createAgent(project, {
+    const agent = createAgent(ctx, project, {
       members: bots,
       effort: task.effort,
     })

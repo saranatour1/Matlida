@@ -65,6 +65,7 @@ export function AssistantPanel({
     api.api.usage.forThread,
     threadId ? { threadId } : 'skip',
   )
+  const budget = useQuery(api.api.usage.budget, {})
   const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
@@ -280,6 +281,19 @@ export function AssistantPanel({
           <CallHistory projectId={project._id} botId={bot?._id} name={name} />
         </TabsContent>
         <TabsContent value="costs" className="flex flex-col gap-6 px-4 py-4">
+          {budget && (
+            <Section title="This month">
+              <Stat
+                label="AI budget"
+                value={`${usd(budget.spent)} of ${usd(budget.cap)}`}
+                hint={
+                  budget.spent >= budget.cap
+                    ? 'Used up. It starts over on the 1st.'
+                    : `${usd(budget.cap - budget.spent)} left, every assistant and call included`
+                }
+              />
+            </Section>
+          )}
           <Section title="This chat">
             <div className="grid grid-cols-2 gap-2">
               <Stat label="AI" value={usd(aiCost)} hint={`${tokens} tokens`} />

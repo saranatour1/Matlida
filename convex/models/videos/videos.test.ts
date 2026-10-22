@@ -5,6 +5,7 @@ import schema from '../../schema'
 import { modules } from '../../test.setup'
 import type * as Ai from 'ai'
 
+vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', () => ({ videoModel: {} }))
 
 const made = vi.hoisted(() => ({ fail: false }))
