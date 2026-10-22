@@ -1,5 +1,6 @@
 import type { ChatUIMessage } from '~/components/chat-message'
 import { Button } from '~/components/ui/button'
+import { commandOf, trackEvent } from '~/lib/analytics'
 
 /** The commands the assistant can run, as pills that send `/name`. */
 export function CommandsPart({
@@ -20,7 +21,12 @@ export function CommandsPart({
           className="rounded-full"
           title={c.description}
           disabled={!onSend}
-          onClick={() => onSend?.(`/${c.name}`)}
+          onClick={() => {
+            trackEvent('command_pill_clicked', {
+              command: commandOf(`/${c.name}`),
+            })
+            onSend?.(`/${c.name}`)
+          }}
         >
           /{c.name}
         </Button>

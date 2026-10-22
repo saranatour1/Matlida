@@ -6,6 +6,7 @@ import { PanelRightIcon } from 'lucide-react'
 import { api } from '@convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '@convex/lib/commands'
 import { localTimeZone } from '@convex/lib/time'
+import { MODELS } from '@convex/lib/models'
 import type { Doc } from '@convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Attachment } from '~/components/prompt-form'
@@ -39,6 +40,7 @@ import {
 import { errorMessage } from '~/lib/errors'
 import { VoiceBar, useCall } from '~/components/voice-call'
 import { CommandDialog } from '~/components/command-dialog'
+import { commandOf, trackEvent } from '~/lib/analytics'
 
 /**
  * The one chat with one of the project's assistants: `bot`, or the lead when
@@ -120,6 +122,13 @@ export function Chat({
             ...input,
             timeZone,
           })
+          trackEvent('message_sent', {
+            assistant: bot ? 'bot' : 'lead',
+            model: (bot ? bot.model : project.model) ?? MODELS.chat,
+            effort: (bot ? bot.effort : project.effort) ?? 'medium',
+            command: commandOf(input.prompt),
+            attachments: input.files?.length ?? 0,
+          })
         } else if (threadId) {
           await redo({
             threadId,
@@ -127,6 +136,7 @@ export function Chat({
             prompt: input.prompt,
             timeZone,
           })
+          trackEvent('message_redone', { edited: input.prompt !== undefined })
         }
         return undefined
       } catch (e) {
@@ -310,7 +320,8 @@ export function Chat({
                 ...(commands ?? []),
               ]}
               onCreateCommand={() => setCreatingCommand(true)}
-              onTalk={() =>
+              onTalk={() => {
+                trackEvent('talk_started', { assistant: bot ? 'bot' : 'lead' })
                 startCall(
                   { projectId: project._id, botId: bot?._id },
                   {
@@ -318,7 +329,7 @@ export function Chat({
                     portrait: portraitOf(bot ?? project),
                   },
                 )
-              }
+              }}
               tools={
                 <>
                   <EffortMenu

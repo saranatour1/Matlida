@@ -7,6 +7,7 @@ import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { useCall } from '~/components/voice-call'
 import { attempt } from '~/lib/attempt'
+import { trackEvent } from '~/lib/analytics'
 
 /**
  * Rings when an assistant calls you with a reminder, on any page, unless
@@ -30,6 +31,7 @@ export function IncomingCall() {
   const ring = rings?.[0]
   if (!ring || call.status !== 'idle') return null
   const portrait = portraitOf({ portrait: ring.portrait, name: ring.from })
+  const kind = ring.checkIn ? 'check_in' : 'reminder'
   return (
     <div
       role="alertdialog"
@@ -57,7 +59,12 @@ export function IncomingCall() {
         aria-label="Snooze 10 minutes"
         title="Snooze 10 minutes"
         disabled={busy}
-        onClick={() => startTransition(() => attempt(snooze({ id: ring._id })))}
+        onClick={() =>
+          startTransition(() => {
+            trackEvent('ring_snoozed', { kind })
+            return attempt(snooze({ id: ring._id }))
+          })
+        }
       >
         <AlarmClockIcon />
       </Button>
@@ -67,7 +74,10 @@ export function IncomingCall() {
         aria-label="Decline"
         disabled={busy}
         onClick={() =>
-          startTransition(() => attempt(decline({ id: ring._id })))
+          startTransition(() => {
+            trackEvent('ring_declined', { kind })
+            return attempt(decline({ id: ring._id }))
+          })
         }
       >
         <PhoneOffIcon />
@@ -76,6 +86,7 @@ export function IncomingCall() {
         className="size-10 rounded-full bg-emerald-600 text-white hover:bg-emerald-500"
         aria-label="Answer"
         onClick={() => {
+          trackEvent('ring_answered', { kind })
           startCall(
             {
               projectId: ring.projectId,

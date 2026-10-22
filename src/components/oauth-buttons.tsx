@@ -8,6 +8,7 @@ import { api } from '@convex/_generated/api'
 import type { OauthFlowError } from '@convex-dev/auth/methods/google/react'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError } from '~/components/ui/field'
+import { rememberSignInMethod } from '~/components/identify-user'
 
 function oauthErrorMessage({ error }: OauthFlowError): string {
   switch (error) {
@@ -32,7 +33,9 @@ export function OAuthButtons() {
   const { flowError } = useOauth()
   const [error, signIn, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {
-      const provider = data.get('provider') === 'github' ? github : google
+      const method = data.get('provider') === 'github' ? 'github' : 'google'
+      rememberSignInMethod(method)
+      const provider = method === 'github' ? github : google
       const result = await provider.signIn()
       return result.status === 'error'
         ? oauthErrorMessage(result.userError)

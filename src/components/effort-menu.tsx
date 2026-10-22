@@ -15,6 +15,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { InputGroupButton } from '~/components/ui/input-group'
 import { attempt } from '~/lib/attempt'
+import { trackEvent } from '~/lib/analytics'
 
 /**
  * Picks how hard a chat's replies work: steps, bots asked and the model's
@@ -35,6 +36,10 @@ export function EffortMenu({
   const setEffort = useMutation(api.api.threads.setEffort)
   const current = effort ?? 'medium'
   const pick = (next: Effort | undefined) => {
+    trackEvent('effort_changed', {
+      effort: next ?? 'default',
+      assistant: botId ? 'bot' : 'lead',
+    })
     void attempt(setEffort({ projectId, botId, effort: next ?? null }))
   }
   return (

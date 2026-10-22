@@ -700,3 +700,11 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Checked: `pnpm check`, the tests, `wrangler deploy --dry-run` (1.37 MiB gzipped), and `pnpm dev` serving pages from Cloudflare's runtime. Not deployed yet: production Convex has no environment variables, and `convex.config.ts` requires them.
 - Workers Builds failed at `pnpm install --frozen-lockfile` with "packages field missing or empty": it ran pnpm 9.10.0, which needs a `packages:` list in `pnpm-workspace.yaml`. pnpm 12 doesn't. `package.json` now pins `packageManager: pnpm@12.6.0` (the lockfile records it), and Workers Builds needs the build variable `PNPM_VERSION=12.6.0`, the only way it picks pnpm's version.
 - Node is pinned to 24.22.1 (`.node-version`, which Workers Builds reads, plus `engines`), the patched 24.x from the October 21 Node security release. Workers Builds had used 24.21.0, which is open to its Brotli remote code execution bug (CVE-2026-111497).
+
+### Databuddy analytics (2026-10-22)
+
+- `@databuddy/sdk` is mounted once in the root document (`<Databuddy>` in `src/routes/__root.tsx`), from `VITE_DATABUDDY_CLIENT_ID` at build time. Unset, nothing is sent. The id goes in Workers Builds' build variables (and a git-ignored `.env.local` for dev), never in a committed file.
+- On: page views and sessions (automatic); web vitals; client errors; interactions (clicks, rage and dead clicks). In dev it runs with `debug`, since Databuddy ignores localhost otherwise. Skipped: `/reset-password` and `/verify-email`, whose URLs carry one-time codes.
+- Custom events, typed in `src/lib/analytics.ts`: `sign_in_started` and `signed_in` (by method), `signed_up`, `message_sent` (lead or bot, model, effort, command, attachment count), `message_redone`, `model_changed`, `effort_changed`, `talk_started`, `ring_answered`, `ring_snoozed`, `ring_declined` (reminder or check-in), `command_pill_clicked`, `task_answered`, `task_retried`. No text, emails, names or ids. Commands report built-in names, and yours only as `custom`.
+- Signed-in users are identified by their Convex id only (`IdentifyUser`), and forgotten on sign-out.
+- Verified with pnpm check, the tests (226), and dev: the tracker initialized with error tracking and logged web vitals.

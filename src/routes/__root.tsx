@@ -6,9 +6,14 @@ import {
 } from '@tanstack/react-router'
 import * as React from 'react'
 import { Toaster } from 'sonner'
+import { Databuddy } from '@databuddy/sdk/react'
 import type { QueryClient } from '@tanstack/react-query'
 import { NotFoundScreen } from '~/components/error-screen'
 import appCss from '~/styles/app.css?url'
+
+// Set at build time (Workers Builds variable, or .env.local for dev). Unset, nothing is sent.
+const databuddyClientId = import.meta.env.VITE_DATABUDDY_CLIENT_ID as
+  string | undefined
 
 const title = 'Matilda'
 const description =
@@ -73,6 +78,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         {children}
         {/* Failures from clicks (`attempt`) show here. */}
         <Toaster theme="system" position="bottom-center" richColors />
+        {databuddyClientId && (
+          <Databuddy
+            clientId={databuddyClientId}
+            trackWebVitals
+            trackErrors
+            trackInteractions
+            // Localhost is ignored unless debugging, so dev logs what it would send.
+            debug={import.meta.env.DEV}
+            // These links carry one-time codes in the URL.
+            skipPatterns={[
+              '/reset-password',
+              '/reset-password/**',
+              '/verify-email',
+              '/verify-email/**',
+            ]}
+          />
+        )}
         <Scripts />
       </body>
     </html>

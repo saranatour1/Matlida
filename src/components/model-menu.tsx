@@ -19,6 +19,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { InputGroupButton } from '~/components/ui/input-group'
 import { attempt } from '~/lib/attempt'
+import { trackEvent } from '~/lib/analytics'
 
 /**
  * Picks the model the chat's assistant replies with, saved on the assistant
@@ -38,6 +39,10 @@ export function ModelMenu({
   const setModel = useMutation(api.api.threads.setModel)
   const current = model ?? MODELS.chat
   const pick = (next: string | undefined) => {
+    trackEvent('model_changed', {
+      model: next ?? 'default',
+      assistant: botId ? 'bot' : 'lead',
+    })
     void attempt(setModel({ projectId, botId, model: next ?? null }))
   }
   return (
