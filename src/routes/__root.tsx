@@ -10,11 +10,12 @@ import { Databuddy } from '@databuddy/sdk/react'
 import type { QueryClient } from '@tanstack/react-query'
 import { NotFoundScreen } from '~/components/error-screen'
 import appCss from '~/styles/app.css?url'
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '~/lib/site'
-
-// Set at build time (Workers Builds variable, or .env.local for dev). Unset, nothing is sent.
-const databuddyClientId = import.meta.env.VITE_DATABUDDY_CLIENT_ID as
-  string | undefined
+import {
+  DATABUDDY_CLIENT_ID,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+} from '~/lib/site'
 
 const title = SITE_NAME
 const description = SITE_DESCRIPTION
@@ -39,7 +40,10 @@ export const Route = createRootRouteWithContext<{
       { property: 'og:image', content: ogImage },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
-      { property: 'og:image:alt', content: 'Matilda, the assistant that actually calls you' },
+      {
+        property: 'og:image:alt',
+        content: 'Matilda, the assistant that actually calls you',
+      },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: title },
       { name: 'twitter:description', content: description },
@@ -80,23 +84,21 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         {children}
         {/* Failures from clicks (`attempt`) show here. */}
         <Toaster theme="system" position="bottom-center" richColors />
-        {databuddyClientId && (
-          <Databuddy
-            clientId={databuddyClientId}
-            trackWebVitals
-            trackErrors
-            trackInteractions
-            // Localhost is ignored unless debugging, so dev logs what it would send.
-            debug={import.meta.env.DEV}
-            // These links carry one-time codes in the URL.
-            skipPatterns={[
-              '/reset-password',
-              '/reset-password/**',
-              '/verify-email',
-              '/verify-email/**',
-            ]}
-          />
-        )}
+        <Databuddy
+          clientId={DATABUDDY_CLIENT_ID}
+          trackWebVitals
+          trackErrors
+          trackInteractions
+          // Localhost is ignored unless debugging, so dev logs what it would send.
+          debug={import.meta.env.DEV}
+          // These links carry one-time codes in the URL.
+          skipPatterns={[
+            '/reset-password',
+            '/reset-password/**',
+            '/verify-email',
+            '/verify-email/**',
+          ]}
+        />
         <Scripts />
       </body>
     </html>
