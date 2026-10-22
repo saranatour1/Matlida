@@ -482,6 +482,6 @@
 - A bad email no longer stops the email check: it's recorded as ignored and the next one is handled. Subjects and sender names are capped.
 - Reply buttons: the newest 500 messages on screen, instead of an error past 500.
 - Catalog product links and images must be web URLs; others are dropped.
-- Uploads always send a content type, so the hourly sweep can't mistake one for a leftover.
+- The hourly sweep leaves files with no content type alone, and uploads always send one.
 - `generate_video` needs a chat; `emails.reply`, `pages.save` and `shopping.addToCart` validate with zod.
 
