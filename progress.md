@@ -485,3 +485,7 @@
 - The hourly sweep leaves files with no content type alone, and uploads always send one.
 - `generate_video` needs a chat; `emails.reply`, `pages.save` and `shopping.addToCart` validate with zod.
 
+### Excalidraw dropped (2026-10-22)
+
+- The `draw_diagram` tool, `/draw` and the diagram card are gone, with `@excalidraw/excalidraw` and `@excalidraw/mermaid-to-excalidraw`. Their Mermaid parser pulled in 13 `pnpm audit` holes (nanoid, lodash-es, katex) and an unfixable one in `braces` through `sass`. The audit is clean now. A diagram tool can come back with a lighter renderer.
+
