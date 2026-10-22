@@ -62,6 +62,25 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 - Dates are done with luxon (rule in AGENTS.md). PR 1's `inDaytime` moved to
   it, which also makes it right across daylight saving.
 
+## Check-in calls (PR 3)
+
+- Hourly cron `check in` → `checkIns.run`. Candidates (`checkIns.candidates`):
+  people who messaged an assistant in the last 7 days but not in the last
+  hour (`users.lastChat`, written at most every 10 minutes), with check-ins
+  on, in their 9am–9pm, and with no call with that assistant or check-in in
+  2 hours. It looks at the 100 most recent chatters each hour.
+- For each, one Jev call (`shouldCallNow`) over the last 10 turns and open
+  work: is a call welcome now, and about which recent request or running
+  work? At 0.7 or above, it inserts a call reminder with `kind: 'checkin'`
+  and rings through the same path as a reminder. The opening is "Hi, it's
+  Matilda. Checking in about: …".
+- Limit: `checkInCall`, 3 a day per user, counted per UTC day. A fixed window
+  without `start` begins at a random time and let a 4th call through in the
+  tests, so it's pinned to `start: 0`.
+- A missed check-in is left in the chat. Jev isn't asked to call again.
+- Off switch: "Let assistants call to check in" on Settings → Account.
+- Cost: up to 12 Jev calls a day per active person, about $0.06.
+
 ## Open questions
 
 - Calls to your real phone, rather than the app: no provider is picked
@@ -73,7 +92,7 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 
 - [x] PR 1: answer in the call bar, snooze, Jev on missed or declined calls, saved time zone
 - [x] PR 2: once vs recurring (`scheduler` vs `@convex-dev/crons`), Jev pause and stop, and pause/resume/stop in the Library
-- [ ] PR 3: check-in calls on an hourly cron, with `shouldCallNow` and the daily limit
+- [x] PR 3: check-in calls on an hourly cron, with `shouldCallNow` and the daily limit
 - [ ] PR 4: "what can you do" as command pills (`show_commands`)
 - [ ] PR 5: attachments through the agent component's file storage, with paste and drop
 - [ ] PR 6: edit and retry (`deleteMessageRange`, then reply again)

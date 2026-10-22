@@ -36,7 +36,11 @@ export function IncomingCall() {
       <div className="mr-2">
         <p className="text-sm font-medium">{ring.from}</p>
         <p className="text-xs text-muted-foreground">
-          {ring.again ? 'Calling again' : 'Calling with a reminder'}
+          {ring.checkIn
+            ? 'Calling to check in'
+            : ring.again
+              ? 'Calling again'
+              : 'Calling with a reminder'}
         </p>
       </div>
       <Button

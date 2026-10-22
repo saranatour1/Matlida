@@ -77,6 +77,32 @@ export const postMessage = async (
   }
 }
 
+/** Saves your time zone and the assistant you last messaged, writing at most every 10 minutes. */
+const noteChat = async (
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  {
+    projectId,
+    botId,
+    timeZone,
+  }: { projectId: Id<'projects'>; botId?: Id<'bots'>; timeZone?: string },
+) => {
+  const user = await ctx.db.get('users', userId)
+  if (!user) return
+  const last = user.lastChat
+  const now = Date.now()
+  const moved =
+    !last ||
+    last.projectId !== projectId ||
+    last.botId !== botId ||
+    now - last.at > 10 * 60_000
+  if (!moved && (!timeZone || user.timeZone === timeZone)) return
+  await ctx.db.patch('users', userId, {
+    timeZone: timeZone ?? user.timeZone,
+    lastChat: moved ? { projectId, botId, at: now } : last,
+  })
+}
+
 /**
  * Saves the user's message, starting a chat on the first one, and schedules
  * the reply from the chat's assistant: `botId`, or the lead when unset.
@@ -93,10 +119,7 @@ const sendMessage = zAuthedMutation({
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
   handler: async (ctx, { timeZone, ...message }) => {
-    const user = await ctx.db.get('users', ctx.userId)
-    if (timeZone && user && user.timeZone !== timeZone) {
-      await ctx.db.patch('users', ctx.userId, { timeZone })
-    }
+    await noteChat(ctx, ctx.userId, { ...message, timeZone })
     const { threadId, promptMessageId, command } = await postMessage(
       ctx,
       ctx.userId,

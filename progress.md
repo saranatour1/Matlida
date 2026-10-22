@@ -575,3 +575,10 @@
 - Pause, Resume and Stop are in the Library's Reminders; the details panel shows "every weekday, from …" or Paused.
 - luxon does the date math now (`inDaytime`, `cronFor`, labels), and AGENTS.md says to keep using it.
 - Verified with pnpm check and the tests (202), and pushed to dev.
+
+### Check-in calls (2026-10-22)
+
+- Once an hour, for people who messaged an assistant this week (but not in the last hour), Jev reads that chat and decides whether a short call now would help, and about what. At 0.7 or above the assistant rings: "Hi, it's Matilda. Checking in about: …".
+- Limits: 9am–9pm in your zone, 3 a day, 2 hours from any other call or check-in, never right after you chatted. A missed check-in is left in the chat without another call. You can turn them off in Settings → Account.
+- Found while testing: a rate limiter fixed window with no `start` begins at a random time, so "3 a day" could let a 4th through. Pinned to UTC days.
+- Verified with pnpm check and the tests (207), and pushed to dev, where the hourly check is now running.

@@ -4,7 +4,11 @@ import { v } from 'convex/values'
 import { z } from 'zod'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
-import { authedQuery, zAuthedMutation } from '../../lib/functions'
+import {
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
 import type { Infer } from 'convex/values'
 import type { Id, MutationCtx } from '../../lib/ctx'
 
@@ -98,9 +102,23 @@ const updateProfile = zAuthedMutation({
   },
 })
 
+/** Turns assistants' check-in calls on or off. */
+const setCheckIns = authedMutation({
+  args: { on: v.boolean() },
+  handler: async (ctx, { on }) => {
+    await ctx.db.patch('users', ctx.userId, { checkIns: on })
+  },
+})
+
 const current = authedQuery({
   args: {},
   handler: async (ctx) => await ctx.db.get('users', ctx.userId),
 })
 
-export const usersApi = { createUser, syncProfile, updateProfile, current }
+export const usersApi = {
+  createUser,
+  syncProfile,
+  updateProfile,
+  setCheckIns,
+  current,
+}

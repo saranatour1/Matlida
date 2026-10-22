@@ -404,6 +404,7 @@ type Answered = {
   botId?: Id<'bots'>
   from: string
   message: string
+  checkIn: boolean
   text: string
   /** The call's record, started with the opening line. */
   callId: Id<'calls'>
@@ -423,7 +424,9 @@ const answer = zAuthedAction({
         userId: ctx.userId,
       })
     if (!call) return null
-    const text = `Hi, it's ${call.from} with your reminder. ${call.message}`
+    const text = call.checkIn
+      ? `Hi, it's ${call.from}. ${call.message}`
+      : `Hi, it's ${call.from} with your reminder. ${call.message}`
     const callId: Id<'calls'> = await ctx.runMutation(
       internal.api.calls.addLine,
       {
