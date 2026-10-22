@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
 
 type FormState = { error?: string; saved?: boolean }
 
@@ -60,14 +61,14 @@ export function AccountForm() {
           type="checkbox"
           role="switch"
           checked={user.checkIns !== false}
-          onChange={(e) => void setCheckIns({ on: e.target.checked })}
+          onChange={(e) => void attempt(setCheckIns({ on: e.target.checked }))}
           className="mt-1 accent-primary"
         />
         <span>
           Let assistants call to check in
           <span className="block text-xs text-muted-foreground">
-            Only between 9am and 9pm, at most 3 times a day, when something
-            you talked about may need a follow-up.
+            Only between 9am and 9pm, at most 3 times a day, when something you
+            talked about may need a follow-up.
           </span>
         </span>
       </label>

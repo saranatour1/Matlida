@@ -22,6 +22,7 @@ import { Input } from '~/components/ui/input'
 import { useProject } from '~/hooks/use-project'
 import { BOT_TEMPLATES } from '~/lib/bot-templates'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
 
 export const Route = createFileRoute('/_app/p/$projectId/bots')({
   validateSearch: z.object({ edit: z.string().optional() }),
@@ -97,7 +98,7 @@ function Bots() {
                 variant="ghost"
                 size="sm"
                 aria-label={`Remove ${b.name}`}
-                onClick={() => void remove({ id: b._id })}
+                onClick={() => void attempt(remove({ id: b._id }))}
               >
                 Remove
               </Button>

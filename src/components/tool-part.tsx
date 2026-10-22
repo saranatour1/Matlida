@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
@@ -14,6 +15,7 @@ import { Button } from '~/components/ui/button'
 import { reminderWhen } from '~/lib/reminders'
 import { Markdown } from '~/components/chat-message'
 import { Spinner } from '~/components/ui/spinner'
+import { attempt } from '~/lib/attempt'
 
 type Part = Extract<
   ChatUIMessage['parts'][number],
@@ -182,6 +184,8 @@ function ContactReminder({
   const state = useQuery(api.api.reminders.state, { id: reminderId })
   const confirm = useMutation(api.api.reminders.confirm)
   const cancel = useMutation(api.api.reminders.cancel)
+  // One click at a time: the buttons wait while it runs.
+  const [busy, startTransition] = React.useTransition()
   const when = new Date(at).toLocaleString(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -194,13 +198,22 @@ function ContactReminder({
           <span>
             Email {to} on {when}?
           </span>
-          <Button size="sm" onClick={() => void confirm({ id: reminderId })}>
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              startTransition(() => attempt(confirm({ id: reminderId })))
+            }
+          >
             Send
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => void cancel({ id: reminderId })}
+            disabled={busy}
+            onClick={() =>
+              startTransition(() => attempt(cancel({ id: reminderId })))
+            }
           >
             Cancel
           </Button>

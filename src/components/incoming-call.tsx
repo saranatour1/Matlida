@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { AlarmClockIcon, PhoneIcon, PhoneOffIcon } from 'lucide-react'
@@ -5,6 +6,7 @@ import { api } from '@convex/_generated/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { useCall } from '~/components/voice-call'
+import { attempt } from '~/lib/attempt'
 
 /**
  * Rings when an assistant calls you with a reminder, on any page, unless
@@ -22,6 +24,8 @@ export function IncomingCall() {
   const answer = useAction(api.api.calls.answer)
   const decline = useMutation(api.api.reminders.decline)
   const snooze = useMutation(api.api.reminders.snooze)
+  // One click at a time: the buttons wait while it runs.
+  const [busy, startTransition] = React.useTransition()
   const navigate = useNavigate()
   const ring = rings?.[0]
   if (!ring || call.status !== 'idle') return null
@@ -52,7 +56,8 @@ export function IncomingCall() {
         className="size-10 rounded-full"
         aria-label="Snooze 10 minutes"
         title="Snooze 10 minutes"
-        onClick={() => void snooze({ id: ring._id })}
+        disabled={busy}
+        onClick={() => startTransition(() => attempt(snooze({ id: ring._id })))}
       >
         <AlarmClockIcon />
       </Button>
@@ -60,7 +65,10 @@ export function IncomingCall() {
         variant="destructive"
         className="size-10 rounded-full"
         aria-label="Decline"
-        onClick={() => void decline({ id: ring._id })}
+        disabled={busy}
+        onClick={() =>
+          startTransition(() => attempt(decline({ id: ring._id })))
+        }
       >
         <PhoneOffIcon />
       </Button>

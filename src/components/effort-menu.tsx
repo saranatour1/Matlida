@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { InputGroupButton } from '~/components/ui/input-group'
+import { attempt } from '~/lib/attempt'
 
 /**
  * Picks how hard a chat's replies work: steps, bots asked and the model's
@@ -34,7 +35,7 @@ export function EffortMenu({
   const setEffort = useMutation(api.api.threads.setEffort)
   const current = effort ?? 'medium'
   const pick = (next: Effort | undefined) => {
-    void setEffort({ projectId, botId, effort: next ?? null })
+    void attempt(setEffort({ projectId, botId, effort: next ?? null }))
   }
   return (
     <DropdownMenu>

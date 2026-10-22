@@ -670,3 +670,11 @@ Not done (finding #6): every email sent still looks up both Photon users first, 
 - **The incoming-call ring** query is skipped during a call, since nothing rings over one.
 - Already fine: transcripts load only when opened, and identical queries (like `bots.list` in the sidebar, chat header and search) share one subscription in the Convex client.
 - Verified with pnpm check and the tests (223).
+
+### A sturdier frontend (2026-10-22)
+
+- **Clicks don't fail silently:** 32 buttons, menus and checkboxes fired a mutation with `void`, so a failure (offline, over budget, already gone) showed nothing and surfaced as an unhandled rejection. They now go through `attempt` (`src/lib/attempt.ts`), which shows the error as a toast (sonner, added) with the server's message when there is one.
+- **One click at a time:** the one-shot buttons wait while they run, via React's `useTransition`: the task card's Start, Don't start, Try again and Cancel, the contact message's Send and Cancel, and the incoming call's Snooze and Decline.
+- **Cards don't pop in or vanish:** six chat cards (task, page, video, price watch, checklist, study deck) rendered nothing while loading, so the chat jumped when they arrived. They show a skeleton the size of a card now. The task and price-watch cards also say when what they showed was removed, instead of disappearing.
+- **Error pages:** a crashed page showed users a raw stack trace, and an unknown URL showed "not found" in plain text. There's now an error page with Try again and Home (the stack only in development), and a proper not-found page.
+- Verified with pnpm check and the tests (223), and the not-found page on the dev server.

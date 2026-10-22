@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { CallHistory } from '~/components/call-history'
 import { TASK_STATUS } from '~/components/task-card'
+import { attempt } from '~/lib/attempt'
 
 /**
  * Convex bills action time by memory used: 64 MB actions at $0.30 per GB-hour
@@ -491,7 +492,7 @@ function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
               </span>
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void share()}>
+          <DropdownMenuItem onClick={() => void attempt(share())}>
             <LinkIcon />
             <span className="flex flex-col">
               Copy template link

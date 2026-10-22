@@ -5,7 +5,9 @@ import {
   createRootRouteWithContext,
 } from '@tanstack/react-router'
 import * as React from 'react'
+import { Toaster } from 'sonner'
 import type { QueryClient } from '@tanstack/react-query'
+import { NotFoundScreen } from '~/components/error-screen'
 import appCss from '~/styles/app.css?url'
 
 const title = 'Matilda'
@@ -49,7 +51,7 @@ export const Route = createRootRouteWithContext<{
       { rel: 'manifest', href: '/site.webmanifest' },
     ],
   }),
-  notFoundComponent: () => <div>Route not found</div>,
+  notFoundComponent: NotFoundScreen,
   component: RootComponent,
 })
 
@@ -69,6 +71,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        {/* Failures from clicks (`attempt`) show here. */}
+        <Toaster theme="system" position="bottom-center" richColors />
         <Scripts />
       </body>
     </html>

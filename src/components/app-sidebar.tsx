@@ -42,6 +42,7 @@ import {
   useSidebar,
 } from '~/components/ui/sidebar'
 import { useProject } from '~/hooks/use-project'
+import { attempt } from '~/lib/attempt'
 
 export function AppSidebar() {
   const project = useProject()
@@ -260,7 +261,7 @@ function Account() {
                 )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void signOut()}>
+              <DropdownMenuItem onClick={() => void attempt(signOut())}>
                 <LogOutIcon />
                 Sign out
               </DropdownMenuItem>
