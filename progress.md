@@ -728,3 +728,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The "Made with Convex" pill uses Convex's own symbol (`public/convex-symbol.svg`), copied unaltered from their brand kit at convex.dev/brand, as their rules ask.
 - `public/og.png` is redrawn to match the page: Matilda's photo, "She actually calls you.", the call button, "because I made her that way", the domain, and the Convex pill. It's 1200×630.
 
+### Phone calls (2026-10-22)
+
+- Assistants can phone a number you type: a new `call_phone` tool. Photon only carries calls over SIP, so an ElevenLabs agent does the talking. Convex asks ElevenLabs to place the call (`POST /v1/convai/sip-trunk/outbound-call`, in `convex/lib/phone.ts`), and ElevenLabs dials out through the Photon number imported into it. Each call sends its own opening line and what it's about as overrides.
+- Only a number that's in your last message (the last 7 digits have to match, so "0791 234 567" works as +962…). Emails land in the chat as assistant messages, so a number from one never counts. At most 10 calls a day per person (`phoneCall`).
+- New optional env: `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_PHONE_NUMBER_ID`. Connections shows Phone calls as connected once they're set. Setup steps are in `docs/setup/channels.md`.
+- The chat shows "Calling +1…" or why it failed. Not yet: phone calls for reminders, and the call in the app's call history.
+- Verified with pnpm check and the tests (request body, missing env, a failed call, typed-number matching). No call was placed.

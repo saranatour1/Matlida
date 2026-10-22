@@ -46,6 +46,7 @@ Set these on the Convex deployment (`pnpm exec convex env set NAME value`):
 | `PHOTON_WEBHOOK_SECRET`                                                     | Signs Photon's events to `/photon/webhook`: Telegram, and email arriving (`whsec_…`). Optional                                                                                                |
 | `PHOTON_PROJECT_ID`, `PHOTON_API_KEY`                                       | Email and Telegram through Photon's platform API (beta). Optional                                                                                                                             |
 | `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, connected in Photon. Optional                                                                                                                 |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_PHONE_NUMBER_ID`   | Phone calls to a number you type: an ElevenLabs agent dials out through your Photon number over SIP. Optional                                                                                 |
 
 To message on Telegram, connect the bot in Photon's dashboard, point the project's webhook at `/photon/webhook`, and set its signing secret as `PHOTON_WEBHOOK_SECRET`. iMessage and WhatsApp go through the Spectrum SDK and its webhook at `/spectrum/webhook`. The full setup for email and every messaging app is in [docs/setup/channels.md](docs/setup/channels.md).
 

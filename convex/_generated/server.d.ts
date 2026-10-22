@@ -39,6 +39,9 @@ type Env = {
   readonly AUTH_JWKS: string;
   readonly AUTH_METHODS: string | undefined;
   readonly AUTH_PRIVATE_KEY: string;
+  readonly ELEVENLABS_AGENT_ID: string | undefined;
+  readonly ELEVENLABS_API_KEY: string | undefined;
+  readonly ELEVENLABS_PHONE_NUMBER_ID: string | undefined;
   readonly MAIL_DOMAIN: string | undefined;
   readonly PHOTON_API_KEY: string | undefined;
   readonly PHOTON_PROJECT_ID: string | undefined;

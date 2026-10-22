@@ -14,6 +14,8 @@ import {
 } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
+import { rateLimiter } from '../../lib/limits'
+import { PHONE_NUMBER, callPhone, typedBy } from '../../lib/phone'
 import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
 import { iso, parseIso } from '../../lib/time'
@@ -580,9 +582,55 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         }))
       },
     }),
+    call_phone: createTool({
+      description:
+        "Phone a number the user typed in their last message, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. A voice agent says `say` when they pick up, then talks with them about `about`. Tell the user the call is on its way; you won't hear how it went.",
+      inputSchema: z.object({
+        to: z
+          .string()
+          .regex(PHONE_NUMBER, 'Use international format, like +14155550123.')
+          .describe(
+            "The number in international format. Ask for the country code if it isn't clear.",
+          ),
+        say: z
+          .string()
+          .min(1)
+          .max(500)
+          .describe(
+            "The first thing said when they pick up, saying who's calling and for whom. Like: Hi, it's Matilda, Sara's assistant. She asked me to tell you dinner is at 8.",
+          ),
+        about: z
+          .string()
+          .max(2000)
+          .describe(
+            'What the call is for, and anything to tell or ask them, so the agent can answer their questions.',
+          ),
+      }),
+      execute: async (ctx, { to, say, about }) => {
+        if (!ctx.threadId) throw new Error('Calls need a chat.')
+        const turns = await recentTurns(ctx, ctx.threadId)
+        const asked = turns.filter((t) => t.role === 'user').at(-1)?.text ?? ''
+        if (!typedBy(asked, to)) {
+          throw new Error(
+            `${to} isn't in the user's last message. Only call a number they type: ask them to.`,
+          )
+        }
+        const { ok } = await rateLimiter.limit(ctx, 'phoneCall', {
+          key: project.ownerId,
+        })
+        if (!ok)
+          throw new Error("That's 10 phone calls today, the daily limit.")
+        const { conversationId } = await callPhone({
+          to,
+          firstMessage: say,
+          prompt: `You are ${from}, an assistant, on a phone call you placed for the person you work for. You opened with: "${say}". What the call is for: ${about}\nKeep it short and friendly, answer from what you know here, and say you'll pass anything else on. End the call once it's done.`,
+        })
+        return { calling: to, conversationId }
+      },
+    }),
     set_reminder: createTool({
       description:
-        'Remind the user about something later, once or on repeat ("every weekday at 9"): Jev works out which from what they asked. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
+        'Remind the user about something later, once or on repeat ("every weekday at 9"): Jev works out which from what they asked. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. To call someone now, use call_phone with a number the user types.',
       inputSchema: z.object({
         message: z
           .string()

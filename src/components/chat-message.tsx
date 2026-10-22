@@ -33,7 +33,12 @@ import { TodayPart } from '~/components/today-part'
 import { VideoPart } from '~/components/video-part'
 import { WatchPart } from '~/components/watch-part'
 import { RunPlanPart } from '~/components/task-card'
-import { DecidePart, ReminderPart, ToolPart } from '~/components/tool-part'
+import {
+  CallPhonePart,
+  DecidePart,
+  ReminderPart,
+  ToolPart,
+} from '~/components/tool-part'
 import { Bubble, BubbleContent } from '~/components/ui/bubble'
 import { Message, MessageContent } from '~/components/ui/message'
 
@@ -316,6 +321,8 @@ function renderPart(
       return <PagePart key={part.toolCallId} part={part} />
     case 'tool-keep_page_updated':
       return <KeepUpdatedPart key={part.toolCallId} part={part} />
+    case 'tool-call_phone':
+      return <CallPhonePart key={part.toolCallId} part={part} />
     case 'tool-set_reminder':
       return <ReminderPart key={part.toolCallId} part={part} />
     case 'tool-run_plan':

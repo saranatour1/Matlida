@@ -11,15 +11,18 @@ without it landing in your shell history, copy it and run
 
 ## Env vars, names only
 
-| Name                      | What it's for                                                      |
-| ------------------------- | ------------------------------------------------------------------ |
-| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.       |
-| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
-| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
-| `PHOTON_WEBHOOK_SECRET`   | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
-| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                     |
-| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                         |
-| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.                 |
+| Name                         | What it's for                                                      |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `MAIL_DOMAIN`                | The domain connected in Photon. Users claim `handle@` on it.       |
+| `PHOTON_PROJECT_ID`          | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
+| `PHOTON_API_KEY`             | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
+| `PHOTON_WEBHOOK_SECRET`      | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
+| `SPECTRUM_PROJECT_ID`        | Texting: the project id the Spectrum SDK uses.                     |
+| `SPECTRUM_PROJECT_SECRET`    | Texting: the project's secret. Not the id.                         |
+| `SPECTRUM_WEBHOOK_SECRET`    | Texting: signs the webhook at `/spectrum/webhook`.                 |
+| `ELEVENLABS_API_KEY`         | Phone calls: the ElevenLabs API key that places them.              |
+| `ELEVENLABS_AGENT_ID`        | Phone calls: the ElevenLabs agent that talks.                      |
+| `ELEVENLABS_PHONE_NUMBER_ID` | Phone calls: the Photon number's id in ElevenLabs.                 |
 
 `SITE_URL` and the `AUTH_*` variables are in the README.
 
@@ -92,14 +95,26 @@ after a quiet spell can take up to a minute.
 
 WhatsApp allows free-form replies only within 24 hours of your last message.
 
-## Phone calls: why not yet
+## Phone calls
 
-Connections lists phone calls as coming soon. Photon's voice routes a phone
-call over SIP to a voice agent, and its beta platform sends call events
-(`call.started`, `call.ended` and the rest) to a webhook. The audio still
-needs an always-on process that speaks SIP and streams audio both ways for
-the length of the call, which a Convex function can't be. A call would take
-a small voice server that answers Photon's SIP line, runs each turn through
-the same pipeline as in-app calls, and reports the call to the app for the
-call history. In-app calls, and reminders that ring you in the app, work
-today.
+Ask an assistant in the chat to call a number you type ("call +14155550123
+and tell her dinner is at 8"). It rings from your Photon number. Photon only
+carries the call over SIP, so an ElevenLabs agent does the talking: Convex
+asks ElevenLabs to place the call (`convex/lib/phone.ts`), and ElevenLabs
+dials out through Photon.
+
+1. In Photon, follow [Set up Photon with ElevenLabs](https://photon.codes/docs/beta/cookbooks/voice/elevenlabs):
+   a SIP Voice profile for your number with outbound enabled (SHA-256), and
+   the number imported into ElevenLabs under Phone Numbers → Import number →
+   From SIP Trunk, with Photon's outbound username and password.
+2. In ElevenLabs, create an agent. Under its Security settings, allow
+   overrides for **First message** and **System prompt**: each call sends
+   its own opening line and what the call is about.
+3. Set `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` and
+   `ELEVENLABS_PHONE_NUMBER_ID` (the imported number's id) on the deployment.
+   Connections then shows Phone calls as connected.
+
+Limits: an assistant only dials a number that's in your last message, never
+one from an email or a page, and at most 10 calls a day per person. The call
+itself isn't in the app's call history yet: ElevenLabs keeps the
+conversation.

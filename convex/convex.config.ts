@@ -43,6 +43,11 @@ const app = defineApp({
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
+    /** Phone calls: an ElevenLabs agent dials out through the Photon number imported into ElevenLabs over SIP. The agent needs first message and prompt overrides allowed. */
+    ELEVENLABS_API_KEY: v.optional(v.string()),
+    ELEVENLABS_AGENT_ID: v.optional(v.string()),
+    /** The imported Photon number's id in ElevenLabs (Phone Numbers). */
+    ELEVENLABS_PHONE_NUMBER_ID: v.optional(v.string()),
     /** Each person's AI spend a month, in dollars. 12 when unset. */
     AI_BUDGET_USD: v.optional(v.string()),
   },

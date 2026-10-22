@@ -91,13 +91,26 @@ test('email is connected once an address is claimed', () => {
   })
 })
 
-test('tools are always on, and planned channels are coming soon', () => {
+test('tools are always on', () => {
   expect(channelStatus(channel('web_search'), nothing)).toEqual({
     status: 'connected',
     detail: 'perplexity/sonar',
     missing: [],
   })
+})
+
+test('phone calls work once ElevenLabs is set up', () => {
   expect(channelStatus(channel('phone'), nothing)).toMatchObject({
-    status: 'coming_soon',
+    status: 'needs_setup',
   })
+  expect(
+    channelStatus(channel('phone'), {
+      ...nothing,
+      env: [
+        'ELEVENLABS_API_KEY',
+        'ELEVENLABS_AGENT_ID',
+        'ELEVENLABS_PHONE_NUMBER_ID',
+      ],
+    }),
+  ).toMatchObject({ status: 'connected' })
 })

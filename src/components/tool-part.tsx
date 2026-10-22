@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
   GlobeIcon,
+  PhoneOutgoingIcon,
   ScaleIcon,
   SendIcon,
   TelescopeIcon,
@@ -167,6 +168,26 @@ export function ReminderPart({
         : part.state === 'output-error'
           ? `Couldn't set the reminder: ${part.errorText}`
           : 'Setting a reminder…'}
+    </div>
+  )
+}
+
+/** A phone call an assistant placed, to a number you typed. */
+export function CallPhonePart({
+  part,
+}: {
+  part: Extract<ChatUIMessage['parts'][number], { type: 'tool-call_phone' }>
+}) {
+  const busy =
+    part.state === 'input-streaming' || part.state === 'input-available'
+  return (
+    <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+      {busy ? <Spinner /> : <PhoneOutgoingIcon className="size-4" />}
+      {part.state === 'output-available'
+        ? `Calling ${part.output.calling}.`
+        : part.state === 'output-error'
+          ? `Couldn't call: ${part.errorText}`
+          : `Calling ${part.input?.to ?? '…'}…`}
     </div>
   )
 }

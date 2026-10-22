@@ -55,6 +55,7 @@ import type * as lib_limits from "../lib/limits.js";
 import type * as lib_mail from "../lib/mail.js";
 import type * as lib_models from "../lib/models.js";
 import type * as lib_news from "../lib/news.js";
+import type * as lib_phone from "../lib/phone.js";
 import type * as lib_photon from "../lib/photon.js";
 import type * as lib_portraits from "../lib/portraits.js";
 import type * as lib_sentences from "../lib/sentences.js";
@@ -184,6 +185,7 @@ declare const fullApi: ApiFromModules<{
   "lib/mail": typeof lib_mail;
   "lib/models": typeof lib_models;
   "lib/news": typeof lib_news;
+  "lib/phone": typeof lib_phone;
   "lib/photon": typeof lib_photon;
   "lib/portraits": typeof lib_portraits;
   "lib/sentences": typeof lib_sentences;
