@@ -21,7 +21,7 @@ export const IDLE_RESTART_MS = 15_000
 /** A dip shorter than this doesn't break a run of talking. */
 const DIP_MS = 150
 
-export type Listening = {
+type Listening = {
   began: number
   /** Start of the current run of talking, if one is going. */
   voiceFrom: number | null

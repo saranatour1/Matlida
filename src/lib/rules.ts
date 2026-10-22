@@ -3,7 +3,7 @@
  * guidelines from the editor's Rules menu. Each is one markdown list item,
  * written to the assistant, so it can be edited like any other text.
  */
-export type Rule = { id: string; title: string; markdown: string }
+type Rule = { id: string; title: string; markdown: string }
 
 export const RULES: ReadonlyArray<Rule> = [
   {
