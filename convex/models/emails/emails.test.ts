@@ -161,9 +161,10 @@ test('your own email gets a draft in the chat, and goes out only when you reply'
   expect(JSON.stringify(calls)).toContain(
     'You are drafting a reply to an email',
   )
+  // Quoted like anyone else's: From can be forged, so it's never the user's
+  // own words. The draft goes in the Reply box, not the chat.
   expect(await chat('Matilda')).toEqual([
-    'Today\n\nWhat is on today?',
-    'Hi from Matilda.',
+    '📨 **Ada <Ada@Example.com>**\n**Today**\n\n> What is on today?',
   ])
   expect(await statuses()).toEqual(['answered'])
   const [mail] = await inbox('Matilda')
@@ -198,7 +199,7 @@ test("someone else's email shows in the lead's chat with a draft, and only you c
 
   expect(sent).toEqual([])
   expect(await chat('Matilda')).toEqual([
-    '📨 **Bob <bob@example.org>**\n**Today**\n\nLunch?',
+    '📨 **Bob <bob@example.org>**\n**Today**\n\n> Lunch?',
   ])
   expect(await statuses()).toEqual(['shown'])
   const [mail] = await inbox('Matilda')
@@ -228,7 +229,7 @@ test('spam from your own address is shown, not drafted', async () => {
   expect(sent).toEqual([])
   expect(calls).toHaveLength(0)
   expect(await chat('Matilda')).toEqual([
-    '📨 **Ada <ada@example.com>** _(marked as spam)_\n**Today**\n\nClick here',
+    '📨 **Ada <ada@example.com>** _(marked as spam)_\n**Today**\n\n> Click here',
   ])
   expect(await inbox('Matilda')).toMatchObject([{ draft: '' }])
 })
@@ -269,7 +270,7 @@ test('past 5 emails at once, yours are posted but not drafted', async () => {
   expect(sent).toEqual([])
   expect(calls).toHaveLength(5)
   expect((await chat('Matilda'))?.slice(-2)).toEqual([
-    'Today\n\nQuestion 5',
+    '📨 **Ada <ada@example.com>**\n**Today**\n\n> Question 5',
     '_No draft for this one: too many emails in a short time. You can still reply._',
   ])
   expect(await statuses()).toEqual([

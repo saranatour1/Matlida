@@ -474,6 +474,17 @@
 - Smaller: texts over the limit aren't kept for find_texts (#70); a missed-call text that couldn't go out says so (#71); no link on a price watch without a URL (#76); "Keep up to date" waits a full period (#79); needs_follow_up names no request when nothing's owed (#90); a diagram that fails to parse can be tried again (#93).
 - Left as is: a reply whose chat line fails after Photon sent it stays Replied (it was sent); plan titles beyond the newest 50 (#73); a union type for emails; #67's DoH status (on its own branch).
 
+### Security review fixes (2026-10-22)
+
+- Email can't pose as you: every email, your own address included, is quoted in the chat (`> ` lines under its header), never saved as your words, since From can be forged and Photon gives no SPF or DKIM result. Your own email is still drafted with the chat's history, as information, and that turn isn't saved; the draft is in the Reply box.
+- `save_command` only adds commands. It can't replace one you have, so a planted instruction can't change what /name does later.
+- Markdown images in the chat render as links, so an email body can't fetch a tracking pixel when you read it.
+- A bad email no longer stops the email check: it's recorded as ignored and the next one is handled. Subjects and sender names are capped.
+- Reply buttons: the newest 500 messages on screen, instead of an error past 500.
+- Catalog product links and images must be web URLs; others are dropped.
+- The hourly sweep leaves files with no content type alone, and uploads always send one.
+- `generate_video` needs a chat; `emails.reply`, `pages.save` and `shopping.addToCart` validate with zod.
+
 ### Excalidraw dropped (2026-10-22)
 
 - The `draw_diagram` tool, `/draw` and the diagram card are gone, with `@excalidraw/excalidraw` and `@excalidraw/mermaid-to-excalidraw`. Their Mermaid parser pulled in 13 `pnpm audit` holes (nanoid, lodash-es, katex) and an unfixable one in `braces` through `sass`. The audit is clean now. A diagram tool can come back with a lighter renderer.
