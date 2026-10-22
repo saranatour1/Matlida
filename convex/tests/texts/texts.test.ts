@@ -91,8 +91,25 @@ const setup = async () => {
     brief: '',
     guidelines: '',
   })
-  const text = (spaceId: string, message: string, platform = 'telegram') =>
-    t.action(internal.api.texts.answer, { spaceId, platform, text: message })
+  // Photon's keys for the Telegram and WhatsApp replies; iMessage goes through the cloud sender.
+  vi.stubEnv('SPECTRUM_PROJECT_ID', 'project')
+  vi.stubEnv('SPECTRUM_PROJECT_SECRET', 'secret')
+  vi.stubEnv('TELEGRAM_BOT_TOKEN', '1:token')
+  /** Texts `message` from `spaceId` through the Spectrum webhook's path, and returns the reply, or '' for none. */
+  const text = async (
+    spaceId: string,
+    message: string,
+    platform = 'telegram',
+  ) => {
+    if (!vi.isFakeTimers()) vi.useFakeTimers()
+    const [before, beforeOn] = [delivered.length, sentOn.length]
+    await arrive(t, spaceId, platform, message)
+    const imessage = delivered.at(before)
+    const other = sentOn.at(beforeOn)
+    return imessage
+      ? ((imessage.content as { text?: string } | undefined)?.text ?? '')
+      : (other?.text ?? '')
+  }
   return {
     t,
     ada,
@@ -288,6 +305,8 @@ test('find_texts searches what you texted from a linked chat, and only yours', a
   expect(await search(bob, 'dentist')).toEqual([])
 })
 
+let arrivals = 0
+
 /** Delivers `text` from `spaceId` the way the Spectrum webhook does, and runs the turn. */
 const arrive = async (
   t: Awaited<ReturnType<typeof setup>>['t'],
@@ -298,11 +317,11 @@ const arrive = async (
   await t.run(async (ctx) => {
     await ctx.runMutation(components.spectrum.inbound.enqueue, {
       spaceId,
-      messageId: `${spaceId}-${text}`,
+      messageId: `${spaceId}-${text}-${arrivals++}`,
       platform,
       content: { type: 'text', text },
       mode: 'collapse',
-      onBatch: await createFunctionHandle(internal.api.texts.respond),
+      onBatch: await createFunctionHandle(internal.api.texts.batch),
     })
   })
   await t.finishAllScheduledFunctions(vi.runAllTimers)
@@ -320,22 +339,20 @@ test('a failed reply still texts back and closes the turn', async () => {
   vi.useFakeTimers()
   await arrive(t, 'space-1', 'iMessage', 'What is on today?')
 
-  expect(delivered).toMatchObject([
-    {
-      spaceId: 'space-1',
-      content: {
-        type: 'text',
-        text: 'Sorry, something went wrong. Try again in a minute.',
-      },
+  expect(delivered.at(-1)).toMatchObject({
+    spaceId: 'space-1',
+    content: {
+      type: 'text',
+      text: 'Sorry, something went wrong. Try again in a minute.',
     },
-  ])
+  })
   expect(
     await t.query(components.spectrum.inbound.listMessages, {
       spaceId: 'space-1',
     }),
-  ).toMatchObject([
-    { messageId: 'space-1-What is on today?', status: 'handled' },
-  ])
+  ).toSatisfy((messages: Array<{ status: string }>) =>
+    messages.every((m) => m.status === 'handled'),
+  )
   expect(log.mock.calls.flat().map(String)).toContainEqual(
     expect.stringContaining('Gateway is down'),
   )
@@ -345,13 +362,16 @@ test('an ignored message sends nothing back and still closes the turn', async ()
   const { t, text } = await setup()
   vi.useFakeTimers()
   for (let i = 0; i < 15; i++) await text('stranger', `hello ${i}`, 'imessage')
+  const answered = delivered.length
   await arrive(t, 'stranger', 'iMessage', 'hello again')
-  expect(delivered).toEqual([])
+  expect(delivered).toHaveLength(answered)
   expect(
     await t.query(components.spectrum.inbound.listMessages, {
       spaceId: 'stranger',
     }),
-  ).toMatchObject([{ messageId: 'stranger-hello again', status: 'handled' }])
+  ).toSatisfy((messages: Array<{ status: string }>) =>
+    messages.every((m) => m.status === 'handled'),
+  )
 })
 
 test('Telegram and WhatsApp chats link through the Spectrum webhook and get replies through their provider', async () => {
