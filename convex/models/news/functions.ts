@@ -66,18 +66,16 @@ const forUser = internalQuery({
   handler: async (ctx, { userId }) => await getSettings(ctx, userId),
 })
 
-/** Everyone with a daily time, all of them, by the `by_dailyHour` index. */
+/** Everyone with a daily time, by the `by_dailyHour` index. */
 const withDailyTime = internalQuery({
   args: {},
   returns: v.array(schema.doc('newsSettings')),
   handler: async (ctx) => {
-    const daily = []
-    for await (const row of ctx.db
+    // ponytail: first 1000 by hour; page through them past that.
+    return await ctx.db
       .query('newsSettings')
-      .withIndex('by_dailyHour', (q) => q.gte('dailyHour', 0))) {
-      daily.push(row)
-    }
-    return daily
+      .withIndex('by_dailyHour', (q) => q.gte('dailyHour', 0))
+      .take(1000)
   },
 })
 

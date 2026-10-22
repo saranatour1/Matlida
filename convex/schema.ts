@@ -23,11 +23,12 @@ import {
   telegramPollsTable,
 } from './models/texts/table'
 import { usageTable } from './models/usage/table'
-import { usersTable } from './models/users/table'
+import { userActivityTable, usersTable } from './models/users/table'
 import { videosTable } from './models/videos/table'
 
 export default defineSchema({
   users: usersTable,
+  userActivity: userActivityTable,
   projects: projectsTable,
   bots: botsTable,
   commands: commandsTable,

@@ -291,8 +291,12 @@ const received = internalMutation({
         : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
             fast: true,
           })
+    // Every message reads this one row; writing it only when it moves keeps a
+    // burst of messages from conflicting with each other and with `nextPoll`.
     if (!poll) await ctx.db.insert('telegramPolls', { until, scheduled })
-    else await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
+    else if (scheduled !== poll.scheduled || until - poll.until > 15_000) {
+      await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
+    }
     // The limit is taken here, one message at a time, not in the replies that
     // run side by side, so two quick messages don't conflict on the same bucket.
     const admitted = await admitText(

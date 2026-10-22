@@ -56,6 +56,18 @@ const save = zAuthedMutation({
   },
 })
 
+const HOUR = 60 * 60_000
+const PERIOD = { day: 23 * HOUR, week: 7 * 24 * HOUR - HOUR }
+
+/** Refreshed now, and next due a period from now, or never when `every` is unset. */
+const refreshTimes = (every?: 'day' | 'week') => {
+  const now = Date.now()
+  return {
+    refreshedAt: now,
+    nextRefreshAt: every ? now + PERIOD[every] : undefined,
+  }
+}
+
 /** The page's "Keep up to date" setting. Null `every` turns it off. */
 const setRefresh = authedMutation({
   args: {
@@ -74,8 +86,7 @@ const setRefresh = authedMutation({
       refresh: every
         ? { every, instructions: instructions.trim().slice(0, 1000) }
         : undefined,
-      // The first refresh waits a full period from now.
-      refreshedAt: Date.now(),
+      ...refreshTimes(every ?? undefined),
     })
   },
 })
@@ -151,33 +162,31 @@ const keepUpdated = internalMutation({
     await ctx.db.patch('pages', page._id, {
       refresh:
         every === 'off' || !instructions ? undefined : { every, instructions },
-      // The first refresh waits a full period from now.
-      refreshedAt: Date.now(),
+      ...refreshTimes(every === 'off' || !instructions ? undefined : every),
     })
     return null
   },
 })
 
-const HOUR = 60 * 60_000
-const PERIOD = { day: 23 * HOUR, week: 7 * 24 * HOUR - HOUR }
-
-/** Pages due a refresh. ponytail: scans recent pages, fine until there are thousands. */
+/** Pages due a refresh: only those, by `nextRefreshAt`, oldest first. */
 const due = internalQuery({
   args: {},
   returns: v.array(schema.doc('pages')),
-  handler: async (ctx) => {
-    const now = Date.now()
-    return (await ctx.db.query('pages').order('desc').take(500)).filter(
-      (p) => p.refresh && now - (p.refreshedAt ?? 0) >= PERIOD[p.refresh.every],
-    )
-  },
+  handler: async (ctx) =>
+    await ctx.db
+      .query('pages')
+      .withIndex('by_nextRefreshAt', (q) =>
+        q.gte('nextRefreshAt', 0).lte('nextRefreshAt', Date.now()),
+      )
+      .take(50),
 })
 
 const refreshed = internalMutation({
   args: { id: v.id('pages') },
   returns: v.null(),
   handler: async (ctx, { id }) => {
-    await ctx.db.patch('pages', id, { refreshedAt: Date.now() })
+    const page = await ctx.db.get('pages', id)
+    if (page) await ctx.db.patch('pages', id, refreshTimes(page.refresh?.every))
     return null
   },
 })

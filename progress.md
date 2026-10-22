@@ -587,3 +587,13 @@
 
 - Asked "what can you do?", an assistant calls `show_commands`, and the chat shows each command as a pill: your own first, then the built-ins it doesn't replace. Tapping one sends `/name`. The pills are off while a reply is running.
 - Verified with pnpm check and the tests.
+
+### Fewer write conflicts (2026-10-22)
+
+From Convex's "high-throughput mutations via precise queries" post. A mutation conflicts with any write to something it read, so reads were narrowed and often-written fields moved off rows that many things read:
+
+- **Hot and cold tables:** `users.lastChat` and `users.checkInAt` (written while you chat, and by check-in calls) moved to a new `userActivity` table, one row per user. The profile on `users` only changes when you edit it or your time zone changes, so the email, mailbox and reminder mutations that read it stop conflicting with chatting.
+- **Precise queries:** `pages.due` read the 500 newest pages and filtered them in code. Pages now store `nextRefreshAt`, with an index, and it reads only the pages that are due.
+- **Fewer writes to a shared row:** every Telegram message read and rewrote the one `telegramPolls` row, so messages from different people conflicted with each other and with the fast check. It's now written only when the loop needs a new run or the window moves by more than 15 seconds.
+- **Bounded:** the daily-news scan read every row with a daily time; it now takes at most 1000.
+- Dev had no rows to migrate. Verified with pnpm check and the tests (208), and pushed to dev.

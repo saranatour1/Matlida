@@ -39,21 +39,19 @@ const candidates = internalQuery({
   ),
   handler: async (ctx) => {
     const now = Date.now()
-    const users = await ctx.db
-      .query('users')
-      .withIndex('by_lastChat', (q) =>
-        q
-          .gte('lastChat.at', now - ACTIVE_MS)
-          .lt('lastChat.at', now - JUST_TALKED_MS),
+    const recent = await ctx.db
+      .query('userActivity')
+      .withIndex('by_at', (q) =>
+        q.gte('at', now - ACTIVE_MS).lt('at', now - JUST_TALKED_MS),
       )
       .order('desc')
       .take(100)
     const people = []
-    for (const user of users) {
-      const last = user.lastChat
-      if (!last || user.checkIns === false) continue
+    for (const last of recent) {
+      if (last.checkInAt && now - last.checkInAt < GAP_MS) continue
+      const user = await ctx.db.get('users', last.userId)
+      if (!user || user.checkIns === false) continue
       if (inDaytime(now, user.timeZone) !== now) continue
-      if (user.checkInAt && now - user.checkInAt < GAP_MS) continue
       const project = await ctx.db.get('projects', last.projectId)
       const bot = last.botId ? await ctx.db.get('bots', last.botId) : null
       const assistant = bot ?? project
@@ -67,7 +65,7 @@ const candidates = internalQuery({
         .first()
       if (call && now - call._creationTime < GAP_MS) continue
       people.push({
-        userId: user._id,
+        userId: last.userId,
         projectId: project._id,
         threadId: assistant.threadId,
         from: assistant.name,
@@ -93,7 +91,13 @@ const call = internalMutation({
     const { ok } = await rateLimiter.limit(ctx, 'checkInCall', { key: userId })
     if (!ok) return false
     const now = Date.now()
-    await ctx.db.patch('users', userId, { checkInAt: now })
+    const activity = await ctx.db
+      .query('userActivity')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .unique()
+    if (activity) {
+      await ctx.db.patch('userActivity', activity._id, { checkInAt: now })
+    }
     const id = await ctx.db.insert('reminders', {
       ...reminder,
       message: about
