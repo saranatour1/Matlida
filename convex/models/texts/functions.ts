@@ -279,16 +279,20 @@ const received = internalMutation({
       .unique()
     if (seen) return false
     await ctx.db.insert('photonMessages', { messageId })
-    // A chat is active: check every few seconds for a while, starting the loop unless it's running.
+    // A chat is active: check every few seconds for a while, starting the loop unless one is running.
     const until = Date.now() + FAST_FOR_MS
     const poll = await ctx.db.query('telegramPolls').first()
-    if (!poll) await ctx.db.insert('telegramPolls', { until })
-    else await ctx.db.patch('telegramPolls', poll._id, { until })
-    if (!poll || poll.until < Date.now()) {
-      await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-        fast: true,
-      })
-    }
+    const next =
+      poll?.scheduled &&
+      (await ctx.db.system.get('_scheduled_functions', poll.scheduled))
+    const scheduled =
+      poll?.scheduled && next?.state.kind === 'pending'
+        ? poll.scheduled
+        : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
+            fast: true,
+          })
+    if (!poll) await ctx.db.insert('telegramPolls', { until, scheduled })
+    else await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
     // The limit is taken here, one message at a time, not in the replies that
     // run side by side, so two quick messages don't conflict on the same bucket.
     const admitted = await admitText(
@@ -356,11 +360,45 @@ const FAST_POLL_MS = 3_000
 const FAST_FOR_MS = 2 * 60_000
 
 /** Until when the fast Telegram check should keep going, or 0. */
-const pollingUntil = internalQuery({
+/** Which of `ids` haven't been received yet, so a check only records what's new. */
+const unseen = internalQuery({
+  args: { ids: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { ids }) => {
+    const fresh: Array<string> = []
+    for (const id of ids) {
+      const seen = await ctx.db
+        .query('photonMessages')
+        .withIndex('by_messageId', (q) => q.eq('messageId', id))
+        .first()
+      if (!seen) fresh.push(id)
+    }
+    return fresh
+  },
+})
+
+/** Every 3 seconds right after a message, then every 10 until the window ends. */
+const SLOW_POLL_MS = 10_000
+const SLOW_AFTER_MS = 30_000
+
+/** The fast check's next run, while its window lasts: soon after a message, slower later. */
+const nextPoll = internalMutation({
   args: {},
-  returns: v.number(),
-  handler: async (ctx) =>
-    (await ctx.db.query('telegramPolls').first())?.until ?? 0,
+  returns: v.null(),
+  handler: async (ctx) => {
+    const poll = await ctx.db.query('telegramPolls').first()
+    const left = (poll?.until ?? 0) - Date.now()
+    if (!poll || left <= 0) return null
+    const delay =
+      left > FAST_FOR_MS - SLOW_AFTER_MS ? FAST_POLL_MS : SLOW_POLL_MS
+    const scheduled = await ctx.scheduler.runAfter(
+      delay,
+      internal.api.texts.poll,
+      { fast: true },
+    )
+    await ctx.db.patch('telegramPolls', poll._id, { scheduled })
+    return null
+  },
 })
 
 /**
@@ -376,7 +414,12 @@ const poll = internalAction({
     const keys = photonKeys(env)
     if (!keys) return null
     const since = new Date(Date.now() - TELEGRAM_LOOKBACK_MS).toISOString()
-    for (const message of await listTexts(keys, 'telegram', since)) {
+    const messages = await listTexts(keys, 'telegram', since)
+    const fresh: Array<string> = await ctx.runQuery(internal.api.texts.unseen, {
+      ids: messages.map((m) => m.id),
+    })
+    for (const message of messages) {
+      if (!fresh.includes(message.id)) continue
       await ctx.runMutation(internal.api.texts.received, {
         messageId: message.id,
         spaceId: message.space.id,
@@ -385,17 +428,7 @@ const poll = internalAction({
         text: message.content.text,
       })
     }
-    if (fast) {
-      const until: number = await ctx.runQuery(
-        internal.api.texts.pollingUntil,
-        {},
-      )
-      if (Date.now() < until) {
-        await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-          fast: true,
-        })
-      }
-    }
+    if (fast) await ctx.runMutation(internal.api.texts.nextPoll, {})
     return null
   },
 })
@@ -493,6 +526,7 @@ export const textsApi = {
   answer,
   received,
   replyOnPhoton,
-  pollingUntil,
+  unseen,
+  nextPoll,
   poll,
 }

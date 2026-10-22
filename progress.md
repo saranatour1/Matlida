@@ -549,3 +549,8 @@
 - Dev: a one-off moved 15 chat rows' members, model and effort onto their assistants and deleted 5 sub-thread rows. Production has no rows from before.
 - Verified with pnpm check and the tests (190: the ask lands in Ivy's chat, six asks make six turns there, a model picked before the first message is the one it starts on).
 
+### A cheaper Telegram check (2026-10-22)
+
+- The fast check after a Telegram message ran every 3 seconds for 2 minutes, re-recording every message of the last 3 minutes each time: about 40 checks and 120 function calls per message. Now one query says which messages are new before anything is recorded, the check runs every 3 seconds for 30 seconds and then every 10, and a second message can't start a second loop: the row remembers the scheduled run and checks it's still pending.
+- It was never endless: the window ends 2 minutes after the last message, and dev's logs showed it stopping on time.
+
