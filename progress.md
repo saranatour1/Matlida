@@ -730,8 +730,8 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 ### Phone calls (2026-10-22)
 
-- Assistants can phone a number you type (`call_phone`), all from Convex and Photon, with no voice company in between. A probe on dev showed a Convex Node action can use UDP (STUN answered) and reach `sip.spectrum.photon.codes:5061` over TLS.
-- `convex/models/calls/dial.ts` runs the whole call in one action: SIP over TLS with the Spectrum project id and secret as the digest login (MD5 or SHA-256), the caller ID from `SPECTRUM_PHONE_NUMBER`, CANCEL after 45 s of ringing, and BYE at the end. Audio is G.711 µ-law over UDP, offered at our public address from STUN. Convex's outgoing ports differ per destination, so audio is sent back to wherever Photon's comes from.
+- Assistants can phone a number you type (`call_phone`), all from Convex and Photon, with no voice company in between. A probe on dev showed a Convex Node action can use UDP (STUN answered) and reach Photon's Spectrum SIP server over TLS.
+- `convex/models/calls/dial.ts` runs the whole call in one action: SIP over TLS to `sip.photon.codes` with the line's outbound SIP credential from its Voice profile as the digest login (MD5 or SHA-256), the caller ID from `PHOTON_PHONE_NUMBER`, CANCEL after 45 s of ringing, and BYE at the end. Audio is G.711 µ-law over UDP, offered at our public address from STUN. Convex's outgoing ports differ per destination, so audio is sent back to wherever Photon's comes from.
 - Each turn: a pause (0.7 s) ends what they said. The gateway transcribes it for the record while `audioChat` answers in voice, and the answer plays as it streams, turned from 24 kHz into 8 kHz µ-law. The opening line is spoken the same way, so it's one voice throughout.
 - Ends on their hang-up, a goodbye, 20 s of quiet, or 9 minutes (actions stop at 10). It's a `calls` row with `phone` (number, status, packets heard), so it's in Call history, and the transcript lands in the chat. The chat card shows ringing, on the phone, and how it ended.
 - Only a number in your last message, at most 10 a day per person.

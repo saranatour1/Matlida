@@ -107,9 +107,9 @@ test('phone calls work once the Photon line is set up', () => {
     channelStatus(channel('phone'), {
       ...nothing,
       env: [
-        'SPECTRUM_PROJECT_ID',
-        'SPECTRUM_PROJECT_SECRET',
-        'SPECTRUM_PHONE_NUMBER',
+        'PHOTON_PHONE_NUMBER',
+        'PHOTON_SIP_USERNAME',
+        'PHOTON_SIP_PASSWORD',
       ],
     }),
   ).toMatchObject({ status: 'connected' })

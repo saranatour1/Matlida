@@ -89,12 +89,8 @@ const publicAddress = (socket: dgram.Socket) =>
   })
 
 /** A TLS connection to Photon's SIP server: send messages, and wait for responses. */
-const openSip = async () => {
-  const socket = tls.connect({
-    host: SIP_HOST,
-    port: 5061,
-    servername: SIP_HOST,
-  })
+const openSip = async (host: string) => {
+  const socket = tls.connect({ host, port: 5061, servername: host })
   await new Promise<void>((resolve, reject) => {
     socket.once('secureConnect', resolve)
     socket.once('error', reject)
@@ -197,13 +193,15 @@ const placeCall = async (
     about: string
   },
 ): Promise<Ending> => {
-  const projectId = env.SPECTRUM_PROJECT_ID
-  const secret = env.SPECTRUM_PROJECT_SECRET
-  const line = env.SPECTRUM_PHONE_NUMBER
-  if (!projectId || !secret || !line) {
+  // The outbound SIP credential from the line's Voice profile in Photon.
+  const username = env.PHOTON_SIP_USERNAME
+  const password = env.PHOTON_SIP_PASSWORD
+  const line = env.PHOTON_PHONE_NUMBER
+  const host = env.PHOTON_SIP_HOST ?? SIP_HOST
+  if (!username || !password || !line) {
     return {
       status: 'failed',
-      note: 'Phone calls need SPECTRUM_PROJECT_ID, SPECTRUM_PROJECT_SECRET and SPECTRUM_PHONE_NUMBER on the deployment',
+      note: 'Phone calls need PHOTON_SIP_USERNAME, PHOTON_SIP_PASSWORD and PHOTON_PHONE_NUMBER on the deployment',
     }
   }
   const to = call.phone.to
@@ -218,10 +216,10 @@ const placeCall = async (
     rtp.close()
     return { status: 'failed', note: "couldn't find our public address" }
   }
-  const sip = await openSip()
+  const sip = await openSip(host)
   const offer = sdpOffer(mapped.ip, mapped.port)
-  const target = `sip:${to}@${SIP_HOST}`
-  const fromHeader = `<sip:${line}@${SIP_HOST}>;tag=${randomHex(4)}`
+  const target = `sip:${to}@${host}`
+  const fromHeader = `<sip:${line}@${host}>;tag=${randomHex(4)}`
   const callId = `${randomHex(12)}@matilda`
   const contact = `<sip:matilda@${sip.local};transport=tls>`
   const via = () =>
@@ -255,7 +253,7 @@ const placeCall = async (
     if (request.method !== 'ACK') respond(request)
   })
 
-  // Dial, answering one digest challenge with the Spectrum project's id and secret.
+  // Dial, answering one digest challenge with the line's SIP credential.
   let auth: [string, string] | undefined
   let inviteVia = ''
   let n = 0
@@ -322,8 +320,8 @@ const placeCall = async (
         challenge,
         method: 'INVITE',
         uri: target,
-        username: projectId,
-        password: secret,
+        username,
+        password,
       }),
     ]
   }
@@ -661,8 +659,8 @@ const placeCall = async (
           challenge,
           method: 'BYE',
           uri: remoteTarget,
-          username: projectId,
-          password: secret,
+          username,
+          password,
         }),
       ]
     }

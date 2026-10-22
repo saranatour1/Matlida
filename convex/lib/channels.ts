@@ -89,12 +89,8 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     name: 'Phone calls',
     via: 'phone',
     description:
-      'Ask an assistant to call a number you type. It rings from your Photon iMessage line and talks in its own voice.',
-    env: [
-      'SPECTRUM_PROJECT_ID',
-      'SPECTRUM_PROJECT_SECRET',
-      'SPECTRUM_PHONE_NUMBER',
-    ],
+      'Ask an assistant to call a number you type. It rings from your Photon line and talks in its own voice.',
+    env: ['PHOTON_PHONE_NUMBER', 'PHOTON_SIP_USERNAME', 'PHOTON_SIP_PASSWORD'],
   },
   {
     id: 'web_search',

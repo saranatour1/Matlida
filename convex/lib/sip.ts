@@ -4,12 +4,13 @@
 import { createHash, randomBytes } from 'node:crypto'
 
 /**
- * Just enough SIP (RFC 3261) to place one call through Photon's Spectrum
- * server over TLS: build requests, read messages off the stream, answer a
+ * Just enough SIP (RFC 3261) to place one call through Photon's SIP server
+ * over TLS: build requests, read messages off the stream, answer a
  * digest challenge, and offer and read SDP. Only the call action uses it.
  */
 
-export const SIP_HOST = 'sip.spectrum.photon.codes'
+/** Photon's SIP server, unless its Voice profile shows another under SIP connection. */
+export const SIP_HOST = 'sip.photon.codes'
 
 export type SipMessage = {
   /** Set on a request, like INVITE. */
