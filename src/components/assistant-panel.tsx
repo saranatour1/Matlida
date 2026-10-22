@@ -23,6 +23,7 @@ import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
+import { reminderWhen } from '~/lib/reminders'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -219,10 +220,9 @@ export function AssistantPanel({
                     <AlarmClockIcon className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 truncate">{r.message}</span>
                     <span className="shrink-0 text-muted-foreground">
-                      {new Date(r.dueAt).toLocaleString(undefined, {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
+                      {r.status === 'paused'
+                        ? 'Paused'
+                        : reminderWhen(r.dueAt, r.repeat?.every)}
                     </span>
                   </li>
                 ))}

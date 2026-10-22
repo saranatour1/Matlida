@@ -231,3 +231,105 @@ export const afterMissedCall = async (
     cost: gatewayCost(providerMetadata),
   }
 }
+
+/** How often a reminder happens. `reminders.schedule` turns all but `once` into a cron. */
+export const HOW_OFTEN = {
+  once: 'Just once, at the time given.',
+  daily: 'Every day at that time.',
+  weekdays: 'Every weekday, Monday to Friday, at that time.',
+  weekly: 'Every week, on that day and time.',
+  monthly: 'Every month, on that date and time.',
+  custom:
+    'Recurring on another pattern, like every Tuesday and Thursday, or twice a day.',
+}
+
+export type HowOften = keyof typeof HOW_OFTEN
+
+/** Whether the reminder the user asked for (`request`) happens once or recurs, and how often. */
+export const howOften = async (
+  model: Experimental_DecisionModel,
+  state: { request: string; reminder: string },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state,
+    questions: {
+      repeat: {
+        type: 'choice',
+        instructions:
+          'The user asked for a reminder in `request`, saved as `reminder`. Should it happen once, or keep recurring, and how often?',
+        criteria: HOW_OFTEN,
+      },
+    },
+    abortSignal,
+  })
+  return { repeat: answers.repeat.choice, cost: gatewayCost(providerMetadata) }
+}
+
+/** What to do with a recurring reminder that's due. */
+export const RECURRING_ACTIONS = {
+  deliver: 'Remind them as usual.',
+  skip_once:
+    'Skip this time: they already did it today, or said they would without a reminder.',
+  pause:
+    'Pause it until they say otherwise: they are away, sick, or asked for a break from it.',
+  notify_differently:
+    'Remind them, but another way than usual would reach them better right now.',
+}
+
+const CHANNELS = {
+  chat: 'A message in the app.',
+  text: 'A text message.',
+  call: 'A call in the app.',
+  email: 'An email.',
+}
+
+/**
+ * Before a recurring reminder goes out: whether it's still needed at all,
+ * what to do this time, and which way would reach the user best. Jev
+ * answers all three in one call; `reminders.fire` applies the thresholds.
+ */
+export const checkRecurring = async (
+  model: Experimental_DecisionModel,
+  state: {
+    reminder: string
+    via: keyof typeof CHANNELS
+    localTime: string
+    conversation: Array<Turn>
+  },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state,
+    questions: {
+      still_needed: {
+        type: 'boolean',
+        instructions:
+          'Given `conversation`, does the user still need the recurring reminder `reminder`? No when they said it is done for good, no longer relevant, or asked to stop it.',
+      },
+      action: {
+        type: 'choice',
+        instructions:
+          'The recurring reminder `reminder` is due now, at `localTime`. Given `conversation`, what should the assistant do with it this time?',
+        criteria: RECURRING_ACTIONS,
+      },
+      channel: {
+        type: 'choice',
+        instructions:
+          'The reminder usually goes out by `via`. Given `localTime` and `conversation`, which way would reach the user best right now?',
+        criteria: CHANNELS,
+      },
+    },
+    abortSignal,
+  })
+  const { choice, probabilities } = answers.channel
+  return {
+    stillNeeded: answers.still_needed.probability,
+    action: answers.action.choice,
+    channel: choice,
+    channelProbability: probabilities?.[choice] ?? 1,
+    cost: gatewayCost(providerMetadata),
+  }
+}

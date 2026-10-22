@@ -44,11 +44,26 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 - Check-in calls (PR 3): at most 3 a day, none within 2 hours of another
   call, only if you've chatted in the last 7 days, and a switch to turn them off.
 
+## Recurring reminders (PR 2)
+
+- `set_reminder` asks Jev (`howOften`) whether the request repeats. If the
+  assistant already passed `cron`, it's custom and Jev isn't asked. If Jev
+  fails, it's once. Messages to contacts are always once.
+- Once: `scheduler.runAt`, as before. Recurring: a cron from
+  `@convex-dev/crons`, named `reminder:<id>`, with the spec built from the
+  first time's hour and minute (`cronFor`) and the owner's IANA zone as its
+  `tz`, so daylight saving keeps it at 9am.
+- When it's sent, a recurring reminder goes back to `scheduled` and its
+  missed-call count resets. Jev's `checkRecurring` runs when the cron fires,
+  not on call-agains.
+- Pause deletes the cron and Resume registers it again, so a paused
+  reminder costs nothing. Stop is Cancel. Jev's own stop or pause posts why
+  in the chat.
+- Dates are done with luxon (rule in AGENTS.md). PR 1's `inDaytime` moved to
+  it, which also makes it right across daylight saving.
+
 ## Open questions
 
-- Recurring reminders across a daylight-saving change: the crons component
-  takes UTC specs, so a 9am reminder may move by an hour twice a year.
-  Check what `@convex-dev/crons` supports before PR 2 ships.
 - Calls to your real phone, rather than the app: no provider is picked
   (not Twilio). The ring only reaches an open Matilda tab.
 - The 0.3 and 0.7 thresholds are starting points. Adjust them once dev's logs
@@ -57,7 +72,7 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 ## Next steps
 
 - [x] PR 1: answer in the call bar, snooze, Jev on missed or declined calls, saved time zone
-- [ ] PR 2: once vs recurring (`scheduler` vs `@convex-dev/crons`), Jev pause and stop, and pause/resume/stop in the details panel
+- [x] PR 2: once vs recurring (`scheduler` vs `@convex-dev/crons`), Jev pause and stop, and pause/resume/stop in the Library
 - [ ] PR 3: check-in calls on an hourly cron, with `shouldCallNow` and the daily limit
 - [ ] PR 4: "what can you do" as command pills (`show_commands`)
 - [ ] PR 5: attachments through the agent component's file storage, with paste and drop

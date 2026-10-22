@@ -7,6 +7,7 @@ import authGithub from '@convex-dev/auth/components/github/convex.config.js'
 import authGoogle from '@convex-dev/auth/components/google/convex.config.js'
 import authPassword from '@convex-dev/auth/components/password/convex.config.js'
 import aiBudget from '@convex-dev/ai-budget/convex.config'
+import crons from '@convex-dev/crons/convex.config.js'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
@@ -51,6 +52,7 @@ app.use(rateLimiter)
 app.use(aiBudget)
 app.use(shopping)
 app.use(workflow)
+app.use(crons)
 app.use(auth, {
   httpPrefix: '/auth',
   env: {

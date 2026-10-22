@@ -16,8 +16,22 @@ export const remindersTable = defineTable({
   message: v.string(),
   dueAt: v.number(),
   via: literals('chat', 'text', 'call', 'email'),
-  /** `ringing` while a call reminder waits for you to pick up. */
-  status: literals('pending', 'scheduled', 'ringing', 'sent', 'cancelled'),
+  /** `ringing` while a call reminder waits for you to pick up. Only a recurring one can be `paused`. */
+  status: literals(
+    'pending',
+    'scheduled',
+    'ringing',
+    'paused',
+    'sent',
+    'cancelled',
+  ),
+  /** For a recurring reminder: how often, and its cron in the owner's time zone. Sent, it goes back to `scheduled`. */
+  repeat: v.optional(
+    v.object({
+      every: literals('daily', 'weekdays', 'weekly', 'monthly', 'custom'),
+      cronspec: v.string(),
+    }),
+  ),
   /** For a message to a contact: who, their name when it was set, and what to tell them. */
   contactId: v.optional(v.id('contacts')),
   toName: v.optional(v.string()),
