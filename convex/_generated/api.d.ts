@@ -50,6 +50,7 @@ import type * as lib_convexDocs from "../lib/convexDocs.js";
 import type * as lib_ctx from "../lib/ctx.js";
 import type * as lib_decide from "../lib/decide.js";
 import type * as lib_everyday from "../lib/everyday.js";
+import type * as lib_flags from "../lib/flags.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_handles from "../lib/handles.js";
 import type * as lib_limits from "../lib/limits.js";
@@ -184,6 +185,7 @@ declare const fullApi: ApiFromModules<{
   "lib/ctx": typeof lib_ctx;
   "lib/decide": typeof lib_decide;
   "lib/everyday": typeof lib_everyday;
+  "lib/flags": typeof lib_flags;
   "lib/functions": typeof lib_functions;
   "lib/handles": typeof lib_handles;
   "lib/limits": typeof lib_limits;

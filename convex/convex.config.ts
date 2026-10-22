@@ -49,6 +49,12 @@ const app = defineApp({
     PHOTON_SIP_PASSWORD: v.optional(v.string()),
     /** The server under SIP connection on that profile. sip.photon.codes when unset. */
     PHOTON_SIP_HOST: v.optional(v.string()),
+    /** Feature flags live in Cloudflare Flagship, read by the Worker's binding at /api/flags. This secret is shared with the Worker, so only Convex gets answers. Unset means every flag is off. */
+    FLAGS_SECRET: v.optional(v.string()),
+    /** Where the Worker is, when it isn't SITE_URL: dev's SITE_URL is localhost, which Convex can't reach, so dev sets https://matilda-is-a-bot.app. */
+    FLAGS_URL: v.optional(v.string()),
+    /** Flags on for everyone on this deployment, as a comma list, like phone-calls on dev. Never set it on prod. */
+    FLAGS_ON: v.optional(v.string()),
     /** Each person's AI spend a month, in dollars. 12 when unset. */
     AI_BUDGET_USD: v.optional(v.string()),
   },

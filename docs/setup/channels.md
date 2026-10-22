@@ -120,6 +120,24 @@ Setup, in Photon's dashboard under Voice:
    `PHOTON_PHONE_NUMBER` to the line, like `+14155550123`. If the profile's
    SIP connection isn't `sip.photon.codes`, set `PHOTON_SIP_HOST` to it.
 
+Calling numbers is **off unless a feature flag turns it on**, since it costs
+money and could be abused. The flag lives in Cloudflare Flagship, which the
+Worker reads through its `NO_PHONE_CALLS_YET` binding (`wrangler.jsonc`).
+Convex asks the Worker's `/api/flags` before each call.
+
+1. In Flagship's app, make a boolean flag `phone-calls`, off by default, with a
+   rule that serves on for `targetingKey` in a list of Convex user ids. Add or
+   remove ids there to turn calls on or off for people.
+2. Make a long random secret and set it as `FLAGS_SECRET` on both the Worker
+   (a secret, in its dashboard settings or with `wrangler secret put`) and the
+   Convex deployment.
+3. On dev, also set `FLAGS_URL=https://matilda-is-a-bot.app`: dev's
+   `SITE_URL` is localhost, which Convex can't reach.
+
+Without the secret, or if the Worker doesn't answer, calls are refused. On dev,
+`FLAGS_ON=phone-calls` turns calls on for everyone without Flagship. Never set
+it on prod.
+
 Limits:
 
 - Only a number in your last message, never one from an email or a page.

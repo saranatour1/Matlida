@@ -767,3 +767,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - After the opening line, the assistant says the call is recorded, since recording without telling people is illegal in many places.
 - Hanging up: after each exchange, Jev (`callIsOver`) judges whether the call has done its job: the message delivered and acknowledged or the question answered, or the other person wrapping up. At 0.7 or more (`JEV_THRESHOLDS.hangUp`) the assistant says a short goodbye and hangs up. About $0.005 an exchange, metered. It also still hangs up after its own "Goodbye". When the line goes quiet for 12 s, it asks once whether they're still there, waits 10 s more, then says goodbye and hangs up.
 
+### Phone calls behind a feature flag (2026-10-22)
+
+- Calling numbers is off unless Cloudflare Flagship's `phone-calls` flag is on for the user, since anyone who signs up could otherwise make the app place calls. The call tool asks before each call (`flagOn` in `convex/lib/flags.ts`).
+- Flagship is read by the Worker's binding (`NO_PHONE_CALLS_YET` in `wrangler.jsonc`), so Convex asks the Worker's `/api/flags` (`src/routes/api/flags.ts`) with a shared `FLAGS_SECRET`, and the user's Convex id as the targeting key. No Cloudflare API token is needed.
+- It fails closed: without the secret, or when the Worker doesn't answer, calls are refused. Dev points `FLAGS_URL` at the deployed Worker, since Convex can't reach localhost, or sets `FLAGS_ON=phone-calls` to turn calls on for everyone there.
+- The assistant is told to always try the call tool, since it kept repeating an earlier "calling is off" after calls were turned back on.

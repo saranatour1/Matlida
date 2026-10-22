@@ -18,6 +18,7 @@ import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-pass
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
+import { Route as ApiFlagsRouteImport } from './routes/api/flags'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
 import { Route as AppPProjectIdConnectionsRouteImport } from './routes/_app/p/$projectId/connections'
@@ -70,6 +71,11 @@ const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const ApiFlagsRoute = ApiFlagsRouteImport.update({
+  id: '/api/flags',
+  path: '/api/flags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppPProjectIdIndexRoute = AppPProjectIdIndexRouteImport.update({
   id: '/p/$projectId/',
   path: '/p/$projectId/',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/api/flags': typeof ApiFlagsRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
+  '/api/flags': typeof ApiFlagsRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
+  '/api/flags': typeof ApiFlagsRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/_app/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/_app/p/$projectId/library': typeof AppPProjectIdLibraryRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/api/flags'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
     | '/p/$projectId/library'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/api/flags'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
     | '/p/$projectId/library'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_auth/verify-email'
+    | '/api/flags'
     | '/_app/p/$projectId/bots'
     | '/_app/p/$projectId/connections'
     | '/_app/p/$projectId/library'
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  ApiFlagsRoute: typeof ApiFlagsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,6 +306,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/verify-email'
       preLoaderRoute: typeof AuthVerifyEmailRouteImport
       parentRoute: typeof AuthRouteRoute
+    }
+    '/api/flags': {
+      id: '/api/flags'
+      path: '/api/flags'
+      fullPath: '/api/flags'
+      preLoaderRoute: typeof ApiFlagsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/p/$projectId/': {
       id: '/_app/p/$projectId/'
@@ -405,6 +425,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  ApiFlagsRoute: ApiFlagsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
