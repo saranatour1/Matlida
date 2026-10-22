@@ -605,3 +605,10 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - Only pictures and PDFs: the hourly `commands.sweepFiles` deletes markdown and audio that no command points to, so those would vanish. Pasted text already works.
 - The server checks the type and size in `_storage`. The browser's type is used only when a file was stored without one (convex-test stores none).
 - Verified with pnpm check and the tests (210), and pushed to dev. Not tried live: whether each gateway model reads PDFs is untested.
+
+### Edit and retry (2026-10-22)
+
+- The last reply has a Retry button: it answers your last message again, in place of the old reply.
+- Your messages have an Edit button: change the text and send, and the assistant answers that instead. Everything after it is dropped, and the edit box says so. Attachments on the message stay.
+- One mutation, `chat.redo`, does both. It checks the chat is yours and the message is one of yours, refuses while a reply is still running, rewrites the text with the agent component's `updateMessage` when editing, drops later messages with `deleteByOrder` (which also stops their streams), and schedules `chat.respond` again, running a `/command` again if the message has one.
+- Verified with pnpm check and the tests (213), and pushed to dev.

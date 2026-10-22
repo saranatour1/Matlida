@@ -1,4 +1,4 @@
-import { FileTextIcon } from 'lucide-react'
+import { FileTextIcon, PencilIcon, RotateCcwIcon } from 'lucide-react'
 import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -10,6 +10,8 @@ import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { CommandsPart } from '~/components/commands-part'
 import { CopyButton } from '~/components/copy-button'
+import { Button } from '~/components/ui/button'
+import { Textarea } from '~/components/ui/textarea'
 import { DraftsPart } from '~/components/drafts-part'
 import { ProblemCheckPart } from '~/components/problem-check-part'
 import { ImagePart } from '~/components/image-part'
@@ -103,34 +105,28 @@ function textOf(message: ChatUIMessage) {
     .join('\n\n')
 }
 
+const HOVER =
+  'md:opacity-0 md:group-hover/message:opacity-100 focus-visible:opacity-100'
+
 /**
  * One chat message. User messages are bubbles, replies are markdown and tool
- * cards. `onSend` lets a card send a message, like a command pill.
+ * cards. `onSend` lets a card send a message, like a command pill. `onEdit`
+ * (on your messages) and `onRetry` (on the last reply) are there when nothing
+ * is running.
  */
 export function ChatMessage({
   message,
   onSend,
+  onEdit,
+  onRetry,
 }: {
   message: ChatUIMessage
   onSend?: (prompt: string) => void
+  onEdit?: (prompt: string) => void
+  onRetry?: () => void
 }) {
   if (message.role === 'user') {
-    return (
-      <Message align="end">
-        <MessageContent>
-          <Attachments parts={message.parts} />
-          <Bubble align="end" variant="muted">
-            <BubbleContent>{message.text}</BubbleContent>
-          </Bubble>
-          <CopyButton
-            compact
-            label="Copy message"
-            text={message.text}
-            className="self-end md:opacity-0 md:group-hover/message:opacity-100 focus-visible:opacity-100"
-          />
-        </MessageContent>
-      </Message>
-    )
+    return <UserMessage message={message} onEdit={onEdit} />
   }
   return (
     <Message align="start">
@@ -140,14 +136,103 @@ export function ChatMessage({
             {renderPart(part, index, onSend)}
           </PartBoundary>
         ))}
-        {textOf(message) && (
+        <div className="flex gap-0.5">
+          {textOf(message) && (
+            <CopyButton
+              compact
+              label="Copy reply"
+              text={() => textOf(message)}
+              className={HOVER}
+            />
+          )}
+          {onRetry && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Retry"
+              title="Retry: answer again"
+              className={HOVER}
+              onClick={onRetry}
+            >
+              <RotateCcwIcon />
+            </Button>
+          )}
+        </div>
+      </MessageContent>
+    </Message>
+  )
+}
+
+/** Your message, which you can edit and send again. That drops everything after it. */
+function UserMessage({
+  message,
+  onEdit,
+}: {
+  message: ChatUIMessage
+  onEdit?: (prompt: string) => void
+}) {
+  const [editing, setEditing] = React.useState(false)
+  return (
+    <Message align="end">
+      <MessageContent>
+        <Attachments parts={message.parts} />
+        {editing && onEdit ? (
+          <form
+            className="flex w-full max-w-xl flex-col gap-2 self-end"
+            action={(data) => {
+              setEditing(false)
+              onEdit(String(data.get('prompt')))
+            }}
+          >
+            <Textarea
+              name="prompt"
+              defaultValue={message.text}
+              required
+              maxLength={4000}
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+              <span className="mr-auto">
+                Sending drops everything after this message.
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm">
+                Send
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <Bubble align="end" variant="muted">
+            <BubbleContent>{message.text}</BubbleContent>
+          </Bubble>
+        )}
+        <div className="flex gap-0.5 self-end">
+          {onEdit && !editing && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Edit message"
+              title="Edit and send again"
+              className={HOVER}
+              onClick={() => setEditing(true)}
+            >
+              <PencilIcon />
+            </Button>
+          )}
           <CopyButton
             compact
-            label="Copy reply"
-            text={() => textOf(message)}
-            className="md:opacity-0 md:group-hover/message:opacity-100 focus-visible:opacity-100"
+            label="Copy message"
+            text={message.text}
+            className={HOVER}
           />
-        )}
+        </div>
       </MessageContent>
     </Message>
   )

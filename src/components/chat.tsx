@@ -54,6 +54,7 @@ export function Chat({
   panel?: boolean
 }) {
   const sendMessage = useMutation(api.api.chat.sendMessage)
+  const redo = useMutation(api.api.chat.redo)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
   const threadId =
     useQuery(api.api.threads.main, {
@@ -80,6 +81,7 @@ export function Chat({
     threadId ? { threadId, messageIds: messages.map((m) => m.id) } : 'skip',
   )
   const last = messages.at(-1)
+  const lastPrompt = messages.filter((m) => m.role === 'user').at(-1)
   const isBusy =
     last?.role === 'user' ||
     last?.status === 'pending' ||
@@ -98,16 +100,28 @@ export function Chat({
   const [error, send] = React.useActionState(
     async (
       _previous: string | undefined,
-      { prompt, files }: { prompt: string; files?: Array<Attachment> },
+      input:
+        | { prompt: string; files?: Array<Attachment> }
+        /** Answer your message `redo` again, after replacing its text with `prompt` when set. */
+        | { redo: string; prompt?: string },
     ) => {
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
       try {
-        await sendMessage({
-          projectId: project._id,
-          botId: bot?._id,
-          prompt,
-          files,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        })
+        if (!('redo' in input)) {
+          await sendMessage({
+            projectId: project._id,
+            botId: bot?._id,
+            ...input,
+            timeZone,
+          })
+        } else if (threadId) {
+          await redo({
+            threadId,
+            messageId: input.redo,
+            prompt: input.prompt,
+            timeZone,
+          })
+        }
         return undefined
       } catch (e) {
         return errorMessage(e, 'Could not send your message. Try again.')
@@ -222,6 +236,22 @@ export function Chat({
                                 : (prompt) =>
                                     React.startTransition(() =>
                                       send({ prompt }),
+                                    )
+                            }
+                            onEdit={
+                              isBusy || message.role !== 'user'
+                                ? undefined
+                                : (prompt) =>
+                                    React.startTransition(() =>
+                                      send({ redo: message.id, prompt }),
+                                    )
+                            }
+                            onRetry={
+                              isBusy || message !== last || !lastPrompt
+                                ? undefined
+                                : () =>
+                                    React.startTransition(() =>
+                                      send({ redo: lastPrompt.id }),
                                     )
                             }
                           />
