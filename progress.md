@@ -728,3 +728,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The "Made with Convex" pill uses Convex's own symbol (`public/convex-symbol.svg`), copied unaltered from their brand kit at convex.dev/brand, as their rules ask.
 - `public/og.png` is redrawn to match the page: Matilda's photo, "She actually calls you.", the call button, "because I made her that way", the domain, and the Convex pill. It's 1200×630.
 
+### Old attachments no longer crash replies (2026-10-22)
+
+- On dev, replies in Matilda's main chat (`api/chat:respond`, and `api/texts:replyOnPhoton` before it) ran out of memory: "maximum memory usage: 64 MB". The chat had a 10.1 MB PDF attached earlier. Every reply sent the whole history, and before each model call the AI SDK downloads every attached file and encodes it, so a reply of a few steps passed the 64 MB a Convex action gets.
+- Now only the message being answered sends its attachments. Older pictures and files go to the model as a note, like `[menu.pdf attached earlier]` (`withoutAttachments` in `convex/lib/attachments.ts`, through the agent's `contextHandler` in `lead.ts`). What's stored and what the chat shows don't change.
+- Ceiling: the model can't look at a file from an earlier message again; attach it again to ask about it. A 10 MB file on the message being answered is still downloaded once per step of that reply.
+- Verified with pnpm check and the tests (230), including one that checks what the model receives for a PDF and then for the next message.
+
