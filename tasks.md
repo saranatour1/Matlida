@@ -40,7 +40,7 @@
 - [x] One chat per assistant, and no bot members unless you add them
 - [x] Email and texts go only to the lead; Reply to any email with an editable draft
 - [x] find_emails and find_texts: the lead searches your earlier email and texts
-- [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed
+- [x] Telegram is the only texting app: iMessage, WhatsApp and the Spectrum SDK removed (#71), then restored (2026-10-22)
 - [x] decide tool and /decide command: Jev picks between options
 - [x] Everyday commands, part 1: live lists, drafts, tables and recipes, with /todo, /shopping, /meals, /recipe, /pack, /rewrite, /reply, /translate, /tldr, /compare, /workout, /explain
 - [x] Everyday commands, part 2: /today, /dayplan, /trip, /split, /meet, /focus, /convert

@@ -1,6 +1,7 @@
 import { textsApi } from '../models/texts/functions'
 
 export const {
+  respond,
   links,
   startLink,
   unlink,

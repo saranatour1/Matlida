@@ -2,7 +2,7 @@ import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 /**
- * A Telegram chat linked to a project over Photon. It
+ * A chat on iMessage, WhatsApp or Telegram linked to a project over Photon. It
  * starts `pending` with a one-time code; sending `link <code>` from the chat
  * makes it `linked` to that chat's Photon space. A project has one link per app.
  */
@@ -19,9 +19,13 @@ export const phoneLinksTable = defineTable(
       ownerId: v.id('users'),
       projectId: v.id('projects'),
       spaceId: v.string(),
-      /** The app, as Photon names it. Telegram now; imessage, whatsapp_business or unset on old links, which no longer get messages. */
+      /** The app, as Photon names it: imessage, telegram or whatsapp_business. Unset on early iMessage links. */
       platform: v.optional(v.string()),
-      /** The project's agent in this chat on Photon's platform API, which texts go out as. Unset on old links. */
+      /**
+       * The project's agent in this chat on Photon's platform API. Set for
+       * chats linked through `/photon/webhook`; their texts go out through
+       * that API instead of the Spectrum SDK.
+       */
       agentId: v.optional(v.string()),
     }),
   ),
@@ -37,12 +41,12 @@ export const telegramPollsTable = defineTable({ until: v.number() })
 export const receivedTextsTable = defineTable({
   userId: v.id('users'),
   projectId: v.id('projects'),
-  /** The app, as Photon names it: telegram. */
+  /** The app, as Photon names it: imessage, telegram or whatsapp_business. */
   platform: v.string(),
   text: v.string(),
 }).searchIndex('search_text', {
   searchField: 'text',
-  filterFields: ['userId'],
+  filterFields: ['userId', 'platform'],
 })
 
 /** Messages that came in through `/photon/webhook`, by Photon's id, so each is answered once. */

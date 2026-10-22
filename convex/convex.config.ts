@@ -10,6 +10,7 @@ import aiBudget from '@convex-dev/ai-budget/convex.config'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
+import spectrum from '@spectrum-ts/convex/convex.config.js'
 import shopping from './components/shopping/convex.config'
 
 const app = defineApp({
@@ -28,6 +29,12 @@ const app = defineApp({
     /** Photon's platform API (beta), which sends and receives the assistants' email and Telegram messages. Project id starts with pho_prj_; the key needs project:read and project:write. */
     PHOTON_PROJECT_ID: v.optional(v.string()),
     PHOTON_API_KEY: v.optional(v.string()),
+    /** Photon texting through the Spectrum SDK (iMessage, WhatsApp, Telegram): its webhook route and sender read these, so they stay optional until texting is set up. */
+    SPECTRUM_WEBHOOK_SECRET: v.optional(v.string()),
+    SPECTRUM_PROJECT_ID: v.optional(v.string()),
+    SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
+    /** The Telegram bot's token from @BotFather, for the Spectrum SDK's Telegram provider. */
+    TELEGRAM_BOT_TOKEN: v.optional(v.string()),
     /** Signs Photon's platform webhook at /photon/webhook (whsec_…): Telegram messages, and email arriving. */
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
@@ -38,6 +45,7 @@ const app = defineApp({
 })
 
 app.use(agent)
+app.use(spectrum)
 app.use(resend)
 app.use(rateLimiter)
 app.use(aiBudget)

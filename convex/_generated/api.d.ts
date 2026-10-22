@@ -23,6 +23,7 @@ import type * as api_pages from "../api/pages.js";
 import type * as api_plans from "../api/plans.js";
 import type * as api_projects from "../api/projects.js";
 import type * as api_reminders from "../api/reminders.js";
+import type * as api_sender from "../api/sender.js";
 import type * as api_shopping from "../api/shopping.js";
 import type * as api_tasks from "../api/tasks.js";
 import type * as api_texts from "../api/texts.js";
@@ -95,6 +96,8 @@ import type * as models_tasks_functions from "../models/tasks/functions.js";
 import type * as models_tasks_table from "../models/tasks/table.js";
 import type * as models_texts_functions from "../models/texts/functions.js";
 import type * as models_texts_queries from "../models/texts/queries.js";
+import type * as models_texts_sender from "../models/texts/sender.js";
+import type * as models_texts_spectrum from "../models/texts/spectrum.js";
 import type * as models_texts_table from "../models/texts/table.js";
 import type * as models_texts_webhook from "../models/texts/webhook.js";
 import type * as models_threads_calls from "../models/threads/calls.js";
@@ -139,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   "api/plans": typeof api_plans;
   "api/projects": typeof api_projects;
   "api/reminders": typeof api_reminders;
+  "api/sender": typeof api_sender;
   "api/shopping": typeof api_shopping;
   "api/tasks": typeof api_tasks;
   "api/texts": typeof api_texts;
@@ -211,6 +215,8 @@ declare const fullApi: ApiFromModules<{
   "models/tasks/table": typeof models_tasks_table;
   "models/texts/functions": typeof models_texts_functions;
   "models/texts/queries": typeof models_texts_queries;
+  "models/texts/sender": typeof models_texts_sender;
+  "models/texts/spectrum": typeof models_texts_spectrum;
   "models/texts/table": typeof models_texts_table;
   "models/texts/webhook": typeof models_texts_webhook;
   "models/threads/calls": typeof models_threads_calls;
@@ -262,6 +268,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  spectrum: import("@spectrum-ts/convex/_generated/component.js").ComponentApi<"spectrum">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;

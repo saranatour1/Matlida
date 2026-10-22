@@ -554,18 +554,23 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     find_texts: createTool({
       description:
-        'Search what the user has texted you on Telegram, by words in the message.',
+        'Search what the user has texted you from Telegram, WhatsApp or iMessage, by words in the message, optionally from one app.',
       inputSchema: z.object({
         query: z.string().trim().min(1).describe('Words to look for.'),
+        platform: z
+          .enum(['telegram', 'whatsapp_business', 'imessage'])
+          .optional()
+          .describe('Only messages from this app.'),
       }),
-      execute: async (ctx, { query }) => {
+      execute: async (ctx, { query, platform }) => {
         const found: Array<{ platform: string; text: string; sentAt: number }> =
           await ctx.runQuery(internal.api.texts.search, {
             userId: project.ownerId,
             query,
+            platform,
           })
         return found.map((t) => ({
-          text: t.text,
+          ...t,
           sentAt: new Date(t.sentAt).toISOString(),
         }))
       },

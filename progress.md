@@ -527,3 +527,10 @@
 
 - Backend tests live in `convex/tests/<table>/` and `convex/tests/lib/`, frontend ones in `src/tests/`. Only the relative imports changed. `test.setup.ts` and `test.budget.ts` stay at `convex/`, since convex-test keys modules by paths from there.
 
+### Spectrum is back: iMessage, WhatsApp and Telegram through Photon's SDK (2026-10-22)
+
+- `@spectrum-ts/convex` is mounted again, with `@spectrum-ts/core`, `imessage`, `telegram`, `whatsapp-business`, `@photon-ai/advanced-imessage` and the gRPC packages they need, at the versions the app ran before #71. The `SPECTRUM_*` and `TELEGRAM_BOT_TOKEN` env vars are declared again; dev still had the two Spectrum keys.
+- Back as they were: `/spectrum/webhook`, the `respond` batch handler (one turn per burst of texts, replies through the outbox), the Node `sender` (iMessage through Photon's cloud sender, Telegram and WhatsApp through their SDK providers), reminders texting through the outbox when a chat wasn't linked on the platform API, `find_texts` by app, the iMessage and WhatsApp channels on Connections, the Messaging page for any app, and the setup docs.
+- Telegram through the platform API (`/photon/webhook`) stays as it is; a chat linked there keeps replying that way.
+- Verified with pnpm check and the tests (189, the Spectrum ones restored: a failed reply still texts back, an ignored message closes its turn, replies go out through each app's provider). Dev remounted the component cleanly. pnpm audit is still clean.
+
