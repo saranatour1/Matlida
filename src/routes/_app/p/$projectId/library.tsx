@@ -10,6 +10,7 @@ import { reminderWhen } from '~/lib/reminders'
 import { Input } from '~/components/ui/input'
 import { useProject } from '~/hooks/use-project'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
 
 export const Route = createFileRoute('/_app/p/$projectId/library')({
   component: Library,
@@ -90,7 +91,7 @@ function Library() {
                 aria-label={`Remove /${c.name}`}
                 onClick={() => {
                   if (editing?._id === c._id) stopEditing()
-                  void remove({ id: c._id })
+                  void attempt(remove({ id: c._id }))
                 }}
               >
                 Remove
@@ -218,7 +219,7 @@ function Plans({ projectId }: { projectId: Id<'projects'> }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void remove({ id: plan._id })}
+              onClick={() => void attempt(remove({ id: plan._id }))}
             >
               Delete
             </Button>
@@ -230,7 +231,9 @@ function Plans({ projectId }: { projectId: Id<'projects'> }) {
                   <input
                     type="checkbox"
                     checked={step.done}
-                    onChange={() => void toggle({ id: plan._id, index })}
+                    onChange={() =>
+                      void attempt(toggle({ id: plan._id, index }))
+                    }
                     className="mt-1"
                   />
                   <span
@@ -309,7 +312,9 @@ function Reminders({ projectId }: { projectId: Id<'projects'> }) {
                 variant="ghost"
                 size="sm"
                 onClick={() =>
-                  void (r.status === 'paused' ? resume : pause)({ id: r._id })
+                  void attempt(
+                    (r.status === 'paused' ? resume : pause)({ id: r._id }),
+                  )
                 }
               >
                 {r.status === 'paused' ? 'Resume' : 'Pause'}
@@ -318,7 +323,7 @@ function Reminders({ projectId }: { projectId: Id<'projects'> }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void cancel({ id: r._id })}
+              onClick={() => void attempt(cancel({ id: r._id }))}
             >
               {r.repeat ? 'Stop' : 'Cancel'}
             </Button>
@@ -413,7 +418,7 @@ function Study({ projectId }: { projectId: Id<'projects'> }) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => void remove({ id: deck._id })}
+                onClick={() => void attempt(remove({ id: deck._id }))}
               >
                 Delete
               </Button>

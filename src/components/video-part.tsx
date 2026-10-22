@@ -3,6 +3,7 @@ import { ClapperboardIcon } from 'lucide-react'
 import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
+import { CardSkeleton } from '~/components/card-skeleton'
 
 type VideoToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -26,7 +27,7 @@ export function VideoPart({ part }: { part: VideoToolPart }) {
 
 function VideoCard({ id }: { id: string }) {
   const video = useQuery(api.api.videos.get, { id })
-  if (video === undefined) return null
+  if (video === undefined) return <CardSkeleton />
   if (video?.status === 'working') {
     return (
       <ToolStatus failed={false} icon={ClapperboardIcon}>

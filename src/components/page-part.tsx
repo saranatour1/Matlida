@@ -6,6 +6,7 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { CardSkeleton } from '~/components/card-skeleton'
 
 type PageToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -34,7 +35,7 @@ export function PagePart({ part }: { part: PageToolPart }) {
 function PageCard({ id }: { id: string }) {
   const { projectId } = useParams({ strict: false })
   const page = useQuery(api.api.pages.get, { id })
-  if (page === undefined) return null
+  if (page === undefined) return <CardSkeleton />
   if (page === null) {
     return (
       <p className="px-1.5 text-sm text-muted-foreground">

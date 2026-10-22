@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
 
 type FormState = { error?: string; saved?: boolean }
 
@@ -60,7 +61,7 @@ export function AccountForm() {
           type="checkbox"
           role="switch"
           checked={user.checkIns !== false}
-          onChange={(e) => void setCheckIns({ on: e.target.checked })}
+          onChange={(e) => void attempt(setCheckIns({ on: e.target.checked }))}
           className="mt-1 accent-primary"
         />
         <span>

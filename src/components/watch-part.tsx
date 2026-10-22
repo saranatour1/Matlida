@@ -5,6 +5,8 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { money } from '~/lib/money'
+import { attempt } from '~/lib/attempt'
+import { CardGone, CardSkeleton } from '~/components/card-skeleton'
 
 type WatchToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -36,7 +38,10 @@ export function WatchPart({ part }: { part: WatchToolPart }) {
 function Watch({ id }: { id: string }) {
   const watch = useQuery(api.api.shopping.watch, { id })
   const stop = useMutation(api.api.shopping.stopWatch)
-  if (!watch) return null
+  if (watch === undefined) return <CardSkeleton />
+  if (watch === null) {
+    return <CardGone>This price watch was removed.</CardGone>
+  }
   return (
     <section
       aria-label={`Price watch: ${watch.title}`}
@@ -71,7 +76,7 @@ function Watch({ id }: { id: string }) {
             variant="ghost"
             size="sm"
             className="h-7 px-2"
-            onClick={() => void stop({ id: watch._id })}
+            onClick={() => void attempt(stop({ id: watch._id }))}
           >
             Stop
           </Button>
