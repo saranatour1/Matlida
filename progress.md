@@ -511,3 +511,8 @@
 
 - Every function in `convex/`, `src/lib/` and `src/hooks/` is an arrow function now (198 converted by a codemod), except one generator, which is a function expression. React components stay declarations. ESLint's `func-style` keeps it that way, and the rule is in the table in AGENTS.md.
 
+### The old chat fields are gone (2026-10-22)
+
+- `mailboxes.threadId`, `inboxThreadId`, `phoneLinks.threadId`, `botThreads` and `activeBotId` are out of the schema. A one-off mutation unset them on `dev/matilda` first (one mailbox, one link; a second run changed nothing). Production has no rows from before, so nothing to run there.
+- With them went the lookup of an assistant's old chat and `recordMainThreads`: every assistant's chat is recorded on it, and a new assistant starts one on its first message.
+
