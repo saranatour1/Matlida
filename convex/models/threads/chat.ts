@@ -22,6 +22,7 @@ import {
 import schema from '../../schema'
 import { findCommand, getCommand } from '../commands/queries'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
+import { MAX_FILES, MAX_FILE_BYTES, attachable } from '../../lib/attachments'
 import { getOwnedProject } from '../projects/queries'
 import { MODELS } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
@@ -42,9 +43,53 @@ export const zTimeZone = z.string().refine((tz) => {
   }
 }, 'Unknown time zone.')
 
+/** An uploaded file, and its type as the browser saw it. */
+type Attachment = {
+  storageId: Id<'_storage'>
+  filename: string
+  mediaType: string
+}
+
+/** Checks uploaded files and registers them with the agent component, returning their message parts and file ids. */
+const attach = async (ctx: MutationCtx, files: Array<Attachment>) => {
+  if (files.length > MAX_FILES) {
+    throw new ConvexError(`Attach at most ${MAX_FILES} files.`)
+  }
+  const attached = []
+  for (const { storageId, filename, mediaType: declared } of files) {
+    const file = await ctx.db.system.get('_storage', storageId)
+    const url = await ctx.storage.getUrl(storageId)
+    if (!file || !url) {
+      throw new ConvexError('An attachment was lost. Attach it again.')
+    }
+    // The type it was uploaded with wins; a file stored without one has the browser's.
+    const mediaType = file.contentType ?? declared
+    if (!mediaType || !attachable(mediaType)) {
+      throw new ConvexError('You can attach pictures and PDFs.')
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      throw new ConvexError('Attachments can be at most 10 MB.')
+    }
+    const { fileId } = await ctx.runMutation(components.agent.files.addFile, {
+      storageId,
+      hash: file.sha256,
+      filename,
+      mediaType,
+    })
+    attached.push({
+      fileId,
+      part: mediaType.startsWith('image/')
+        ? { type: 'image' as const, image: new URL(url), mediaType }
+        : { type: 'file' as const, data: new URL(url), mediaType, filename },
+    })
+  }
+  return attached
+}
+
 /**
- * Saves the user's message to the one thread of `botId` (the lead when
- * unset), starting it on the first message. Checks that it's all `userId`'s.
+ * Saves the user's message, with any attachments, to the one thread of
+ * `botId` (the lead when unset), starting it on the first message. Checks
+ * that it's all `userId`'s.
  */
 export const postMessage = async (
   ctx: MutationCtx,
@@ -53,10 +98,12 @@ export const postMessage = async (
     projectId,
     botId,
     prompt,
+    files = [],
   }: {
     projectId: Id<'projects'>
     botId?: Id<'bots'>
     prompt: string
+    files?: Array<Attachment>
   },
 ) => {
   const project = await getOwnedProject(ctx, userId, projectId)
@@ -66,10 +113,24 @@ export const postMessage = async (
   }
   const command = await findCommand(ctx, projectId, prompt)
   const id = await ensureMainThread(ctx, project, bot)
-  const { messageId } = await saveMessage(ctx, components.agent, {
-    threadId: id,
-    prompt,
-  })
+  const attached = await attach(ctx, files)
+  const { messageId } = await saveMessage(
+    ctx,
+    components.agent,
+    attached.length
+      ? {
+          threadId: id,
+          message: {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              ...attached.map((a) => a.part),
+            ],
+          },
+          metadata: { fileIds: attached.map((a) => a.fileId) },
+        }
+      : { threadId: id, prompt },
+  )
   return {
     threadId: id,
     promptMessageId: messageId,
@@ -125,6 +186,16 @@ const sendMessage = zAuthedMutation({
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
+    files: z
+      .array(
+        z.object({
+          storageId: zid('_storage'),
+          filename: z.string().max(200),
+          mediaType: z.string().max(100),
+        }),
+      )
+      .max(MAX_FILES)
+      .optional(),
   },
   handler: async (ctx, { timeZone, ...message }) => {
     await noteChat(ctx, ctx.userId, { ...message, timeZone })
@@ -314,7 +385,7 @@ const listMessages = authedQuery({
   },
 })
 
-/** Where the browser uploads a voice recording before `transcribe`. */
+/** Where the browser uploads a voice recording before `transcribe`, or an attachment before `sendMessage`. */
 const voiceUploadUrl = authedMutation({
   args: {},
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
