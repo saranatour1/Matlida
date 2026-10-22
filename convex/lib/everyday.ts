@@ -1,5 +1,7 @@
 /** Math for everyday commands, done in code so the model never adds up money or time zones. */
 
+import { iso, localDayHour, zoned } from './time'
+
 export type Expense = {
   what: string
   amount: number
@@ -64,33 +66,7 @@ export const splitCosts = (people: Array<string>, expenses: Array<Expense>) => {
   }
 }
 
-/** Whether `timeZone` is an IANA zone this runtime knows, like Europe/London. */
-export const isTimeZone = (timeZone: string) => {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone })
-    return true
-  } catch {
-    return false
-  }
-}
-
 const HOUR = 60 * 60_000
-
-const localParts = (at: number, timeZone: string) => {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    })
-      .formatToParts(at)
-      .map((p) => [p.type, p.value]),
-  )
-  return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: +parts.hour }
-}
 
 /**
  * The time `at` in each zone, and the next 24 hours from `at`'s hour: each
@@ -104,21 +80,16 @@ export const compareTimes = (
 ) => {
   const start = Math.floor(at / HOUR) * HOUR
   const slots = Array.from({ length: 24 }, (_, i) => start + i * HOUR)
-  const first = localParts(at, zones[0].timeZone).day
+  const first = localDayHour(at, zones[0].timeZone).day
   const rows = zones.map(({ label, timeZone }) => {
-    const here = localParts(at, timeZone)
+    const here = localDayHour(at, timeZone)
     return {
       label,
       timeZone,
-      local: new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        weekday: 'short',
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(at),
+      local: zoned(at, timeZone).toFormat('ccc h:mm a'),
       /** -1, 0 or 1: the day here against the first zone's. */
-      dayShift: Math.sign(Date.parse(here.day) - Date.parse(first)),
-      hours: slots.map((slot) => localParts(slot, timeZone).hour),
+      dayShift: Math.sign(here.day.localeCompare(first)),
+      hours: slots.map((slot) => localDayHour(slot, timeZone).hour),
     }
   })
   const good = slots.map((_, i) =>
@@ -127,13 +98,13 @@ export const compareTimes = (
   const overlap: Array<{ start: string; end: string }> = []
   good.forEach((ok, i) => {
     if (!ok) return
-    const end = new Date(slots[i] + HOUR).toISOString()
+    const end = iso(slots[i] + HOUR)
     if (i > 0 && good[i - 1]) overlap[overlap.length - 1].end = end
-    else overlap.push({ start: new Date(slots[i]).toISOString(), end })
+    else overlap.push({ start: iso(slots[i]), end })
   })
   return {
-    at: new Date(at).toISOString(),
-    start: new Date(start).toISOString(),
+    at: iso(at),
+    start: iso(start),
     workStart,
     workEnd,
     rows,

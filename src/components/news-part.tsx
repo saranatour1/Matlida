@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { NewspaperIcon } from 'lucide-react'
+import { DateTime } from 'luxon'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { NewsSettings } from '~/components/news-settings'
 import { ToolStatus } from '~/components/tool-part'
@@ -60,7 +61,7 @@ export function NewsPart({ part }: { part: NewsToolPart }) {
         <NewspaperIcon className="size-4 text-muted-foreground" />
         <p className="flex-1 font-medium">
           The news ·{' '}
-          {new Date(date).toLocaleDateString(undefined, {
+          {DateTime.fromMillis(date).toLocaleString({
             weekday: 'short',
             month: 'short',
             day: 'numeric',

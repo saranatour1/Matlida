@@ -58,6 +58,7 @@ import type * as lib_photon from "../lib/photon.js";
 import type * as lib_portraits from "../lib/portraits.js";
 import type * as lib_sentences from "../lib/sentences.js";
 import type * as lib_shopify from "../lib/shopify.js";
+import type * as lib_time from "../lib/time.js";
 import type * as lib_transcript from "../lib/transcript.js";
 import type * as lib_webhooks from "../lib/webhooks.js";
 import type * as lib_workflow from "../lib/workflow.js";
@@ -185,6 +186,7 @@ declare const fullApi: ApiFromModules<{
   "lib/portraits": typeof lib_portraits;
   "lib/sentences": typeof lib_sentences;
   "lib/shopify": typeof lib_shopify;
+  "lib/time": typeof lib_time;
   "lib/transcript": typeof lib_transcript;
   "lib/webhooks": typeof lib_webhooks;
   "lib/workflow": typeof lib_workflow;

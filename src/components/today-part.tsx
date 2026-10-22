@@ -1,5 +1,6 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { SunIcon } from 'lucide-react'
+import { DateTime } from 'luxon'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { ReactNode } from 'react'
 import { ToolStatus } from '~/components/tool-part'
@@ -10,10 +11,7 @@ type TodayToolPart = Extract<
 >
 
 const time = (at: number) =>
-  new Date(at).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  DateTime.fromMillis(at).toLocaleString(DateTime.TIME_SIMPLE)
 
 /** The day at a glance: what needs you, what's coming up, and what's left on your lists. */
 export function TodayPart({ part }: { part: TodayToolPart }) {
@@ -40,7 +38,7 @@ export function TodayPart({ part }: { part: TodayToolPart }) {
       <div className="flex items-center gap-2">
         <SunIcon className="size-4 text-muted-foreground" />
         <p className="font-medium">
-          {new Date(now).toLocaleDateString(undefined, {
+          {DateTime.fromMillis(now).toLocaleString({
             weekday: 'long',
             month: 'long',
             day: 'numeric',

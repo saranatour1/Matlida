@@ -1,8 +1,8 @@
 import { saveMessage } from '@convex-dev/agent'
 import { Crons } from '@convex-dev/crons'
-import { DateTime } from 'luxon'
 import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
+import { zoned } from '../../lib/time'
 import { components, internal } from '../../_generated/api'
 import {
   env,
@@ -41,12 +41,6 @@ const SNOOZE_MS = 10 * 60_000
 /** Missed calls before the assistant stops calling about a reminder. */
 const MAX_CALLS = 3
 const AGAIN_MS = { call_again_soon: 10 * 60_000, call_again_later: 60 * 60_000 }
-
-/** `at` in `timeZone`, or in UTC when the zone isn't one luxon knows. */
-const zoned = (at: number, timeZone = 'UTC') => {
-  const time = DateTime.fromMillis(at, { zone: timeZone })
-  return time.isValid ? time : DateTime.fromMillis(at, { zone: 'UTC' })
-}
 
 /** `at`, or 9am after it when it falls outside 9am–9pm in `timeZone`. */
 export const inDaytime = (at: number, timeZone?: string) => {

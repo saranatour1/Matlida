@@ -182,10 +182,7 @@ function ContactReminder({
   const state = useQuery(api.api.reminders.state, { id: reminderId })
   const confirm = useMutation(api.api.reminders.confirm)
   const cancel = useMutation(api.api.reminders.cancel)
-  const when = new Date(at).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
+  const when = reminderWhen(at)
   return (
     <div className="flex flex-wrap items-center gap-2 px-1.5 text-sm text-muted-foreground">
       <SendIcon className="size-4" />
