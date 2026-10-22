@@ -6,9 +6,9 @@ import {
   ListChecksIcon,
   XIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
-import type { Doc, Id } from '../../convex/_generated/dataModel'
+import type { Doc, Id } from '@convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
 

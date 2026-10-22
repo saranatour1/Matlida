@@ -655,3 +655,10 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 From the Photon review (finding #7). `sendEmail` sent the same idempotency key to `/spaces` and to `/messages`. If Photon scopes keys per project rather than per endpoint, the message call would get the thread's cached response back and the email would never go out. Each call now gets its own key (`…:space`, `…:message`), so retries are still safe.
 
 Not done (finding #6): every email sent still looks up both Photon users first, 4 calls in all. That's only reminder emails and messages to contacts, a few a day, so caching the user ids isn't worth a table yet.
+
+### `@convex/…` instead of `../../../../../../convex/…` (2026-10-22)
+
+- The frontend imported the backend through relative paths up to six levels deep (97 imports). `tsconfig.json` now has an `@convex/*` alias next to `~/*`, and Vite reads it through `resolve.tsconfigPaths`, so they read `import { api } from '@convex/_generated/api'`.
+- ESLint refuses a relative path into `convex/` from `src/`, and AGENTS.md says so. Backend files keep their short paths within `convex/`.
+- A running dev server only picks up a new alias after a restart; it 500'd until it was restarted.
+- Verified with pnpm check (build included), the tests (223), and the dev server serving the app after a restart.

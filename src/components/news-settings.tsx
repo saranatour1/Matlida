@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'

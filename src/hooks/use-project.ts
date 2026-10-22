@@ -1,6 +1,6 @@
 import { useParams } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 
 /**
  * The project in the URL (`/p/$projectId`). Undefined while loading or outside

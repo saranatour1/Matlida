@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import { formatTranscript } from '../../convex/lib/transcript'
-import type { Doc, Id } from '../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import { formatTranscript } from '@convex/lib/transcript'
+import type { Doc, Id } from '@convex/_generated/dataModel'
 
 /** An assistant's recent calls, each opening to its transcript. */
 export function CallHistory({

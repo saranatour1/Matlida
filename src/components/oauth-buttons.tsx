@@ -4,7 +4,7 @@ import {
   useOauth,
   useSignInWithGoogle,
 } from '@convex-dev/auth/methods/google/react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { OauthFlowError } from '@convex-dev/auth/methods/google/react'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError } from '~/components/ui/field'

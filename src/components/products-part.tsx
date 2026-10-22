@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { ShoppingBagIcon, StarIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'

@@ -3,8 +3,8 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PlusIcon } from 'lucide-react'
 import { z } from 'zod'
-import { api } from '../../../../../convex/_generated/api'
-import type { Doc, Id } from '../../../../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import type { Doc, Id } from '@convex/_generated/dataModel'
 import {
   PortraitPicker,
   portraitFromForm,

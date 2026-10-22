@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { MicIcon, SquareIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { InputGroupButton } from '~/components/ui/input-group'
 import { Spinner } from '~/components/ui/spinner'
 import { useUpload } from '~/hooks/use-upload'

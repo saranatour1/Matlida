@@ -1,9 +1,9 @@
 import { useMutation } from 'convex/react'
 import { GaugeIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import { EFFORTS } from '../../convex/lib/models'
-import type { Id } from '../../convex/_generated/dataModel'
-import type { Effort } from '../../convex/lib/models'
+import { api } from '@convex/_generated/api'
+import { EFFORTS } from '@convex/lib/models'
+import type { Id } from '@convex/_generated/dataModel'
+import type { Effort } from '@convex/lib/models'
 import {
   DropdownMenu,
   DropdownMenuContent,

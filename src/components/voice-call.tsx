@@ -10,12 +10,12 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import { AUDIO_VOICES, audioVoiceName } from '../../convex/lib/audio'
-import { LANGUAGES, VOICES, VOICE_NAMES } from '../../convex/lib/models'
-import type { Id } from '../../convex/_generated/dataModel'
-import type { Portrait } from '../../convex/lib/portraits'
-import type { Language } from '../../convex/lib/models'
+import { api } from '@convex/_generated/api'
+import { AUDIO_VOICES, audioVoiceName } from '@convex/lib/audio'
+import { LANGUAGES, VOICES, VOICE_NAMES } from '@convex/lib/models'
+import type { Id } from '@convex/_generated/dataModel'
+import type { Portrait } from '@convex/lib/portraits'
+import type { Language } from '@convex/lib/models'
 import { BotAvatar } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'

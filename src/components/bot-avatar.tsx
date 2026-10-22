@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { cn } from 'cn'
-import { PORTRAITS } from '../../convex/lib/portraits'
-import type { Portrait } from '../../convex/lib/portraits'
+import { PORTRAITS } from '@convex/lib/portraits'
+import type { Portrait } from '@convex/lib/portraits'
 
 /** An assistant's portrait, or a stable one from its name. Matilda gets hers. */
 export function portraitOf(a: { portrait?: Portrait; name: string }): Portrait {

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { zPortrait } from '../../convex/lib/portraits'
+import { zPortrait } from '@convex/lib/portraits'
 
 /** Everything needed to make a copy of an assistant somewhere else. */
 const templateSchema = z.object({

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc } from '@convex/_generated/dataModel'
 
 const EVERY: Record<
   NonNullable<Doc<'reminders'>['repeat']>['every'] | 'once',

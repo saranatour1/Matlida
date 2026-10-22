@@ -6,10 +6,10 @@ import {
   SendIcon,
   TelescopeIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
-import type { Doc, Id } from '../../convex/_generated/dataModel'
+import type { Doc, Id } from '@convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import { reminderWhen } from '~/lib/reminders'
 import { Markdown } from '~/components/chat-message'

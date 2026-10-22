@@ -15,10 +15,10 @@ import {
   TelescopeIcon,
   XIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import { CHANNELS } from '../../convex/lib/channels'
-import { MODELS, modelName } from '../../convex/lib/models'
-import type { Doc } from '../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import { CHANNELS } from '@convex/lib/channels'
+import { MODELS, modelName } from '@convex/lib/models'
+import type { Doc } from '@convex/_generated/dataModel'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'

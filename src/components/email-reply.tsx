@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { ReplyIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { FunctionReturnType } from 'convex/server'
 import { Button } from '~/components/ui/button'
 import {
