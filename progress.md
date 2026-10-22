@@ -781,4 +781,4 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 ### Worker observability (2026-10-23)
 
 - `wrangler.jsonc` turns on everything for the Worker: every request's logs (with invocation logs) and traces, kept in the dashboard, and Issues, which groups recurring failures. The dashboard's snippet said `issue_detection`, which Wrangler doesn't know; the documented key is `observability.issues.enabled`.
-
+- Query strings are redacted in the logs (`redact_query_string: true`): reset-password and verify-email links carry one-time codes there.
