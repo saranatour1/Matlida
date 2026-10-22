@@ -1,7 +1,7 @@
 import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc } from '../../lib/ctx'
 
 const zMetric = z.object({
   label: z.string().min(1).max(40),

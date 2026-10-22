@@ -7,11 +7,10 @@ import { budgetedModel } from '../../lib/budget'
 import { EFFORTS, MODELS } from '../../lib/models'
 import { showsVia } from './everyday'
 import { assistantTools } from './tools'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx } from '../../_generated/server'
 import type { UsageHandler } from '@convex-dev/agent'
 import type { Effort } from '../../lib/models'
 import type { ToolSet } from 'ai'
+import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 
 type Project = Doc<'projects'>
 type Bot = Doc<'bots'>

@@ -15,16 +15,9 @@ import {
 } from '../../lib/functions'
 import { checkoutLink, lookupVariant } from '../../lib/shopify'
 import schema from '../../schema'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx, QueryCtx } from '../../_generated/server'
+import { getDetails } from './queries'
 import type { Offer } from '../../lib/shopify'
-
-async function getDetails(ctx: Pick<QueryCtx, 'db'>, userId: Id<'users'>) {
-  return await ctx.db
-    .query('shoppingDetails')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .unique()
-}
+import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 
 /** Your details, for the Settings form. Null before you save them. */
 const details = authedQuery({

@@ -1,10 +1,9 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { plansTable } from './table'
-import type { Id } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
+import type { Id, MutationCtx } from '../../lib/ctx'
 
 const vSteps = plansTable.validator.fields.steps
 const vItems = v.array(

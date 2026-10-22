@@ -7,8 +7,8 @@ import { api, components, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { languageModel } from '../../lib/ai'
 import { modules } from '../../test.setup'
-import type { Id } from '../../_generated/dataModel'
 import type * as Ai from 'ai'
+import type { Id } from '../../lib/ctx'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {

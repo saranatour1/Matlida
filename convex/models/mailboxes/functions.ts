@@ -7,20 +7,8 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import { addressOf, zHandle } from '../../lib/handles'
-import { getOwnedProject } from '../projects/functions'
-import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-/** The user's mailbox, or null before they claim a handle. */
-export async function getMailbox(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-) {
-  return await ctx.db
-    .query('mailboxes')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .unique()
-}
+import { getOwnedProject } from '../projects/queries'
+import { getMailbox } from './queries'
 
 /**
  * Your assistant address and where it answers, with the address replies go

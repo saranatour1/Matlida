@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { assistantTools } from './tools'
-import type { Doc, Id } from '../../_generated/dataModel'
+import type { Doc, Id } from '../../lib/ctx'
 
 const project = {
   _id: 'p1' as Id<'projects'>,

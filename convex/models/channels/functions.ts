@@ -3,9 +3,9 @@ import { env } from '../../_generated/server'
 import { CHANNELS, channelStatus } from '../../lib/channels'
 import { authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
-import { getMailbox } from '../mailboxes/functions'
-import { getOwnedProject } from '../projects/functions'
-import { getLinks } from '../texts/functions'
+import { getMailbox } from '../mailboxes/queries'
+import { getOwnedProject } from '../projects/queries'
+import { getLinks } from '../texts/queries'
 import type { EnvName } from '../../lib/channels'
 
 /** The env vars the channels need that are set on this deployment. Names only, never values. */

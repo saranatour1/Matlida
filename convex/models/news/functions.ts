@@ -13,18 +13,11 @@ import { MODELS } from '../../lib/models'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
 import { briefingMarkdown, dueDay, fetchNews } from '../../lib/news'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { zTimeZone } from '../threads/chat'
 import { ensureMainThread } from '../threads/functions'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-async function getSettings(ctx: Pick<QueryCtx, 'db'>, userId: Id<'users'>) {
-  return await ctx.db
-    .query('newsSettings')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .unique()
-}
+import { getSettings } from './queries'
+import type { Doc } from '../../lib/ctx'
 
 /** Your news settings, for the setup card. Null before you save them. */
 const settings = authedQuery({

@@ -14,23 +14,11 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { createAgent } from '../threads/lead'
 import { pagesTable, vMetric } from './table'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-/** The page when `userId` owns its workspace, or null. `id` may come from a model, so it may not be an id. */
-async function getOwnedPage(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-  id: string,
-) {
-  const pageId = ctx.db.normalizeId('pages', id)
-  const page = pageId && (await ctx.db.get('pages', pageId))
-  const project = page && (await ctx.db.get('projects', page.projectId))
-  return project?.ownerId === userId ? page : null
-}
+import { getOwnedPage } from './queries'
+import type { Doc } from '../../lib/ctx'
 
 const list = authedQuery({
   args: { projectId: v.id('projects') },

@@ -14,9 +14,9 @@ import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
 import type { Turn } from '../../lib/decide'
-import type { Doc } from '../../_generated/dataModel'
 import type { MessageDoc, ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
+import type { Doc } from '../../lib/ctx'
 
 const vSteps = z
   .array(z.string().min(1))

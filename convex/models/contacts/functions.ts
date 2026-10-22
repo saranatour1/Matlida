@@ -2,26 +2,8 @@ import { ConvexError, v } from 'convex/values'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
-import type { Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
-
-const keyOf = (name: string) => name.trim().toLowerCase()
-
-/** Contacts whose name starts with `name`, ignoring case. An exact match comes first. */
-export async function findContacts(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-  name: string,
-) {
-  const key = keyOf(name)
-  return await ctx.db
-    .query('contacts')
-    .withIndex('by_project_and_key', (q) =>
-      q.eq('projectId', projectId).gte('key', key).lt('key', `${key}￿`),
-    )
-    .take(5)
-}
+import { getOwnedProject } from '../projects/queries'
+import { findContacts, keyOf } from './queries'
 
 /** Saves a contact, or updates the one with the same name. For the `save_contact` tool. */
 const save = internalMutation({

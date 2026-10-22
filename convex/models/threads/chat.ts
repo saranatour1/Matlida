@@ -20,17 +20,17 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { findCommand, getCommand } from '../commands/functions'
+import { findCommand, getCommand } from '../commands/queries'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { MODELS, MODEL_ID } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
-import { ensureMainThread, getMembers, getOwnedThread } from './functions'
+import { ensureMainThread } from './functions'
+import { getMembers, getOwnedThread } from './queries'
 import { createAgent } from './lead'
 import type { Effort } from '../../lib/models'
 import type { Via } from './lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx, MutationCtx } from '../../_generated/server'
+import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** An IANA time zone the runtime knows, like Europe/London. */
 export const zTimeZone = z.string().refine((tz) => {

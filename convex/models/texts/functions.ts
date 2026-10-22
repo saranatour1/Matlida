@@ -11,12 +11,13 @@ import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
 import { listTexts, photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { budgetMessage } from '../../lib/budget'
-import { ensureMainThread, getMembers } from '../threads/functions'
+import { ensureMainThread } from '../threads/functions'
+import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { MutationCtx, QueryCtx } from '../../_generated/server'
+import { getLinks } from './queries'
+import type { Doc, MutationCtx } from '../../lib/ctx'
 
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -33,31 +34,6 @@ function newCode() {
       code += CODE_ALPHABET[byte % CODE_ALPHABET.length]
   }
   return code
-}
-
-/** A project's links: one per app, plus a pending code. */
-export async function getLinks(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  return await ctx.db
-    .query('phoneLinks')
-    .withIndex('by_project', (q) => q.eq('projectId', projectId))
-    .order('desc')
-    .take(10)
-}
-
-/** The project's linked Telegram chat, where reminders text. */
-export async function getLink(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-) {
-  const links = await getLinks(ctx, projectId)
-  return (
-    links.find(
-      (l) => l.status === 'linked' && l.platform === 'telegram' && !!l.agentId,
-    ) ?? null
-  )
 }
 
 const links = authedQuery({

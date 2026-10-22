@@ -19,13 +19,10 @@ import {
   replyByEmail,
 } from '../../lib/photon'
 import schema from '../../schema'
-import {
-  ensureMainThread,
-  getMembers,
-  getOwnedThread,
-} from '../threads/functions'
+import { ensureMainThread } from '../threads/functions'
+import { getMembers, getOwnedThread } from '../threads/queries'
 import { READ_ONLY_TOOLS, createAgent } from '../threads/lead'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc } from '../../lib/ctx'
 
 /** Photon's message list is eventually consistent, so each check looks back this far and skips what's recorded. */
 /** `text` as a markdown blockquote, line by line. */
