@@ -8,6 +8,10 @@ allowBuilds:
 # @ai-sdk/gateway 4.0.116 grows its model-id union until `new Agent(...)` fails
 # to typecheck ("union type that is too complex"). Unpin once that's fixed.
 overrides:
+  # Dependabot #2: unbounded memory in W3C Baggage parsing, fixed in 2.8.0.
+  # @photon-ai/otel (via @spectrum-ts/core) pins OTel exporters that pin 2.7.1.
+  # Drop once @photon-ai/otel moves past exporters 0.218.
+  '@opentelemetry/core': ^2.8.0
   '@ai-sdk/provider': 4.0.29
   '@ai-sdk/provider-utils': 5.0.62
   '@ai-sdk/gateway': 4.0.110

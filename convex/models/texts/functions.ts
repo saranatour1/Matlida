@@ -16,6 +16,7 @@ import { budgetMessage } from '../../lib/budget'
 import { ensureMainThread } from '../threads/functions'
 import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
+import { spectrum } from './spectrum'
 import { getLinks } from './queries'
 import type { Doc, MutationCtx } from '../../lib/ctx'
 
@@ -98,7 +99,10 @@ const claim = internalMutation({
       .take(10)
     for (const row of previous) await ctx.db.delete('phoneLinks', row._id)
     for (const row of await getLinks(ctx, pending.projectId)) {
-      if (row.status === 'linked' && row.platform === platform) {
+      if (
+        row.status === 'linked' &&
+        (row.platform ?? 'imessage') === platform
+      ) {
         await ctx.db.delete('phoneLinks', row._id)
       }
     }
@@ -400,18 +404,23 @@ const poll = internalAction({
   },
 })
 
-/** `userId`'s texts to the lead matching `query`, best first. For `find_texts`. */
+/** `userId`'s texts to the lead matching `query`, best first, optionally from one app. For `find_texts`. */
 const search = internalQuery({
-  args: { userId: v.id('users'), query: v.string() },
+  args: {
+    userId: v.id('users'),
+    query: v.string(),
+    platform: v.optional(v.string()),
+  },
   returns: v.array(
     v.object({ platform: v.string(), text: v.string(), sentAt: v.number() }),
   ),
-  handler: async (ctx, { userId, query }) => {
+  handler: async (ctx, { userId, query, platform }) => {
     const rows = await ctx.db
       .query('receivedTexts')
-      .withSearchIndex('search_text', (q) =>
-        q.search('text', query).eq('userId', userId),
-      )
+      .withSearchIndex('search_text', (q) => {
+        const mine = q.search('text', query).eq('userId', userId)
+        return platform ? mine.eq('platform', platform) : mine
+      })
       .take(10)
     return rows.map((r) => ({
       platform: r.platform,
@@ -421,7 +430,63 @@ const search = internalQuery({
   },
 })
 
+/** The text of an inbound Spectrum message, or '' for anything else (photos, reactions). */
+const textOf = (message: unknown) => {
+  const content = (message as { content?: { type?: unknown; text?: unknown } })
+    .content
+  return content?.type === 'text' && typeof content.text === 'string'
+    ? content.text
+    : ''
+}
+
+/** The Spectrum SDK's batch handler: one turn per burst of texts from a chat on iMessage, WhatsApp or Telegram. */
+const respond = internalAction({
+  args: {
+    spaceId: v.string(),
+    chainId: v.string(),
+    messages: v.array(v.any()),
+    carried: v.array(v.any()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const text = [...args.carried, ...args.messages]
+      .map(textOf)
+      .filter(Boolean)
+      .join('\n')
+    try {
+      if (text) {
+        const reply: string = await ctx
+          .runAction(internal.api.texts.answer, {
+            spaceId: args.spaceId,
+            platform:
+              (await spectrum.getSpace(ctx, { spaceId: args.spaceId }))
+                ?.platform ?? 'imessage',
+            text,
+          })
+          .catch((error: unknown) => {
+            console.error(error)
+            return (
+              budgetMessage(error) ??
+              'Sorry, something went wrong. Try again in a minute.'
+            )
+          })
+        // A newer text may have superseded this turn while the lead was thinking.
+        if (!reply || (await spectrum.isCancelled(ctx, args))) return null
+        await spectrum.send(ctx, {
+          spaceId: args.spaceId,
+          chainId: args.chainId,
+          content: { type: 'text', text: reply },
+        })
+      }
+    } finally {
+      await spectrum.completeChain(ctx, args)
+    }
+    return null
+  },
+})
+
 export const textsApi = {
+  respond,
   links,
   startLink,
   unlink,

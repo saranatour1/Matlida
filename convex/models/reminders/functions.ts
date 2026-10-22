@@ -16,6 +16,7 @@ import schema from '../../schema'
 import { getMailbox } from '../mailboxes/queries'
 import { getOwnedProject } from '../projects/queries'
 import { getLink } from '../texts/queries'
+import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
@@ -298,19 +299,29 @@ const decline = authedMutation({
   },
 })
 
-/** Texts a linked Telegram chat through Photon's platform API. False when Photon isn't set up. */
+/**
+ * Texts a linked chat: through Photon's platform API when the chat was
+ * linked there, otherwise through the Spectrum SDK's outbox. Always sent.
+ */
 const textChat = async (
+  ctx: ActionCtx,
   chat: { spaceId: string; agentId?: string },
   text: string,
   key: string,
 ) => {
   const keys = photonKeys(env)
-  if (!chat.agentId || !keys) return false
-  await sendText(keys, {
+  if (chat.agentId && keys) {
+    await sendText(keys, {
+      spaceId: chat.spaceId,
+      senderId: chat.agentId,
+      text,
+      key,
+    })
+    return true
+  }
+  await spectrum.send(ctx, {
     spaceId: chat.spaceId,
-    senderId: chat.agentId,
-    text,
-    key,
+    content: { type: 'text', text },
   })
   return true
 }
@@ -329,6 +340,7 @@ const miss = internalAction({
     const texted =
       chat &&
       (await textChat(
+        ctx,
         chat,
         `Missed call from ${reminder.from}: ${reminder.message}`,
         `missed:${id}`,
@@ -431,6 +443,7 @@ const fire = internalAction({
       const texted =
         chat &&
         (await textChat(
+          ctx,
           chat,
           `Reminder from ${reminder.from}: ${reminder.message}`,
           `reminder:${id}`,

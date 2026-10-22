@@ -9,12 +9,8 @@ export const getLinks = async (ctx: Db, projectId: Id<'projects'>) => {
     .take(10)
 }
 
-/** The project's linked Telegram chat, where reminders text. */
+/** The project's most recently linked chat, where reminders text. */
 export const getLink = async (ctx: Db, projectId: Id<'projects'>) => {
   const links = await getLinks(ctx, projectId)
-  return (
-    links.find(
-      (l) => l.status === 'linked' && l.platform === 'telegram' && !!l.agentId,
-    ) ?? null
-  )
+  return links.find((l) => l.status === 'linked') ?? null
 }

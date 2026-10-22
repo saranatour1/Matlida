@@ -57,25 +57,27 @@ test('with nothing set up, messaging needs the deployment and the tools are on',
   expect(byId.voice_replies.status).toBe('connected')
 })
 
-test('a linked Telegram chat is connected, and no value leaks', async () => {
+test('a linked app is connected, the others are ready, and no value leaks', async () => {
   const { t, ada, projectId, statuses } = await setup()
-  vi.stubEnv('PHOTON_PROJECT_ID', 'project-value')
-  vi.stubEnv('PHOTON_API_KEY', 'secret-value')
-  vi.stubEnv('PHOTON_WEBHOOK_SECRET', 'webhook-value')
-  expect((await statuses()).telegram.status).toBe('ready')
+  vi.stubEnv('SPECTRUM_PROJECT_ID', 'project-value')
+  vi.stubEnv('SPECTRUM_PROJECT_SECRET', 'secret-value')
+  vi.stubEnv('SPECTRUM_WEBHOOK_SECRET', 'webhook-value')
   await t.run(async (ctx) => {
     await ctx.db.insert('phoneLinks', {
       status: 'linked',
       ownerId: ada,
       projectId,
-      spaceId: 'tg-1',
-      platform: 'telegram',
-      agentId: 'agent-1',
+      spaceId: 'wa-1',
+      platform: 'whatsapp_business',
     })
   })
   const byId = await statuses()
-  expect(byId.telegram.status).toBe('connected')
-  expect(byId.imessage).toBeUndefined()
+  expect(byId.whatsapp.status).toBe('connected')
+  expect(byId.imessage.status).toBe('ready')
+  expect(byId.telegram).toMatchObject({
+    status: 'needs_setup',
+    missing: ['PHOTON_PROJECT_ID', 'PHOTON_API_KEY', 'PHOTON_WEBHOOK_SECRET'],
+  })
   expect(JSON.stringify(byId)).not.toMatch(
     /project-value|secret-value|webhook-value/,
   )

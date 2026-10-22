@@ -117,10 +117,9 @@ test('a Fast voice call turn answers in pieces and saves to the chat and the cal
       ],
     },
   )
-  expect((await messages(result.threadId!)).map((m) => m.text).sort()).toEqual([
-    'Paris it is.',
-    'What is the capital of France?',
-  ])
+  expect(
+    (await messages(result.threadId ?? '')).map((m) => m.text).sort(),
+  ).toEqual(['Paris it is.', 'What is the capital of France?'])
 })
 
 test('a silent Fast voice turn gets no answer and saves nothing', async () => {
