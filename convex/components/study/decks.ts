@@ -130,7 +130,7 @@ export const list = query({
 })
 
 /** One of the user's items, or null, for grading an answer to it. */
-export const item = query({
+export const ownItem = query({
   args: { userId: v.string(), id: v.string() },
   returns: v.union(schema.doc('items'), v.null()),
   handler: async (ctx, { userId, id }) => {

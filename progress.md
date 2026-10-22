@@ -629,5 +629,5 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 ### Answers by voice on a review call (2026-10-22)
 
 - A review call opened with the due questions, but nothing recorded what you said back. Assistants now have `due_cards` (up to 5 due questions, with their ids) and `check_answer` (Jev grades your words against the card, then records good or again on your review schedule, like a typed answer). They work by voice on a call and in the chat. Fast voice can't use tools, so it can't grade.
-- The typed check on quiz cards and the spoken one share `checkAnswer`, which looks the card up by id through a new component query (`decks.item`) that only returns your own cards. `check_answer` isn't read-only, so email drafts don't get it.
+- The typed check on quiz cards and the spoken one share `checkAnswer`, which looks the card up by id through a new component query (`decks.ownItem`) that only returns your own cards. `check_answer` isn't read-only, so email drafts don't get it.
 - Verified with pnpm check and the tests.

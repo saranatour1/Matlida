@@ -111,7 +111,25 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         number,
         Name
       >;
-      item: FunctionReference<
+      list: FunctionReference<
+        "query",
+        "internal",
+        { projectId: string; userId: string },
+        Array<{
+          deck: {
+            _creationTime: number;
+            _id: string;
+            format: "cards" | "quiz";
+            projectId: string;
+            title: string;
+            topic: string;
+            userId: string;
+          };
+          due: number;
+        }>,
+        Name
+      >;
+      ownItem: FunctionReference<
         "query",
         "internal",
         { id: string; userId: string },
@@ -130,24 +148,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           reps: number;
           userId: string;
         } | null,
-        Name
-      >;
-      list: FunctionReference<
-        "query",
-        "internal",
-        { projectId: string; userId: string },
-        Array<{
-          deck: {
-            _creationTime: number;
-            _id: string;
-            format: "cards" | "quiz";
-            projectId: string;
-            title: string;
-            topic: string;
-            userId: string;
-          };
-          due: number;
-        }>,
         Name
       >;
       remove: FunctionReference<

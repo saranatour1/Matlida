@@ -160,7 +160,7 @@ export const checkAnswer = async (
   itemId: string,
   answer: string,
 ) => {
-  const item = await ctx.runQuery(components.study.decks.item, {
+  const item = await ctx.runQuery(components.study.decks.ownItem, {
     userId,
     id: itemId,
   })
