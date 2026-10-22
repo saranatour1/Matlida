@@ -49,8 +49,6 @@ const setup = async () => {
   /** Sends a message and runs the reply, returning the chat and its texts. */
   const chat = async (args: {
     botId?: Awaited<ReturnType<typeof asAda.mutation<typeof api.api.bots.save>>>
-    model?: string
-    effort?: 'low' | 'medium' | 'high'
     prompt: string
   }) => {
     const threadId = await asAda.mutation(api.api.chat.sendMessage, {
@@ -100,10 +98,10 @@ test('a bot and the lead reply with the model set on them, and the default other
 })
 
 test('a chat can switch models and keeps its history', async () => {
-  const { t, asAda, chat } = await setup()
+  const { t, asAda, projectId, chat } = await setup()
   const { threadId } = await chat({ prompt: 'First' })
   await asAda.mutation(api.api.threads.setModel, {
-    threadId,
+    projectId,
     model: 'anthropic/claude-opus-5',
   })
   const after = await chat({ prompt: 'Second' })
@@ -113,8 +111,8 @@ test('a chat can switch models and keeps its history', async () => {
     'Second',
     'Hello from anthropic/claude-opus-5.',
   ])
-  // Back to the assistant's own.
-  await asAda.mutation(api.api.threads.setModel, { threadId, model: null })
+  // Back to the default.
+  await asAda.mutation(api.api.threads.setModel, { projectId, model: null })
   const back = await chat({ prompt: 'Third' })
   expect(back.texts.at(-1)).toBe('Hello from the default.')
   const rows = await t.run((ctx) =>
@@ -130,14 +128,17 @@ test('a chat can switch models and keeps its history', async () => {
   ])
 })
 
-test('a new chat can start on a model, and the thread remembers it', async () => {
-  const { asAda, chat } = await setup()
-  const { threadId, texts } = await chat({
+test('a model picked before the first message is the one the chat starts on', async () => {
+  const { asAda, projectId, chat } = await setup()
+  await asAda.mutation(api.api.threads.setModel, {
+    projectId,
     model: 'deepseek/deepseek-v3.2',
-    prompt: 'Hi',
   })
+  const { texts } = await chat({ prompt: 'Hi' })
   expect(texts).toContain('Hello from deepseek/deepseek-v3.2.')
-  expect(await asAda.query(api.api.threads.get, { threadId })).toMatchObject({
+  expect(
+    await asAda.query(api.api.projects.get, { id: projectId }),
+  ).toMatchObject({
     model: 'deepseek/deepseek-v3.2',
   })
 })
@@ -153,15 +154,15 @@ test('model ids are checked, and only the owner can switch', async () => {
       model: 'not a model',
     }),
   ).rejects.toThrow('Use a gateway model id like anthropic/claude-sonnet-5.')
-  const { threadId } = await chat({ prompt: 'Hi' })
+  await chat({ prompt: 'Hi' })
   await expect(
     asBob.mutation(api.api.threads.setModel, {
-      threadId,
+      projectId,
       model: 'openai/gpt-5',
     }),
-  ).rejects.toThrow('Chat not found.')
+  ).rejects.toThrow('Project not found.')
   await expect(
-    asAda.mutation(api.api.threads.setModel, { threadId, model: 'gpt-5' }),
+    asAda.mutation(api.api.threads.setModel, { projectId, model: 'gpt-5' }),
   ).rejects.toThrow('Use a gateway model id like anthropic/claude-sonnet-5.')
 })
 
@@ -203,10 +204,10 @@ const effortsAsked = () => {
   return calls.map((c) => c.providerOptions?.convexGateway?.reasoningEffort)
 }
 
-test("effort is medium by default, then the assistant's own, then the chat's pick", async () => {
+test('effort is medium by default, then the pick, and null goes back to medium', async () => {
   const { asAda, projectId, chat } = await setup()
   const before = effortsAsked().length
-  const { threadId } = await chat({ prompt: 'Hi' })
+  await chat({ prompt: 'Hi' })
   await asAda.mutation(api.api.projects.save, {
     id: projectId,
     name: 'Matilda',
@@ -215,22 +216,22 @@ test("effort is medium by default, then the assistant's own, then the chat's pic
     effort: 'high',
   })
   await chat({ prompt: 'Think hard' })
-  await asAda.mutation(api.api.threads.setEffort, { threadId, effort: 'low' })
+  await asAda.mutation(api.api.threads.setEffort, { projectId, effort: 'low' })
   await chat({ prompt: 'Quick one' })
-  await asAda.mutation(api.api.threads.setEffort, { threadId, effort: null })
+  await asAda.mutation(api.api.threads.setEffort, { projectId, effort: null })
   await chat({ prompt: 'Back to normal' })
   expect(effortsAsked().slice(before)).toEqual([
     'medium',
     'high',
     'low',
-    'high',
+    'medium',
   ])
 })
 
 test("only the chat's owner can set its effort", async () => {
-  const { asBob, chat } = await setup()
-  const { threadId } = await chat({ prompt: 'Hi' })
+  const { asBob, projectId, chat } = await setup()
+  await chat({ prompt: 'Hi' })
   await expect(
-    asBob.mutation(api.api.threads.setEffort, { threadId, effort: 'high' }),
-  ).rejects.toThrow('Chat not found.')
+    asBob.mutation(api.api.threads.setEffort, { projectId, effort: 'high' }),
+  ).rejects.toThrow('Project not found.')
 })

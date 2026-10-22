@@ -217,11 +217,8 @@ test('a watched price posts in the chat once it drops, and a gone item stops the
     seller: 'A',
     shop: 'https://a.example',
   }
-  const threadId = await t.mutation(internal.api.threads.start, {
+  const threadId = await t.mutation(internal.api.threads.startMain, {
     projectId,
-    kind: 'chat',
-    title: 'Matilda',
-    userId: ada,
   })
   const watchIds = await Promise.all(
     ['1', '2'].map((n) =>

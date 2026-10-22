@@ -38,11 +38,12 @@ export function BotPart({ part }: { part: AskBotPart }) {
           </div>
           {projectId && (
             <Link
-              to="/p/$projectId/threads/$threadId"
-              params={{ projectId, threadId: part.output.threadId }}
+              to="/p/$projectId"
+              params={{ projectId }}
+              search={{ bot: part.output.botId }}
               className="mt-2 inline-block text-xs text-muted-foreground underline hover:text-foreground"
             >
-              Open {part.output.name}'s thread
+              Open {part.output.name}'s chat
             </Link>
           )}
         </details>

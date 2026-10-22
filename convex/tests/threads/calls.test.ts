@@ -1,10 +1,9 @@
-import { createThread } from '@convex-dev/agent'
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { expect, test, vi } from 'vitest'
 import { generateSpeech, transcribe } from 'ai'
 import { languageModel } from '../../lib/ai'
-import { api, components, internal } from '../../_generated/api'
+import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 import type * as Ai from 'ai'
@@ -101,7 +100,7 @@ test('a call turn saves what you said and the reply, and returns it spoken', asy
 
 test('silence gets no reply and starts no chat', async () => {
   heard.text = ''
-  const { t, asAda, projectId, clip } = await setup()
+  const { asAda, projectId, clip } = await setup()
 
   const result = await asAda.action(api.api.calls.turn, {
     liveKey: crypto.randomUUID(),
@@ -115,7 +114,8 @@ test('silence gets no reply and starts no chat', async () => {
     transcript: '',
     reply: null,
   })
-  expect(await t.run((ctx) => ctx.db.query('threads').take(1))).toEqual([])
+  // Nothing heard starts no chat.
+  expect(await asAda.query(api.api.threads.main, { projectId })).toBeNull()
 })
 
 test("you can't call into someone else's workspace", async () => {
@@ -135,19 +135,7 @@ const chatWithReminder = async (
   t: Awaited<ReturnType<typeof setup>>['t'],
   projectId: Id<'projects'>,
 ) => {
-  return await t.run(async (ctx) => {
-    const project = await ctx.db.get('projects', projectId)
-    const threadId = await createThread(ctx, components.agent, {
-      userId: project?.ownerId,
-    })
-    await ctx.db.insert('threads', {
-      projectId,
-      threadId,
-      kind: 'chat',
-      title: 'Chat',
-    })
-    return threadId
-  })
+  return await t.mutation(internal.api.threads.startMain, { projectId })
 }
 
 test('a call reminder rings, then counts as missed and lands in the chat', async () => {

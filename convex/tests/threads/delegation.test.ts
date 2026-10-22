@@ -1,7 +1,7 @@
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api, internal } from '../../_generated/api'
+import { api } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
@@ -51,17 +51,11 @@ test('the lead hands work to a bot in a sub-thread of the chat', async () => {
     role: 'Researcher',
     instructions: 'You find sources.',
   })
-  // Ivy joins the lead's chat before the first message.
-  const leadChat = await t.mutation(internal.api.threads.start, {
+  // Ivy joins the lead before the first message.
+  await asAda.mutation(api.api.threads.setMembers, {
     projectId,
-    kind: 'chat',
-    title: 'Matilda',
-    userId: ada,
     memberIds: [ivy],
   })
-  await t.run((ctx) =>
-    ctx.db.patch('projects', projectId, { threadId: leadChat }),
-  )
 
   const chatId = await asAda.mutation(api.api.chat.sendMessage, {
     projectId,
@@ -71,16 +65,15 @@ test('the lead hands work to a bot in a sub-thread of the chat', async () => {
   vi.useRealTimers()
   await t.finishInProgressScheduledFunctions()
 
-  const subThreads = await asAda.query(api.api.threads.list, {
+  // The ask happens in Ivy's own chat, where the user can read it.
+  const ivyThreadId = await asAda.query(api.api.threads.main, {
     projectId,
-    kind: 'subagent',
+    botId: ivy,
   })
-  expect(subThreads).toMatchObject([
-    { kind: 'subagent', parentThreadId: chatId, title: 'Matilda → Ivy' },
-  ])
+  expect(ivyThreadId).toBeTruthy()
   const firstPage = { numItems: 10, cursor: null }
   const ivyThread = await asAda.query(api.api.chat.listMessages, {
-    threadId: subThreads[0].threadId,
+    threadId: ivyThreadId ?? '',
     paginationOpts: firstPage,
   })
   expect(ivyThread.page.map((m) => m.text).sort()).toEqual([

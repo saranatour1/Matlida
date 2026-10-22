@@ -541,3 +541,11 @@
 - Speed is the browser's: replies now play through `<audio>` elements routed into the call's volume and level meter, so a faster speed keeps the pitch, and a change applies to the piece playing. Pausing when you talk over a reply resumes from the same second as before.
 - Verified with pnpm check and the tests (the voice reaches the speech model, the language reaches transcription and the reply's instructions). The panel isn't tried in the browser.
 
+### One thread per assistant, and no threads table (2026-10-22)
+
+- The app's `threads` table is gone. The agent component's threads are the only threads: each assistant's chat is recorded on it (`projects.threadId`, `bots.threadId`), and `assistantOf(threadId)` finds the assistant by those. Owners are checked through the component's thread (`ownsThread`), so nothing of ours stores who a thread belongs to.
+- No sub-threads. `ask_bot` runs in the bot's own chat, where it sees what it's been asked before and the user can read it (the card opens that chat). A task's steps and a page refresh run in the chat's thread with nothing saved there: the task card and the page are the result, and each step is told what the earlier steps found.
+- A chat is its assistant, so the chat header's model, effort and members now set the assistant's own (`threads.setModel`, `setEffort`, `setMembers` take the project and bot). "Default" on the menus is the app's default. Members live on `bots.memberIds` and `projects.memberIds`.
+- Dev: a one-off moved 15 chat rows' members, model and effort onto their assistants and deleted 5 sub-thread rows. Production has no rows from before.
+- Verified with pnpm check and the tests (190: the ask lands in Ivy's chat, six asks make six turns there, a model picked before the first message is the one it starts on).
+

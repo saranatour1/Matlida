@@ -44,7 +44,7 @@ export type ChatUIMessage = UIMessage<
   InferUITools<ReturnType<typeof assistantTools>> & {
     ask_bot: {
       input: { bot: string; task: string }
-      output: { name: string; role: string; reply: string; threadId: string }
+      output: { name: string; role: string; reply: string; botId: string }
     }
   }
 >

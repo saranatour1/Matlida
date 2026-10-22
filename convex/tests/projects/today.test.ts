@@ -70,7 +70,6 @@ test("today has what's due in a day, what waits for you, and lists with things l
     const task = {
       projectId,
       threadId: 'thread',
-      workThreadId: 'work',
       kind: 'run_plan' as const,
       steps: [],
     }

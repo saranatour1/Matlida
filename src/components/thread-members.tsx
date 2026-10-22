@@ -13,25 +13,19 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 
-/**
- * Who the chat's assistant can hand work to, for the chat's header. Without a
- * saved list, the lead works with every bot and a bot works alone.
- */
+/** Who the chat's assistant can hand work to, for the chat's header. None until you add them. */
 export function ThreadMembers({
   project,
   bot,
-  threadId,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
-  threadId: string
 }) {
-  const thread = useQuery(api.api.threads.get, { threadId })
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const setMembers = useMutation(api.api.threads.setMembers)
-  if (!thread || !bots) return null
+  if (!bots) return null
   const others = bots.filter((b) => b._id !== bot?._id)
-  const memberIds = thread.memberIds ?? []
+  const memberIds = (bot ?? project).memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
 
   return (
@@ -78,7 +72,8 @@ export function ThreadMembers({
                   checked={memberIds.includes(b._id)}
                   onCheckedChange={(checked) =>
                     void setMembers({
-                      threadId,
+                      projectId: project._id,
+                      botId: bot?._id,
                       memberIds: checked
                         ? [...memberIds, b._id]
                         : memberIds.filter((id) => id !== b._id),

@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Link, useParams, useSearch } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
   ChevronDownIcon,
@@ -176,13 +176,12 @@ function Assistant({
   portrait: Portrait
 }) {
   const search = useSearch({ strict: false })
-  const { threadId } = useParams({ strict: false })
   const { setOpenMobile } = useSidebar()
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         size="lg"
-        isActive={!threadId && search.bot === bot?._id}
+        isActive={search.bot === bot?._id}
         className="h-auto rounded-xl py-2 data-[active=true]:bg-sidebar-accent"
         render={
           <Link

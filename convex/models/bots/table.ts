@@ -13,9 +13,13 @@ export const botsTable = defineTable({
   model: v.optional(v.string()),
   /** The bot's one thread: the app, Telegram and calls all talk there. */
   threadId: v.optional(v.string()),
+  /** Bots this one can hand work to with ask_bot. None until you add them. */
+  memberIds: v.optional(v.array(v.id('bots'))),
   /** How hard it works on a reply. Unset means medium. */
   effort: v.optional(
     v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
   ),
   portrait: v.optional(vPortrait),
-}).index('by_project_and_name', ['projectId', 'name'])
+})
+  .index('by_project_and_name', ['projectId', 'name'])
+  .index('by_threadId', ['threadId'])

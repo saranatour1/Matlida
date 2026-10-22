@@ -20,7 +20,7 @@ import {
 } from '../../lib/photon'
 import schema from '../../schema'
 import { ensureMainThread } from '../threads/functions'
-import { getMembers, getOwnedThread } from '../threads/queries'
+import { getMembers, ownsThread } from '../threads/queries'
 import { READ_ONLY_TOOLS, createAgent } from '../threads/lead'
 import type { Doc } from '../../lib/ctx'
 
@@ -161,13 +161,9 @@ const receive = internalMutation({
       return null
     }
     if (!fromOwner) return { project, inboxThreadId: threadId }
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
     return {
       project,
-      owner: { members: await getMembers(ctx, thread), threadId },
+      owner: { members: await getMembers(ctx, project, null), threadId },
     }
   },
 })
@@ -332,7 +328,7 @@ const poll = internalAction({
 const forMessages = authedQuery({
   args: { threadId: v.string(), messageIds: v.array(v.string()) },
   handler: async (ctx, { threadId, messageIds }) => {
-    if (!(await getOwnedThread(ctx, ctx.userId, threadId))) return []
+    if (!(await ownsThread(ctx, ctx.userId, threadId))) return []
     // The newest 500 on screen; older emails were replied to or not long ago.
     const rows = await Promise.all(
       messageIds.slice(-500).map((id) =>

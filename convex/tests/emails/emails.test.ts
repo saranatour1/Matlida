@@ -98,15 +98,12 @@ const setup = async () => {
   })
   await asAda.mutation(api.api.mailboxes.claim, { projectId, handle: 'ada' })
   const poll = () => t.action(internal.api.emails.poll, {})
-  const chat = async (title: string) => {
-    const chats = await asAda.query(api.api.threads.list, {
-      projectId,
-      kind: 'chat',
-    })
-    const thread = chats.find((c) => c.title === title)
-    if (!thread) return null
+  // Matilda's one chat; the name is for the reader.
+  const chat = async (_title: string) => {
+    const threadId = await asAda.query(api.api.threads.main, { projectId })
+    if (!threadId) return null
     const { page } = await asAda.query(api.api.chat.listMessages, {
-      threadId: thread.threadId,
+      threadId,
       paginationOpts: { numItems: 10, cursor: null },
     })
     return page.map((m) => m.text)
@@ -115,19 +112,15 @@ const setup = async () => {
     t.run(async (ctx) =>
       (await ctx.db.query('emails').take(10)).map((e) => e.status),
     )
-  const inbox = async (title: string) => {
-    const chats = await asAda.query(api.api.threads.list, {
-      projectId,
-      kind: 'chat',
-    })
-    const thread = chats.find((c) => c.title === title)
-    if (!thread) return []
+  const inbox = async (_title: string) => {
+    const threadId = await asAda.query(api.api.threads.main, { projectId })
+    if (!threadId) return []
     const { page } = await asAda.query(api.api.chat.listMessages, {
-      threadId: thread.threadId,
+      threadId,
       paginationOpts: { numItems: 50, cursor: null },
     })
     return await asAda.query(api.api.emails.forMessages, {
-      threadId: thread.threadId,
+      threadId: threadId,
       messageIds: page.map((m) => m.id),
     })
   }

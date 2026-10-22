@@ -76,9 +76,7 @@ test('an unknown /name is rejected before a chat starts', async () => {
   await expect(
     asAda.mutation(api.api.chat.sendMessage, { projectId, prompt: '/nope' }),
   ).rejects.toThrow("There's no /nope command.")
-  expect(
-    await asAda.query(api.api.threads.list, { projectId, kind: 'chat' }),
-  ).toEqual([])
+  expect(await asAda.query(api.api.threads.main, { projectId })).toBeNull()
 })
 
 /** Sends `prompt` and runs the reply, returning what the model was sent. */

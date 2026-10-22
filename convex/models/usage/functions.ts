@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import { internalMutation } from '../../_generated/server'
 import { budgetOf } from '../../lib/budget'
 import { authedQuery } from '../../lib/functions'
-import { getOwnedThread } from '../threads/queries'
+import { ownsThread } from '../threads/queries'
 import { usageTable } from './table'
 import type { ImageModelProviderMetadata, ProviderMetadata } from 'ai'
 
@@ -29,7 +29,7 @@ const record = internalMutation({
 const forThread = authedQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) => {
-    if (!(await getOwnedThread(ctx, ctx.userId, threadId))) return []
+    if (!(await ownsThread(ctx, ctx.userId, threadId))) return []
     return await ctx.db
       .query('usage')
       .withIndex('by_thread', (q) => q.eq('threadId', threadId))

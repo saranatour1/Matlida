@@ -168,7 +168,6 @@ const recordUsage = (
 const askTools = (
   project: Project,
   bots: Array<Bot>,
-  from: string,
   budget: number,
 ): ToolSet => {
   if (bots.length === 0) return {}
@@ -193,16 +192,10 @@ const askTools = (
           )
         }
         const b = bots.find((candidate) => candidate.name === bot) ?? first
+        // The bot's own chat: it sees what it's been asked before, and the user can read it there.
         const threadId: string = await ctx.runMutation(
-          internal.api.threads.start,
-          {
-            projectId: project._id,
-            kind: 'subagent',
-            title: `${from} → ${b.name}`,
-            parentThreadId: ctx.threadId,
-            botId: b._id,
-            userId: project.ownerId,
-          },
+          internal.api.threads.startMain,
+          { projectId: project._id, botId: b._id },
         )
         const agent = createAgent(ctx, project, {
           bot: b,
@@ -214,7 +207,7 @@ const askTools = (
           { threadId },
           { prompt: task, abortSignal },
         )
-        return { name: b.name, role: b.role, reply: text, threadId }
+        return { name: b.name, role: b.role, reply: text, botId: b._id }
       },
     }),
   }
@@ -279,7 +272,7 @@ export const createAgent = (
       ? Object.fromEntries(
           Object.entries({
             ...assistantTools(project, name),
-            ...askTools(project, members, name, EFFORTS[effort].botCalls),
+            ...askTools(project, members, EFFORTS[effort].botCalls),
           }).filter(
             ([tool]) =>
               (tools === true || tools.includes(tool)) &&
