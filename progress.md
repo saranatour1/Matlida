@@ -741,3 +741,11 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
+
+### Old attachments no longer crash replies (2026-10-22)
+
+- On dev, replies in Matilda's main chat (`api/chat:respond`, and `api/texts:replyOnPhoton` before it) ran out of memory: "maximum memory usage: 64 MB". The chat had a 10.1 MB PDF attached earlier. Every reply sent the whole history, and before each model call the AI SDK downloads every attached file and encodes it, so a reply of a few steps passed the 64 MB a Convex action gets.
+- Now only the message being answered sends its attachments. Older pictures and files go to the model as a note, like `[menu.pdf attached earlier]` (`withoutAttachments` in `convex/lib/attachments.ts`, through the agent's `contextHandler` in `lead.ts`). What's stored and what the chat shows don't change.
+- Ceiling: the model can't look at a file from an earlier message again; attach it again to ask about it. A 10 MB file on the message being answered is still downloaded once per step of that reply.
+- Verified with pnpm check and the tests (230), including one that checks what the model receives for a PDF and then for the next message.
+
