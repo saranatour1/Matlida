@@ -2,6 +2,17 @@ import { literals } from 'convex-helpers/validators'
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
+/** Where a phone call is. The last four are how it ended. */
+export const phoneStatus = literals(
+  'dialing',
+  'ringing',
+  'answered',
+  'ended',
+  'busy',
+  'no_answer',
+  'failed',
+)
+
 /** A voice call with one assistant. It started at `_creationTime`. */
 export const callsTable = defineTable({
   projectId: v.id('projects'),
@@ -10,6 +21,22 @@ export const callsTable = defineTable({
   /** The chat the call's turns land in, once there is one. */
   threadId: v.optional(v.string()),
   endedAt: v.optional(v.number()),
+  /** Set on a phone call an assistant placed through Photon. On its lines, `you` is the person called. */
+  phone: v.optional(
+    v.object({
+      to: v.string(),
+      status: phoneStatus,
+      /** Who asked for the call, and what it was for. The assistant that placed it is the call's `botId` (unset for the lead). */
+      askedBy: v.optional(v.id('users')),
+      about: v.optional(v.string()),
+      /** Why it failed, or how it ended. */
+      note: v.optional(v.string()),
+      /** Audio packets that came back. 0 on an answered call means their side never reached us. */
+      heard: v.optional(v.number()),
+      /** You pressed Hang up. The call action checks every 2 seconds. */
+      hangUp: v.optional(v.boolean()),
+    }),
+  ),
 }).index('by_project_and_bot', ['projectId', 'botId'])
 
 /** One thing said on a call, in order. */

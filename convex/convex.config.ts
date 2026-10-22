@@ -43,6 +43,12 @@ const app = defineApp({
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
+    /** Phone calls: the line they ring from, like +14155550123, and its Voice profile's outbound SIP credential (Voice → profile → Outbound calls in Photon). */
+    PHOTON_PHONE_NUMBER: v.optional(v.string()),
+    PHOTON_SIP_USERNAME: v.optional(v.string()),
+    PHOTON_SIP_PASSWORD: v.optional(v.string()),
+    /** The server under SIP connection on that profile. sip.photon.codes when unset. */
+    PHOTON_SIP_HOST: v.optional(v.string()),
     /** Each person's AI spend a month, in dollars. 12 when unset. */
     AI_BUDGET_USD: v.optional(v.string()),
   },
