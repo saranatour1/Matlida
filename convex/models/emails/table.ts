@@ -52,3 +52,8 @@ export const emailsTable = defineTable({
     searchField: 'text',
     filterFields: ['userId', 'from'],
   })
+
+/** The one email check the webhook has queued, so a burst of mail queues one check, not one each. */
+export const emailPollsTable = defineTable({
+  scheduled: v.id('_scheduled_functions'),
+})

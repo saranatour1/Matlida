@@ -48,6 +48,48 @@ const latest = internalQuery({
   },
 })
 
+/** Which of Photon's email ids aren't recorded yet, so `poll` only receives those. */
+const unseen = internalQuery({
+  args: { ids: v.array(v.string()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, { ids }) => {
+    const fresh: Array<string> = []
+    for (const id of ids) {
+      const seen = await ctx.db
+        .query('emails')
+        .withIndex('by_messageId', (q) => q.eq('messageId', id))
+        .first()
+      if (!seen) fresh.push(id)
+    }
+    return fresh
+  },
+})
+
+/**
+ * For the webhook: queues a check in a couple of seconds, unless one is
+ * already queued. A burst of mail then makes one check instead of one each,
+ * and only the queuing writes the row.
+ */
+const schedulePoll = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const queued = await ctx.db.query('emailPolls').first()
+    const next =
+      queued &&
+      (await ctx.db.system.get('_scheduled_functions', queued.scheduled))
+    if (next?.state.kind === 'pending') return null
+    const scheduled = await ctx.scheduler.runAfter(
+      2_000,
+      internal.api.emails.poll,
+      {},
+    )
+    if (queued) await ctx.db.patch('emailPolls', queued._id, { scheduled })
+    else await ctx.db.insert('emailPolls', { scheduled })
+    return null
+  },
+})
+
 /** What `poll` needs to draft a reply to one email. */
 const zTurn = v.object({
   project: schema.doc('projects'),
@@ -238,7 +280,13 @@ const poll = internalAction({
     )
     const since = new Date((newest ?? Date.now()) - LOOKBACK_MS).toISOString()
 
-    for (const email of await listEmails(photon, since)) {
+    const emails = await listEmails(photon, since)
+    const fresh: Array<string> = await ctx.runQuery(
+      internal.api.emails.unseen,
+      { ids: emails.map((e) => e.id) },
+    )
+    for (const email of emails) {
+      if (!fresh.includes(email.id)) continue
       const { receivedBy } = email
       if (!receivedBy) continue
       const subject = (email.content.metadata?.email?.subject ?? '').slice(
@@ -490,6 +538,8 @@ const reply = zAuthedAction({
 
 export const emailsApi = {
   latest,
+  unseen,
+  schedulePoll,
   receive,
   skip,
   settle,

@@ -605,3 +605,9 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - Only pictures and PDFs: the hourly `commands.sweepFiles` deletes markdown and audio that no command points to, so those would vanish. Pasted text already works.
 - The server checks the type and size in `_storage`. The browser's type is used only when a file was stored without one (convex-test stores none).
 - Verified with pnpm check and the tests (210), and pushed to dev. Not tried live: whether each gateway model reads PDFs is untested.
+
+### A cheaper email check (2026-10-22)
+
+- The email check (every minute, and on each webhook email event) ran the `receive` mutation for every email of the last 10 minutes, already recorded or not. Now one query (`emails.unseen`) says which are new first, so a quiet minute costs one query instead of one mutation per recent email.
+- A webhook email event used to start a full check right away, so a burst of mail ran several checks side by side. It now queues one check 2 seconds out unless one is already queued (`emails.schedulePoll`, with its scheduled run kept on the one `emailPolls` row, written only when queuing).
+- Same shape as the Telegram fix (#112). Verified with pnpm check and the tests (210), and pushed to dev.
