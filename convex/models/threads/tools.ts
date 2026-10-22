@@ -7,6 +7,7 @@ import { budgetedModel, metered } from '../../lib/budget'
 import { searchConvexDocs } from '../../lib/convexDocs'
 import {
   decide,
+  howOften,
   needsFollowUp,
   recentTurns,
   whoShouldHandle,
@@ -53,6 +54,25 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         return { result, cost }
       },
     )
+  /** Jev's read on whether the reminder the user just asked for repeats. Once when Jev can't say. */
+  const repeatOf = async (
+    ctx: ToolCtx,
+    reminder: string,
+    abortSignal?: AbortSignal,
+  ) => {
+    try {
+      const turns = ctx.threadId ? await recentTurns(ctx, ctx.threadId) : []
+      const request =
+        turns.filter((t) => t.role === 'user').at(-1)?.text ?? reminder
+      const { repeat } = await judged(ctx, () =>
+        howOften(decisionModel, { request, reminder }, abortSignal),
+      )
+      return repeat
+    } catch (error) {
+      console.error(error)
+      return 'once'
+    }
+  }
   const record = async (
     ctx: ToolCtx,
     kind: 'search' | 'research',
@@ -549,7 +569,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     set_reminder: createTool({
       description:
-        'Remind the user about something later. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
+        'Remind the user about something later, once or on repeat ("every weekday at 9"): Jev works out which from what they asked. It posts in this chat when due, and also texts them, emails them or rings them in the app if they ask for that. To pass a message to someone else at a time ("tell Luke tomorrow to check his car insurance"), set `to` to their saved contact name and `say` to the message, written to them; it goes by email, and only after the user confirms it in the chat. Calling other people isn\'t available yet: offer email instead.',
       inputSchema: z.object({
         message: z
           .string()
@@ -579,8 +599,19 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           .describe(
             "With `to`: the message, written to them in the second person, saying who it's from. Like: Hi Luke, Sara asked me to remind you to check on your car insurance.",
           ),
+        cron: z
+          .string()
+          .max(100)
+          .optional()
+          .describe(
+            'Only for a repeat that isn\'t daily, weekdays, weekly or monthly, like "every Tuesday and Thursday at 9": five cron fields in the user\'s time zone, like "0 9 * * 2,4". `at` is still the first time.',
+          ),
       }),
-      execute: async (ctx, { message, at, via, to, say }) => {
+      execute: async (
+        ctx,
+        { message, at, via, to, say, cron },
+        { abortSignal },
+      ) => {
         const dueAt = Date.parse(at)
         if (Number.isNaN(dueAt))
           throw new Error(`Couldn't read the time "${at}".`)
@@ -613,9 +644,21 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           }
           if (!say) throw new Error('Write the message to them in `say`.')
         }
+        const every = contact
+          ? 'once'
+          : cron
+            ? 'custom'
+            : await repeatOf(ctx, message, abortSignal)
+        if (every === 'custom' && !cron) {
+          throw new Error(
+            'This sounds like it repeats on its own pattern. Call set_reminder again with `cron`.',
+          )
+        }
         const reminderId: string = await ctx.runMutation(
           internal.api.reminders.schedule,
           {
+            every,
+            cron,
             projectId: project._id,
             threadId: ctx.threadId,
             from,
@@ -635,6 +678,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           to: contact?.name ?? null,
           at: new Date(dueAt).toISOString(),
           via,
+          every,
         }
       },
     }),

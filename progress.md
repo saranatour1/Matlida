@@ -567,3 +567,11 @@
 - Your time zone is saved from the chat (`users.timeZone`).
 - Findings, every Jev judgment, the limits and the next PRs: `docs/decisions/2026-10-22-calls-and-reminders.md`.
 - Verified with pnpm check and the tests (195), including call-again, the cap, 9am, snooze and decline. Not rung live: no test calls.
+
+### Recurring reminders (2026-10-22)
+
+- "Every weekday at 9" works. Jev decides whether a reminder you ask for happens once or repeats (daily, weekdays, weekly, monthly or a custom cron). Once uses the scheduler as before; repeats use the `@convex-dev/crons` component, in your time zone.
+- Each time a repeat comes due, Jev checks the recent chat: it stops one that sounds done, pauses one you need a break from, skips one you already did, and only switches between chat, text, call and email when it's sure (0.7). Each stop or pause is explained in the chat.
+- Pause, Resume and Stop are in the Library's Reminders; the details panel shows "every weekday, from …" or Paused.
+- luxon does the date math now (`inDaytime`, `cronFor`, labels), and AGENTS.md says to keep using it.
+- Verified with pnpm check and the tests (202), and pushed to dev.

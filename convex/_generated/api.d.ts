@@ -272,6 +272,7 @@ export declare const components: {
   aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
   shopping: import("../components/shopping/_generated/component.js").ComponentApi<"shopping">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
+  crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;
   authEmail: import("@convex-dev/auth/components/email/_generated/component.js").ComponentApi<"authEmail">;

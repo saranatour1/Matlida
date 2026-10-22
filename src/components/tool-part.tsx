@@ -11,6 +11,7 @@ import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
+import { reminderWhen } from '~/lib/reminders'
 import { Markdown } from '~/components/chat-message'
 import { Spinner } from '~/components/ui/spinner'
 
@@ -160,7 +161,7 @@ export function ReminderPart({
     <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
       {busy ? <Spinner /> : <AlarmClockIcon className="size-4" />}
       {part.state === 'output-available'
-        ? `Reminder set for ${new Date(part.output.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}, ${VIA[part.output.via]}.`
+        ? `Reminder set for ${reminderWhen(part.output.at, part.output.every)}, ${VIA[part.output.via]}.`
         : part.state === 'output-error'
           ? `Couldn't set the reminder: ${part.errorText}`
           : 'Setting a reminder…'}
