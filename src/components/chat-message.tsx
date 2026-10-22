@@ -9,6 +9,7 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { CommandsPart } from '~/components/commands-part'
+import { StudyPart } from '~/components/study-part'
 import { CopyButton } from '~/components/copy-button'
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
@@ -337,6 +338,8 @@ function renderPart(
       return <ImagePart key={part.toolCallId} part={part} />
     case 'tool-show_commands':
       return <CommandsPart key={part.toolCallId} part={part} onSend={onSend} />
+    case 'tool-make_study_set':
+      return <StudyPart key={part.toolCallId} part={part} />
     case 'tool-generate_video':
       return <VideoPart key={part.toolCallId} part={part} />
     default:

@@ -19,6 +19,7 @@ import { gatewayCost } from '../usage/functions'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
+import { studyTools } from './study'
 import type { ToolCtx } from '@convex-dev/agent'
 import type { LanguageModelUsage, ProviderMetadata } from 'ai'
 import type { Doc } from '../../lib/ctx'
@@ -96,6 +97,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
   return {
     ...everydayTools(project),
     ...shoppingTools(project),
+    ...studyTools(project),
     ...pageTools(project, from),
     web_search: createTool({
       description:

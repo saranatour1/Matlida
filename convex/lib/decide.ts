@@ -346,11 +346,14 @@ export const shouldCallNow = async (
     openWork,
     localTime,
     hoursSinceLastChat,
+    cardsDue = 0,
   }: {
     conversation: Array<Turn>
     openWork: Array<string>
     localTime: string
     hoursSinceLastChat: number
+    /** Study cards due for review, which a call can quiz them on. */
+    cardsDue?: number
   },
   abortSignal?: AbortSignal,
 ) => {
@@ -368,12 +371,13 @@ export const shouldCallNow = async (
       open_work: openWork,
       local_time: localTime,
       hours_since_last_chat: hoursSinceLastChat,
+      study_cards_due: cardsDue,
     },
     questions: {
       call_now: {
         type: 'boolean',
         instructions:
-          'Would a short call from the assistant right now be welcome and useful to the user? Yes when something in `conversation` or `open_work` is still owed, unfinished or worth checking on, and `local_time` and `hours_since_last_chat` make a call reasonable. No when nothing is pending, they just talked, or a call would feel intrusive.',
+          'Would a short call from the assistant right now be welcome and useful to the user? Yes when something in `conversation` or `open_work` is still owed, unfinished or worth checking on, or several `study_cards_due` are waiting to be reviewed, and `local_time` and `hours_since_last_chat` make a call reasonable. No when nothing is pending, they just talked, or a call would feel intrusive.',
       },
       about: {
         type: 'choice',
@@ -383,6 +387,9 @@ export const shouldCallNow = async (
           ...Object.fromEntries(
             topics.map((text, i) => [`topic_${i + 1}`, text]),
           ),
+          ...(cardsDue > 0 && {
+            review: `Quizzing them on the ${cardsDue} study cards due for review.`,
+          }),
           catch_up:
             'Nothing specific: a friendly check-in on how things are going.',
         },
@@ -394,6 +401,31 @@ export const shouldCallNow = async (
   return {
     callNow: answers.call_now.probability,
     about: index ? (topics[Number(index) - 1] ?? null) : null,
+    review: answers.about.choice === 'review',
+    cost: gatewayCost(providerMetadata),
+  }
+}
+
+/** Whether a short answer to a study question is right, given the expected one. Right at 0.5. */
+export const gradeAnswer = async (
+  model: Experimental_DecisionModel,
+  state: { question: string; expected: string; answer: string },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state,
+    questions: {
+      correct: {
+        type: 'boolean',
+        instructions:
+          'Is `answer` a correct answer to `question`, given the expected answer `expected`? Accept different wording, spelling slips and extra detail that is still true. Reject answers that are wrong, missing the key point, or only partly right.',
+      },
+    },
+    abortSignal,
+  })
+  return {
+    correct: answers.correct.probability >= 0.5,
     cost: gatewayCost(providerMetadata),
   }
 }
