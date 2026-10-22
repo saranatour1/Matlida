@@ -111,6 +111,27 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         number,
         Name
       >;
+      item: FunctionReference<
+        "query",
+        "internal",
+        { id: string; userId: string },
+        {
+          _creationTime: number;
+          _id: string;
+          answer?: number;
+          back: string;
+          choices?: Array<string>;
+          deckId: string;
+          due: number;
+          ease: number;
+          front: string;
+          interval: number;
+          kind: "card" | "choice" | "short";
+          reps: number;
+          userId: string;
+        } | null,
+        Name
+      >;
       list: FunctionReference<
         "query",
         "internal",

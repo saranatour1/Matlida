@@ -150,39 +150,50 @@ const grade = authedMutation({
     }),
 })
 
-/** Grades a short answer with Jev, and records it: good when right, again when not. */
+/**
+ * Grades `answer` to one of `userId`'s items with Jev and records it: good
+ * when right, again when not. Typed in the Library, or said on a call.
+ */
+export const checkAnswer = async (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  itemId: string,
+  answer: string,
+) => {
+  const item = await ctx.runQuery(components.study.decks.item, {
+    userId,
+    id: itemId,
+  })
+  if (!item) throw new ConvexError('Question not found.')
+  const right = await metered(
+    ctx,
+    { userId, model: MODELS.decide, estimate: 0.005 },
+    async () => {
+      const { correct, cost } = await gradeAnswer(decisionModel, {
+        question: item.front,
+        expected: item.back,
+        answer,
+      })
+      return { result: correct, cost }
+    },
+  )
+  await ctx.runMutation(components.study.decks.grade, {
+    userId,
+    id: itemId,
+    grade: right ? 'good' : 'again',
+  })
+  return { correct: right, expected: item.back }
+}
+
+/** Grades a short answer typed on a quiz card. */
 const check = zAuthedAction({
   args: {
     deckId: z.string(),
     itemId: z.string(),
     answer: z.string().trim().min(1, 'Write an answer.').max(1000),
   },
-  handler: async (ctx, { deckId, itemId, answer }) => {
-    const found = await ctx.runQuery(components.study.decks.get, {
-      userId: ctx.userId,
-      id: deckId,
-    })
-    const item = found?.items.find((i) => i._id === itemId)
-    if (!item) throw new ConvexError('Question not found.')
-    const right = await metered(
-      ctx,
-      { userId: ctx.userId, model: MODELS.decide, estimate: 0.005 },
-      async () => {
-        const { correct, cost } = await gradeAnswer(decisionModel, {
-          question: item.front,
-          expected: item.back,
-          answer,
-        })
-        return { result: correct, cost }
-      },
-    )
-    await ctx.runMutation(components.study.decks.grade, {
-      userId: ctx.userId,
-      id: itemId,
-      grade: right ? 'good' : 'again',
-    })
-    return { correct: right, expected: item.back }
-  },
+  handler: async (ctx, { itemId, answer }) =>
+    await checkAnswer(ctx, ctx.userId, itemId, answer),
 })
 
 const remove = authedMutation({

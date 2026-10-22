@@ -114,7 +114,9 @@ const call = internalMutation({
       message: cards.length
         ? `Time to review ${cards.length} study ${cards.length === 1 ? 'card' : 'cards'}: ${cards
             .map(({ item }, i) => `${i + 1}) ${item.front.slice(0, 120)}`)
-            .join(' ')}. Let's start with the first.`
+            .join(
+              ' ',
+            )}. Let's start with the first. Tell me your answer and I'll check it.`
         : about
           ? `Checking in about: ${about.slice(0, 300)}`
           : 'Just checking in to see how things are going.',
