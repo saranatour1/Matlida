@@ -1,6 +1,7 @@
 import { FileTextIcon, PencilIcon, RotateCcwIcon } from 'lucide-react'
 import * as React from 'react'
 import ReactMarkdown from 'react-markdown'
+import { redactNumbers } from '@convex/lib/phone'
 import remarkGfm from 'remark-gfm'
 import type { UIMessage } from '@convex-dev/agent/react'
 import type { InferUITools, UIDataTypes } from 'ai'
@@ -71,7 +72,7 @@ export function Markdown({ text }: { text: string }) {
         remarkPlugins={[remarkGfm]}
         components={{ pre: CodeBlock, img: NoImage }}
       >
-        {text}
+        {redactNumbers(text)}
       </ReactMarkdown>
     </div>
   )
@@ -216,7 +217,7 @@ function UserMessage({
           </form>
         ) : (
           <Bubble align="end" variant="muted">
-            <BubbleContent>{message.text}</BubbleContent>
+            <BubbleContent>{redactNumbers(message.text)}</BubbleContent>
           </Bubble>
         )}
         <div className="flex gap-0.5 self-end">
