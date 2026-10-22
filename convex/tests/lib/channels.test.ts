@@ -91,13 +91,26 @@ test('email is connected once an address is claimed', () => {
   })
 })
 
-test('tools are always on, and planned channels are coming soon', () => {
+test('tools are always on', () => {
   expect(channelStatus(channel('web_search'), nothing)).toEqual({
     status: 'connected',
     detail: 'perplexity/sonar',
     missing: [],
   })
+})
+
+test('phone calls work once the Photon line is set up', () => {
   expect(channelStatus(channel('phone'), nothing)).toMatchObject({
-    status: 'coming_soon',
+    status: 'needs_setup',
   })
+  expect(
+    channelStatus(channel('phone'), {
+      ...nothing,
+      env: [
+        'PHOTON_PHONE_NUMBER',
+        'PHOTON_SIP_USERNAME',
+        'PHOTON_SIP_PASSWORD',
+      ],
+    }),
+  ).toMatchObject({ status: 'connected' })
 })

@@ -11,15 +11,19 @@ without it landing in your shell history, copy it and run
 
 ## Env vars, names only
 
-| Name                      | What it's for                                                      |
-| ------------------------- | ------------------------------------------------------------------ |
-| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.       |
-| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.    |
-| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email and Telegram. |
-| `PHOTON_WEBHOOK_SECRET`   | Signs Photon's events to `/photon/webhook` (`whsec_…`).            |
-| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                     |
-| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                         |
-| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.                 |
+| Name                      | What it's for                                                            |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `MAIL_DOMAIN`             | The domain connected in Photon. Users claim `handle@` on it.             |
+| `PHOTON_PROJECT_ID`       | The Photon project, `pho_prj_…`. Just the id, no `NAME=` in it.          |
+| `PHOTON_API_KEY`          | A project API key, `pho_sk_…`. Reads and sends email and Telegram.       |
+| `PHOTON_WEBHOOK_SECRET`   | Signs Photon's events to `/photon/webhook` (`whsec_…`).                  |
+| `SPECTRUM_PROJECT_ID`     | Texting: the project id the Spectrum SDK uses.                           |
+| `SPECTRUM_PROJECT_SECRET` | Texting: the project's secret. Not the id.                               |
+| `SPECTRUM_WEBHOOK_SECRET` | Texting: signs the webhook at `/spectrum/webhook`.                       |
+| `PHOTON_PHONE_NUMBER`     | Phone calls: the line they ring from, like +14155550123.                 |
+| `PHOTON_SIP_USERNAME`     | Phone calls: the Voice profile's outbound SIP username.                  |
+| `PHOTON_SIP_PASSWORD`     | Phone calls: its outbound password, shown once in Photon.                |
+| `PHOTON_SIP_HOST`         | Phone calls: the server under SIP connection, if not `sip.photon.codes`. |
 
 `SITE_URL` and the `AUTH_*` variables are in the README.
 
@@ -92,14 +96,37 @@ after a quiet spell can take up to a minute.
 
 WhatsApp allows free-form replies only within 24 hours of your last message.
 
-## Phone calls: why not yet
+## Phone calls
 
-Connections lists phone calls as coming soon. Photon's voice routes a phone
-call over SIP to a voice agent, and its beta platform sends call events
-(`call.started`, `call.ended` and the rest) to a webhook. The audio still
-needs an always-on process that speaks SIP and streams audio both ways for
-the length of the call, which a Convex function can't be. A call would take
-a small voice server that answers Photon's SIP line, runs each turn through
-the same pipeline as in-app calls, and reports the call to the app for the
-call history. In-app calls, and reminders that ring you in the app, work
-today.
+Ask an assistant in the chat to call a number you type ("call +14155550123
+and tell her dinner is at 8"). It rings from your Photon line and talks in its
+own voice, all from Convex:
+
+- `convex/models/calls/dial.ts`, a Node action, runs the whole call. It
+  dials Photon's SIP server (`sip.photon.codes:5061`, SIP over TLS) with the
+  line's outbound SIP credential as the login, and sends and receives
+  the call's audio (G.711 µ-law over UDP, `convex/lib/rtp.ts`).
+- When the other person pauses, what they said goes to the AI gateway: it's
+  transcribed for the record while the audio chat model answers in voice,
+  played as it streams.
+- The call is in Call history, and what was said lands in the chat when it ends.
+
+Setup, in Photon's dashboard under Voice:
+
+1. Give the line a Voice profile (Set up default → SIP), then open
+   **Outbound calls** and enable it with SHA-256. Photon shows a username and
+   a password, the password only once.
+2. Set `PHOTON_SIP_USERNAME` and `PHOTON_SIP_PASSWORD` to them, and
+   `PHOTON_PHONE_NUMBER` to the line, like `+14155550123`. If the profile's
+   SIP connection isn't `sip.photon.codes`, set `PHOTON_SIP_HOST` to it.
+
+Limits:
+
+- Only a number in your last message, never one from an email or a page.
+- At most 10 calls a day per person.
+- A call lasts at most 9 minutes: Convex stops an action at 10.
+- It hangs up after 20 seconds of quiet, or after saying goodbye.
+- Replies take a few seconds, and you can't talk over one yet.
+- If the call connects but the assistant never hears an answer, Photon isn't
+  sending audio back to Convex's address. The call's `heard` count (0) in the
+  data shows it.

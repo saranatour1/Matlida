@@ -41,7 +41,11 @@ type Env = {
   readonly AUTH_PRIVATE_KEY: string;
   readonly MAIL_DOMAIN: string | undefined;
   readonly PHOTON_API_KEY: string | undefined;
+  readonly PHOTON_PHONE_NUMBER: string | undefined;
   readonly PHOTON_PROJECT_ID: string | undefined;
+  readonly PHOTON_SIP_HOST: string | undefined;
+  readonly PHOTON_SIP_PASSWORD: string | undefined;
+  readonly PHOTON_SIP_USERNAME: string | undefined;
   readonly PHOTON_WEBHOOK_SECRET: string | undefined;
   readonly RESEND_API_KEY: string | undefined;
   readonly SITE_URL: string;

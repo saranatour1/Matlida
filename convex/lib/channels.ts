@@ -20,6 +20,7 @@ export type ChannelId =
  * it works, and decides how its status is computed:
  * - `photon`: a messaging app linked through Photon's webhook.
  * - `email`: the user's address at `MAIL_DOMAIN`.
+ * - `phone`: calls through Photon's SIP server, once its env is set.
  * - `tool`: always on, through the Convex AI gateway.
  * - `planned`: shown as coming soon, with the reason.
  */
@@ -32,6 +33,7 @@ export type Channel = {
 } & (
   | { via: 'photon'; platform: 'imessage' | 'telegram' | 'whatsapp_business' }
   | { via: 'email' }
+  | { via: 'phone' }
   | { via: 'tool'; model: string }
   | { via: 'planned'; note: string }
 )
@@ -85,10 +87,10 @@ export const CHANNELS: ReadonlyArray<Channel> = [
   {
     id: 'phone',
     name: 'Phone calls',
-    via: 'planned',
-    note: "Photon's voice line is SIP only, with no call control from a Convex action yet. Calls in the app work today.",
-    description: 'Real phone calls with an assistant.',
-    env: [],
+    via: 'phone',
+    description:
+      'Ask an assistant to call a number you type. It rings from your Photon line and talks in its own voice.',
+    env: ['PHOTON_PHONE_NUMBER', 'PHOTON_SIP_USERNAME', 'PHOTON_SIP_PASSWORD'],
   },
   {
     id: 'web_search',
@@ -163,6 +165,13 @@ export const channelStatus = (
     return {
       status: 'needs_setup',
       detail: `Set ${missing.join(', ')} on the Convex deployment.`,
+      missing,
+    }
+  }
+  if (channel.via === 'phone') {
+    return {
+      status: 'connected',
+      detail: 'Ask in the chat: "call +14155550123 and tell them…"',
       missing,
     }
   }

@@ -1,3 +1,5 @@
+import { maskNumber } from './phone'
+
 /** A call's transcript as plain text: who said what, when, and how long each reply took. */
 export const formatTranscript = ({
   name,
@@ -14,6 +16,7 @@ export const formatTranscript = ({
     _creationTime: number
     endedAt?: number
     threadId?: string
+    phone?: { to: string; about?: string }
   }
   lines: Array<{
     who: 'you' | 'them'
@@ -26,13 +29,17 @@ export const formatTranscript = ({
 }) => {
   const start = call._creationTime
   const end = call.endedAt ?? lines.at(-1)?._creationTime ?? start
+  const { phone } = call
   const head = [
-    `Call with ${name}, ${when} (${clock(end - start)} long)`,
+    phone
+      ? `${name} called ${maskNumber(phone.to)} for you, ${when} (${clock(end - start)} long)`
+      : `Call with ${name}, ${when} (${clock(end - start)} long)`,
+    ...(phone?.about ? [`About: ${phone.about}`] : []),
     `Call ${call._id}${call.threadId ? `, chat ${call.threadId}` : ''}`,
     '',
   ]
   const body = lines.map((line) => {
-    const who = line.who === 'you' ? 'You' : name
+    const who = line.who === 'you' ? (phone ? 'Them' : 'You') : name
     const took =
       line.firstMs !== undefined && line.ms !== undefined
         ? `, first words in ${seconds(line.firstMs)}, all of it in ${seconds(line.ms)}`

@@ -99,8 +99,9 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 
 ## Open questions
 
-- Calls to your real phone, rather than the app: no provider is picked
-  (not Twilio). The ring only reaches an open Matilda tab.
+- Calls to your real phone: an assistant can phone a number you type
+  (`call_phone`, on Convex through Photon's SIP server, see
+  `docs/setup/channels.md`). Reminders still ring only an open Matilda tab.
 - The thresholds (`JEV_THRESHOLDS` in `convex/lib/decide.ts`: 0.3 to stop a
   recurring reminder, 0.7 to switch its channel, 0.7 for a check-in call,
   0.5 for a right answer) are starting points. On 2026-10-22 dev had no
@@ -129,4 +130,5 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
   would delete them today, so it first needs to skip files the agent
   component's `files` table references.
 - Check live which gateway models read PDF attachments.
-- Phone calls outside the app: pick a provider (not Twilio).
+- Phone calls for reminders and check-ins, through `callPhone`, to a number
+  you save in Settings.

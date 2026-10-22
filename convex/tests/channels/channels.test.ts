@@ -49,7 +49,7 @@ test('with nothing set up, messaging needs the deployment and the tools are on',
     status: 'needs_setup',
     missing: ['MAIL_DOMAIN', 'PHOTON_PROJECT_ID', 'PHOTON_API_KEY'],
   })
-  expect(byId.phone.status).toBe('coming_soon')
+  expect(byId.phone.status).toBe('needs_setup')
   expect(byId.web_search).toMatchObject({
     status: 'connected',
     detail: 'perplexity/sonar',
