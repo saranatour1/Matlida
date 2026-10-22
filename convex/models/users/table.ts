@@ -12,4 +12,6 @@ export const usersTable = defineTable({
   image: v.optional(v.string()),
   /** The GitHub login, for accounts that use GitHub. */
   username: v.optional(v.string()),
+  /** IANA zone from the browser's last message, so calls keep to your daytime. */
+  timeZone: v.optional(v.string()),
 })

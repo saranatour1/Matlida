@@ -1,6 +1,10 @@
+import { listMessages } from '@convex-dev/agent'
 import { experimental_decide } from 'ai'
+import { components } from '../_generated/api'
 import { gatewayCost } from '../models/usage/functions'
+import type { MessageDoc } from '@convex-dev/agent'
 import type { Experimental_DecisionModel } from 'ai'
+import type { ActionCtx } from './ctx'
 
 /**
  * Has a decision model (Jev, through the gateway) pick one of `options` for
@@ -41,6 +45,38 @@ export const decide = async (
 
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
 export type Turn = { role: 'user' | 'assistant'; text: string }
+
+/** The chat's last 30 messages for Jev, with which tools ran and which failed. */
+export const recentTurns = async (ctx: ActionCtx, threadId: string) => {
+  const { page } = await listMessages(ctx, components.agent, {
+    threadId,
+    paginationOpts: { numItems: 30, cursor: null },
+  })
+  return page
+    .sort((a, b) => a.order - b.order || a.stepOrder - b.stepOrder)
+    .flatMap((m): Array<Turn> => {
+      const text = turnText(m).slice(0, 500)
+      if (!text) return []
+      return [{ role: m.message?.role === 'user' ? 'user' : 'assistant', text }]
+    })
+}
+
+const turnText = ({ message, text, status, error }: MessageDoc) => {
+  const parts = Array.isArray(message?.content) ? message.content : []
+  return [
+    text?.trim(),
+    ...parts.map((part) =>
+      part.type === 'tool-call'
+        ? `[used ${part.toolName}]`
+        : part.type === 'tool-result' && part.output?.type.startsWith('error')
+          ? `[${part.toolName} failed]`
+          : '',
+    ),
+    status === 'failed' ? `[this reply failed: ${error ?? 'no reason'}]` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
 
 /**
  * Whether the assistant still owes the user something from `conversation`:
@@ -143,6 +179,55 @@ export const whoShouldHandle = async (
     verdict: choice,
     probabilities,
     risky: answers.risky.probability >= 0.5,
+    cost: gatewayCost(providerMetadata),
+  }
+}
+
+/** What to do after a reminder call you didn't pick up. `reminders.miss` clamps it. */
+export const AFTER_MISSED = {
+  call_again_soon:
+    'Call again in about 10 minutes: it is time-sensitive, or they were probably away for a moment.',
+  call_again_later:
+    'Call again in about an hour: it still matters today, but not right now.',
+  text_instead:
+    'Stop calling and text it: they are likely busy, and they can read it later.',
+  leave_in_chat:
+    'Stop calling and leave it in the chat: it is minor, or calling again would be a nuisance.',
+}
+
+export type AfterMissed = keyof typeof AFTER_MISSED
+
+/**
+ * Whether to call again after a missed or declined reminder call, and when,
+ * given how many times the assistant has called, the user's local time and
+ * the recent chat.
+ */
+export const afterMissedCall = async (
+  model: Experimental_DecisionModel,
+  state: {
+    reminder: string
+    attempts: number
+    declined: boolean
+    localTime: string
+    conversation: Array<Turn>
+  },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state,
+    questions: {
+      next: {
+        type: 'choice',
+        instructions:
+          'The assistant called the user about `reminder` and they did not pick up (`declined` is true when they pressed decline). Given `attempts` calls so far, their `localTime` and the recent `conversation`, what should the assistant do next?',
+        criteria: AFTER_MISSED,
+      },
+    },
+    abortSignal,
+  })
+  return {
+    next: answers.next.choice,
     cost: gatewayCost(providerMetadata),
   }
 }

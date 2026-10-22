@@ -93,6 +93,10 @@ const sendMessage = zAuthedMutation({
       .max(4000, 'Messages can be at most 4000 characters.'),
   },
   handler: async (ctx, { timeZone, ...message }) => {
+    const user = await ctx.db.get('users', ctx.userId)
+    if (timeZone && user && user.timeZone !== timeZone) {
+      await ctx.db.patch('users', ctx.userId, { timeZone })
+    }
     const { threadId, promptMessageId, command } = await postMessage(
       ctx,
       ctx.userId,

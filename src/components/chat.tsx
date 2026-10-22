@@ -62,9 +62,9 @@ export function Chat({
   const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
   const { call, caller, startCall } = useCall()
-  // Talking in this chat: the call is on, started from here, with this assistant.
+  // Talking in this chat: the call is on, with this assistant.
   const talking =
-    caller?.inline === true &&
+    caller !== undefined &&
     caller.target.projectId === project._id &&
     caller.target.botId === bot?._id &&
     (call.status !== 'idle' || call.error !== undefined)
@@ -263,7 +263,6 @@ export function Chat({
                   {
                     name: lead,
                     portrait: portraitOf(bot ?? project),
-                    inline: true,
                   },
                 )
               }

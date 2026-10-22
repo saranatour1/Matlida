@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useMatch, useNavigate } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation } from 'convex/react'
 import {
   MicIcon,
@@ -480,20 +480,9 @@ function levelOf(analyser: AnalyserNode | undefined) {
   return Math.min(1, Math.sqrt(sum / samples.length) * 8)
 }
 
-const STATUS_LABEL: Record<Status, string> = {
-  idle: '',
-  starting: 'Connecting…',
-  listening: 'Listening…',
-  hearing: 'Hearing you…',
-  thinking: 'Thinking…',
-  speaking: 'Speaking…',
-}
-
 type Caller = {
   name: string
   portrait: Portrait
-  /** Shown in the chat's box, in place of the side panel. */
-  inline?: boolean
 }
 
 const CallContext = React.createContext<{
@@ -504,7 +493,7 @@ const CallContext = React.createContext<{
   startCall: (target: CallTarget, caller: Caller, opening?: Opening) => void
 } | null>(null)
 
-/** The app's one call, so a ring can't start a second call over the first. `CallPanel` shows it. */
+/** The app's one call, so a ring can't start a second call over the first. Its chat's `VoiceBar` shows it, and `CallPill` everywhere else. */
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const [caller, setCaller] = React.useState<Caller & { target: CallTarget }>()
@@ -534,108 +523,39 @@ export function useCall() {
   return context
 }
 
-/**
- * The call, docked at the side of the app: who it's with, what's happening,
- * and everything said so far. Full screen on phones.
- */
-export function CallPanel() {
+/** The call, on any page but its chat: who it's with, a way back, and hang up. */
+export function CallPill() {
   const { call, caller } = useCall()
-  const [settingsOpen, setSettingsOpen] = React.useState(false)
-  if (!caller || caller.inline || (call.status === 'idle' && !call.error)) {
+  const chat = useMatch({ from: '/_app/p/$projectId/', shouldThrow: false })
+  if (!caller || (call.status === 'idle' && !call.error)) return null
+  const { projectId, botId } = caller.target
+  if (chat?.params.projectId === projectId && chat.search.bot === botId) {
     return null
   }
-  const live = call.status === 'speaking' || call.status === 'hearing'
   return (
-    <aside
-      role="dialog"
-      aria-label={`Call with ${caller.name}`}
-      className="fixed inset-0 z-40 flex flex-col bg-background md:sticky md:top-0 md:h-svh md:w-80 md:shrink-0 md:border-l lg:w-96"
+    <div
+      role="status"
+      className="fixed right-4 bottom-4 z-40 flex items-center gap-2 rounded-full border bg-popover p-1.5 pl-2 text-popover-foreground shadow-lg"
     >
-      <div className="flex items-center gap-3 border-b p-4">
-        <div
-          className={`rounded-[28%] p-1 ${
-            live
-              ? call.status === 'speaking'
-                ? 'animate-pulse ring-2 ring-emerald-400/70'
-                : 'ring-2 ring-sky-400/70'
-              : 'ring-2 ring-transparent'
-          }`}
-        >
-          <BotAvatar portrait={caller.portrait} className="size-12" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{caller.name}</p>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
-            {call.muted ? 'Muted' : STATUS_LABEL[call.status]}
-          </p>
-        </div>
-        <Button
-          variant={settingsOpen ? 'secondary' : 'ghost'}
-          className="size-10 rounded-full"
-          aria-label="Voice settings"
-          aria-pressed={settingsOpen}
-          onClick={() => setSettingsOpen((open) => !open)}
-        >
-          <SettingsIcon />
-        </Button>
-      </div>
-      {settingsOpen && <CallSettings onSpeed={call.setSpeed} />}
-      <ol
-        aria-label="Transcript"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 text-sm"
+      <BotAvatar portrait={caller.portrait} className="size-8" />
+      <Link
+        to="/p/$projectId"
+        params={{ projectId }}
+        search={{ bot: botId }}
+        className="pr-1 text-sm font-medium hover:underline"
       >
-        {call.lines.length === 0 && !call.error && (
-          <li className="text-muted-foreground">
-            What you and {caller.name} say shows up here.
-          </li>
-        )}
-        {call.lines.map((line, i) => (
-          <li
-            key={i}
-            ref={i === call.lines.length - 1 ? scrollIntoView : undefined}
-            className={
-              line.who === 'you'
-                ? 'max-w-[85%] self-end rounded-2xl bg-muted px-3 py-2'
-                : 'max-w-[85%]'
-            }
-          >
-            {line.text}
-            {line.cutOff && (
-              <span className="text-muted-foreground"> (cut off)</span>
-            )}
-          </li>
-        ))}
-        {call.error && (
-          <li role="alert" className="text-destructive">
-            {call.error}
-          </li>
-        )}
-      </ol>
-      <div className="flex flex-col gap-3 border-t p-4">
-        <FastVoice />
-        <VolumeBar volume={call.volume} onChange={call.setVolume} />
-        <div className="flex justify-center gap-4">
-          <Button
-            variant="outline"
-            className="size-12 rounded-full"
-            aria-label={call.muted ? 'Unmute' : 'Mute'}
-            disabled={call.status === 'idle' || call.status === 'starting'}
-            aria-pressed={call.muted}
-            onClick={call.toggleMute}
-          >
-            {call.muted ? <MicOffIcon /> : <MicIcon />}
-          </Button>
-          <Button
-            variant="destructive"
-            className="size-12 rounded-full"
-            aria-label="Hang up"
-            onClick={call.hangUp}
-          >
-            <PhoneOffIcon />
-          </Button>
-        </div>
-      </div>
-    </aside>
+        On a call with {caller.name}
+      </Link>
+      <Button
+        variant="destructive"
+        size="icon-sm"
+        className="rounded-full"
+        aria-label="Hang up"
+        onClick={call.hangUp}
+      >
+        <PhoneOffIcon />
+      </Button>
+    </div>
   )
 }
 
@@ -810,11 +730,6 @@ function VolumeBar({
   )
 }
 
-/** Keeps the newest line in view as the transcript grows. */
-function scrollIntoView(element: HTMLLIElement | null) {
-  element?.scrollIntoView({ block: 'nearest' })
-}
-
 /**
  * Talking hands-free in the chat, in place of the message box: you and the
  * assistant side by side, each swelling with your voice as you talk, and a
@@ -823,6 +738,7 @@ function scrollIntoView(element: HTMLLIElement | null) {
  */
 export function VoiceBar() {
   const { call, caller } = useCall()
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   if (!caller) return null
   const you = call.status === 'hearing'
   const them = call.status === 'speaking'
@@ -868,7 +784,24 @@ export function VoiceBar() {
         </p>
       )}
       <VolumeBar volume={call.volume} onChange={call.setVolume} />
+      {settingsOpen && (
+        <div className="flex flex-col gap-3 overflow-hidden rounded-xl border">
+          <CallSettings onSpeed={call.setSpeed} />
+          <div className="px-4 pb-3">
+            <FastVoice />
+          </div>
+        </div>
+      )}
       <div className="flex justify-center gap-3">
+        <Button
+          variant={settingsOpen ? 'secondary' : 'outline'}
+          className="size-11 rounded-full"
+          aria-label="Voice settings"
+          aria-pressed={settingsOpen}
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          <SettingsIcon />
+        </Button>
         <Button
           variant="outline"
           className="size-11 rounded-full"

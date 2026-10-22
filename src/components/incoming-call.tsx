@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
-import { PhoneIcon, PhoneOffIcon } from 'lucide-react'
+import { AlarmClockIcon, PhoneIcon, PhoneOffIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
@@ -8,13 +8,15 @@ import { useCall } from '~/components/voice-call'
 
 /**
  * Rings when an assistant calls you with a reminder, on any page, unless
- * you're already on a call. Answering opens the chat it was set in and a call
- * where the assistant speaks first.
+ * you're already on a call. Answering opens the chat it was set in, with the
+ * call under the message box and the assistant speaking first. Snooze rings
+ * again in 10 minutes.
  */
 export function IncomingCall() {
   const rings = useQuery(api.api.reminders.ringing)
   const answer = useAction(api.api.calls.answer)
   const decline = useMutation(api.api.reminders.decline)
+  const snooze = useMutation(api.api.reminders.snooze)
   const { call, startCall } = useCall()
   const navigate = useNavigate()
   const ring = rings?.[0]
@@ -33,8 +35,19 @@ export function IncomingCall() {
       />
       <div className="mr-2">
         <p className="text-sm font-medium">{ring.from}</p>
-        <p className="text-xs text-muted-foreground">Calling with a reminder</p>
+        <p className="text-xs text-muted-foreground">
+          {ring.again ? 'Calling again' : 'Calling with a reminder'}
+        </p>
       </div>
+      <Button
+        variant="outline"
+        className="size-10 rounded-full"
+        aria-label="Snooze 10 minutes"
+        title="Snooze 10 minutes"
+        onClick={() => void snooze({ id: ring._id })}
+      >
+        <AlarmClockIcon />
+      </Button>
       <Button
         variant="destructive"
         className="size-10 rounded-full"
