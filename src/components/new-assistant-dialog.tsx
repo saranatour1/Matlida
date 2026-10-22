@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import type { Id } from '@convex/_generated/dataModel'
 import type { BotTemplate } from '~/lib/bot-template'
 import {
   PortraitPicker,

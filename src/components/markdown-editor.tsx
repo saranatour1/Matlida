@@ -20,8 +20,8 @@ import {
   ScaleIcon,
   TextQuoteIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import type { Id } from '@convex/_generated/dataModel'
 import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Button } from '~/components/ui/button'

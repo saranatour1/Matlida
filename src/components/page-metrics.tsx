@@ -1,4 +1,4 @@
-import type { Doc } from '../../convex/_generated/dataModel'
+import type { Doc } from '@convex/_generated/dataModel'
 import { MetricCard } from '~/components/ui/arc/metric-card/metric-card'
 import { Sparkline } from '~/components/ui/arc/sparkline/sparkline'
 import '~/components/ui/arc/arc.css'

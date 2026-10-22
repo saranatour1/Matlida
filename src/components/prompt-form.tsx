@@ -13,8 +13,8 @@ import {
   MAX_FILES,
   MAX_FILE_BYTES,
   attachable,
-} from '../../convex/lib/attachments'
-import type { Id } from '../../convex/_generated/dataModel'
+} from '@convex/lib/attachments'
+import type { Id } from '@convex/_generated/dataModel'
 
 import {
   DropdownMenu,

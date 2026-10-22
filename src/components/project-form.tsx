@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import type { Doc } from '@convex/_generated/dataModel'
 import {
   PortraitPicker,
   portraitFromForm,

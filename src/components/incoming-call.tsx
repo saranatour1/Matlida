@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { AlarmClockIcon, PhoneIcon, PhoneOffIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { useCall } from '~/components/voice-call'

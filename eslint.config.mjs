@@ -17,6 +17,23 @@ export default defineConfig([
     files: ['convex/**/*.ts', 'src/lib/**/*.ts', 'src/hooks/**/*.ts'],
     rules: { 'func-style': ['error', 'expression'] },
   },
+  // The app imports the backend as @convex/…, never up a chain of ../.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(\\.\\./)+convex/',
+              message: 'Import from @convex/… instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Dates and times go through luxon (convex/lib/time.ts), never the native Date API.
   {
     files: ['convex/**/*.ts', 'src/**/*.{ts,tsx}'],

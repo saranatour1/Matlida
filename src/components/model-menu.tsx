@@ -1,13 +1,13 @@
 import { useMutation } from 'convex/react'
 import { CpuIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import {
   CHAT_MODELS,
   MODELS,
   isListedModel,
   modelName,
-} from '../../convex/lib/models'
-import type { Id } from '../../convex/_generated/dataModel'
+} from '@convex/lib/models'
+import type { Id } from '@convex/_generated/dataModel'
 import {
   DropdownMenu,
   DropdownMenuContent,

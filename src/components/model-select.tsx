@@ -3,8 +3,8 @@ import {
   EFFORTS,
   MODELS,
   isListedModel,
-} from '../../convex/lib/models'
-import type { Effort } from '../../convex/lib/models'
+} from '@convex/lib/models'
+import type { Effort } from '@convex/lib/models'
 import { Input } from '~/components/ui/input'
 
 /**

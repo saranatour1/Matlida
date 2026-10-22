@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { JOBS, MODELS, modelName } from '../../../../../convex/lib/models'
-import type { Job } from '../../../../../convex/lib/models'
+import { JOBS, MODELS, modelName } from '@convex/lib/models'
+import type { Job } from '@convex/lib/models'
 import { useProject } from '~/hooks/use-project'
 
 export const Route = createFileRoute('/_app/p/$projectId/models')({

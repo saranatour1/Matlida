@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
-import { api } from '../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { routeTree } from './routeTree.gen'
 
 export function getRouter() {

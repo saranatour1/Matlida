@@ -8,9 +8,9 @@ import {
   PlusIcon,
   SettingsIcon,
 } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
-import type { Doc, Id } from '../../convex/_generated/dataModel'
-import type { Portrait } from '../../convex/lib/portraits'
+import { api } from '@convex/_generated/api'
+import type { Doc, Id } from '@convex/_generated/dataModel'
+import type { Portrait } from '@convex/lib/portraits'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { CommandMenu } from '~/components/command-menu'
 import {

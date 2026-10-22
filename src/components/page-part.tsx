@@ -1,7 +1,7 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { FileTextIcon, RefreshCwIcon } from 'lucide-react'
-import { api } from '../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 import { Badge } from '~/components/ui/badge'

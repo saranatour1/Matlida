@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompletePasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
-import { api } from '../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { FormState } from '~/lib/auth'
 import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'

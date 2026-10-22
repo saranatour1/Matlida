@@ -1,7 +1,7 @@
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { z } from 'zod'
-import { api } from '../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { ProjectForm } from '~/components/project-form'
 import { Button } from '~/components/ui/button'
 
