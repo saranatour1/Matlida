@@ -89,6 +89,9 @@ const history = authedQuery({
         return {
           ...call,
           firstLine: first?.text ?? null,
+          recordingUrl: call.phone?.recording
+            ? await ctx.storage.getUrl(call.phone.recording)
+            : null,
           endedAt: call.endedAt ?? last?._creationTime ?? call._creationTime,
         }
       }),
@@ -270,10 +273,11 @@ const setPhone = internalMutation({
     status: phoneStatus,
     note: v.optional(v.string()),
     heard: v.optional(v.number()),
+    recording: v.optional(v.id('_storage')),
     from: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { id, status, note, heard, from }) => {
+  handler: async (ctx, { id, status, note, heard, recording, from }) => {
     const call = await ctx.db.get('calls', id)
     if (!call?.phone) throw new ConvexError('Call not found.')
     const phone = {
@@ -281,6 +285,7 @@ const setPhone = internalMutation({
       status,
       ...(note === undefined ? {} : { note }),
       ...(heard === undefined ? {} : { heard }),
+      ...(recording === undefined ? {} : { recording }),
     }
     if (!(status in ENDINGS)) {
       await ctx.db.patch('calls', id, { phone })
@@ -306,7 +311,7 @@ const setPhone = internalMutation({
           status !== 'ended'
             ? `📞 I couldn't reach ${number}: ${ENDINGS[status as keyof typeof ENDINGS]}${why}.`
             : said
-              ? `📞 My call with ${number}${why}:\n\n${said}`
+              ? `📞 My call with ${number}${why}:\n\n${said}${phone.recording ? '\n\n_The recording is in Call history._' : ''}`
               : `📞 I called ${number}, but nothing was said${why}.`,
       },
     })

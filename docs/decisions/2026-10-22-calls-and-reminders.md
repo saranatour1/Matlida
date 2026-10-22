@@ -33,6 +33,8 @@ code puts on them, and the next steps. Each PR in the stack updates it.
 | `checkRecurring` (PR 2) | before each recurring fire | Is it still needed? Deliver, skip, pause, or reach you another way? | `still_needed` (Noul) plus a choice | Under 0.3 it stops and says so. The channel only changes at 0.7 or above. |
 | `shouldCallNow` (PR 3) | hourly check-in | Is now a good time to call to chat, given open work, what's owed, and when you last talked? | Noul | At 0.7 or above it calls, within the daily limit below. |
 
+| `callIsOver` (phone calls) | after each exchange on a phone call | Has the call done its job: delivered and acknowledged, answered, or they're wrapping up? | Noul | At 0.7 or above it says goodbye and hangs up. If Jev fails, the call goes on until a goodbye or 12 s of quiet. |
+
 Each judgment is one `experimental_decide` call, about $0.005, metered.
 
 ## Limits code enforces, whatever Jev says

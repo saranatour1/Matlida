@@ -761,3 +761,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The person called is named by that fragment: the call tool hands the model "…0123" in its result and errors, and asks it to use that in replies. On the call, the assistant isn't told the number, and is told never to say it.
 - It counts as a number when it starts with + or 00, or locally with 0, and has 8 to 15 digits, so dates, times and prices stay as they are.
 
+### Call recordings, and hanging up when it's done (2026-10-22)
+
+- Each phone call is recorded: both sides mixed into one 8 kHz WAV (`recorder` in `convex/lib/rtp.ts`, about 1 MB a minute), saved when the call ends however it ends. Call history plays it above the transcript, and the chat summary says where it is.
+- After the opening line, the assistant says the call is recorded, since recording without telling people is illegal in many places.
+- Hanging up: after each exchange, Jev (`callIsOver`) judges whether the call has done its job: the message delivered and acknowledged or the question answered, or the other person wrapping up. At 0.7 or more (`JEV_THRESHOLDS.hangUp`) the assistant says a short goodbye and hangs up. About $0.005 an exchange, metered. It also still hangs up after its own "Goodbye". When the line goes quiet for 12 s, it asks once whether they're still there, waits 10 s more, then says goodbye and hangs up.
+
