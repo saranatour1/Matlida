@@ -1,3 +1,4 @@
+import { cloudflare } from '@cloudflare/vite-plugin'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
@@ -12,6 +13,8 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   plugins: [
+    // Server rendering runs in Cloudflare's runtime, in dev as in production.
+    cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tanstackStart(),
     viteReact(),

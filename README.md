@@ -48,6 +48,16 @@ Set these on the Convex deployment (`pnpm exec convex env set NAME value`):
 
 To message on Telegram, connect the bot in Photon's dashboard, point the project's webhook at `/photon/webhook`, and set its signing secret as `PHOTON_WEBHOOK_SECRET`. iMessage and WhatsApp go through the Spectrum SDK and its webhook at `/spectrum/webhook`. The full setup for email and every messaging app is in [docs/setup/channels.md](docs/setup/channels.md).
 
+### Deploying to Cloudflare
+
+The app runs on the `matlida` Cloudflare Worker (`wrangler.jsonc`). Nothing in `.env*` is committed, so give the build its values from the environment:
+
+```bash
+VITE_CONVEX_URL=https://knowing-magpie-554.eu-west-1.convex.cloud pnpm run deploy
+```
+
+On Workers Builds, set `VITE_CONVEX_URL` (and `VITE_SITE_URL`) under the Worker's build environment variables instead.
+
 And in the app's environment when deploying:
 
 | Name            | What it's for                                                    |
@@ -77,22 +87,23 @@ The full list, with what each one does, is in `convex/lib/commands.ts`. A test c
 
 ## Scripts and commands
 
-| Command                                                            | Does                                                                                             |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `pnpm dev`                                                         | Convex and Vite dev servers, on port 3000                                                        |
-| `pnpm check`                                                       | Type check, ESLint and a production build. Run it before every push                              |
-| `pnpm test`                                                        | The Vitest suite (`convex/tests`, `src/tests`)                                                   |
-| `pnpm build`                                                       | Type check, then a production build                                                              |
-| `pnpm start`                                                       | Run the production build                                                                         |
-| `pnpm lint`                                                        | Type check and ESLint                                                                            |
-| `pnpm format`                                                      | Prettier                                                                                         |
-| `scripts/pr-size.sh origin/master`                                 | Lines a PR changes, against the 2000 limit                                                       |
-| `pnpm exec convex dev --once --typecheck disable`                  | Push functions and schema to the dev deployment once                                             |
-| `pnpm exec convex insights`                                        | Write conflicts and limits over the last 72 hours (`--prod` for production)                      |
-| `pnpm exec convex logs --history 200`                              | Recent function runs                                                                             |
-| `pnpm exec convex env list \| cut -d= -f1`                         | Environment variable names only, since values are secrets                                        |
-| `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` | How Jev's answers spread, before moving a threshold (`recurring`, `after_missed_call`, `answer`) |
-| `pnpm exec convex run api/calls:dump`                              | The latest call's transcript and timings                                                         |
+| Command                                                            | Does                                                                                                        |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                                                         | Convex and Vite dev servers, on port 3000                                                                   |
+| `pnpm check`                                                       | Type check, ESLint and a production build. Run it before every push                                         |
+| `pnpm test`                                                        | The Vitest suite (`convex/tests`, `src/tests`)                                                              |
+| `pnpm build`                                                       | Type check, then a production build                                                                         |
+| `pnpm preview`                                                     | Serve the production build locally, in Cloudflare's runtime                                                 |
+| `pnpm run deploy`                                                  | Build, then deploy the `matlida` Worker to Cloudflare (`pnpm deploy` is a different, built-in pnpm command) |
+| `pnpm lint`                                                        | Type check and ESLint                                                                                       |
+| `pnpm format`                                                      | Prettier                                                                                                    |
+| `scripts/pr-size.sh origin/master`                                 | Lines a PR changes, against the 2000 limit                                                                  |
+| `pnpm exec convex dev --once --typecheck disable`                  | Push functions and schema to the dev deployment once                                                        |
+| `pnpm exec convex insights`                                        | Write conflicts and limits over the last 72 hours (`--prod` for production)                                 |
+| `pnpm exec convex logs --history 200`                              | Recent function runs                                                                                        |
+| `pnpm exec convex env list \| cut -d= -f1`                         | Environment variable names only, since values are secrets                                                   |
+| `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` | How Jev's answers spread, before moving a threshold (`recurring`, `after_missed_call`, `answer`)            |
+| `pnpm exec convex run api/calls:dump`                              | The latest call's transcript and timings                                                                    |
 
 ## What's next
 

@@ -1,8 +1,6 @@
 node_modules
 
-!.env
-.env
-.env.local
+.env*
 .DS_Store
 .cache
 .vercel
@@ -25,3 +23,8 @@ node_modules
 /playwright/.cache/
 
 app.config.timestamp_*.js
+
+# Wrangler and the Cloudflare Vite plugin
+.wrangler
+.dev.vars*
+!.dev.vars.example
