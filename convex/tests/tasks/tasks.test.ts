@@ -142,14 +142,16 @@ test('cancelling a task skips the steps that hadn’t run', async () => {
 
 test('a step that keeps failing stops the task and says so in the chat', async () => {
   const { asAda, startPlan, run, task, chat } = await setup()
-  vi.spyOn(languageModel, 'doGenerate').mockRejectedValue(
-    new Error('Gateway is down'),
-  )
+  const generate = vi
+    .spyOn(languageModel, 'doGenerate')
+    .mockRejectedValue(new Error('Gateway is down'))
   vi.spyOn(console, 'error').mockImplementation(() => {})
   const taskId = await startPlan()
   await run()
   await asAda.mutation(api.api.tasks.answer, { taskId, start: true })
   await run()
+  // Tried once: a retry would pay for the model again, and could repeat what the step did.
+  expect(generate).toHaveBeenCalledTimes(1)
   const failed = await task(taskId)
   expect(failed).toMatchObject({
     status: 'failed',
@@ -171,4 +173,39 @@ test('only the owner can start or see a task, and a task can’t start a plan', 
   await expect(asBob.query(api.api.tasks.get, { taskId })).rejects.toThrow(
     'Project not found.',
   )
+})
+
+test('Try again runs only the step that failed, then finishes the task', async () => {
+  const { asAda, asBob, startPlan, run, task, chat } = await setup()
+  const original = languageModel.doGenerate.bind(languageModel)
+  let made = 0
+  const generate = vi
+    .spyOn(languageModel, 'doGenerate')
+    .mockImplementation((options) =>
+      ++made === 2
+        ? Promise.reject(new Error('Gateway is down'))
+        : original(options),
+    )
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  const taskId = await startPlan()
+  await run()
+  await asAda.mutation(api.api.tasks.answer, { taskId, start: true })
+  await run()
+  expect(await task(taskId)).toMatchObject({
+    status: 'failed',
+    steps: [{ status: 'done' }, { status: 'failed' }],
+  })
+
+  await expect(
+    asBob.mutation(api.api.tasks.retry, { taskId }),
+  ).rejects.toThrow()
+  await asAda.mutation(api.api.tasks.retry, { taskId })
+  await run()
+  expect(await task(taskId)).toMatchObject({
+    status: 'done',
+    steps: [{ status: 'done' }, { status: 'done' }],
+  })
+  // Step 1 once, step 2 failed once and ran again once.
+  expect(generate).toHaveBeenCalledTimes(3)
+  expect(await chat()).toContain('✅ **Done:** Launch week')
 })

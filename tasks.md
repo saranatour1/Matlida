@@ -90,5 +90,5 @@
 - [ ] Calls: keep listening in a background tab (the mic check runs on animation frames)
 - [ ] Tune the turn-taking thresholds from real calls (`npx convex run api/calls:dump`)
 
-- [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters
+- [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters. Checked 2026-10-22: 3.8.1 still uses exporters 0.218, which pin core 2.7.1 (Dependabot #2). Check with `pnpm view @photon-ai/otel dependencies`, and drop it once `@opentelemetry/exporter-trace-otlp-http` is past 0.218
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL

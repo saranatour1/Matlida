@@ -153,3 +153,34 @@ test('Jev grades a short answer, and a wrong one comes back soon', async () => {
   const [item] = (await asAda.query(api.api.study.deck, { id: deckId }))!.items
   expect(item.reps).toBe(0)
 })
+
+test('an answer, typed or said on a call, is checked only against your own cards', async () => {
+  const { asAda, asBob, projectId } = await setup()
+  written([{ kind: 'short', front: 'Say thank you', back: 'Gracias' }])
+  const { deckId } = await asAda.action(api.api.study.make, {
+    projectId,
+    topic: 'Spanish',
+    format: 'quiz',
+    count: 3,
+    level: 'beginner',
+  })
+  const itemId = (await asAda.query(api.api.study.deck, { id: deckId }))!
+    .items[0]._id
+  vi.mocked(gradeAnswer).mockResolvedValue({
+    correct: true,
+    probability: 0.9,
+    cost: 0,
+  })
+  await expect(
+    asBob.action(api.api.study.check, { deckId, itemId, answer: 'Gracias' }),
+  ).rejects.toThrow('Question not found.')
+  expect(
+    await asAda.action(api.api.study.check, {
+      deckId,
+      itemId,
+      answer: 'gracias',
+    }),
+  ).toEqual({ correct: true, expected: 'Gracias' })
+  const [item] = (await asAda.query(api.api.study.deck, { id: deckId }))!.items
+  expect(item.reps).toBe(1)
+})
