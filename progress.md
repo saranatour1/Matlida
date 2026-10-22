@@ -741,3 +741,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
+
+### Call recordings, and hanging up when it's done (2026-10-22)
+
+- Each phone call is recorded: both sides mixed into one 8 kHz WAV (`recorder` in `convex/lib/rtp.ts`, about 1 MB a minute), saved when the call ends however it ends. Call history plays it above the transcript, and the chat summary says where it is.
+- After the opening line, the assistant says the call is recorded, since recording without telling people is illegal in many places.
+- Hanging up: after each exchange, Jev (`callIsOver`) judges whether the call has done its job: the message delivered and acknowledged or the question answered, or the other person wrapping up. At 0.7 or more (`JEV_THRESHOLDS.hangUp`) the assistant says a short goodbye and hangs up. About $0.005 an exchange, metered. It also still hangs up after its own "Goodbye", and now after 12 s of quiet instead of 20.
+

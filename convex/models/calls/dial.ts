@@ -8,9 +8,10 @@ import { transcribe } from 'ai'
 import { v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { env, internalAction } from '../../_generated/server'
-import { transcriptionModel } from '../../lib/ai'
+import { decisionModel, transcriptionModel } from '../../lib/ai'
 import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 import { metered } from '../../lib/budget'
+import { JEV_THRESHOLDS, callIsOver } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import {
   FRAME,
@@ -19,6 +20,7 @@ import {
   listener,
   pcmBytes,
   readRtp,
+  recorder,
   rtpPacket,
 } from '../../lib/rtp'
 import {
@@ -46,7 +48,7 @@ const RING_MS = 45_000
 /** Actions stop at 10 minutes, so a call hangs up before. */
 const MAX_CALL_MS = 9 * 60_000
 /** Hang up after this long without hearing them. */
-const QUIET_MS = 20_000
+const QUIET_MS = 12_000
 
 type Ending = {
   status: Infer<typeof phoneStatus>
@@ -189,6 +191,7 @@ const placeCall = async (
     say,
     about,
     cleanups,
+    recording,
   }: {
     call: Doc<'calls'> & { phone: NonNullable<Doc<'calls'>['phone']> }
     project: Doc<'projects'>
@@ -198,6 +201,8 @@ const placeCall = async (
     about: string
     /** Closes sockets and stops timers. `dial` runs them however the call ends. */
     cleanups: Array<() => void>
+    /** Records both sides once it's answered. `dial` saves it however the call ends. */
+    recording: ReturnType<typeof recorder>
   },
 ): Promise<Ending> => {
   // The outbound SIP credential from the line's Voice profile in Photon.
@@ -506,6 +511,7 @@ const placeCall = async (
           remote.ip,
         )
       }
+      recording.tick(speech ?? silence)
       talking = Boolean(speech)
       timestamp += FRAME
       nextAt += 20
@@ -539,6 +545,7 @@ const placeCall = async (
       return
     }
     heard++
+    recording.hear(samples)
     if (busy) return
     const said = ear.push(samples)
     if (said) onSpeech(said)
@@ -609,10 +616,33 @@ const placeCall = async (
     busy = false
   }
   const goodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
+  /** Jev's read on whether the call has done its job. Keeps talking if Jev fails. */
+  const isOver = async () => {
+    try {
+      const done = await metered(
+        ctx,
+        { userId, model: MODELS.decide, estimate: 0.005 },
+        async () => {
+          const judged = await callIsOver(decisionModel, {
+            about,
+            conversation: history.map((h) => ({
+              role: h.role,
+              text: h.content,
+            })),
+          })
+          return { result: judged.over, cost: judged.cost }
+        },
+      )
+      return done >= JEV_THRESHOLDS.hangUp
+    } catch (error) {
+      console.error(error)
+      return false
+    }
+  }
 
   const talk = async () => {
     const opening = await speak({
-      text: `The call just connected. Say exactly this, and nothing else: "${say}"`,
+      text: `The call just connected. Say exactly this: "${say}" Then add, in a few words, that the call is recorded.`,
     })
     history.push({ role: 'assistant', content: opening || say })
     await addLine('them', opening || say)
@@ -648,6 +678,18 @@ const placeCall = async (
           await addLine('them', reply)
         }
         if (reply && goodbye(reply)) {
+          await drained()
+          resolveEnd({ status: 'ended' })
+          return
+        }
+        // Don't keep the line open once it's done: Jev decides, and she says goodbye.
+        if (await isOver()) {
+          await drained()
+          const bye = await speak({
+            text: 'The call is done. Say a short, warm goodbye that ends with "Goodbye."',
+          })
+          history.push({ role: 'assistant', content: bye })
+          await addLine('them', bye)
           await drained()
           resolveEnd({ status: 'ended' })
           return
@@ -744,6 +786,7 @@ const dial = internalAction({
     )
     let ending: Ending
     const cleanups: Array<() => void> = []
+    const recording = recorder()
     try {
       ending = call.phone
         ? await placeCall(ctx, {
@@ -754,6 +797,7 @@ const dial = internalAction({
             say,
             about,
             cleanups,
+            recording,
           })
         : { status: 'failed', note: 'not a phone call' }
     } catch (error) {
@@ -772,10 +816,19 @@ const dial = internalAction({
         }
       }
     }
+    const samples = recording.samples()
+    const recorded = samples
+      ? await ctx.storage.store(
+          new Blob([pcmToWav(pcmBytes(samples), 8000)], {
+            type: 'audio/wav',
+          }),
+        )
+      : undefined
     await ctx.runMutation(internal.api.calls.setPhone, {
       id: callId,
       from,
       ...ending,
+      recording: recorded,
     })
     return null
   },

@@ -158,3 +158,54 @@ export const listener = (threshold = 500) => {
     },
   }
 }
+
+/**
+ * Both sides of a call mixed into one 8 kHz track, a 20 ms frame at a time:
+ * what we sent, plus what they sent meanwhile. Their audio waits at most
+ * 0.4 s for its frame, so the two sides stay in step.
+ */
+export const recorder = () => {
+  const frames: Array<Int16Array> = []
+  let theirs: Array<Int16Array> = []
+  let queued = 0
+  return {
+    /** Their audio, as it arrives. */
+    hear: (samples: Int16Array) => {
+      theirs.push(samples)
+      queued += samples.length
+      while (queued > 20 * FRAME && theirs.length > 1) {
+        queued -= theirs[0].length
+        theirs = theirs.slice(1)
+      }
+    },
+    /** Our next frame, as µ-law, mixed with theirs. */
+    tick: (ours: Uint8Array) => {
+      const frame = Int16Array.from(ours, fromMuLaw)
+      let at = 0
+      while (at < FRAME && theirs.length) {
+        const chunk = theirs[0]
+        const count = Math.min(FRAME - at, chunk.length)
+        for (let i = 0; i < count; i++) {
+          frame[at + i] = Math.max(
+            -32768,
+            Math.min(32767, frame[at + i] + chunk[i]),
+          )
+        }
+        at += count
+        queued -= count
+        theirs =
+          count === chunk.length
+            ? theirs.slice(1)
+            : [chunk.subarray(count), ...theirs.slice(1)]
+      }
+      frames.push(frame)
+    },
+    /** The whole call so far, or null before it started. */
+    samples: () => {
+      if (!frames.length) return null
+      const all = new Int16Array(frames.length * FRAME)
+      frames.forEach((frame, i) => all.set(frame, i * FRAME))
+      return all
+    },
+  }
+}
