@@ -2,11 +2,9 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { z } from 'zod'
 import { api } from '../../../../../convex/_generated/api'
-import { portraitOf } from '~/components/bot-avatar'
 import { Chat } from '~/components/chat'
 import { NewAssistantDialog } from '~/components/new-assistant-dialog'
 import { SidebarTrigger } from '~/components/ui/sidebar'
-import { useCall } from '~/components/voice-call'
 import { useProject } from '~/hooks/use-project'
 import { decodeTemplate } from '~/lib/bot-template'
 
@@ -38,7 +36,6 @@ function ProjectPage() {
     project && botId ? { projectId: project._id } : 'skip',
   )
   const bot = bots?.find((b) => b._id === botId)
-  const { startCall } = useCall()
   if (project === undefined || (botId && bots === undefined)) return null
   if (project === null) {
     return (
@@ -62,15 +59,6 @@ function ProjectPage() {
         project={project}
         bot={bot}
         panel={panel}
-        onCall={() =>
-          startCall(
-            { projectId: project._id, botId: bot?._id },
-            {
-              name: (bot ?? project).name,
-              portrait: portraitOf(bot ?? project),
-            },
-          )
-        }
       />
       {(search.new || template) && (
         <NewAssistantDialog
