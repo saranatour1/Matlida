@@ -585,7 +585,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     call_phone: createTool({
       description:
-        'Phone a number the user typed in one of their recent messages, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends.',
+        'Phone a number the user typed in one of their recent messages, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends. Always call this tool to try, even if an earlier call in the chat failed or was turned off: it may work now.',
       inputSchema: z.object({
         to: z
           .string()
@@ -611,7 +611,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         if (!ctx.threadId) throw new Error('Calls need a chat.')
         if (!(await flagOn(FLAGS.phoneCalls, project.ownerId))) {
           throw new Error(
-            "Calling numbers is turned off for this account. Tell the user it's switched on with the phone-calls flag in Cloudflare Flagship.",
+            "Calling numbers is turned off for this account right now. Tell the user it's switched on with the phone-calls flag in Cloudflare Flagship, and try this tool again when they ask.",
           )
         }
         // Their last few messages, so "call +1…" then "tell her hello" works.
