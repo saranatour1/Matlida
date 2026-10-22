@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import { internalMutation } from '../../_generated/server'
 import { budgetOf } from '../../lib/budget'
 import { authedQuery } from '../../lib/functions'
-import { getOwnedThread } from '../threads/functions'
+import { getOwnedThread } from '../threads/queries'
 import { usageTable } from './table'
 import type { ImageModelProviderMetadata, ProviderMetadata } from 'ai'
 

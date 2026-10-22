@@ -501,3 +501,9 @@
 
 - knip found two unused UI files (`card`, `collapsible`), three packages left from the WhatsApp removal (`@grpc/grpc-js`, `nice-grpc`, `nice-grpc-common`) and twelve exports nothing imports (`TaskCard`, `useVoiceCall`, the turn-taking thresholds, four types). The files and packages are gone; the exports are plain locals now. shadcn's spare exports stay.
 
+### Reads in `queries.ts`, contexts in `lib/ctx.ts` (2026-10-22)
+
+- Each table's read helpers (`getOwnedProject`, `getOwnedThread`, `findContacts`, `getCommands` and the rest, twelve tables) live in `convex/models/<table>/queries.ts`; `functions.ts` keeps the registered functions and the writes. The `MAX_*` limits moved with the reads that apply them.
+- `convex/lib/ctx.ts` re-exports `QueryCtx`, `MutationCtx`, `ActionCtx`, `Doc` and `Id`, plus `Db = Pick<QueryCtx, 'db'>`, which 24 helpers had spelled out. No file under `models/` or `lib/` imports types from `_generated` any more.
+- No behavior change: pnpm check and all 186 tests pass.
+

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
-import type { Id } from '../../_generated/dataModel'
+import type { Id } from '../../lib/ctx'
 
 /** Every call the app made to Photon's API: path and body. */
 const photon: Array<{ path: string; body: Record<string, unknown> }> = []

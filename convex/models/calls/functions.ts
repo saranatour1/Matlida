@@ -2,30 +2,13 @@ import { ConvexError, v } from 'convex/values'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { formatTranscript } from '../../lib/transcript'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { callLinesTable, liveTurnsTable } from './table'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { QueryCtx } from '../../_generated/server'
+import { getOwnedCall, linesOf } from './queries'
+import type { Doc } from '../../lib/ctx'
 
 /** Longer lines stay whole in the chat but are cut in the call's transcript. */
 const MAX_LINE = 4000
-
-async function getOwnedCall(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-  id: Id<'calls'>,
-) {
-  const call = await ctx.db.get('calls', id)
-  if (!call) throw new ConvexError('Call not found.')
-  await getOwnedProject(ctx, userId, call.projectId)
-  return call
-}
-
-function linesOf(ctx: Pick<QueryCtx, 'db'>, callId: Id<'calls'>) {
-  return ctx.db
-    .query('callLines')
-    .withIndex('by_call', (q) => q.eq('callId', callId))
-}
 
 /**
  * Saves one line of a call as soon as it's said, starting the call's record

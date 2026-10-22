@@ -2,7 +2,7 @@ import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import { compareTimes, isTimeZone, splitCosts } from '../../lib/everyday'
-import type { Doc } from '../../_generated/dataModel'
+import type { Doc } from '../../lib/ctx'
 
 /**
  * Tools for everyday commands. Most only show a card in the chat (`show_*`):

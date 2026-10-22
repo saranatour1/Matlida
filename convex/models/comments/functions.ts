@@ -6,62 +6,20 @@ import {
   authedQuery,
   zAuthedMutation,
 } from '../../lib/functions'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { commentsTable } from './table'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { MutationCtx, QueryCtx } from '../../_generated/server'
-
-export const MAX_COMMENTS = 100
+import {
+  MAX_COMMENTS,
+  checkTarget,
+  getComments,
+  getOwnedComment,
+} from './queries'
+import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 
 const zTarget = {
   projectId: zid('projects'),
   kind: z.enum(['project', 'bot', 'command']),
   targetId: z.string().max(100),
-}
-
-/** Throws unless the target is in `project`: the project itself, one of its bots, or one of its commands. */
-async function checkTarget(
-  ctx: Pick<QueryCtx, 'db'>,
-  project: Doc<'projects'>,
-  kind: Doc<'comments'>['kind'],
-  targetId: string,
-) {
-  if (kind === 'project') {
-    if (targetId !== project._id)
-      throw new ConvexError('Not in this workspace.')
-    return
-  }
-  const target =
-    kind === 'bot'
-      ? await botById(ctx, targetId)
-      : await commandById(ctx, targetId)
-  if (target?.projectId !== project._id) {
-    throw new ConvexError('Not in this workspace.')
-  }
-}
-
-async function botById(ctx: Pick<QueryCtx, 'db'>, targetId: string) {
-  const id = ctx.db.normalizeId('bots', targetId)
-  return id ? await ctx.db.get('bots', id) : null
-}
-
-async function commandById(ctx: Pick<QueryCtx, 'db'>, targetId: string) {
-  const id = ctx.db.normalizeId('commands', targetId)
-  return id ? await ctx.db.get('commands', id) : null
-}
-
-async function getComments(
-  ctx: Pick<QueryCtx, 'db'>,
-  projectId: Id<'projects'>,
-  kind: Doc<'comments'>['kind'],
-  targetId: string,
-) {
-  return await ctx.db
-    .query('comments')
-    .withIndex('by_target', (q) =>
-      q.eq('projectId', projectId).eq('kind', kind).eq('targetId', targetId),
-    )
-    .take(MAX_COMMENTS)
 }
 
 /** Deletes every comment on a target, when the target goes. */
@@ -121,17 +79,6 @@ const add = zAuthedMutation({
     })
   },
 })
-
-async function getOwnedComment(
-  ctx: Pick<QueryCtx, 'db'>,
-  userId: Id<'users'>,
-  id: Id<'comments'>,
-) {
-  const comment = await ctx.db.get('comments', id)
-  if (!comment) throw new ConvexError('Note not found.')
-  await getOwnedProject(ctx, userId, comment.projectId)
-  return comment
-}
 
 const setResolved = authedMutation({
   args: { id: v.id('comments'), resolved: v.boolean() },

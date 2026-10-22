@@ -4,15 +4,14 @@ import { components, internal } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { audioChat, audioVoiceFor } from '../../lib/audio'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
+import { getOwnedProject } from '../projects/queries'
 import { gatewayCost } from '../usage/functions'
 import { metered } from '../../lib/budget'
 import { MODELS } from '../../lib/models'
 import { transcribeClip } from './chat'
 import { ensureMainThread } from './functions'
 import { instructionsFor } from './lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx } from '../../_generated/server'
+import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 
 /** The assistant's one chat, where a voice turn goes, and who answers. */
 const prepare = internalMutation({

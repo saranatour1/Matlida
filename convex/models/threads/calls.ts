@@ -13,8 +13,7 @@ import { takePieces } from '../../lib/sentences'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
 import { concat, speakWith } from './voice'
-import type { Id } from '../../_generated/dataModel'
-import type { ActionCtx } from '../../_generated/server'
+import type { ActionCtx, Id } from '../../lib/ctx'
 
 /** How long a spoken reply stays in storage, long enough to play it. */
 const AUDIO_TTL_MS = 10 * 60_000

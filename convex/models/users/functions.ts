@@ -5,9 +5,8 @@ import { z } from 'zod'
 import { components } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { authedQuery, zAuthedMutation } from '../../lib/functions'
-import type { MutationCtx } from '../../_generated/server'
 import type { Infer } from 'convex/values'
-import type { Id } from '../../_generated/dataModel'
+import type { Id, MutationCtx } from '../../lib/ctx'
 
 /** What Convex Auth passes to the user callbacks, for each sign-in method. */
 const vProvider = v.union(

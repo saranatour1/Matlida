@@ -4,7 +4,7 @@ import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 import { sweepable } from './functions'
-import type { Id } from '../../_generated/dataModel'
+import type { Id } from '../../lib/ctx'
 
 async function setup() {
   const t = convexTest(schema, modules)

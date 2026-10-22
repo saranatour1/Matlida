@@ -13,12 +13,11 @@ import { addressOf } from '../../lib/handles'
 import { rateLimiter } from '../../lib/limits'
 import { photonKeys, sendEmail, sendText } from '../../lib/photon'
 import schema from '../../schema'
-import { getMailbox } from '../mailboxes/functions'
-import { getOwnedProject } from '../projects/functions'
-import { getLink } from '../texts/functions'
+import { getMailbox } from '../mailboxes/queries'
+import { getOwnedProject } from '../projects/queries'
+import { getLink } from '../texts/queries'
 import { remindersTable } from './table'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { ActionCtx, MutationCtx } from '../../_generated/server'
+import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 const YEAR_MS = 366 * 24 * 60 * 60 * 1000
 /** How long a call reminder rings before it counts as missed. */

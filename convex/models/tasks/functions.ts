@@ -18,11 +18,11 @@ import {
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import schema from '../../schema'
-import { getOwnedProject } from '../projects/functions'
-import { getMembers, getOwnedThread, startThread } from '../threads/functions'
+import { getOwnedProject } from '../projects/queries'
+import { startThread } from '../threads/functions'
+import { getMembers, getOwnedThread } from '../threads/queries'
 import { createAgent } from '../threads/lead'
-import type { Doc, Id } from '../../_generated/dataModel'
-import type { MutationCtx } from '../../_generated/server'
+import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** The user's answer on a task's card: Start, or Don't start. */
 const startEvent = defineEvent({

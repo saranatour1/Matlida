@@ -5,8 +5,7 @@ import { components } from '../_generated/api'
 import { env } from '../_generated/server'
 import { chatModel, languageModel } from './ai'
 import { MODELS } from './models'
-import type { Id } from '../_generated/dataModel'
-import type { ActionCtx, MutationCtx, QueryCtx } from '../_generated/server'
+import type { ActionCtx, Id, MutationCtx, QueryCtx } from './ctx'
 
 /** Each person's AI spend a month, in dollars: `AI_BUDGET_USD` on the deployment, or 12. */
 export const BUDGET_USD = Number(env.AI_BUDGET_USD) || 12
