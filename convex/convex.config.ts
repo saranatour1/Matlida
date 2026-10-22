@@ -28,6 +28,8 @@ const app = defineApp({
     AUTH_GOOGLE_CLIENT_SECRET: v.string(),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
+    /** The sign-in methods this deployment offers, as a comma list of email, google and github. Unset means all; production sets github. Read at deploy time: redeploy after changing it. */
+    AUTH_METHODS: v.optional(v.string()),
     /** Photon's platform API (beta), which sends and receives the assistants' email and Telegram messages. Project id starts with pho_prj_; the key needs project:read and project:write. */
     PHOTON_PROJECT_ID: v.optional(v.string()),
     PHOTON_API_KEY: v.optional(v.string()),

@@ -4,6 +4,8 @@ import { setupGoogle } from '@convex-dev/auth/methods/google/server'
 import { setupConvexAuth } from '@convex-dev/auth/server'
 import { components, internal } from '../../_generated/api'
 import { env } from '../../_generated/server'
+import { enabledMethods } from '../../lib/authMethods'
+import type { AuthMethod } from '../../lib/authMethods'
 
 /** SITE_URL without any trailing slash or path. */
 const siteUrl = new URL(env.SITE_URL).origin
@@ -51,16 +53,28 @@ const github = setupGithub(core, {
   allowedRedirectOrigins: [siteUrl],
 }).attachUserCallbacks(callbacks)
 
+const methods = enabledMethods(env.AUTH_METHODS)
+
+/**
+ * `fn` on deployments where `method` is on (AUTH_METHODS), and nothing
+ * elsewhere: a function exported as undefined isn't registered, so it can't
+ * be called at all, whatever the page shows.
+ */
+const only = <T>(method: AuthMethod, fn: T) =>
+  (methods.includes(method) ? fn : undefined) as T
+
 export const authApi = {
   signOut,
   refreshSession,
   isAuthenticated,
-  signUpWithEmailPassword,
-  completeSignUp,
-  signInWithEmailPassword,
-  startPasswordRecovery,
-  checkPasswordRecovery,
-  completePasswordRecovery,
-  ...google,
-  ...github,
+  signUpWithEmailPassword: only('email', signUpWithEmailPassword),
+  completeSignUp: only('email', completeSignUp),
+  signInWithEmailPassword: only('email', signInWithEmailPassword),
+  startPasswordRecovery: only('email', startPasswordRecovery),
+  checkPasswordRecovery: only('email', checkPasswordRecovery),
+  completePasswordRecovery: only('email', completePasswordRecovery),
+  startSignInWithGoogle: only('google', google.startSignInWithGoogle),
+  completeSignInWithGoogle: only('google', google.completeSignInWithGoogle),
+  startSignInWithGithub: only('github', github.startSignInWithGithub),
+  completeSignInWithGithub: only('github', github.completeSignInWithGithub),
 }

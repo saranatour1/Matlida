@@ -3,9 +3,10 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useStartPasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
 import { api } from '@convex/_generated/api'
 import type { FormState } from '~/lib/auth'
-import { AuthPage } from '~/components/auth-page'
+import { AuthPage, NoPasswords } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
+import { useSignInMethods } from '~/hooks/use-sign-in-methods'
 import { FieldError, FieldGroup } from '~/components/ui/field'
 import { authErrorMessage, forgotPasswordSchema, invalid } from '~/lib/auth'
 
@@ -16,6 +17,7 @@ export const Route = createFileRoute('/_auth/forgot-password')({
 const backToSignIn = <Link to="/sign-in">Back to sign in</Link>
 
 function ForgotPassword() {
+  const methods = useSignInMethods()
   const { startPasswordRecovery } = useStartPasswordRecovery(api.api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
@@ -31,6 +33,9 @@ function ForgotPassword() {
     },
     {},
   )
+
+  if (!methods) return <AuthPage title="Forgot your password?" />
+  if (!methods.includes('email')) return <NoPasswords />
 
   if (state.sentTo) {
     return (

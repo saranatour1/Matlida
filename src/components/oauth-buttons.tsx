@@ -6,6 +6,7 @@ import {
 } from '@convex-dev/auth/methods/google/react'
 import { api } from '@convex/_generated/api'
 import type { OauthFlowError } from '@convex-dev/auth/methods/google/react'
+import type { AuthMethod } from '@convex/lib/authMethods'
 import { Button } from '~/components/ui/button'
 import { Field, FieldError } from '~/components/ui/field'
 import { rememberSignInMethod } from '~/components/identify-user'
@@ -24,10 +25,11 @@ function oauthErrorMessage({ error }: OauthFlowError): string {
 }
 
 /**
- * Google and GitHub sign-in. It's a separate form from the email one, so
- * pressing Enter in an email field never starts OAuth.
+ * Google and GitHub sign-in, whichever this deployment offers. It's a
+ * separate form from the email one, so pressing Enter in an email field never
+ * starts OAuth.
  */
-export function OAuthButtons() {
+export function OAuthButtons({ methods }: { methods: Array<AuthMethod> }) {
   const google = useSignInWithGoogle(api.api.auth)
   const github = useSignInWithGithub(api.api.auth)
   const { flowError } = useOauth()
@@ -46,29 +48,38 @@ export function OAuthButtons() {
   const message =
     error ?? (flowError ? oauthErrorMessage(flowError) : undefined)
 
+  const offersGoogle = methods.includes('google')
+  const offersGithub = methods.includes('github')
+  if (!offersGoogle && !offersGithub) return null
   return (
     <form action={signIn} className="flex flex-col gap-2">
-      <Field className="grid gap-4 sm:grid-cols-2">
-        <Button
-          type="submit"
-          name="provider"
-          value="google"
-          variant="outline"
-          disabled={isPending}
-        >
-          <GoogleIcon />
-          Continue with Google
-        </Button>
-        <Button
-          type="submit"
-          name="provider"
-          value="github"
-          variant="outline"
-          disabled={isPending}
-        >
-          <GitHubIcon />
-          Continue with GitHub
-        </Button>
+      <Field
+        className={`grid gap-4 ${offersGoogle && offersGithub ? 'sm:grid-cols-2' : ''}`}
+      >
+        {offersGoogle && (
+          <Button
+            type="submit"
+            name="provider"
+            value="google"
+            variant="outline"
+            disabled={isPending}
+          >
+            <GoogleIcon />
+            Continue with Google
+          </Button>
+        )}
+        {offersGithub && (
+          <Button
+            type="submit"
+            name="provider"
+            value="github"
+            variant="outline"
+            disabled={isPending}
+          >
+            <GitHubIcon />
+            Continue with GitHub
+          </Button>
+        )}
       </Field>
       {message && <FieldError>{message}</FieldError>}
     </form>

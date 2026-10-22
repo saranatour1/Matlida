@@ -39,3 +39,14 @@ export function AuthPage({
     </div>
   )
 }
+
+/** When this deployment turns email sign-in off (AUTH_METHODS), there's no password to reset. */
+export function NoPasswords() {
+  return (
+    <AuthPage
+      title="No passwords here"
+      description="This app doesn't use passwords. Sign in with GitHub instead."
+      footer={<Link to="/sign-in">Back to sign in</Link>}
+    />
+  )
+}
