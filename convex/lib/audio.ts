@@ -40,12 +40,17 @@ export type AudioChatTurn = {
   instructions: string
   /** The chat so far, oldest first, as text. */
   history: Array<{ role: 'user' | 'assistant'; content: string }>
-  /** What the user said, base64. */
-  audio: string
-  format: 'wav' | 'mp3'
   voice: string
   model?: string
-}
+} & (
+  | {
+      /** What the user said, base64. */
+      audio: string
+      format: 'wav' | 'mp3'
+    }
+  /** Or a prompt in text, like the line to open a phone call with. */
+  | { text: string }
+)
 
 type Chunk = {
   choices?: Array<{
@@ -114,12 +119,15 @@ export const audioChat = async (
         ...turn.history,
         {
           role: 'user',
-          content: [
-            {
-              type: 'input_audio',
-              input_audio: { data: turn.audio, format: turn.format },
-            },
-          ],
+          content:
+            'text' in turn
+              ? turn.text
+              : [
+                  {
+                    type: 'input_audio',
+                    input_audio: { data: turn.audio, format: turn.format },
+                  },
+                ],
         },
       ],
     }),

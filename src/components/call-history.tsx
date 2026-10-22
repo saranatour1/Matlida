@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { DateTime } from 'luxon'
 import { api } from '@convex/_generated/api'
+import { maskNumber } from '@convex/lib/phone'
 import { formatTranscript } from '@convex/lib/transcript'
 import type { Doc, Id } from '@convex/_generated/dataModel'
 
@@ -47,6 +48,17 @@ export function CallHistory({
                 {duration(call.endedAt - call._creationTime)}
               </span>
             </span>
+            {call.phone && (
+              <span className="text-xs">
+                Called {maskNumber(call.phone.to)} for you
+                {call.phone.about && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {call.phone.about}
+                  </span>
+                )}
+              </span>
+            )}
             {call.firstLine && (
               <span className="line-clamp-1 text-xs text-muted-foreground">
                 {call.firstLine}

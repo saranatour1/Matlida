@@ -17,7 +17,10 @@ const GROUPS: ReadonlyArray<{
   title: string
   vias: ReadonlyArray<Channel['via']>
 }> = [
-  { title: 'Reach your assistants', vias: ['email', 'photon', 'planned'] },
+  {
+    title: 'Reach your assistants',
+    vias: ['email', 'photon', 'phone', 'planned'],
+  },
   { title: 'What they can use', vias: ['tool'] },
 ]
 

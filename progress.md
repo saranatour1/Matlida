@@ -728,6 +728,20 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The "Made with Convex" pill uses Convex's own symbol (`public/convex-symbol.svg`), copied unaltered from their brand kit at convex.dev/brand, as their rules ask.
 - `public/og.png` is redrawn to match the page: Matilda's photo, "She actually calls you.", the call button, "because I made her that way", the domain, and the Convex pill. It's 1200×630.
 
+### Phone calls (2026-10-22)
+
+- Assistants can phone a number you type (`call_phone`), all from Convex and Photon, with no voice company in between. A probe on dev showed a Convex Node action can use UDP (STUN answered) and reach Photon's Spectrum SIP server over TLS.
+- `convex/models/calls/dial.ts` runs the whole call in one action: SIP over TLS to `sip.photon.codes` with the line's outbound SIP credential from its Voice profile as the digest login (MD5 or SHA-256), the caller ID from `PHOTON_PHONE_NUMBER`, CANCEL after 45 s of ringing, and BYE at the end. Audio is G.711 µ-law over UDP, offered at our public address from STUN. Convex's outgoing ports differ per destination, so audio is sent back to wherever Photon's comes from.
+- Each turn: a pause (0.7 s) ends what they said. The gateway transcribes it for the record while `audioChat` answers in voice, and the answer plays as it streams, turned from 24 kHz into 8 kHz µ-law. The opening line is spoken the same way, so it's one voice throughout.
+- Ends on their hang-up, a goodbye, 20 s of quiet, or 9 minutes (actions stop at 10). It's a `calls` row with `phone` (number, status, packets heard), so it's in Call history, and the transcript lands in the chat. The chat card shows ringing, on the phone, and how it ended.
+- Only a number in your recent messages, at most 10 a day per person.
+- Each call records who placed it (filed under that assistant, so it's in its Call history), who asked for it, and what for (`phone.askedBy`, `phone.about`). Call history and the copied transcript open with "Ivy called …0123 for you" and the reason, and label the other person's lines "Them". Numbers show by their last 4 digits everywhere in the app.
+- Review fixes: sockets and timers always close, even when a call errors (Convex reuses machines, so a stray audio timer could outlive the call); an answer racing the cancel is acknowledged and hung up; after "Goodbye" it hangs up without listening again; audio only follows the first source that answers; STUN falls back to Cloudflare; SDP reads the audio section's own address.
+- The number check is exact for numbers typed with + or 00, so the model can't swap a country code, and a local number needs 8 digits or more. The chat's call summaries name only the number's last 4 digits, since the chat goes to the model with every reply.
+- Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
+- Replaces the ElevenLabs version (#146, closed).
+- Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
+
 ### Old attachments no longer crash replies (2026-10-22)
 
 - On dev, replies in Matilda's main chat (`api/chat:respond`, and `api/texts:replyOnPhoton` before it) ran out of memory: "maximum memory usage: 64 MB". The chat had a 10.1 MB PDF attached earlier. Every reply sent the whole history, and before each model call the AI SDK downloads every attached file and encodes it, so a reply of a few steps passed the 64 MB a Convex action gets.

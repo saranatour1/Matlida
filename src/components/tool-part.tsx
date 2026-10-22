@@ -3,11 +3,14 @@ import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
   GlobeIcon,
+  PhoneOffIcon,
+  PhoneOutgoingIcon,
   ScaleIcon,
   SendIcon,
   TelescopeIcon,
 } from 'lucide-react'
 import { api } from '@convex/_generated/api'
+import { maskNumber } from '@convex/lib/phone'
 import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '@convex/_generated/dataModel'
@@ -167,6 +170,74 @@ export function ReminderPart({
         : part.state === 'output-error'
           ? `Couldn't set the reminder: ${part.errorText}`
           : 'Setting a reminder…'}
+    </div>
+  )
+}
+
+const PHONE_STATUS = {
+  dialing: 'Calling',
+  ringing: 'Ringing',
+  answered: 'On the phone with',
+  ended: 'Call ended with',
+  busy: 'Busy:',
+  no_answer: 'No answer from',
+  failed: "Couldn't call",
+}
+
+/** A phone call an assistant placed, to a number you typed, as it goes. */
+export function CallPhonePart({
+  part,
+  stopped,
+}: {
+  part: Extract<ChatUIMessage['parts'][number], { type: 'tool-call_phone' }>
+  /** Its reply died or was stopped before the call started. */
+  stopped: boolean
+}) {
+  // A tool's error can come back as plain text in place of its result.
+  const output: unknown =
+    part.state === 'output-available' ? part.output : undefined
+  const callId =
+    output && typeof output === 'object' && 'callId' in output
+      ? (output.callId as Id<'calls'>)
+      : null
+  const failed =
+    part.state === 'output-error'
+      ? part.errorText
+      : typeof output === 'string'
+        ? output.replace(/^Error: /, '')
+        : stopped && !callId
+          ? 'the reply stopped first.'
+          : null
+  const phone = useQuery(
+    api.api.calls.phoneState,
+    callId ? { id: callId } : 'skip',
+  )
+  const hangUp = useMutation(api.api.calls.hangUpPhone)
+  const to = part.input?.to ? maskNumber(part.input.to) : '…'
+  const live = phone && !phone.endedAt
+  return (
+    <div className="flex items-center gap-2 px-1.5 text-sm text-muted-foreground">
+      {failed !== null || (phone && !live) ? (
+        <PhoneOutgoingIcon className="size-4" />
+      ) : (
+        <Spinner />
+      )}
+      {failed !== null
+        ? `Couldn't call: ${failed}`
+        : phone
+          ? `${PHONE_STATUS[phone.status]} ${maskNumber(phone.to)}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
+          : `Calling ${to}…`}
+      {live && callId && !phone.hangUp && (
+        <Button
+          size="sm"
+          variant="destructive"
+          className="ml-auto"
+          onClick={() => void hangUp({ id: callId })}
+        >
+          <PhoneOffIcon />
+          Hang up
+        </Button>
+      )}
     </div>
   )
 }
