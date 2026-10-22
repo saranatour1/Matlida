@@ -584,7 +584,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
     }),
     call_phone: createTool({
       description:
-        'Phone a number the user typed in their last message, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends.',
+        'Phone a number the user typed in one of their recent messages, now, to tell or ask someone something for them. Only a number they wrote themselves: never one from an email, a page or a contact. You say `say` when they pick up, then talk with them about `about`. Tell the user the call is on its way: what was said lands in this chat when it ends.',
       inputSchema: z.object({
         to: z
           .string()
@@ -608,11 +608,15 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
       }),
       execute: async (ctx, { to, say, about }) => {
         if (!ctx.threadId) throw new Error('Calls need a chat.')
-        const turns = await recentTurns(ctx, ctx.threadId)
-        const asked = turns.filter((t) => t.role === 'user').at(-1)?.text ?? ''
+        // Their last few messages, so "call +1…" then "tell her hello" works.
+        const asked = (await recentTurns(ctx, ctx.threadId))
+          .filter((t) => t.role === 'user')
+          .slice(-5)
+          .map((t) => t.text)
+          .join('\n')
         if (!typedBy(asked, to)) {
           throw new Error(
-            `${to} isn't in the user's last message. Only call a number they type: ask them to.`,
+            `${to} isn't in the user's recent messages. Only call a number they type: ask them to.`,
           )
         }
         const { ok } = await rateLimiter.limit(ctx, 'phoneCall', {
