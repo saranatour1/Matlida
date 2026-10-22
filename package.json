@@ -6,7 +6,7 @@
   "scripts": {
     "check": "pnpm run lint && vite build",
     "dev": "convex dev --start 'vite dev'",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex",
     "build": "pnpm run typecheck && vite build",
     "start": "node .output/server/index.mjs",
     "format": "prettier --write .",
