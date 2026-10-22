@@ -5,6 +5,7 @@ import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { budgetedModel } from '../../lib/budget'
 import { EFFORTS, LANGUAGES, MODELS } from '../../lib/models'
+import { zoned } from '../../lib/time'
 import { showsVia } from './everyday'
 import { assistantTools } from './tools'
 import type { UsageHandler } from '@convex-dev/agent'
@@ -62,11 +63,9 @@ const style = (via: Via, cutOff?: boolean, language?: Language) => {
 
 /** The current time in the user's zone, for reminders and anything date-relative. */
 const now = (timeZone = 'UTC') => {
-  const local = new Date().toLocaleString('en-US', {
-    timeZone,
-    dateStyle: 'full',
-    timeStyle: 'short',
-  })
+  const local = zoned(Date.now(), timeZone).toFormat(
+    "cccc, LLLL d, yyyy 'at' h:mm a",
+  )
   return `\nIt is now ${local} (${timeZone}).`
 }
 

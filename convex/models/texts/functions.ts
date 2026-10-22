@@ -15,6 +15,7 @@ import { budgetMessage } from '../../lib/budget'
 import { ensureMainThread } from '../threads/functions'
 import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
+import { iso } from '../../lib/time'
 import { spectrum } from './spectrum'
 import { getLinks } from './queries'
 import type { ActionCtx, Doc, MutationCtx } from '../../lib/ctx'
@@ -404,7 +405,7 @@ const poll = internalAction({
   handler: async (ctx, { fast }) => {
     const keys = photonKeys(env)
     if (!keys) return null
-    const since = new Date(Date.now() - TELEGRAM_LOOKBACK_MS).toISOString()
+    const since = iso(Date.now() - TELEGRAM_LOOKBACK_MS)
     const messages = await listTexts(keys, 'telegram', since)
     const fresh: Array<string> = await ctx.runQuery(internal.api.texts.unseen, {
       ids: messages.map((m) => m.id),

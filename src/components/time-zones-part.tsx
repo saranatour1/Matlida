@@ -1,4 +1,5 @@
 import { GlobeIcon } from 'lucide-react'
+import { DateTime } from 'luxon'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { ToolStatus } from '~/components/tool-part'
 
@@ -30,7 +31,7 @@ export function TimeZonesPart({ part }: { part: TimesToolPart }) {
     rows.every((r) => working(r.hours[i])),
   )
   const yours = (iso: string) =>
-    new Date(iso).toLocaleString(undefined, {
+    DateTime.fromISO(iso).toLocaleString({
       weekday: 'short',
       hour: 'numeric',
       minute: '2-digit',

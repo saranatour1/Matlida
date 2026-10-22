@@ -1,4 +1,5 @@
 import { MegaphoneIcon } from 'lucide-react'
+import { DateTime } from 'luxon'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { CopyButton } from '~/components/copy-button'
 import { ToolStatus } from '~/components/tool-part'
@@ -154,11 +155,7 @@ function DiscordMessage({ post }: { post: Post }) {
           <p className="leading-tight">
             <span className="font-medium text-[#f2f3f5]">{post.author}</span>{' '}
             <span className="text-xs text-[#949ba4]">
-              Today at{' '}
-              {new Date().toLocaleTimeString(undefined, {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
+              Today at {DateTime.now().toLocaleString(DateTime.TIME_SIMPLE)}
             </span>
           </p>
           <p className="mt-0.5 whitespace-pre-wrap">{post.text}</p>

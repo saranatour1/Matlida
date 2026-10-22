@@ -656,6 +656,12 @@ From the Photon review (finding #7). `sendEmail` sent the same idempotency key t
 
 Not done (finding #6): every email sent still looks up both Photon users first, 4 calls in all. That's only reminder emails and messages to contacts, a few a day, so caching the user ids isn't worth a table yet.
 
+### luxon everywhere, enforced (2026-10-22)
+
+- Dates and times now go through luxon on both sides. `convex/lib/time.ts` holds the shared helpers, used by the backend and the browser: `zoned`, `isTimeZone`, `iso`, `parseIso`, `localDayHour`, `localTimeZone`. Converted: emails, texts, calls, reminders, the lead's "it is now", find_emails/find_texts/set_reminder, the time-zone comparison and the daily news hour on the backend; call history, the news, today, time zones, post preview and reminder cards, and the browser's time zone on the frontend.
+- ESLint now refuses `new Date()`, `Date.parse`, `Date.UTC`, `toISOString`, `toLocaleDateString`, `toLocaleTimeString` and `Intl.DateTimeFormat` outside the tests, pointing to `convex/lib/time.ts`. A date's `toLocaleString` can't be told from a number's by syntax, so that one stays judgment. AGENTS.md says so.
+- Verified with pnpm check and the tests (223), and pushed to dev.
+
 ### `@convex/…` instead of `../../../../../../convex/…` (2026-10-22)
 
 - The frontend imported the backend through relative paths up to six levels deep (97 imports). `tsconfig.json` now has an `@convex/*` alias next to `~/*`, and Vite reads it through `resolve.tsconfigPaths`, so they read `import { api } from '@convex/_generated/api'`.

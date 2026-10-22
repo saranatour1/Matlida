@@ -13,6 +13,7 @@ import {
 import { api } from '@convex/_generated/api'
 import { AUDIO_VOICES, audioVoiceName } from '@convex/lib/audio'
 import { LANGUAGES, VOICES, VOICE_NAMES } from '@convex/lib/models'
+import { localTimeZone } from '@convex/lib/time'
 import type { Id } from '@convex/_generated/dataModel'
 import type { Portrait } from '@convex/lib/portraits'
 import type { Language } from '@convex/lib/models'
@@ -206,7 +207,7 @@ function useVoiceCall({
         botId: s.botId,
         threadId: s.threadId,
         storageId,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timeZone: localTimeZone(),
         callId: s.callId,
         interrupted: cutOff || undefined,
         liveKey,

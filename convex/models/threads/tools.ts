@@ -16,6 +16,7 @@ import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
 import { saveCommand } from '../commands/functions'
 import { gatewayCost } from '../usage/functions'
+import { iso, parseIso } from '../../lib/time'
 import { everydayTools } from './everyday'
 import { pageTools } from './pages'
 import { shoppingTools } from './shopping'
@@ -469,7 +470,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         })
         return found.map((e) => ({
           ...e,
-          receivedAt: new Date(e.receivedAt).toISOString(),
+          receivedAt: iso(e.receivedAt),
         }))
       },
     }),
@@ -575,7 +576,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           })
         return found.map((t) => ({
           ...t,
-          sentAt: new Date(t.sentAt).toISOString(),
+          sentAt: iso(t.sentAt),
         }))
       },
     }),
@@ -624,7 +625,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         { message, at, via, to, say, cron },
         { abortSignal },
       ) => {
-        const dueAt = Date.parse(at)
+        const dueAt = parseIso(at)
         if (Number.isNaN(dueAt))
           throw new Error(`Couldn't read the time "${at}".`)
         if (!ctx.threadId) throw new Error('Reminders need a chat.')
@@ -688,7 +689,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           pending: Boolean(contact),
           reminderId,
           to: contact?.name ?? null,
-          at: new Date(dueAt).toISOString(),
+          at: iso(dueAt),
           via,
           every,
         }

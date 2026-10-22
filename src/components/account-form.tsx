@@ -66,8 +66,8 @@ export function AccountForm() {
         <span>
           Let assistants call to check in
           <span className="block text-xs text-muted-foreground">
-            Only between 9am and 9pm, at most 3 times a day, when something
-            you talked about may need a follow-up.
+            Only between 9am and 9pm, at most 3 times a day, when something you
+            talked about may need a follow-up.
           </span>
         </span>
       </label>

@@ -1,7 +1,8 @@
 import { createTool } from '@convex-dev/agent'
 import { z } from 'zod'
 import { internal } from '../../_generated/api'
-import { compareTimes, isTimeZone, splitCosts } from '../../lib/everyday'
+import { compareTimes, splitCosts } from '../../lib/everyday'
+import { isTimeZone, parseIso } from '../../lib/time'
 import type { Doc } from '../../lib/ctx'
 
 /**
@@ -209,7 +210,7 @@ export const everydayTools = (project: Doc<'projects'>) => {
           ),
       }),
       execute: (_ctx, { zones, at }) => {
-        const when = at ? Date.parse(at) : Date.now()
+        const when = at ? parseIso(at) : Date.now()
         if (Number.isNaN(when)) {
           throw new Error('Give `at` as ISO 8601, like 2026-11-03T15:00:00Z.')
         }

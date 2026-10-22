@@ -5,6 +5,7 @@ import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon } from 'lucide-react'
 import { api } from '@convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '@convex/lib/commands'
+import { localTimeZone } from '@convex/lib/time'
 import type { Doc } from '@convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Attachment } from '~/components/prompt-form'
@@ -105,7 +106,7 @@ export function Chat({
         /** Answer your message `redo` again, after replacing its text with `prompt` when set. */
         | { redo: string; prompt?: string },
     ) => {
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      const timeZone = localTimeZone()
       try {
         if (!('redo' in input)) {
           await sendMessage({
