@@ -132,7 +132,7 @@ test('a due email reminder is emailed to the owner from their assistant address'
     },
     {
       path: '/spaces',
-      key: `reminder:${id}`,
+      key: `reminder:${id}:space`,
       body: {
         platform: 'email',
         participantIds: ['user:ada@mail.example.com', 'user:ada@example.com'],
@@ -140,7 +140,7 @@ test('a due email reminder is emailed to the owner from their assistant address'
     },
     {
       path: '/messages',
-      key: `reminder:${id}`,
+      key: `reminder:${id}:message`,
       body: {
         spaceId: 'space-1',
         senderId: 'user:ada@mail.example.com',

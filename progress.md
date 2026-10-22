@@ -650,10 +650,8 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - Every Jev answer that code acts on is kept in a new `judgments` table: the kind, Jev's probabilities, its pick, and what the code did (`called`, `no_call`, `over_the_limit`, `stop`, `send_by_call`, `right`, and so on). `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` shows the outcomes and how each score spreads over tenths.
 - Verified with pnpm check and the tests, and pushed to dev.
 
-### Texts: the limit taken on arrival, and no action calling an action (2026-10-22)
+### Email: one idempotency key per Photon call (2026-10-22)
 
-From the Photon review (findings #3 and #4).
-- **The limit on arrival:** the Spectrum path (iMessage, WhatsApp, Telegram through the SDK) took each chat's rate limit inside the reply, and replies run side by side. Two of one person's chats replying at once then raced on the same `rateLimits` row: the 3 `texts.admit` conflicts insights showed. The SDK's `onBatch` is now a mutation, `texts.batch`, which takes the limit as the burst arrives and schedules `texts.respond`, the same way `received` already does for Photon's API.
-- **No action calling an action:** `texts.answer` was an action that both reply actions called with `ctx.runAction`, so each reply was two function calls with two timeouts. It's now a plain function both run in place. `texts.admit` is gone too: both paths pass the limit they took.
-- The texts tests now send every message through the real Spectrum path (webhook, then `batch`, then `respond`, then the provider) and read the reply the provider sent.
-- Verified with pnpm check and the tests (223), and pushed to dev.
+From the Photon review (finding #7). `sendEmail` sent the same idempotency key to `/spaces` and to `/messages`. If Photon scopes keys per project rather than per endpoint, the message call would get the thread's cached response back and the email would never go out. Each call now gets its own key (`…:space`, `…:message`), so retries are still safe.
+
+Not done (finding #6): every email sent still looks up both Photon users first, 4 calls in all. That's only reminder emails and messages to contacts, a few a day, so caching the user ids isn't worth a table yet.

@@ -173,6 +173,8 @@ export const photonKeys = (env: {
 /**
  * Starts a new email from `from` (an address on the connected domain) to `to`.
  * `key` makes retries safe: the same key reuses the thread and the message.
+ * Each call gets its own key from it, so the message can never be answered
+ * with the thread's cached response if Photon scopes keys per project.
  */
 export const sendEmail = async (
   keys: PhotonKeys,
@@ -188,7 +190,7 @@ export const sendEmail = async (
   const recipientId = await emailUser(keys, to)
   const space = await call(keys, '/spaces', {
     method: 'POST',
-    headers: { 'idempotency-key': key },
+    headers: { 'idempotency-key': `${key}:space` },
     body: JSON.stringify({
       platform: 'email',
       participantIds: [senderId, recipientId],
@@ -196,7 +198,7 @@ export const sendEmail = async (
   })
   await call(keys, '/messages', {
     method: 'POST',
-    headers: { 'idempotency-key': key },
+    headers: { 'idempotency-key': `${key}:message` },
     body: JSON.stringify({
       spaceId: zId.parse(space).id,
       senderId,
