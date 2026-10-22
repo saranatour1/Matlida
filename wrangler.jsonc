@@ -5,8 +5,26 @@
   "compatibility_date": "2026-10-19",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  // Logs and traces for every request, kept in the dashboard, and Issues,
+  // which groups recurring failures (uncaught errors, 5xx, logged errors).
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+    },
+    "issues": {
+      "enabled": true,
+    },
   },
   // Feature flags. Convex asks /api/flags, which reads them here (src/routes/api/flags.ts).
   "flagship": [

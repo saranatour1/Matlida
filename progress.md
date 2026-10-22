@@ -778,3 +778,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 - Prod sent no analytics: Workers Builds never had `VITE_DATABUDDY_CLIENT_ID`, so Vite dropped Databuddy from the bundle. The client id is public (every page sends it), so it now lives in `src/lib/site.ts` as `DATABUDDY_CLIENT_ID`, and Databuddy is always mounted. No build variable to forget.
 
+### Worker observability (2026-10-23)
+
+- `wrangler.jsonc` turns on everything for the Worker: every request's logs (with invocation logs) and traces, kept in the dashboard, and Issues, which groups recurring failures. The dashboard's snippet said `issue_detection`, which Wrangler doesn't know; the documented key is `observability.issues.enabled`.
+
