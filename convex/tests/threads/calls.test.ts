@@ -2,10 +2,10 @@ import { createThread } from '@convex-dev/agent'
 import agentTest from '@convex-dev/agent/test'
 import { convexTest } from 'convex-test'
 import { expect, test, vi } from 'vitest'
-import { generateSpeech } from 'ai'
+import { generateSpeech, transcribe } from 'ai'
+import { languageModel } from '../../lib/ai'
 import { api, components, internal } from '../../_generated/api'
 import schema from '../../schema'
-import { languageModel } from '../../lib/ai'
 import { modules } from '../../test.setup'
 import type * as Ai from 'ai'
 import type { Id } from '../../lib/ctx'
@@ -335,4 +335,26 @@ test('talking over a reply marks it cut off in the call history', async () => {
   ).doStreamCalls.map((call) => JSON.stringify(call))
   expect(prompts.at(-1)).toContain('talked over your last reply')
   expect(prompts.at(-2)).not.toContain('talked over your last reply')
+})
+
+test('the call settings reach the models: the voice spoken in, and the language heard', async () => {
+  const { t, asAda, projectId, clip } = await setup()
+  const storageId = await clip()
+  await asAda.action(api.api.calls.turn, {
+    projectId,
+    storageId,
+    liveKey: 'live-turn-key-2',
+    voice: 'bm_george',
+    language: 'fr',
+  })
+  expect(vi.mocked(generateSpeech).mock.calls[0]?.[0]).toMatchObject({
+    voice: 'bm_george',
+  })
+  expect(vi.mocked(transcribe).mock.calls.at(-1)?.[0]).toMatchObject({
+    providerOptions: { convexGateway: { language: 'fr' } },
+  })
+  const asked = (languageModel as unknown as { doStreamCalls: Array<unknown> })
+    .doStreamCalls
+  expect(JSON.stringify(asked)).toContain('Speak French.')
+  expect(await t.run((ctx) => ctx.storage.get(storageId))).toBeNull()
 })

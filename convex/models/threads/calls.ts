@@ -6,14 +6,15 @@ import { internal } from '../../_generated/api'
 import { internalMutation } from '../../_generated/server'
 import { speechModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
-import { PCM_RATE, pcmToWav } from '../../lib/audio'
+import { AUDIO_VOICES, PCM_RATE, pcmToWav } from '../../lib/audio'
 import { zAuthedAction } from '../../lib/functions'
-import { MODELS, voiceFor } from '../../lib/models'
+import { LANGUAGES, MODELS, VOICES, voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
 import { concat, speakWith } from './voice'
 import type { ActionCtx, Id } from '../../lib/ctx'
+import type { Language } from '../../lib/models'
 
 /** How long a spoken reply stays in storage, long enough to play it. */
 const AUDIO_TTL_MS = 10 * 60_000
@@ -47,12 +48,12 @@ const forget = internalMutation({
   },
 })
 
-/** Reads `text` out in `name`'s voice and stores it. */
+/** Reads `text` out in `spokenBy`, a Kokoro voice, and stores it. */
 const voice = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   text: string,
-  name: string,
+  spokenBy: (typeof VOICES)[number],
 ) => {
   const { audio } = await metered(
     ctx,
@@ -61,7 +62,7 @@ const voice = async (
       const spoken = await generateSpeech({
         model: speechModel,
         text: text.slice(0, MAX_SPOKEN),
-        voice: voiceFor(name),
+        voice: spokenBy,
       })
       return { result: spoken, cost: gatewayCost(spoken.providerMetadata) }
     },
@@ -79,7 +80,7 @@ const speak = async (
   text: string,
   name: string,
 ) => {
-  const { storageId, url } = await voice(ctx, userId, text, name)
+  const { storageId, url } = await voice(ctx, userId, text, voiceFor(name))
   await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
     storageId,
   })
@@ -116,10 +117,28 @@ const turn = zAuthedAction({
     liveKey: z.string().min(8).max(64),
     /** Fast voice: one audio chat model hears and answers, without tools. The recording is a WAV. */
     fast: z.boolean().optional(),
+    /** A voice picked in the call's settings, instead of the assistant's own. */
+    voice: z.enum(VOICES).optional(),
+    /** The same, for Fast voice, which has its own voices. */
+    audioVoice: z.enum(AUDIO_VOICES).optional(),
+    /** The language to hear and speak, as an ISO 639-1 code. Unset means whatever you speak. */
+    language: z
+      .enum(Object.keys(LANGUAGES) as [Language, ...Array<Language>])
+      .optional(),
   },
   handler: async (
     ctx,
-    { storageId, timeZone, interrupted, liveKey, fast, ...where },
+    {
+      storageId,
+      timeZone,
+      interrupted,
+      liveKey,
+      fast,
+      voice: pickedVoice,
+      audioVoice,
+      language,
+      ...where
+    },
   ): Promise<Turn> => {
     const started = Date.now()
     const live = (update: {
@@ -144,9 +163,11 @@ const turn = zAuthedAction({
         interrupted,
         started,
         live,
+        voice: audioVoice,
+        language,
       })
     }
-    const heard = await transcribeClip(ctx, ctx.userId, storageId)
+    const heard = await transcribeClip(ctx, ctx.userId, storageId, language)
     if (!heard.text) {
       await live({ heard: '', done: true })
       return {
@@ -196,7 +217,12 @@ const turn = zAuthedAction({
       if (!text) return
       spoken += text.length
       speaking = speaking.then(async () => {
-        const audio = await voice(ctx, ctx.userId, text, name)
+        const audio = await voice(
+          ctx,
+          ctx.userId,
+          text,
+          pickedVoice ?? voiceFor(name),
+        )
         firstMs ??= Date.now() - started
         await live({ piece: { text, ...audio } })
       })
@@ -208,6 +234,7 @@ const turn = zAuthedAction({
         timeZone,
         via: 'voice',
         cutOff: interrupted,
+        language,
         onText: (delta, who) => {
           buffer += delta
           const ready = takePieces(buffer, {
@@ -273,6 +300,9 @@ const fastTurn = async (
     timeZone?: string
     interrupted?: boolean
     started: number
+    /** From the call's settings. */
+    voice?: (typeof AUDIO_VOICES)[number]
+    language?: Language
     live: (update: {
       heard?: string
       piece?: { text: string; url: string; storageId: Id<'_storage'> }
