@@ -371,6 +371,16 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
           })),
         }),
     }),
+    show_commands: createTool({
+      description:
+        'Show the commands the user can run, as buttons they can tap. Use it when they ask what you can do, what commands there are, or how to get started.',
+      inputSchema: z.object({}),
+      execute: async (ctx) => ({
+        commands: await ctx.runQuery(internal.api.commands.described, {
+          projectId: project._id,
+        }),
+      }),
+    }),
     save_command: createTool({
       description:
         "Save a new reusable command the user can run as /name. The markdown is the instructions you follow when it runs, written to you. It can't change an existing command: the user edits those in the Library.",

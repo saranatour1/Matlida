@@ -1,4 +1,13 @@
 import { commandsApi } from '../models/commands/functions'
 
-export const { list, get, save, write, remove, names, draft, sweepFiles } =
-  commandsApi
+export const {
+  list,
+  get,
+  save,
+  write,
+  remove,
+  names,
+  described,
+  draft,
+  sweepFiles,
+} = commandsApi
