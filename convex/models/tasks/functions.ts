@@ -251,18 +251,18 @@ const finished = internalMutation({
   },
 })
 
-async function say(ctx: MutationCtx, task: Doc<'tasks'>, content: string) {
+const say = async (ctx: MutationCtx, task: Doc<'tasks'>, content: string) => {
   await saveMessage(ctx, components.agent, {
     threadId: task.threadId,
     message: { role: 'assistant', content },
   })
 }
 
-async function getOwnedTask(
+const getOwnedTask = async (
   ctx: MutationCtx,
   userId: Id<'users'>,
   taskId: Id<'tasks'>,
-) {
+) => {
   const task = await ctx.db.get('tasks', taskId)
   if (!task) throw new ConvexError('Task not found.')
   await getOwnedProject(ctx, userId, task.projectId)

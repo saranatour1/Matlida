@@ -71,7 +71,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   rateLimiterTest.register(t)

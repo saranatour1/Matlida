@@ -23,10 +23,10 @@ import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 type NewThread = Omit<Doc<'threads'>, '_id' | '_creationTime' | 'threadId'>
 
 /** Creates an agent thread for `userId` and records which project it belongs to. */
-export async function startThread(
+export const startThread = async (
   ctx: MutationCtx,
   { userId, ...thread }: NewThread & { userId: Id<'users'> },
-) {
+) => {
   const threadId = await createThread(ctx, components.agent, {
     title: thread.title,
     userId,
@@ -89,12 +89,12 @@ const recordMainThreads = internalMutation({
  * start one: both read and write the same project or bot, so Convex runs
  * them one after the other and the second finds the first's.
  */
-export async function ensureMainThread(
+export const ensureMainThread = async (
   ctx: MutationCtx,
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
   start: Pick<NewThread, 'model' | 'effort'> = {},
-) {
+) => {
   const threadId =
     (await getMainThread(ctx, project, bot)) ??
     (await startThread(ctx, {

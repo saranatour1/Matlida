@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { MAX_PIECE, takePieces } from './sentences'
 
 /** Streams `text` in small deltas the way the model does, and returns every piece in order. */
-function stream(text: string, delta = 7) {
+const stream = (text: string, delta = 7) => {
   const out: Array<string> = []
   let buffer = ''
   for (let i = 0; i < text.length; i += delta) {

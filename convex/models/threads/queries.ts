@@ -2,11 +2,11 @@ import { getBots } from '../bots/queries'
 import type { Db, Doc, Id } from '../../lib/ctx'
 
 /** The thread when `userId` owns its project, otherwise null. */
-export async function getOwnedThread(
+export const getOwnedThread = async (
   ctx: Db,
   userId: Id<'users'>,
   threadId: string,
-) {
+) => {
   const thread = await ctx.db
     .query('threads')
     .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
@@ -21,11 +21,11 @@ export async function getOwnedThread(
  * with no caps, so traffic before `recordMainThreads` runs still lands in
  * the old chat. Null when it has never been talked to.
  */
-export async function getMainThread(
+export const getMainThread = async (
   ctx: Db,
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
-) {
+) => {
   const recorded = bot ? bot.threadId : project.threadId
   if (recorded) return recorded
   return await findOldMainThread(
@@ -42,12 +42,12 @@ export async function getMainThread(
  * Reads every candidate, with no cap, so an old app chat behind many
  * channel chats is still found.
  */
-export async function findOldMainThread(
+export const findOldMainThread = async (
   ctx: Db,
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
   channelThreads: Set<string | undefined>,
-) {
+) => {
   for await (const chat of ctx.db
     .query('threads')
     .withIndex('by_project_and_bot', (q) =>
@@ -60,7 +60,7 @@ export async function findOldMainThread(
 }
 
 /** Threads the messaging apps and email used to get of their own. */
-export async function getChannelThreads(ctx: Db, project: Doc<'projects'>) {
+export const getChannelThreads = async (ctx: Db, project: Doc<'projects'>) => {
   const threads = new Set<string | undefined>()
   for await (const link of ctx.db
     .query('phoneLinks')
@@ -80,7 +80,7 @@ export async function getChannelThreads(ctx: Db, project: Doc<'projects'>) {
 }
 
 /** The bots in a thread, who its assistant can hand work to. None until you add them. */
-export async function getMembers(ctx: Db, thread: Doc<'threads'> | null) {
+export const getMembers = async (ctx: Db, thread: Doc<'threads'> | null) => {
   if (!thread?.memberIds?.length) return []
   const bots = await getBots(ctx, thread.projectId)
   return bots.filter((b) => thread.memberIds?.includes(b._id))

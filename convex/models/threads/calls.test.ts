@@ -35,7 +35,7 @@ vi.mock('ai', async (original) => ({
   ),
 }))
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [
@@ -131,10 +131,10 @@ test("you can't call into someone else's workspace", async () => {
   ).rejects.toThrow('Project not found.')
 })
 
-async function chatWithReminder(
+const chatWithReminder = async (
   t: Awaited<ReturnType<typeof setup>>['t'],
   projectId: Id<'projects'>,
-) {
+) => {
   return await t.run(async (ctx) => {
     const project = await ctx.db.get('projects', projectId)
     const threadId = await createThread(ctx, components.agent, {

@@ -50,7 +50,7 @@ const commandArgs = {
 }
 
 /** The markdown's SHA-256, in hex. */
-async function sha256(text: string) {
+const sha256 = async (text: string) => {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(text),
@@ -66,7 +66,7 @@ async function sha256(text: string) {
  * run again: saving what's already saved changes nothing and returns the same
  * command. A file left by a run that stopped before saving is swept later.
  */
-export async function saveCommand(
+export const saveCommand = async (
   ctx: ActionCtx,
   {
     markdown,
@@ -80,7 +80,7 @@ export async function saveCommand(
     description: string
     markdown: string
   },
-): Promise<Id<'commands'>> {
+): Promise<Id<'commands'>> => {
   const storageId = await ctx.storage.store(
     new Blob([markdown], { type: 'text/markdown' }),
   )
@@ -272,7 +272,7 @@ const HOUR = 60 * 60_000
  * and call audio, which are only kept by a row. Pictures, videos and
  * anything else, a file with no type included, are kept.
  */
-export function sweepable({ contentType }: { contentType?: string }) {
+export const sweepable = ({ contentType }: { contentType?: string }) => {
   return contentType === 'text/markdown' || !!contentType?.startsWith('audio/')
 }
 

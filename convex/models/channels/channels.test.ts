@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-async function setup() {
+const setup = async () => {
   // Start from nothing set, whatever the shell exported.
   for (const name of new Set(CHANNELS.flatMap((c) => c.env))) {
     vi.stubEnv(name, '')

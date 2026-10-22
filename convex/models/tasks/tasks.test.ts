@@ -29,7 +29,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   workflowTest.register(t)

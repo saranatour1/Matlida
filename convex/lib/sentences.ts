@@ -13,10 +13,10 @@ const SENTENCE_END = /[.!?…]+["'”’)\]]*\s+|\n+/g
  * The `first` piece is cut at the first sentence end, so speech starts as soon
  * as possible. With `final`, everything left is a piece.
  */
-export function takePieces(
+export const takePieces = (
   text: string,
   { first, final }: { first: boolean; final: boolean },
-) {
+) => {
   const pieces: Array<string> = []
   let rest = text
   for (;;) {
@@ -34,7 +34,7 @@ export function takePieces(
 }
 
 /** Where the next piece ends: the first sentence end at least `min` in, or a cut in a long run. */
-function nextCut(text: string, min: number) {
+const nextCut = (text: string, min: number) => {
   for (const match of text.matchAll(SENTENCE_END)) {
     const end = match.index + match[0].length
     if (end >= min) return end

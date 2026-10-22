@@ -23,12 +23,12 @@ const zTarget = {
 }
 
 /** Deletes every comment on a target, when the target goes. */
-export async function removeComments(
+export const removeComments = async (
   ctx: MutationCtx,
   projectId: Id<'projects'>,
   kind: Doc<'comments'>['kind'],
   targetId: string,
-) {
+) => {
   for (const comment of await getComments(ctx, projectId, kind, targetId)) {
     await ctx.db.delete('comments', comment._id)
   }

@@ -61,7 +61,7 @@ const schedule = internalMutation({
   },
 })
 
-async function start(ctx: MutationCtx, id: Id<'reminders'>, dueAt: number) {
+const start = async (ctx: MutationCtx, id: Id<'reminders'>, dueAt: number) => {
   const scheduledId = await ctx.scheduler.runAt(
     dueAt,
     internal.api.reminders.fire,
@@ -175,7 +175,11 @@ const delivery = internalQuery({
  * Marks a scheduled or ringing reminder sent and posts it in its chat.
  * Returns it, or null when it was already delivered, so retries post once.
  */
-async function deliver(ctx: MutationCtx, id: Id<'reminders'>, note?: string) {
+const deliver = async (
+  ctx: MutationCtx,
+  id: Id<'reminders'>,
+  note?: string,
+) => {
   const reminder = await ctx.db.get('reminders', id)
   if (reminder?.status !== 'scheduled' && reminder?.status !== 'ringing') {
     return null
@@ -295,11 +299,11 @@ const decline = authedMutation({
 })
 
 /** Texts a linked Telegram chat through Photon's platform API. False when Photon isn't set up. */
-async function textChat(
+const textChat = async (
   chat: { spaceId: string; agentId?: string },
   text: string,
   key: string,
-) {
+) => {
   const keys = photonKeys(env)
   if (!chat.agentId || !keys) return false
   await sendText(keys, {
@@ -345,12 +349,12 @@ const miss = internalAction({
  * and signed as an automated message. Returns a note for the chat when it
  * couldn't, or null.
  */
-async function emailContact(
+const emailContact = async (
   ctx: ActionCtx,
   reminder: Doc<'reminders'>,
   contact: { email: string | null; owner: string },
   from: string | null,
-) {
+) => {
   const keys = photonKeys(env)
   if (!contact.email) return "There's no email for them, so it wasn't sent."
   if (!from || !keys) return "Email isn't set up, so it wasn't sent."

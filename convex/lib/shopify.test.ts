@@ -24,7 +24,7 @@ const dripper = {
   ],
 }
 
-function catalog(structuredContent: unknown) {
+const catalog = (structuredContent: unknown) => {
   const fetch = vi.fn((_url: string, _init?: RequestInit) =>
     Promise.resolve(
       Response.json({ jsonrpc: '2.0', id: 1, result: { structuredContent } }),

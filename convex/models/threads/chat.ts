@@ -46,7 +46,7 @@ export const zTimeZone = z.string().refine((tz) => {
  * Saves the user's message to the one thread of `botId` (the lead when
  * unset), starting it on the first message. Checks that it's all `userId`'s.
  */
-export async function postMessage(
+export const postMessage = async (
   ctx: MutationCtx,
   userId: Id<'users'>,
   {
@@ -64,7 +64,7 @@ export async function postMessage(
     /** For a new chat: the effort it starts on. */
     effort?: Effort
   },
-) {
+) => {
   const project = await getOwnedProject(ctx, userId, projectId)
   const bot = botId ? await ctx.db.get('bots', botId) : null
   if (botId && bot?.projectId !== projectId) {
@@ -177,7 +177,7 @@ const context = internalQuery({
  * Streams the reply from the thread's assistant into the thread, and returns
  * its text. `via` decides how it's written: for the chat, or out loud.
  */
-export async function runReply(
+export const runReply = async (
   ctx: ActionCtx,
   {
     threadId,
@@ -202,7 +202,7 @@ export async function runReply(
       who: { project: Doc<'projects'>; bot: Doc<'bots'> | null },
     ) => void
   },
-) {
+) => {
   const {
     project,
     bot,
@@ -318,11 +318,11 @@ const voiceUploadUrl = authedMutation({
 })
 
 /** Transcribes an uploaded recording, then deletes it. Returns the text and the gateway's metadata. */
-export async function transcribeClip(
+export const transcribeClip = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   storageId: Id<'_storage'>,
-) {
+) => {
   const audio = await ctx.storage.get(storageId)
   await ctx.storage.delete(storageId)
   if (!audio) throw new ConvexError('The recording was lost. Try again.')

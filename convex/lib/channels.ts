@@ -123,10 +123,10 @@ export type ChannelFacts = {
  * A channel's status for one project, with a line to show under it and the
  * env vars still missing. Pure, so the rules are tested without a database.
  */
-export function channelStatus(
+export const channelStatus = (
   channel: Channel,
   facts: ChannelFacts,
-): { status: ChannelStatus; detail: string; missing: Array<EnvName> } {
+): { status: ChannelStatus; detail: string; missing: Array<EnvName> } => {
   if (channel.via === 'planned') {
     return { status: 'coming_soon', detail: channel.note, missing: [] }
   }

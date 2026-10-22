@@ -28,7 +28,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-async function finishReply(t: ReturnType<typeof convexTest>) {
+const finishReply = async (t: ReturnType<typeof convexTest>) => {
   vi.runAllTimers()
   vi.useRealTimers()
   await t.finishInProgressScheduledFunctions()

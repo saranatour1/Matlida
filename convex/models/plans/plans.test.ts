@@ -4,7 +4,7 @@ import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Ada' }),

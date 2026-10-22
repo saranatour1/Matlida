@@ -13,7 +13,7 @@ export type Expense = {
  * up. Works in cents: a share that doesn't divide evenly gives the extra
  * cents to the first people sharing it, so totals always match.
  */
-export function splitCosts(people: Array<string>, expenses: Array<Expense>) {
+export const splitCosts = (people: Array<string>, expenses: Array<Expense>) => {
   const paid = new Map(people.map((p) => [p, 0]))
   const share = new Map(people.map((p) => [p, 0]))
   for (const expense of expenses) {
@@ -65,7 +65,7 @@ export function splitCosts(people: Array<string>, expenses: Array<Expense>) {
 }
 
 /** Whether `timeZone` is an IANA zone this runtime knows, like Europe/London. */
-export function isTimeZone(timeZone: string) {
+export const isTimeZone = (timeZone: string) => {
   try {
     new Intl.DateTimeFormat('en-US', { timeZone })
     return true
@@ -76,7 +76,7 @@ export function isTimeZone(timeZone: string) {
 
 const HOUR = 60 * 60_000
 
-function localParts(at: number, timeZone: string) {
+const localParts = (at: number, timeZone: string) => {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
       timeZone,
@@ -97,11 +97,11 @@ function localParts(at: number, timeZone: string) {
  * zone's local hour, and the windows when everyone is between `workStart`
  * and `workEnd` (24-hour clock).
  */
-export function compareTimes(
+export const compareTimes = (
   zones: Array<{ label: string; timeZone: string }>,
   at: number,
   { workStart = 9, workEnd = 18 } = {},
-) {
+) => {
   const start = Math.floor(at / HOUR) * HOUR
   const slots = Array.from({ length: 24 }, (_, i) => start + i * HOUR)
   const first = localParts(at, zones[0].timeZone).day

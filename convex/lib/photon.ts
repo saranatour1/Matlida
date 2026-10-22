@@ -39,7 +39,7 @@ const zPage = z.object({
   nextPageToken: z.string().nullish(),
 })
 
-async function call(keys: PhotonKeys, path: string, init?: RequestInit) {
+const call = async (keys: PhotonKeys, path: string, init?: RequestInit) => {
   const response = await fetch(`${API}/projects/${keys.projectId}${path}`, {
     ...init,
     headers: {
@@ -62,7 +62,11 @@ async function call(keys: PhotonKeys, path: string, init?: RequestInit) {
 }
 
 /** Every message received on `platform` since `since` (ISO), oldest first, unparsed. */
-async function listReceived(keys: PhotonKeys, platform: string, since: string) {
+const listReceived = async (
+  keys: PhotonKeys,
+  platform: string,
+  since: string,
+) => {
   const items: Array<unknown> = []
   let pageToken: string | undefined
   do {
@@ -82,7 +86,7 @@ async function listReceived(keys: PhotonKeys, platform: string, since: string) {
 }
 
 /** Emails received since `since` (ISO), oldest first. Items that aren't emails are skipped. */
-export async function listEmails(keys: PhotonKeys, since: string) {
+export const listEmails = async (keys: PhotonKeys, since: string) => {
   const emails: Array<PhotonEmail> = []
   for (const item of await listReceived(keys, 'email', since)) {
     const email = zEmail.safeParse(item)
@@ -99,11 +103,11 @@ const zReceivedText = z.object({
 })
 
 /** Text messages received on `platform` (a Telegram chat, for one) since `since`, oldest first. */
-export async function listTexts(
+export const listTexts = async (
   keys: PhotonKeys,
   platform: string,
   since: string,
-) {
+) => {
   const texts: Array<z.infer<typeof zReceivedText>> = []
   for (const item of await listReceived(keys, platform, since)) {
     const text = zReceivedText.safeParse(item)
@@ -113,7 +117,7 @@ export async function listTexts(
 }
 
 /** The email's plain-text body: its text, or the plain part of a multipart email. */
-export function plainText(content: PhotonEmail['content']) {
+export const plainText = (content: PhotonEmail['content']) => {
   if (content.type === 'text') return content.text ?? ''
   const part = content.parts?.find(
     (p) => p.type === 'text' && p.format === 'plain',
@@ -124,7 +128,7 @@ export function plainText(content: PhotonEmail['content']) {
 const zId = z.object({ id: z.string() })
 
 /** Photon's user for an email address, created on first use. */
-async function emailUser(keys: PhotonKeys, address: string) {
+const emailUser = async (keys: PhotonKeys, address: string) => {
   const user = await call(keys, '/users', {
     method: 'POST',
     body: JSON.stringify({ handle: address, platform: 'email' }),
@@ -136,7 +140,7 @@ async function emailUser(keys: PhotonKeys, address: string) {
  * Sends a text into a Photon space (a Telegram chat, for one) as `senderId`,
  * the project's agent there. `key` makes a retry send once.
  */
-export async function sendText(
+export const sendText = async (
   keys: PhotonKeys,
   {
     spaceId,
@@ -144,7 +148,7 @@ export async function sendText(
     text,
     key,
   }: { spaceId: string; senderId: string; text: string; key: string },
-) {
+) => {
   await call(keys, '/messages', {
     method: 'POST',
     headers: { 'idempotency-key': key },
@@ -157,10 +161,10 @@ export async function sendText(
 }
 
 /** The Photon keys from the deployment, or null until they're set. */
-export function photonKeys(env: {
+export const photonKeys = (env: {
   PHOTON_PROJECT_ID?: string
   PHOTON_API_KEY?: string
-}): PhotonKeys | null {
+}): PhotonKeys | null => {
   return env.PHOTON_PROJECT_ID && env.PHOTON_API_KEY
     ? { projectId: env.PHOTON_PROJECT_ID, apiKey: env.PHOTON_API_KEY }
     : null
@@ -170,7 +174,7 @@ export function photonKeys(env: {
  * Starts a new email from `from` (an address on the connected domain) to `to`.
  * `key` makes retries safe: the same key reuses the thread and the message.
  */
-export async function sendEmail(
+export const sendEmail = async (
   keys: PhotonKeys,
   {
     from,
@@ -179,7 +183,7 @@ export async function sendEmail(
     text,
     key,
   }: { from: string; to: string; subject: string; text: string; key: string },
-) {
+) => {
   const senderId = await emailUser(keys, from)
   const recipientId = await emailUser(keys, to)
   const space = await call(keys, '/spaces', {
@@ -207,12 +211,12 @@ export async function sendEmail(
  * headers from `parentMessageId`; `to` overrides the recipients it would
  * otherwise copy from the email.
  */
-export async function replyByEmail(
+export const replyByEmail = async (
   keys: PhotonKeys,
   email: { id: string; spaceId: string; mailboxUserId: string },
   to: string,
   text: string,
-) {
+) => {
   await call(keys, '/messages', {
     method: 'POST',
     headers: { 'idempotency-key': `matilda-reply:${email.id}` },

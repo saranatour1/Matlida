@@ -9,7 +9,7 @@ import type { Doc } from '../../lib/ctx'
  * their output is their input, and the card does the rest. The rest keep
  * lists the user ticks off.
  */
-export function everydayTools(project: Doc<'projects'>) {
+export const everydayTools = (project: Doc<'projects'>) => {
   return {
     add_to_list: createTool({
       description:
@@ -289,7 +289,7 @@ const CARD_TOOLS = new Set([
 const CALL_CARDS = new Set(['generate_image', 'generate_video'])
 
 /** Whether `tool` belongs in a reply that goes out `via` (unset means the chat). */
-export function showsVia(tool: string, via?: string) {
+export const showsVia = (tool: string, via?: string) => {
   if (!via || via === 'chat' || !CARD_TOOLS.has(tool)) return true
   return via === 'voice' && CALL_CARDS.has(tool)
 }

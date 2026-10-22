@@ -4,7 +4,7 @@ import { MODELS } from './lib/models'
 import type { LanguageModel } from 'ai'
 
 /** An export of the test's `lib/ai` mock, or undefined when the mock leaves it out. */
-function exported(name: string): unknown {
+const exported = (name: string): unknown => {
   try {
     return (ai as unknown as Record<string, unknown>)[name]
   } catch {

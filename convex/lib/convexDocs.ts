@@ -3,14 +3,14 @@ const DOCS = 'https://docs.convex.dev'
 export type DocPage = { title: string; path: string; about: string }
 
 /** The pages listed in the docs' `llms.txt`: `- [Title](/path.md): about`. */
-export function parseIndex(llmsTxt: string): Array<DocPage> {
+export const parseIndex = (llmsTxt: string): Array<DocPage> => {
   return [
     ...llmsTxt.matchAll(/^- \[([^\]]+)\]\((\/[^)]+\.md)\):?\s*(.*)$/gm),
   ].map(([, title, path, about]) => ({ title, path, about }))
 }
 
 /** The `n` pages whose title, path and summary share the most words with `query`. ponytail: word overlap, fine for ~500 pages. */
-export function rankPages(pages: Array<DocPage>, query: string, n = 3) {
+export const rankPages = (pages: Array<DocPage>, query: string, n = 3) => {
   const words = query.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []
   return pages
     .map((page) => {
@@ -30,10 +30,10 @@ export function rankPages(pages: Array<DocPage>, query: string, n = 3) {
 }
 
 /** The best Convex docs pages for `query`, as markdown, so answers use today's APIs. */
-export async function searchConvexDocs(
+export const searchConvexDocs = async (
   query: string,
   abortSignal?: AbortSignal,
-) {
+) => {
   const index = await fetch(`${DOCS}/llms.txt`, { signal: abortSignal })
   if (!index.ok) throw new Error('The Convex docs are not answering right now.')
   const pages = rankPages(parseIndex(await index.text()), query)

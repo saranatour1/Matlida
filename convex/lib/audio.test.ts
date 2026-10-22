@@ -10,7 +10,7 @@ afterEach(() => {
 })
 
 /** A gateway stream, split mid-line the way the network splits it. */
-function stream(events: Array<unknown>) {
+const stream = (events: Array<unknown>) => {
   const text = `${events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')}data: [DONE]\n\n`
   const bytes = new TextEncoder().encode(text)
   return new ReadableStream<Uint8Array>({

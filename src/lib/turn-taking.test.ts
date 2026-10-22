@@ -14,7 +14,7 @@ type Segment = { ms: number; level: number }
  * and returns each non-"none" event with the time it fired. `replying` flips
  * to false on "pause", true on "resume", like the audio does.
  */
-function run(segments: Array<Segment>, { replying = false } = {}) {
+const run = (segments: Array<Segment>, { replying = false } = {}) => {
   let state = startListening(0)
   let playing = replying
   let paused = false

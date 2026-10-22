@@ -132,12 +132,12 @@ const addItem = internalMutation({
  * Checks `variantId` against the catalog and adds it to `userId`'s cart, so
  * the cart only ever holds real items at real prices.
  */
-export async function addToCartFor(
+export const addToCartFor = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   variantId: string,
   quantity: number,
-): Promise<Offer> {
+): Promise<Offer> => {
   const { country }: { country: string | null } = await ctx.runQuery(
     internal.api.shopping.forAssistant,
     { userId },

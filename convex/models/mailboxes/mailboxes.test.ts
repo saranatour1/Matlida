@@ -8,7 +8,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-async function setup() {
+const setup = async () => {
   vi.stubEnv('MAIL_DOMAIN', 'mail.example.com')
   vi.stubEnv('PHOTON_PROJECT_ID', 'pho_prj_test')
   vi.stubEnv('PHOTON_API_KEY', 'pho_test')

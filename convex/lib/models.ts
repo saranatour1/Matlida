@@ -108,7 +108,7 @@ export const VOICES = [
 ] as const
 
 /** An assistant's voice, stable for its name. Matilda's is hers alone. */
-export function voiceFor(name: string): (typeof VOICES)[number] {
+export const voiceFor = (name: string): (typeof VOICES)[number] => {
   if (name === 'Matilda') return VOICES[0]
   let hash = 0
   for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
@@ -175,7 +175,7 @@ export const CHAT_MODELS = {
 export type ChatModelId = keyof typeof CHAT_MODELS
 
 /** Whether `id` is one of the chat models the menus list. */
-export function isListedModel(id: string | undefined): id is ChatModelId {
+export const isListedModel = (id: string | undefined): id is ChatModelId => {
   return id !== undefined && Object.hasOwn(CHAT_MODELS, id)
 }
 
@@ -183,7 +183,7 @@ export function isListedModel(id: string | undefined): id is ChatModelId {
 export const MODEL_ID = /^~?[a-z0-9-]+\/[a-z0-9._:-]+$/i
 
 /** The model's name when it's one we list, else its id. */
-export function modelName(id: string | undefined) {
+export const modelName = (id: string | undefined) => {
   const model = id ?? MODELS.chat
   return isListedModel(model) ? CHAT_MODELS[model].name : model
 }
