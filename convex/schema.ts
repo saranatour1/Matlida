@@ -15,11 +15,6 @@ import { newsSettingsTable } from './models/news/table'
 import { pagesTable } from './models/pages/table'
 import { plansTable } from './models/plans/table'
 import { remindersTable } from './models/reminders/table'
-import {
-  cartItemsTable,
-  priceWatchesTable,
-  shoppingDetailsTable,
-} from './models/shopping/table'
 import { tasksTable } from './models/tasks/table'
 import {
   phoneLinksTable,
@@ -51,9 +46,6 @@ export default defineSchema({
   newsSettings: newsSettingsTable,
   usage: usageTable,
   reminders: remindersTable,
-  shoppingDetails: shoppingDetailsTable,
-  cartItems: cartItemsTable,
-  priceWatches: priceWatchesTable,
   tasks: tasksTable,
   calls: callsTable,
   callLines: callLinesTable,

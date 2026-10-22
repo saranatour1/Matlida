@@ -10,6 +10,7 @@ import aiBudget from '@convex-dev/ai-budget/convex.config'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
+import shopping from './components/shopping/convex.config'
 
 const app = defineApp({
   env: {
@@ -40,6 +41,7 @@ app.use(agent)
 app.use(resend)
 app.use(rateLimiter)
 app.use(aiBudget)
+app.use(shopping)
 app.use(workflow)
 app.use(auth, {
   httpPrefix: '/auth',

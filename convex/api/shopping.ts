@@ -4,7 +4,6 @@ export const {
   details,
   saveDetails,
   forAssistant,
-  addItem,
   addToCart,
   cart,
   setQuantity,
@@ -12,7 +11,5 @@ export const {
   startWatch,
   watch,
   stopWatch,
-  dueWatches,
-  recordCheck,
   checkPrices,
 } = shoppingApi

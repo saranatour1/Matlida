@@ -42,6 +42,7 @@ export default defineConfig([
   // Generated code, build output and other checkouts.
   globalIgnores([
     'convex/_generated',
+    'convex/**/_generated',
     'src/components/ui',
     'src/routeTree.gen.ts',
     'dist',

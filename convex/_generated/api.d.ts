@@ -91,8 +91,6 @@ import type * as models_projects_table from "../models/projects/table.js";
 import type * as models_reminders_functions from "../models/reminders/functions.js";
 import type * as models_reminders_table from "../models/reminders/table.js";
 import type * as models_shopping_functions from "../models/shopping/functions.js";
-import type * as models_shopping_queries from "../models/shopping/queries.js";
-import type * as models_shopping_table from "../models/shopping/table.js";
 import type * as models_tasks_functions from "../models/tasks/functions.js";
 import type * as models_tasks_table from "../models/tasks/table.js";
 import type * as models_texts_functions from "../models/texts/functions.js";
@@ -209,8 +207,6 @@ declare const fullApi: ApiFromModules<{
   "models/reminders/functions": typeof models_reminders_functions;
   "models/reminders/table": typeof models_reminders_table;
   "models/shopping/functions": typeof models_shopping_functions;
-  "models/shopping/queries": typeof models_shopping_queries;
-  "models/shopping/table": typeof models_shopping_table;
   "models/tasks/functions": typeof models_tasks_functions;
   "models/tasks/table": typeof models_tasks_table;
   "models/texts/functions": typeof models_texts_functions;
@@ -269,6 +265,7 @@ export declare const components: {
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
+  shopping: import("../components/shopping/_generated/component.js").ComponentApi<"shopping">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
   authPassword: import("@convex-dev/auth/components/password/_generated/component.js").ComponentApi<"authPassword">;
