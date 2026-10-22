@@ -717,3 +717,11 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Custom events, typed in `src/lib/analytics.ts`: `sign_in_started` and `signed_in` (by method), `signed_up`, `message_sent` (lead or bot, model, effort, command, attachment count), `message_redone`, `model_changed`, `effort_changed`, `talk_started`, `ring_answered`, `ring_snoozed`, `ring_declined` (reminder or check-in), `command_pill_clicked`, `task_answered`, `task_retried`. No text, emails, names or ids. Commands report built-in names, and yours only as `custom`.
 - Signed-in users are identified by their Convex id only (`IdentifyUser`), and forgotten on sign-out.
 - Verified with pnpm check, the tests (226), and dev: the tracker initialized with error tracking and logged web vitals.
+
+### Landing page and SEO (2026-10-22)
+
+- `/` is now a public landing page, rendered on the server so crawlers see it: Matilda's photo, "She actually calls you.", a green call button that leads to sign-in, "because I made her that way", and a "Made with Convex" pill (Convex's three colors, linking to convex.dev). Signed-in visitors go straight to the app.
+- The workspace list moved from `/` to `/projects`. Links, the post-sign-in redirect and new template links use it. Old `/?template=…` links forward to `/projects`.
+- SEO: a description that says what she does, absolute `og:image` and `og:url` (from `VITE_SITE_URL`, falling back to `https://matilda-is-a-bot.app`), a canonical link and `SoftwareApplication` structured data on `/`, `theme-color`, and `noindex, nofollow` on every signed-in page. The manifest has the new description, dark colors and `start_url: /projects`.
+- `public/robots.txt` allows the front page and sign-in, keeps `/projects`, `/p/`, `/reset-password` and `/verify-email` out, and points to the sitemap. `public/sitemap.xml` lists `/`, `/sign-in` and `/sign-up`. `public/llms.txt` says what Matilda is and does, for AI crawlers.
+- Verified with pnpm check, the tests, the server HTML of `/` (no JavaScript), and the page on desktop and phone sizes.

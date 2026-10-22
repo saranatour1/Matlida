@@ -461,7 +461,7 @@ function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
       portrait: portraitOf(bot),
     })
     await navigator.clipboard.writeText(
-      `${location.origin}/?template=${template}`,
+      `${location.origin}/projects?template=${template}`,
     )
     flash('Template link copied')
   }

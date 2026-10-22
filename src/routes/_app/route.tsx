@@ -19,6 +19,8 @@ import { useProject } from '~/hooks/use-project'
 import { IdentifyUser } from '~/components/identify-user'
 
 export const Route = createFileRoute('/_app')({
+  // Your workspaces are private: keep them out of search results.
+  head: () => ({ meta: [{ name: 'robots', content: 'noindex, nofollow' }] }),
   component: AppLayout,
 })
 
@@ -61,7 +63,7 @@ function Header() {
           {project.name}
         </Link>
       ) : (
-        <Link to="/" className="text-sm font-medium">
+        <Link to="/projects" className="text-sm font-medium">
           Projects
         </Link>
       )}

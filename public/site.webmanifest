@@ -1,7 +1,7 @@
 {
   "name": "Matilda",
   "short_name": "Matilda",
-  "description": "Matilda is the only assistant you need, doesn't f**k around",
+  "description": "Matilda is the only assistant you need. She texts, emails, keeps your reminders and actually calls you.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -14,7 +14,8 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "start_url": "/projects",
   "display": "standalone"
 }

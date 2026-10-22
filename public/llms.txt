@@ -1,0 +1,22 @@
+# Matilda
+
+> Matilda is a personal AI assistant that texts, emails, keeps your reminders and actually calls you. She lives at https://matilda-is-a-bot.app, and you sign in with GitHub.
+
+Matilda answers in a chat on the web, over Telegram, iMessage and WhatsApp, and by email from your own address on matilda-is-a-bot.app. She rings you in the app when a reminder is due, calls again if you miss it, and calls to check in when something you talked about needs a follow-up. Each workspace has a lead (Matilda) and bots you add, each with its own role and model.
+
+## What she does
+
+- Reminders that recur, pause or stop on their own, by chat, text, email or a call
+- Commands like /plan, /run, /research, /quiz and /study, typed with a slash in the chat
+- Plans that run as step-by-step tasks, with a Try again button when a step fails
+- Flash cards and quizzes with spaced review, quizzed by voice on a call
+- Pages that keep themselves up to date: reports, memos and dashboards
+
+## Pages
+
+- [Home](https://matilda-is-a-bot.app/): what Matilda is
+- [Sign in](https://matilda-is-a-bot.app/sign-in): sign in with GitHub
+
+## Optional
+
+- Built on [Convex](https://www.convex.dev) and [TanStack Start](https://tanstack.com/start), hosted on Cloudflare Workers

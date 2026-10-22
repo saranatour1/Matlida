@@ -125,7 +125,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
             ))}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link to="/" search={{ create: true }} />}>
+          <DropdownMenuItem render={<Link to="/projects" search={{ create: true }} />}>
             <PlusIcon />
             New workspace
           </DropdownMenuItem>
