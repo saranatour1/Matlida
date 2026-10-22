@@ -24,6 +24,12 @@ test('phone calls are off without Flagship, and when it fails', async () => {
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
 })
 
+test('a deployment can turn them on for everyone, without Flagship', async () => {
+  vi.stubGlobal('fetch', vi.fn())
+  vi.stubEnv('FLAGS_ON', 'other, phone-calls')
+  expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(true)
+})
+
 test('Flagship turns them on for one user', async () => {
   setUp()
   const fetch = vi.fn(() =>

@@ -53,6 +53,8 @@ const app = defineApp({
     FLAGSHIP_ACCOUNT_ID: v.optional(v.string()),
     FLAGSHIP_APP_ID: v.optional(v.string()),
     FLAGSHIP_API_TOKEN: v.optional(v.string()),
+    /** Flags on for everyone on this deployment, as a comma list, like phone-calls on dev. Never set it on prod. */
+    FLAGS_ON: v.optional(v.string()),
     /** Each person's AI spend a month, in dollars. 12 when unset. */
     AI_BUDGET_USD: v.optional(v.string()),
   },

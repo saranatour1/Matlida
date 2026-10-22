@@ -129,6 +129,9 @@ money and could be abused. In Cloudflare's dashboard, under Flagship:
 4. Set `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN` on the
    deployment. Without them, or if Flagship doesn't answer, calls are refused.
 
+On dev, `FLAGS_ON=phone-calls` turns calls on for everyone without Flagship.
+Never set it on prod.
+
 Limits:
 
 - Only a number in your last message, never one from an email or a page.

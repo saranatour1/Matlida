@@ -745,5 +745,6 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 ### Phone calls behind a feature flag (2026-10-22)
 
 - Calling numbers is off unless Cloudflare Flagship's `phone-calls` flag is on for the user, since anyone who signs up could otherwise make the app place calls (`flagOn` in `convex/lib/flags.ts`). The call tool asks Flagship's evaluation API before each call, with the user's Convex id as the targeting key.
+- A deployment can force flags on with `FLAGS_ON` (a comma list). Dev sets `phone-calls`; prod never should.
 - It fails closed: without `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN`, or when Flagship errors, calls are refused. The token needs only Flagship Evaluate.
 

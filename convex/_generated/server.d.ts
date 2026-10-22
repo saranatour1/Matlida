@@ -42,6 +42,7 @@ type Env = {
   readonly FLAGSHIP_ACCOUNT_ID: string | undefined;
   readonly FLAGSHIP_API_TOKEN: string | undefined;
   readonly FLAGSHIP_APP_ID: string | undefined;
+  readonly FLAGS_ON: string | undefined;
   readonly MAIL_DOMAIN: string | undefined;
   readonly PHOTON_API_KEY: string | undefined;
   readonly PHOTON_PHONE_NUMBER: string | undefined;

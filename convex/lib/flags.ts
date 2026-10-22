@@ -9,7 +9,8 @@ export const FLAGS = {
 /**
  * Whether `flag` is on for `userId`, asked of Flagship's evaluation API with
  * the user's id as the targeting key. Off when Flagship isn't set up, fails
- * or says no, so a risky feature stays off by default.
+ * or says no, so a risky feature stays off by default. A deployment can turn
+ * flags on for everyone with `FLAGS_ON`, like dev with `phone-calls`.
  */
 export const flagOn = async (
   flag: (typeof FLAGS)[keyof typeof FLAGS],
@@ -20,6 +21,7 @@ export const flagOn = async (
     FLAGSHIP_APP_ID: app,
     FLAGSHIP_API_TOKEN: token,
   } = env
+  if (env.FLAGS_ON?.split(',').some((on) => on.trim() === flag)) return true
   if (!account || !app || !token) return false
   try {
     const response = await fetch(
