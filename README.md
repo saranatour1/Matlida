@@ -47,6 +47,7 @@ Set these on the Convex deployment (`pnpm exec convex env set NAME value`):
 | `PHOTON_PROJECT_ID`, `PHOTON_API_KEY`                                       | Email and Telegram through Photon's platform API (beta). Optional                                                                                                                             |
 | `MAIL_DOMAIN`                                                               | The domain users claim `handle@MAIL_DOMAIN` on, connected in Photon. Optional                                                                                                                 |
 | `PHOTON_PHONE_NUMBER`, `PHOTON_SIP_USERNAME`, `PHOTON_SIP_PASSWORD`         | Phone calls: the line they ring from and its Voice profile's outbound SIP credential. `PHOTON_SIP_HOST` if the profile shows a server other than `sip.photon.codes`. Optional                 |
+| `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID`, `FLAGSHIP_API_TOKEN`              | Cloudflare Flagship, for feature flags. Phone calls stay off unless its `phone-calls` flag is on for the user. The token needs only Flagship Evaluate. Optional                               |
 
 To message on Telegram, connect the bot in Photon's dashboard, point the project's webhook at `/photon/webhook`, and set its signing secret as `PHOTON_WEBHOOK_SECRET`. iMessage and WhatsApp go through the Spectrum SDK and its webhook at `/spectrum/webhook`. The full setup for email and every messaging app is in [docs/setup/channels.md](docs/setup/channels.md).
 

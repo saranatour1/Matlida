@@ -120,6 +120,15 @@ Setup, in Photon's dashboard under Voice:
    `PHOTON_PHONE_NUMBER` to the line, like `+14155550123`. If the profile's
    SIP connection isn't `sip.photon.codes`, set `PHOTON_SIP_HOST` to it.
 
+Calling numbers is **off unless a feature flag turns it on**, since it costs
+money and could be abused. In Cloudflare's dashboard, under Flagship:
+
+1. Create an app, and in it a boolean flag `phone-calls`, off by default.
+2. Add a rule that turns it on for your Convex user id (the `targetingKey`).
+3. Create an API token with only the **Flagship Evaluate** permission.
+4. Set `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN` on the
+   deployment. Without them, or if Flagship doesn't answer, calls are refused.
+
 Limits:
 
 - Only a number in your last message, never one from an email or a page.

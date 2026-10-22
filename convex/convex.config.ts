@@ -49,6 +49,10 @@ const app = defineApp({
     PHOTON_SIP_PASSWORD: v.optional(v.string()),
     /** The server under SIP connection on that profile. sip.photon.codes when unset. */
     PHOTON_SIP_HOST: v.optional(v.string()),
+    /** Cloudflare Flagship, for feature flags like phone-calls: the account, the Flagship app, and an API token with only Flagship Evaluate. Unset means every flag is off. */
+    FLAGSHIP_ACCOUNT_ID: v.optional(v.string()),
+    FLAGSHIP_APP_ID: v.optional(v.string()),
+    FLAGSHIP_API_TOKEN: v.optional(v.string()),
     /** Each person's AI spend a month, in dollars. 12 when unset. */
     AI_BUDGET_USD: v.optional(v.string()),
   },

@@ -741,3 +741,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Hang up on the call's card in the chat: the call action checks every 2 seconds, cancelling the call while it rings or ending it once answered.
 - Replaces the ElevenLabs version (#146, closed).
 - Verified with pnpm check and the tests (239): digest against the RFC 2617 and 7616 examples, SIP framing, SDP, µ-law, RTP and the pause detection. Pushed to dev and it deployed. No call was placed.
+
+### Phone calls behind a feature flag (2026-10-22)
+
+- Calling numbers is off unless Cloudflare Flagship's `phone-calls` flag is on for the user, since anyone who signs up could otherwise make the app place calls (`flagOn` in `convex/lib/flags.ts`). The call tool asks Flagship's evaluation API before each call, with the user's Convex id as the targeting key.
+- It fails closed: without `FLAGSHIP_ACCOUNT_ID`, `FLAGSHIP_APP_ID` and `FLAGSHIP_API_TOKEN`, or when Flagship errors, calls are refused. The token needs only Flagship Evaluate.
+

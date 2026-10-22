@@ -14,6 +14,7 @@ import {
 } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import { fetchNews } from '../../lib/news'
+import { FLAGS, flagOn } from '../../lib/flags'
 import { rateLimiter } from '../../lib/limits'
 import { PHONE_NUMBER, typedBy } from '../../lib/phone'
 import { saveCommand } from '../commands/functions'
@@ -608,6 +609,11 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
       }),
       execute: async (ctx, { to, say, about }) => {
         if (!ctx.threadId) throw new Error('Calls need a chat.')
+        if (!(await flagOn(FLAGS.phoneCalls, project.ownerId))) {
+          throw new Error(
+            "Calling numbers is turned off for this account. Tell the user it's switched on with the phone-calls flag in Cloudflare Flagship.",
+          )
+        }
         // Their last few messages, so "call +1…" then "tell her hello" works.
         const asked = (await recentTurns(ctx, ctx.threadId))
           .filter((t) => t.role === 'user')
