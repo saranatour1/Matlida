@@ -749,3 +749,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Ceiling: the model can't look at a file from an earlier message again; attach it again to ask about it. A 10 MB file on the message being answered is still downloaded once per step of that reply.
 - Verified with pnpm check and the tests (230), including one that checks what the model receives for a PDF and then for the next message.
 
+### Stop a reply (2026-10-22)
+
+- While a reply runs, the send button turns into Stop (`chat.stop`). It aborts the reply's stream, which stops the reply at its next word, and marks any pending message failed. A "_Stopped._" note then ends the chat, so it doesn't read as an error.
+- It also unsticks a chat whose reply died, like one that ran out of memory: that reply was left pending forever, which kept the send button disabled.
+- Verified with pnpm check and the tests (230), including a stuck pending reply cleared by Stop, and Stop on someone else's chat refused.
+

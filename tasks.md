@@ -24,6 +24,8 @@
 - [ ] Grade study cards by voice on a review call
 - [ ] Attach markdown, text and audio (needs the sweep to skip agent files)
 - [x] Old attachments no longer sent with every reply (they ran replies out of memory)
+
+- [x] Stop a reply, which also unsticks a reply that died
 - Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats
