@@ -43,6 +43,22 @@ export const decide = async (
   return { choice, probabilities, cost: gatewayCost(providerMetadata) }
 }
 
+/**
+ * Where code acts on Jev's probabilities. Starting points, not measured yet:
+ * every answer is kept in `judgments`, so check `judgments.summary` before
+ * moving one.
+ */
+export const JEV_THRESHOLDS = {
+  /** Below this "still needed", a recurring reminder stops. */
+  stopRecurring: 0.3,
+  /** At least this sure before a recurring reminder goes out another way. */
+  switchChannel: 0.7,
+  /** At least this for a check-in call. */
+  checkInCall: 0.7,
+  /** At least this for a study answer to count as right. */
+  correctAnswer: 0.5,
+}
+
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
 export type Turn = { role: 'user' | 'assistant'; text: string }
 
@@ -226,8 +242,10 @@ export const afterMissedCall = async (
     },
     abortSignal,
   })
+  const { choice, probabilities } = answers.next
   return {
-    next: answers.next.choice,
+    next: choice,
+    probability: probabilities?.[choice] ?? 1,
     cost: gatewayCost(providerMetadata),
   }
 }
@@ -337,7 +355,7 @@ export const checkRecurring = async (
 /**
  * Whether the assistant should call the user now just to check in, and
  * about what: one of their recent requests, work still running, or nothing
- * in particular. `checkIns.run` acts at 0.7, within its limits.
+ * in particular. `checkIns.run` acts at `JEV_THRESHOLDS.checkInCall`, within its limits.
  */
 export const shouldCallNow = async (
   model: Experimental_DecisionModel,
@@ -406,7 +424,7 @@ export const shouldCallNow = async (
   }
 }
 
-/** Whether a short answer to a study question is right, given the expected one. Right at 0.5. */
+/** Whether a short answer to a study question is right, given the expected one. Right at `JEV_THRESHOLDS.correctAnswer`. */
 export const gradeAnswer = async (
   model: Experimental_DecisionModel,
   state: { question: string; expected: string; answer: string },
@@ -424,8 +442,10 @@ export const gradeAnswer = async (
     },
     abortSignal,
   })
+  const { probability } = answers.correct
   return {
-    correct: answers.correct.probability >= 0.5,
+    correct: probability >= JEV_THRESHOLDS.correctAnswer,
+    probability,
     cost: gatewayCost(providerMetadata),
   }
 }

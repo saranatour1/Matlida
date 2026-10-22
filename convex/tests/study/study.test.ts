@@ -133,7 +133,11 @@ test('Jev grades a short answer, and a wrong one comes back soon', async () => {
   })
   const itemId = (await asAda.query(api.api.study.deck, { id: deckId }))!
     .items[0]._id
-  vi.mocked(gradeAnswer).mockResolvedValue({ correct: false, cost: 0 })
+  vi.mocked(gradeAnswer).mockResolvedValue({
+    correct: false,
+    probability: 0.1,
+    cost: 0,
+  })
   expect(
     await asAda.action(api.api.study.check, {
       deckId,

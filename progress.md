@@ -625,3 +625,10 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - The email check (every minute, and on each webhook email event) ran the `receive` mutation for every email of the last 10 minutes, already recorded or not. Now one query (`emails.unseen`) says which are new first, so a quiet minute costs one query instead of one mutation per recent email.
 - A webhook email event used to start a full check right away, so a burst of mail ran several checks side by side. It now queues one check 2 seconds out unless one is already queued (`emails.schedulePoll`, with its scheduled run kept on the one `emailPolls` row, written only when queuing).
 - Same shape as the Telegram fix (#112). Verified with pnpm check and the tests (210), and pushed to dev.
+
+### Jev's thresholds, ready to tune (2026-10-22)
+
+- Asked to tune the thresholds from real answers, but dev had none: 4 reminders in all, no check-ins, no recurring reminders, and Jev's answers weren't kept anywhere. So nothing moved yet; instead they can now be tuned.
+- One place: `JEV_THRESHOLDS` in `convex/lib/decide.ts` (stop a recurring reminder under 0.3, switch its channel at 0.7, call to check in at 0.7, a right answer at 0.5). The four call sites read it.
+- Every Jev answer that code acts on is kept in a new `judgments` table: the kind, Jev's probabilities, its pick, and what the code did (`called`, `no_call`, `over_the_limit`, `stop`, `send_by_call`, `right`, and so on). `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` shows the outcomes and how each score spreads over tenths.
+- Verified with pnpm check and the tests, and pushed to dev.

@@ -8,7 +8,7 @@ import {
 } from '../../_generated/server'
 import { decisionModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
-import { recentTurns, shouldCallNow } from '../../lib/decide'
+import { JEV_THRESHOLDS, recentTurns, shouldCallNow } from '../../lib/decide'
 import { rateLimiter } from '../../lib/limits'
 import { MODELS } from '../../lib/models'
 import { inDaytime, localTime, start } from './functions'
@@ -131,7 +131,8 @@ const call = internalMutation({
 /**
  * Hourly: for each candidate, Jev reads the chat with their assistant and
  * decides whether a call now would be welcome, and about what. It rings at
- * 0.7 or above. One person's failure doesn't stop the rest.
+ * `JEV_THRESHOLDS.checkInCall` or above, and every answer is kept in
+ * `judgments`. One person's failure doesn't stop the rest.
  */
 const run = internalAction({
   args: {},
@@ -162,14 +163,23 @@ const run = internalAction({
             return { result, cost }
           },
         )
-        if (callNow < 0.7) continue
-        await ctx.runMutation(internal.api.checkIns.call, {
+        const call = callNow >= JEV_THRESHOLDS.checkInCall
+        const rang: boolean =
+          call &&
+          (await ctx.runMutation(internal.api.checkIns.call, {
+            userId: person.userId,
+            projectId: person.projectId,
+            threadId: person.threadId,
+            from: person.from,
+            about,
+            review,
+          }))
+        await ctx.runMutation(internal.api.judgments.record, {
           userId: person.userId,
-          projectId: person.projectId,
-          threadId: person.threadId,
-          from: person.from,
-          about,
-          review,
+          kind: 'check_in',
+          scores: { callNow },
+          choice: review ? 'review' : about ? 'topic' : 'catch_up',
+          outcome: rang ? 'called' : call ? 'over_the_limit' : 'no_call',
         })
       } catch (error) {
         console.error(error)

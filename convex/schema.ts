@@ -9,6 +9,7 @@ import { commandsTable } from './models/commands/table'
 import { commentsTable } from './models/comments/table'
 import { contactsTable } from './models/contacts/table'
 import { emailPollsTable, emailsTable } from './models/emails/table'
+import { judgmentsTable } from './models/judgments/table'
 import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { newsSettingsTable } from './models/news/table'
@@ -45,6 +46,7 @@ export default defineSchema({
   pages: pagesTable,
   newsSettings: newsSettingsTable,
   usage: usageTable,
+  judgments: judgmentsTable,
   reminders: remindersTable,
   tasks: tasksTable,
   calls: callsTable,
