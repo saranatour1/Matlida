@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
 
 export const Route = createFileRoute('/_app/p/$projectId/pages/$pageId')({
   component: Page,
@@ -88,11 +89,13 @@ function Page() {
               type="button"
               variant="ghost"
               onClick={() =>
-                void remove({ id: page._id }).then(() =>
-                  navigate({
-                    to: '/p/$projectId/library',
-                    params: { projectId },
-                  }),
+                void attempt(
+                  remove({ id: page._id }).then(() =>
+                    navigate({
+                      to: '/p/$projectId/library',
+                      params: { projectId },
+                    }),
+                  ),
                 )
               }
             >

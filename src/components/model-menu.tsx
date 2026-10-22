@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { InputGroupButton } from '~/components/ui/input-group'
+import { attempt } from '~/lib/attempt'
 
 /**
  * Picks the model the chat's assistant replies with, saved on the assistant
@@ -37,7 +38,7 @@ export function ModelMenu({
   const setModel = useMutation(api.api.threads.setModel)
   const current = model ?? MODELS.chat
   const pick = (next: string | undefined) => {
-    void setModel({ projectId, botId, model: next ?? null })
+    void attempt(setModel({ projectId, botId, model: next ?? null }))
   }
   return (
     <DropdownMenu>

@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import {
   CheckIcon,
@@ -11,6 +12,8 @@ import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '@convex/_generated/dataModel'
 import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
+import { attempt } from '~/lib/attempt'
+import { CardGone, CardSkeleton } from '~/components/card-skeleton'
 
 type RunPlanPart = Extract<
   ChatUIMessage['parts'][number],
@@ -49,7 +52,10 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
   const answer = useMutation(api.api.tasks.answer)
   const cancel = useMutation(api.api.tasks.cancel)
   const retry = useMutation(api.api.tasks.retry)
-  if (!task) return null
+  // One click at a time: the buttons wait while it runs.
+  const [busy, startTransition] = React.useTransition()
+  if (task === undefined) return <CardSkeleton />
+  if (task === null) return <CardGone>This task was removed.</CardGone>
   return (
     <section
       aria-label={`Task: ${task.title}`}
@@ -98,14 +104,20 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
         <div className="flex gap-2">
           <Button
             size="sm"
-            onClick={() => void answer({ taskId, start: true })}
+            disabled={busy}
+            onClick={() =>
+              startTransition(() => attempt(answer({ taskId, start: true })))
+            }
           >
             Start
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => void answer({ taskId, start: false })}
+            disabled={busy}
+            onClick={() =>
+              startTransition(() => attempt(answer({ taskId, start: false })))
+            }
           >
             Don&rsquo;t start
           </Button>
@@ -113,7 +125,11 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
       )}
       {task.status === 'failed' && (
         <div>
-          <Button size="sm" onClick={() => void retry({ taskId })}>
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() => startTransition(() => attempt(retry({ taskId })))}
+          >
             Try again
           </Button>
         </div>
@@ -123,7 +139,8 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => void cancel({ taskId })}
+            disabled={busy}
+            onClick={() => startTransition(() => attempt(cancel({ taskId })))}
           >
             Cancel
           </Button>

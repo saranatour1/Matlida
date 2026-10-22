@@ -7,6 +7,8 @@ import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
+import { attempt } from '~/lib/attempt'
+import { CardSkeleton } from '~/components/card-skeleton'
 
 type StudyToolPart = Extract<
   ChatUIMessage['parts'][number],
@@ -51,7 +53,7 @@ export function StudyDeck({ deckId }: { deckId: string }) {
   const [shown, setShown] = React.useState<Shown>()
   const [right, setRight] = React.useState(0)
   const [error, setError] = React.useState<string>()
-  if (found === undefined) return null
+  if (found === undefined) return <CardSkeleton />
   if (found === null) {
     return <p className="px-1.5 text-sm text-muted-foreground">Deck deleted.</p>
   }
@@ -110,7 +112,7 @@ export function StudyDeck({ deckId }: { deckId: string }) {
                       variant={g.grade === 'good' ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => {
-                        void grade({ id: item._id, grade: g.grade })
+                        void attempt(grade({ id: item._id, grade: g.grade }))
                         next()
                       }}
                     >
@@ -140,10 +142,12 @@ export function StudyDeck({ deckId }: { deckId: string }) {
                   disabled={!!shown}
                   onClick={() => {
                     const correct = i === item.answer
-                    void grade({
-                      id: item._id,
-                      grade: correct ? 'good' : 'again',
-                    })
+                    void attempt(
+                      grade({
+                        id: item._id,
+                        grade: correct ? 'good' : 'again',
+                      }),
+                    )
                     answered(correct, item.back)
                   }}
                 >
