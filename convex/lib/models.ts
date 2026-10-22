@@ -107,6 +107,32 @@ export const VOICES = [
   'bm_george',
 ] as const
 
+/** How the Kokoro voices are shown. */
+export const VOICE_NAMES: Record<(typeof VOICES)[number], string> = {
+  af_heart: 'Heart',
+  af_bella: 'Bella',
+  af_nicole: 'Nicole',
+  am_adam: 'Adam',
+  am_michael: 'Michael',
+  bm_george: 'George',
+}
+
+/** Languages a call can be held in, by ISO 639-1 code. Unset means whatever you speak. */
+export const LANGUAGES = {
+  en: 'English',
+  ar: 'Arabic',
+  fr: 'French',
+  es: 'Spanish',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  tr: 'Turkish',
+  hi: 'Hindi',
+  ja: 'Japanese',
+  zh: 'Chinese',
+} as const
+export type Language = keyof typeof LANGUAGES
+
 /** An assistant's voice, stable for its name. Matilda's is hers alone. */
 export const voiceFor = (name: string): (typeof VOICES)[number] => {
   if (name === 'Matilda') return VOICES[0]

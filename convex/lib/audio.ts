@@ -19,6 +19,12 @@ export const AUDIO_VOICES = [
   'ballad',
 ] as const
 
+export type AudioVoice = (typeof AUDIO_VOICES)[number]
+
+/** How the audio chat voices are shown: their own names, capitalized. */
+export const audioVoiceName = (voice: string) =>
+  voice.charAt(0).toUpperCase() + voice.slice(1)
+
 /** An assistant's audio chat voice, stable for its name. Matilda's is hers alone. */
 export const audioVoiceFor = (name: string): (typeof AUDIO_VOICES)[number] => {
   if (name === 'Matilda') return AUDIO_VOICES[0]

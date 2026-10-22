@@ -4,11 +4,11 @@ import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { budgetedModel } from '../../lib/budget'
-import { EFFORTS, MODELS } from '../../lib/models'
+import { EFFORTS, LANGUAGES, MODELS } from '../../lib/models'
 import { showsVia } from './everyday'
 import { assistantTools } from './tools'
 import type { UsageHandler } from '@convex-dev/agent'
-import type { Effort } from '../../lib/models'
+import type { Effort, Language } from '../../lib/models'
 import type { ToolSet } from 'ai'
 import type { ActionCtx, Doc, Id } from '../../lib/ctx'
 
@@ -48,13 +48,16 @@ export type ReplyOptions = {
   timeZone?: string
   /** On a call: the user talked over the last reply. */
   cutOff?: boolean
+  /** On a call: the language to speak, as its ISO 639-1 code. Unset means the user's. */
+  language?: Language
 }
 
-/** How to write the reply, and whether the user missed the end of the last one. */
-const style = (via: Via, cutOff?: boolean) => {
-  return cutOff
+/** How to write the reply, whether the user missed the end of the last one, and what language to use. */
+const style = (via: Via, cutOff?: boolean, language?: Language) => {
+  const base = cutOff
     ? `${STYLE[via]} The user just talked over your last reply, so they may not have heard the end of it. Answer what they said now, and don't repeat yourself unless they ask.`
     : STYLE[via]
+  return language ? `${base} Speak ${LANGUAGES[language]}.` : base
 }
 
 /** The current time in the user's zone, for reminders and anything date-relative. */
@@ -70,7 +73,7 @@ const now = (timeZone = 'UTC') => {
 const leadInstructions = (
   project: Project,
   bots: Array<Bot>,
-  { command, via = 'chat', timeZone, cutOff }: ReplyOptions,
+  { command, via = 'chat', timeZone, cutOff, language }: ReplyOptions,
 ) => {
   const team = bots.length
     ? `Your bots:
@@ -80,7 +83,7 @@ For anything beyond small talk, hand the work to the relevant bots with ask_bot.
     : 'No bots are in this chat, so answer yourself. The user can add bots to it from the chat header.'
   return `You are ${project.name}, who leads this project. The user is your partner.
 ${project.brief ? `About the project: ${project.brief}\n` : ''}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(
+${style(via, cutOff, language)}${now(timeZone)}${guidelines(project)}${ranCommand(
     command,
   )}`
 }
@@ -96,14 +99,14 @@ const botInstructions = (
   project: Project,
   bot: Bot,
   members: Array<Bot>,
-  { command, via = 'chat', timeZone, cutOff }: ReplyOptions = {},
+  { command, via = 'chat', timeZone, cutOff, language }: ReplyOptions = {},
 ) => {
   const team = members.length
     ? `\nTeammates in this chat, who you can ask with ask_bot:\n${members.map((m) => `- ${m.name}: ${m.role}`).join('\n')}`
     : ''
   return `You are ${bot.name}, ${bot.role}, working for ${project.name}.
 ${bot.instructions}${team}
-${style(via, cutOff)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
+${style(via, cutOff, language)}${now(timeZone)}${guidelines(project)}${ranCommand(command)}`
 }
 
 /**

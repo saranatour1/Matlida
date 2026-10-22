@@ -534,3 +534,10 @@
 - Telegram through the platform API (`/photon/webhook`) stays as it is; a chat linked there keeps replying that way.
 - Verified with pnpm check and the tests (189, the Spectrum ones restored: a failed reply still texts back, an ignored message closes its turn, replies go out through each app's provider). Dev remounted the component cleanly. pnpm audit is still clean.
 
+### Voice settings on calls (2026-10-22)
+
+- A gear in the call panel's header opens three rows, kept on this browser like the volume: **Voice** (a Kokoro voice, or the assistant's own; Fast voice lists its own voices), **Speed** (0.75x to 1.5x) and **Language** (auto, or one of eleven).
+- The voice and language go with each turn: the voice is spoken in, the language is passed to Whisper as a hint and to the reply as "Speak French.", on Fast voice too.
+- Speed is the browser's: replies now play through `<audio>` elements routed into the call's volume and level meter, so a faster speed keeps the pitch, and a change applies to the piece playing. Pausing when you talk over a reply resumes from the same second as before.
+- Verified with pnpm check and the tests (the voice reaches the speech model, the language reaches transcription and the reply's instructions). The panel isn't tried in the browser.
+

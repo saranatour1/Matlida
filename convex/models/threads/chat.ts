@@ -28,7 +28,7 @@ import { gatewayCost } from '../usage/functions'
 import { ensureMainThread } from './functions'
 import { getMembers, getOwnedThread } from './queries'
 import { createAgent } from './lead'
-import type { Effort } from '../../lib/models'
+import type { Effort, Language } from '../../lib/models'
 import type { Via } from './lead'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
@@ -186,6 +186,7 @@ export const runReply = async (
     timeZone,
     via,
     cutOff,
+    language,
     onText,
   }: {
     threadId: string
@@ -196,6 +197,8 @@ export const runReply = async (
     via?: Via
     /** On a call: the user talked over the last reply. */
     cutOff?: boolean
+    /** On a call: the language to speak. */
+    language?: Language
     /** Each piece of the reply's text as it streams, with who is replying. */
     onText?: (
       delta: string,
@@ -235,6 +238,7 @@ export const runReply = async (
     timeZone,
     via,
     cutOff,
+    language,
     model: model ?? undefined,
     effort: effort ?? undefined,
     command: command && markdown ? { name: command.name, markdown } : undefined,
@@ -322,6 +326,8 @@ export const transcribeClip = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   storageId: Id<'_storage'>,
+  /** What's spoken, as an ISO 639-1 code, when the user set it. */
+  language?: Language,
 ) => {
   const audio = await ctx.storage.get(storageId)
   await ctx.storage.delete(storageId)
@@ -336,6 +342,7 @@ export const transcribeClip = async (
       const heard = await transcribeAudio({
         model: transcriptionModel,
         audio: new Uint8Array(await audio.arrayBuffer()),
+        ...(language && { providerOptions: { convexGateway: { language } } }),
       })
       return { result: heard, cost: gatewayCost(heard.providerMetadata) }
     },

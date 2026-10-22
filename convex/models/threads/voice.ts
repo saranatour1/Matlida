@@ -11,7 +11,9 @@ import { MODELS } from '../../lib/models'
 import { transcribeClip } from './chat'
 import { ensureMainThread } from './functions'
 import { instructionsFor } from './lead'
+import type { AudioVoice } from '../../lib/audio'
 import type { ActionCtx, Doc, Id } from '../../lib/ctx'
+import type { Language } from '../../lib/models'
 
 /** The assistant's one chat, where a voice turn goes, and who answers. */
 const prepare = internalMutation({
@@ -122,6 +124,9 @@ export const speakWith = async (
     storageId: Id<'_storage'>
     timeZone?: string
     cutOff?: boolean
+    /** From the call's settings: a voice instead of the assistant's own, and the language. */
+    voice?: AudioVoice
+    language?: Language
     onHeard?: (text: string) => Promise<unknown>
     onAudio: (pcm: Uint8Array, transcript: string) => Promise<void> | void
   },
@@ -139,13 +144,16 @@ export const speakWith = async (
   const said = await history(ctx, threadId)
   const name = (bot ?? project).name
   const stop = new AbortController()
-  const hearing = transcribeClip(ctx, turn.userId, turn.storageId).then(
-    async (heard) => {
-      if (!heard.text) stop.abort()
-      await turn.onHeard?.(heard.text)
-      return heard
-    },
-  )
+  const hearing = transcribeClip(
+    ctx,
+    turn.userId,
+    turn.storageId,
+    turn.language,
+  ).then(async (heard) => {
+    if (!heard.text) stop.abort()
+    await turn.onHeard?.(heard.text)
+    return heard
+  })
   const answering = metered(
     ctx,
     { userId: turn.userId, model: MODELS.audioChat, estimate: 0.05 },
@@ -156,11 +164,12 @@ export const speakWith = async (
             via: 'voice',
             timeZone: turn.timeZone,
             cutOff: turn.cutOff,
+            language: turn.language,
           }),
           history: said,
           audio,
           format: 'wav',
-          voice: audioVoiceFor(name),
+          voice: turn.voice ?? audioVoiceFor(name),
         },
         turn.onAudio,
         stop.signal,

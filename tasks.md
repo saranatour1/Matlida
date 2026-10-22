@@ -56,6 +56,7 @@
 - [x] Models as an object map
 - [x] Audio chat: talk hands-free in the chat with a speaking animation, and Fast voice on calls
 - [x] A mute toggle on the volume bar
+- [x] Voice, speed and language settings on calls
 - [x] Pictures: /image makes one with GPT Image 1, saved in Convex storage
 - [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
 - [x] Pictures and videos on calls, shown in the chat beside the call
