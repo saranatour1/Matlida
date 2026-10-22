@@ -81,6 +81,22 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 - Off switch: "Let assistants call to check in" on Settings → Account.
 - Cost: up to 12 Jev calls a day per active person, about $0.06.
 
+## Study (PR 7)
+
+- Component `study`: `decks` (title, topic, format cards or quiz) and
+  `items` (card, choice or short answer, plus an SM-2-style schedule: `due`,
+  `interval`, `ease`, `reps`). `nextReview`: again comes back in 10 minutes
+  and starts over, good goes 1 day, then 6, then by ease, hard grows more
+  slowly and easy faster. Dates are done with luxon.
+- `make_study_set` (tool), `/study` and `/quiz` (commands), and the
+  Library's New deck form all call `makeDeck`. It writes the items with
+  `generateObject` on the chat model, metered against your budget, and
+  turns a broken choice question into a short-answer one.
+- Short answers are graded by Jev (`gradeAnswer`, right at 0.5): different
+  wording is fine, partly right isn't. Right counts as good, wrong as again.
+- Review calls: check-ins pass the number of due cards to `shouldCallNow`,
+  which can choose `review`. That call opens with up to 5 due questions.
+
 ## Open questions
 
 - Calls to your real phone, rather than the app: no provider is picked
@@ -95,5 +111,16 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 - [x] PR 3: check-in calls on an hourly cron, with `shouldCallNow` and the daily limit
 - [x] PR 4: "what can you do" as command pills (`show_commands`)
 - [x] PR 5: attachments through the agent component's file storage, with paste and drop
-- [x] PR 6: edit and retry (`deleteMessageRange`, then reply again)
-- [ ] PR 7: study component (`convex/components/study/`): cards, quizzes, spaced review, and review calls
+- [x] PR 6: edit and retry (`deleteByOrder`, then reply again)
+- [x] PR 7: study component (`convex/components/study/`): cards, quizzes, spaced review, and review calls
+
+### Follow-ups, not started
+
+- Grade study cards by voice on a review call. The call opens with the
+  questions and the chat has them, but answers given on the call aren't
+  recorded yet. A `grade_study_item` tool that knows the item ids would do it.
+- Attach markdown, text and audio files. The hourly `commands.sweepFiles`
+  would delete them today, so it first needs to skip files the agent
+  component's `files` table references.
+- Check live which gateway models read PDF attachments.
+- Phone calls outside the app: pick a provider (not Twilio).

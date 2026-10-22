@@ -270,6 +270,7 @@ export const everydayTools = (project: Doc<'projects'>) => {
 
 /** Tools that only show a card, which texts, calls and emails can't show. */
 const CARD_TOOLS = new Set([
+  'make_study_set',
   'show_commands',
   'show_chart',
   'preview_post',

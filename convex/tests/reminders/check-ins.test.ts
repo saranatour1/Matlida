@@ -2,10 +2,10 @@ import agentTest from '@convex-dev/agent/test'
 import rateLimiterTest from '@convex-dev/rate-limiter/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { api, internal } from '../../_generated/api'
+import { api, components, internal } from '../../_generated/api'
 import { afterMissedCall, shouldCallNow } from '../../lib/decide'
 import schema from '../../schema'
-import { modules } from '../../test.setup'
+import { modules, registerStudy } from '../../test.setup'
 import type * as Decide from '../../lib/decide'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
@@ -22,7 +22,12 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2026-10-22T09:30:00Z'))
   jev.mockReset()
-  jev.mockResolvedValue({ callNow: 0.9, about: 'the tax form', cost: 0 })
+  jev.mockResolvedValue({
+    callNow: 0.9,
+    about: 'the tax form',
+    review: false,
+    cost: 0,
+  })
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -32,6 +37,7 @@ const setup = async (user: { checkIns?: boolean } = {}) => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
   rateLimiterTest.register(t)
+  registerStudy(t)
   const ada = await t.run((ctx) =>
     ctx.db.insert('users', { name: 'Ada', timeZone: 'UTC', ...user }),
   )
@@ -60,7 +66,7 @@ const setup = async (user: { checkIns?: boolean } = {}) => {
     await t.finishInProgressScheduledFunctions()
   }
   const reminders = () => t.run((ctx) => ctx.db.query('reminders').take(10))
-  return { t, asAda, chatted, run, reminders }
+  return { t, ada, projectId, asAda, chatted, run, reminders }
 }
 
 test('Jev decides to check in, and the assistant rings about it', async () => {
@@ -80,7 +86,7 @@ test('Jev decides to check in, and the assistant rings about it', async () => {
 })
 
 test('no call when Jev is unsure', async () => {
-  jev.mockResolvedValue({ callNow: 0.5, about: null, cost: 0 })
+  jev.mockResolvedValue({ callNow: 0.5, about: null, review: false, cost: 0 })
   const { run, reminders } = await setup()
   await run()
   expect(await reminders()).toEqual([])
@@ -125,4 +131,31 @@ test('a missed check-in is left in the chat, without another call', async () => 
     { status: 'sent', note: 'You missed the call.' },
   ])
   expect(afterMissedCall).not.toHaveBeenCalled()
+})
+
+test('with cards due, a review call opens with up to 5 of them', async () => {
+  jev.mockResolvedValue({ callNow: 0.9, about: null, review: true, cost: 0 })
+  const { t, ada, projectId, run, reminders } = await setup()
+  await t.mutation(components.study.decks.create, {
+    userId: ada,
+    projectId,
+    title: 'Capitals',
+    topic: 'European capitals',
+    format: 'cards',
+    items: ['France', 'Spain', 'Italy', 'Peru', 'Chile', 'Japan'].map(
+      (country) => ({
+        kind: 'card' as const,
+        front: `Capital of ${country}?`,
+        back: '…',
+      }),
+    ),
+  })
+  await run()
+  expect(jev).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ cardsDue: 6 }),
+  )
+  const [call] = await reminders()
+  expect(call.message).toMatch(/^Time to review 5 study cards: 1\) Capital of/)
+  expect(call.message).not.toContain('Japan')
 })
