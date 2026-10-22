@@ -74,7 +74,7 @@ function Landing() {
   )
 }
 
-/** A small "Made with Convex" pill, in Convex's colors, linking to convex.dev. */
+/** "Made with Convex", with Convex's own symbol from their brand kit (unaltered), linking to convex.dev. */
 function MadeWithConvex() {
   return (
     <a
@@ -83,11 +83,7 @@ function MadeWithConvex() {
       rel="noreferrer"
       className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
     >
-      <span aria-hidden className="flex gap-0.5">
-        <span className="size-2 rounded-full bg-[#f3b01c]" />
-        <span className="size-2 rounded-full bg-[#ee342f]" />
-        <span className="size-2 rounded-full bg-[#8d2676]" />
-      </span>
+      <img src="/convex-symbol.svg" alt="" width={22} height={22} />
       Made with Convex
     </a>
   )

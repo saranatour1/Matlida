@@ -725,3 +725,6 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - SEO: a description that says what she does, absolute `og:image` and `og:url` (from `VITE_SITE_URL`, falling back to `https://matilda-is-a-bot.app`), a canonical link and `SoftwareApplication` structured data on `/`, `theme-color`, and `noindex, nofollow` on every signed-in page. The manifest has the new description, dark colors and `start_url: /projects`.
 - `public/robots.txt` allows the front page and sign-in, keeps `/projects`, `/p/`, `/reset-password` and `/verify-email` out, and points to the sitemap. `public/sitemap.xml` lists `/`, `/sign-in` and `/sign-up`. `public/llms.txt` says what Matilda is and does, for AI crawlers.
 - Verified with pnpm check, the tests, the server HTML of `/` (no JavaScript), and the page on desktop and phone sizes.
+- The "Made with Convex" pill uses Convex's own symbol (`public/convex-symbol.svg`), copied unaltered from their brand kit at convex.dev/brand, as their rules ask.
+- `public/og.png` is redrawn to match the page: Matilda's photo, "She actually calls you.", the call button, "because I made her that way", the domain, and the Convex pill. It's 1200×630.
+
