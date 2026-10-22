@@ -1,4 +1,3 @@
-import { literals } from 'convex-helpers/validators'
 import { ConvexError, v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import {
@@ -18,7 +17,7 @@ import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
 import { spectrum } from './spectrum'
 import { getLinks } from './queries'
-import type { Doc, MutationCtx } from '../../lib/ctx'
+import type { ActionCtx, Doc, MutationCtx } from '../../lib/ctx'
 
 /** Letters and digits that can't be confused with each other when typed. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -149,13 +148,6 @@ const admitText = async (
 const linkCode = (text: string) =>
   /^link\s+([a-z0-9]{6})$/i.exec(text.trim())?.[1]
 
-const admit = internalMutation({
-  args: { spaceId: v.string(), kind: literals('message', 'link') },
-  returns: v.boolean(),
-  handler: async (ctx, { spaceId, kind }) =>
-    await admitText(ctx, spaceId, kind),
-})
-
 /**
  * Keeps `text` for `find_texts` and returns Matilda's chat for messages from
  * `spaceId`, started if needed: texts only ever go to her. Null when the
@@ -196,67 +188,64 @@ const forSpace = internalMutation({
 /**
  * What to send back to a message from `spaceId`. Links the chat, or lets its
  * assistant answer. Empty when nothing should be sent: a chat that's over
- * its limit while unlinked, or guessing codes.
+ * its limit while unlinked, or guessing codes. `admitted` is the limit,
+ * taken by the mutation that recorded the message. A plain function, so
+ * both reply actions run it in place instead of calling another action.
  */
-const answer = internalAction({
-  args: {
-    spaceId: v.string(),
-    platform: v.string(),
-    text: v.string(),
-    agentId: v.optional(v.string()),
-    /** Set when the limit was already checked as the message was recorded. */
-    admitted: v.optional(v.boolean()),
+const answer = async (
+  ctx: ActionCtx,
+  {
+    spaceId,
+    platform,
+    text,
+    agentId,
+    admitted,
+  }: {
+    spaceId: string
+    platform: string
+    text: string
+    agentId?: string
+    admitted: boolean
   },
-  returns: v.string(),
-  handler: async (
-    ctx,
-    { spaceId, platform, text, agentId, admitted: checked },
-  ): Promise<string> => {
-    const code = linkCode(text)
-    const admitted: boolean =
-      checked ??
-      (await ctx.runMutation(internal.api.texts.admit, {
-        spaceId,
-        kind: code ? 'link' : 'message',
-      }))
-    if (code) {
-      if (!admitted) return ''
-      const name: string | null = await ctx.runMutation(
-        internal.api.texts.claim,
-        { code, spaceId, platform, agentId },
-      )
-      return name
-        ? `Linked to ${name}. Message me anytime.`
-        : "That code didn't match. Get a new one on the Messaging page in Matilda."
-    }
-    const linked: {
-      project: Doc<'projects'>
-      members: Array<Doc<'bots'>>
-      threadId: string
-    } | null = await ctx.runMutation(internal.api.texts.forSpace, {
-      spaceId,
-      platform,
-      // Texts over the limit aren't kept for find_texts.
-      text: admitted ? text : '',
-    })
-    if (!linked) {
-      return admitted
-        ? "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
-        : ''
-    }
-    if (!admitted) {
-      return "You're sending a lot of messages. Give me a few minutes and try again."
-    }
-    const { project, members, threadId } = linked
-    const agent = createAgent(ctx, project, { members, via: 'text' })
-    const reply = await agent.generateText(
-      ctx,
-      { threadId, userId: project.ownerId },
-      { prompt: text.trim() },
+): Promise<string> => {
+  const code = linkCode(text)
+  if (code) {
+    if (!admitted) return ''
+    const name: string | null = await ctx.runMutation(
+      internal.api.texts.claim,
+      { code, spaceId, platform, agentId },
     )
-    return reply.text
-  },
-})
+    return name
+      ? `Linked to ${name}. Message me anytime.`
+      : "That code didn't match. Get a new one on the Messaging page in Matilda."
+  }
+  const linked: {
+    project: Doc<'projects'>
+    members: Array<Doc<'bots'>>
+    threadId: string
+  } | null = await ctx.runMutation(internal.api.texts.forSpace, {
+    spaceId,
+    platform,
+    // Texts over the limit aren't kept for find_texts.
+    text: admitted ? text : '',
+  })
+  if (!linked) {
+    return admitted
+      ? "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows."
+      : ''
+  }
+  if (!admitted) {
+    return "You're sending a lot of messages. Give me a few minutes and try again."
+  }
+  const { project, members, threadId } = linked
+  const agent = createAgent(ctx, project, { members, via: 'text' })
+  const reply = await agent.generateText(
+    ctx,
+    { threadId, userId: project.ownerId },
+    { prompt: text.trim() },
+  )
+  return reply.text
+}
 
 /**
  * Records a message from `/photon/webhook` once, and schedules its answer.
@@ -330,21 +319,19 @@ const replyOnPhoton = internalAction({
   ) => {
     const keys = photonKeys(env)
     if (!keys) return null
-    const reply: string = await ctx
-      .runAction(internal.api.texts.answer, {
-        spaceId,
-        platform,
-        text,
-        agentId,
-        admitted,
-      })
-      .catch((error: unknown) => {
-        console.error(error)
-        return (
-          budgetMessage(error) ??
-          'Sorry, something went wrong. Try again in a minute.'
-        )
-      })
+    const reply = await answer(ctx, {
+      spaceId,
+      platform,
+      text,
+      agentId,
+      admitted,
+    }).catch((error: unknown) => {
+      console.error(error)
+      return (
+        budgetMessage(error) ??
+        'Sorry, something went wrong. Try again in a minute.'
+      )
+    })
     if (!reply) return null
     await sendText(keys, {
       spaceId,
@@ -472,8 +459,13 @@ const textOf = (message: unknown) => {
     : ''
 }
 
-/** The Spectrum SDK's batch handler: one turn per burst of texts from a chat on iMessage, WhatsApp or Telegram. */
-const respond = internalAction({
+/**
+ * The Spectrum SDK's batch handler: one turn per burst of texts from a chat
+ * on iMessage, WhatsApp or Telegram. A mutation, so the chat's limit is
+ * taken here as the burst arrives, like `received` does for Photon's API,
+ * and the reply runs after.
+ */
+const batch = internalMutation({
   args: {
     spaceId: v.string(),
     chainId: v.string(),
@@ -481,44 +473,68 @@ const respond = internalAction({
     carried: v.array(v.any()),
   },
   returns: v.null(),
-  handler: async (ctx, args) => {
-    const text = [...args.carried, ...args.messages]
+  handler: async (ctx, { spaceId, chainId, messages, carried }) => {
+    const text = [...carried, ...messages]
       .map(textOf)
       .filter(Boolean)
       .join('\n')
+    if (!text) {
+      await spectrum.completeChain(ctx, { spaceId, chainId })
+      return null
+    }
+    const admitted = await admitText(
+      ctx,
+      spaceId,
+      linkCode(text) ? 'link' : 'message',
+    )
+    const platform =
+      (await spectrum.getSpace(ctx, { spaceId }))?.platform ?? 'imessage'
+    await ctx.scheduler.runAfter(0, internal.api.texts.respond, {
+      spaceId,
+      chainId,
+      platform,
+      text,
+      admitted,
+    })
+    return null
+  },
+})
+
+/** Replies to a Spectrum burst, unless a newer text superseded it, then closes the turn. */
+const respond = internalAction({
+  args: {
+    spaceId: v.string(),
+    chainId: v.string(),
+    platform: v.string(),
+    text: v.string(),
+    admitted: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { chainId, ...message }) => {
+    const chain = { spaceId: message.spaceId, chainId }
     try {
-      if (text) {
-        const reply: string = await ctx
-          .runAction(internal.api.texts.answer, {
-            spaceId: args.spaceId,
-            platform:
-              (await spectrum.getSpace(ctx, { spaceId: args.spaceId }))
-                ?.platform ?? 'imessage',
-            text,
-          })
-          .catch((error: unknown) => {
-            console.error(error)
-            return (
-              budgetMessage(error) ??
-              'Sorry, something went wrong. Try again in a minute.'
-            )
-          })
-        // A newer text may have superseded this turn while the lead was thinking.
-        if (!reply || (await spectrum.isCancelled(ctx, args))) return null
-        await spectrum.send(ctx, {
-          spaceId: args.spaceId,
-          chainId: args.chainId,
-          content: { type: 'text', text: reply },
-        })
-      }
+      const reply = await answer(ctx, message).catch((error: unknown) => {
+        console.error(error)
+        return (
+          budgetMessage(error) ??
+          'Sorry, something went wrong. Try again in a minute.'
+        )
+      })
+      // A newer text may have superseded this turn while the lead was thinking.
+      if (!reply || (await spectrum.isCancelled(ctx, chain))) return null
+      await spectrum.send(ctx, {
+        ...chain,
+        content: { type: 'text', text: reply },
+      })
     } finally {
-      await spectrum.completeChain(ctx, args)
+      await spectrum.completeChain(ctx, chain)
     }
     return null
   },
 })
 
 export const textsApi = {
+  batch,
   respond,
   links,
   startLink,
@@ -526,8 +542,6 @@ export const textsApi = {
   claim,
   forSpace,
   search,
-  admit,
-  answer,
   received,
   replyOnPhoton,
   unseen,

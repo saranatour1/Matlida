@@ -1,6 +1,7 @@
 import { textsApi } from '../models/texts/functions'
 
 export const {
+  batch,
   respond,
   links,
   startLink,
@@ -8,8 +9,6 @@ export const {
   claim,
   forSpace,
   search,
-  admit,
-  answer,
   received,
   replyOnPhoton,
   unseen,
