@@ -597,3 +597,9 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - **Fewer writes to a shared row:** every Telegram message read and rewrote the one `telegramPolls` row, so messages from different people conflicted with each other and with the fast check. It's now written only when the loop needs a new run or the window moves by more than 15 seconds.
 - **Bounded:** the daily-news scan read every row with a daily time; it now takes at most 1000.
 - Dev had no rows to migrate. Verified with pnpm check and the tests (208), and pushed to dev.
+
+### A cheaper email check (2026-10-22)
+
+- The email check (every minute, and on each webhook email event) ran the `receive` mutation for every email of the last 10 minutes, already recorded or not. Now one query (`emails.unseen`) says which are new first, so a quiet minute costs one query instead of one mutation per recent email.
+- A webhook email event used to start a full check right away, so a burst of mail ran several checks side by side. It now queues one check 2 seconds out unless one is already queued (`emails.schedulePoll`, with its scheduled run kept on the one `emailPolls` row, written only when queuing).
+- Same shape as the Telegram fix (#112). Verified with pnpm check and the tests (210), and pushed to dev.

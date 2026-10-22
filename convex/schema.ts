@@ -8,7 +8,7 @@ import {
 import { commandsTable } from './models/commands/table'
 import { commentsTable } from './models/comments/table'
 import { contactsTable } from './models/contacts/table'
-import { emailsTable } from './models/emails/table'
+import { emailPollsTable, emailsTable } from './models/emails/table'
 import { mailboxesTable } from './models/mailboxes/table'
 import { projectsTable } from './models/projects/table'
 import { newsSettingsTable } from './models/news/table'
@@ -40,6 +40,7 @@ export default defineSchema({
   telegramPolls: telegramPollsTable,
   mailboxes: mailboxesTable,
   emails: emailsTable,
+  emailPolls: emailPollsTable,
   plans: plansTable,
   pages: pagesTable,
   newsSettings: newsSettingsTable,
