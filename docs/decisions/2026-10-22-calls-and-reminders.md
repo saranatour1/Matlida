@@ -101,8 +101,14 @@ Each judgment is one `experimental_decide` call, about $0.005, metered.
 
 - Calls to your real phone, rather than the app: no provider is picked
   (not Twilio). The ring only reaches an open Matilda tab.
-- The 0.3 and 0.7 thresholds are starting points. Adjust them once dev's logs
-  show real answers.
+- The thresholds (`JEV_THRESHOLDS` in `convex/lib/decide.ts`: 0.3 to stop a
+  recurring reminder, 0.7 to switch its channel, 0.7 for a check-in call,
+  0.5 for a right answer) are starting points. On 2026-10-22 dev had no
+  answers to tune them from: 4 reminders, no check-ins, no recurring ones,
+  and Jev's answers weren't kept. Every answer is now kept in `judgments`.
+  Check `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'`
+  (or `recurring`, `after_missed_call`, `answer`) after a few weeks, then
+  move a threshold where the outcomes say it's wrong.
 
 ## Next steps
 

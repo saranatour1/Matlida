@@ -70,7 +70,7 @@ const setup = async (user: { checkIns?: boolean } = {}) => {
 }
 
 test('Jev decides to check in, and the assistant rings about it', async () => {
-  const { asAda, run, reminders } = await setup()
+  const { t, asAda, run, reminders } = await setup()
   await run()
   expect(await reminders()).toMatchObject([
     {
@@ -83,6 +83,9 @@ test('Jev decides to check in, and the assistant rings about it', async () => {
   expect(await asAda.query(api.api.reminders.ringing, {})).toMatchObject([
     { from: 'Matilda', checkIn: true },
   ])
+  expect(
+    await t.query(internal.api.judgments.summary, { kind: 'check_in' }),
+  ).toMatchObject({ count: 1, outcomes: { called: 1 } })
 })
 
 test('no call when Jev is unsure', async () => {

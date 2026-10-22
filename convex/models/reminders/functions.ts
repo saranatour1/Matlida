@@ -12,7 +12,12 @@ import {
 } from '../../_generated/server'
 import { decisionModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
-import { afterMissedCall, checkRecurring, recentTurns } from '../../lib/decide'
+import {
+  JEV_THRESHOLDS,
+  afterMissedCall,
+  checkRecurring,
+  recentTurns,
+} from '../../lib/decide'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
 import { rateLimiter } from '../../lib/limits'
@@ -612,20 +617,28 @@ const nextAfterMiss = async (
 ): Promise<AfterMissed> => {
   try {
     const conversation = (await recentTurns(ctx, reminder.threadId)).slice(-6)
-    return await metered(
+    const { next, probability } = await metered(
       ctx,
       { userId: ownerId, model: MODELS.decide, estimate: 0.005 },
       async () => {
-        const { next, cost } = await afterMissedCall(decisionModel, {
+        const { cost, ...result } = await afterMissedCall(decisionModel, {
           reminder: reminder.message,
           attempts,
           declined,
           localTime: localTime(Date.now(), timeZone),
           conversation,
         })
-        return { result: next, cost }
+        return { result, cost }
       },
     )
+    await ctx.runMutation(internal.api.judgments.record, {
+      userId: ownerId,
+      kind: 'after_missed_call',
+      scores: { [next]: probability },
+      choice: next,
+      outcome: next,
+    })
+    return next
   } catch (error) {
     console.error(error)
     return 'leave_in_chat'
@@ -708,7 +721,25 @@ const recurringVia = async (
     console.error(error)
     return reminder.via
   }
-  if (check.stillNeeded < 0.3) {
+  const { stillNeeded, action, channel, channelProbability } = check
+  const switched =
+    action === 'notify_differently' &&
+    channelProbability >= JEV_THRESHOLDS.switchChannel
+  const stop = stillNeeded < JEV_THRESHOLDS.stopRecurring
+  await ctx.runMutation(internal.api.judgments.record, {
+    userId: ownerId,
+    kind: 'recurring',
+    scores: { stillNeeded, channel: channelProbability },
+    choice: action,
+    outcome: stop
+      ? 'stop'
+      : switched
+        ? `send_by_${channel}`
+        : action === 'notify_differently'
+          ? 'deliver'
+          : action,
+  })
+  if (stop) {
     await ctx.runMutation(internal.api.reminders.settle, {
       id: reminder._id,
       status: 'cancelled',
@@ -716,7 +747,7 @@ const recurringVia = async (
     })
     return null
   }
-  if (check.action === 'pause') {
+  if (action === 'pause') {
     await ctx.runMutation(internal.api.reminders.settle, {
       id: reminder._id,
       status: 'paused',
@@ -724,11 +755,8 @@ const recurringVia = async (
     })
     return null
   }
-  if (check.action === 'skip_once') return null
-  return check.action === 'notify_differently' &&
-    check.channelProbability >= 0.7
-    ? check.channel
-    : reminder.via
+  if (action === 'skip_once') return null
+  return switched ? channel : reminder.via
 }
 
 /** Delivers a due reminder: a ring, a text or an email when asked for, and always a chat message. */

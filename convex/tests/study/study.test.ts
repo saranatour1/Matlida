@@ -133,7 +133,11 @@ test('Jev grades a short answer, and a wrong one comes back soon', async () => {
   })
   const itemId = (await asAda.query(api.api.study.deck, { id: deckId }))!
     .items[0]._id
-  vi.mocked(gradeAnswer).mockResolvedValue({ correct: false, cost: 0 })
+  vi.mocked(gradeAnswer).mockResolvedValue({
+    correct: false,
+    probability: 0.1,
+    cost: 0,
+  })
   expect(
     await asAda.action(api.api.study.check, {
       deckId,
@@ -162,7 +166,11 @@ test('an answer, typed or said on a call, is checked only against your own cards
   })
   const itemId = (await asAda.query(api.api.study.deck, { id: deckId }))!
     .items[0]._id
-  vi.mocked(gradeAnswer).mockResolvedValue({ correct: true, cost: 0 })
+  vi.mocked(gradeAnswer).mockResolvedValue({
+    correct: true,
+    probability: 0.9,
+    cost: 0,
+  })
   await expect(
     asBob.action(api.api.study.check, { deckId, itemId, answer: 'Gracias' }),
   ).rejects.toThrow('Question not found.')

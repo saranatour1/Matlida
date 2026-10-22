@@ -642,3 +642,10 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 
 - Checked on dev with a one-page PDF ("The secret word is MARMALADE."), sent the way an attachment is: a Convex storage URL in a `file` part with `application/pdf`. All 10 chat models answered MARMALADE: Claude Sonnet 5, Opus 5 and Haiku 4.5, GPT-5 and GPT-5 mini, Gemini 2.5 Pro and Flash, DeepSeek V3.2, Grok 4.7 and Muse Spark 1.3. So no model needs PDFs turned off.
 - The check was a temporary dev-only function, deleted after the run along with its PDF. It cost a few cents.
+
+### Jev's thresholds, ready to tune (2026-10-22)
+
+- Asked to tune the thresholds from real answers, but dev had none: 4 reminders in all, no check-ins, no recurring reminders, and Jev's answers weren't kept anywhere. So nothing moved yet; instead they can now be tuned.
+- One place: `JEV_THRESHOLDS` in `convex/lib/decide.ts` (stop a recurring reminder under 0.3, switch its channel at 0.7, call to check in at 0.7, a right answer at 0.5). The four call sites read it.
+- Every Jev answer that code acts on is kept in a new `judgments` table: the kind, Jev's probabilities, its pick, and what the code did (`called`, `no_call`, `over_the_limit`, `stop`, `send_by_call`, `right`, and so on). `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` shows the outcomes and how each score spreads over tenths.
+- Verified with pnpm check and the tests, and pushed to dev.

@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2026-10-22T12:00:00Z'))
   jev.mockReset()
-  jev.mockResolvedValue({ next: 'call_again_soon', cost: 0 })
+  jev.mockResolvedValue({ next: 'call_again_soon', probability: 0.8, cost: 0 })
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -101,19 +101,19 @@ test('she stops after three missed calls', async () => {
 })
 
 test('a call-again after 9pm waits until 9am', () => {
-  expect(
-    inDaytime(Date.parse('2026-10-22T22:30:00Z'), 'UTC'),
-  ).toBe(Date.parse('2026-10-23T09:00:00Z'))
-  expect(
-    inDaytime(Date.parse('2026-10-22T03:15:00Z'), 'UTC'),
-  ).toBe(Date.parse('2026-10-22T09:00:00Z'))
-  expect(
-    inDaytime(Date.parse('2026-10-22T12:00:00Z'), 'UTC'),
-  ).toBe(Date.parse('2026-10-22T12:00:00Z'))
+  expect(inDaytime(Date.parse('2026-10-22T22:30:00Z'), 'UTC')).toBe(
+    Date.parse('2026-10-23T09:00:00Z'),
+  )
+  expect(inDaytime(Date.parse('2026-10-22T03:15:00Z'), 'UTC')).toBe(
+    Date.parse('2026-10-22T09:00:00Z'),
+  )
+  expect(inDaytime(Date.parse('2026-10-22T12:00:00Z'), 'UTC')).toBe(
+    Date.parse('2026-10-22T12:00:00Z'),
+  )
   // 9:30pm in Amman (UTC+3) is 6:30pm UTC; 9am there is 6am UTC.
-  expect(
-    inDaytime(Date.parse('2026-10-22T18:30:00Z'), 'Asia/Amman'),
-  ).toBe(Date.parse('2026-10-23T06:00:00Z'))
+  expect(inDaytime(Date.parse('2026-10-22T18:30:00Z'), 'Asia/Amman')).toBe(
+    Date.parse('2026-10-23T06:00:00Z'),
+  )
 })
 
 test('snooze rings again in 10 minutes, without asking Jev', async () => {
@@ -130,7 +130,7 @@ test('snooze rings again in 10 minutes, without asking Jev', async () => {
 })
 
 test('declining asks Jev, and leaving it in the chat ends it', async () => {
-  jev.mockResolvedValue({ next: 'leave_in_chat', cost: 0 })
+  jev.mockResolvedValue({ next: 'leave_in_chat', probability: 0.8, cost: 0 })
   const { asAda, id, after, reminder } = await setup()
   await after(MINUTE)
   await asAda.mutation(api.api.reminders.decline, { id })

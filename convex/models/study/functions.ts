@@ -165,18 +165,24 @@ export const checkAnswer = async (
     id: itemId,
   })
   if (!item) throw new ConvexError('Question not found.')
-  const right = await metered(
+  const { correct: right, probability } = await metered(
     ctx,
     { userId, model: MODELS.decide, estimate: 0.005 },
     async () => {
-      const { correct, cost } = await gradeAnswer(decisionModel, {
+      const { cost, ...result } = await gradeAnswer(decisionModel, {
         question: item.front,
         expected: item.back,
         answer,
       })
-      return { result: correct, cost }
+      return { result, cost }
     },
   )
+  await ctx.runMutation(internal.api.judgments.record, {
+    userId,
+    kind: 'answer',
+    scores: { correct: probability },
+    outcome: right ? 'right' : 'wrong',
+  })
   await ctx.runMutation(components.study.decks.grade, {
     userId,
     id: itemId,
