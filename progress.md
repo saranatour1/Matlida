@@ -649,3 +649,9 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - One place: `JEV_THRESHOLDS` in `convex/lib/decide.ts` (stop a recurring reminder under 0.3, switch its channel at 0.7, call to check in at 0.7, a right answer at 0.5). The four call sites read it.
 - Every Jev answer that code acts on is kept in a new `judgments` table: the kind, Jev's probabilities, its pick, and what the code did (`called`, `no_call`, `over_the_limit`, `stop`, `send_by_call`, `right`, and so on). `pnpm exec convex run api/judgments:summary '{"kind":"check_in"}'` shows the outcomes and how each score spreads over tenths.
 - Verified with pnpm check and the tests, and pushed to dev.
+
+### Email: one idempotency key per Photon call (2026-10-22)
+
+From the Photon review (finding #7). `sendEmail` sent the same idempotency key to `/spaces` and to `/messages`. If Photon scopes keys per project rather than per endpoint, the message call would get the thread's cached response back and the email would never go out. Each call now gets its own key (`…:space`, `…:message`), so retries are still safe.
+
+Not done (finding #6): every email sent still looks up both Photon users first, 4 calls in all. That's only reminder emails and messages to contacts, a few a day, so caching the user ids isn't worth a table yet.
