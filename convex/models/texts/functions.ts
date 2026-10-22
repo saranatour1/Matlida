@@ -285,12 +285,12 @@ const received = internalMutation({
     const next =
       poll?.scheduled &&
       (await ctx.db.system.get('_scheduled_functions', poll.scheduled))
-    const running = next?.state.kind === 'pending'
-    const scheduled = running
-      ? poll.scheduled
-      : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-          fast: true,
-        })
+    const scheduled =
+      poll?.scheduled && next?.state.kind === 'pending'
+        ? poll.scheduled
+        : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
+            fast: true,
+          })
     if (!poll) await ctx.db.insert('telegramPolls', { until, scheduled })
     else await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
     // The limit is taken here, one message at a time, not in the replies that

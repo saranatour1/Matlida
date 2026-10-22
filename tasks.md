@@ -58,6 +58,7 @@
 - [x] A mute toggle on the volume bar
 - [x] Voice, speed and language settings on calls
 - [x] One thread per assistant: the app's threads table and sub-threads are gone
+- [x] A cheaper fast check for Telegram messages
 - [x] Pictures: /image makes one with GPT Image 1, saved in Convex storage
 - [x] Videos: /video with Veo 3.1 Fast in the background, saved in Convex storage
 - [x] Pictures and videos on calls, shown in the chat beside the call
