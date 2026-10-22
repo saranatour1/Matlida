@@ -2,6 +2,7 @@ import { saveMessage } from '@convex-dev/agent'
 import {
   cancel as cancelWorkflow,
   defineEvent,
+  restart,
   sendEvent,
   start,
   vResultValidator,
@@ -74,7 +75,12 @@ const startPlan = internalMutation({
   },
 })
 
-/** The workflow behind `run_plan`: wait for Start, then one step at a time, each retried on its own. */
+/**
+ * The workflow behind `run_plan`: wait for Start, then one step at a time.
+ * A failed step isn't retried on its own: it paid for its model calls and
+ * may have set a reminder or added to a list, so running it again is the
+ * user's call (`retry`).
+ */
 const runPlan = workflow
   .define({ args: { taskId: v.id('tasks') } })
   .handler(async (step, { taskId }): Promise<void> => {
@@ -92,7 +98,7 @@ const runPlan = workflow
       const detail: string = await step.runAction(
         internal.api.tasks.doStep,
         { taskId, index },
-        { retry: true },
+        { retry: false },
       )
       await step.runMutation(internal.api.tasks.setStep, {
         taskId,
@@ -238,7 +244,11 @@ const finished = internalMutation({
       ),
     })
     if (result.kind === 'failed') {
-      await say(ctx, task, `⚠️ **Stopped:** ${task.title}\n\n_${error}_`)
+      await say(
+        ctx,
+        task,
+        `⚠️ **Stopped:** ${task.title}\n\n_${error}_\n\nPress Try again on the card to run that step again.`,
+      )
     }
     return null
   },
@@ -299,6 +309,25 @@ const cancel = authedMutation({
   },
 })
 
+/** Try again on a stopped task: the steps that finished stay done, and the one that failed runs again. */
+const retry = authedMutation({
+  args: { taskId: v.id('tasks') },
+  handler: async (ctx, { taskId }) => {
+    const task = await getOwnedTask(ctx, ctx.userId, taskId)
+    if (task.status !== 'failed' || !task.workflowId) return
+    await ctx.db.patch('tasks', taskId, {
+      status: 'running',
+      steps: task.steps.map((s) =>
+        s.status === 'failed' ? { name: s.name, status: 'todo' } : s,
+      ),
+    })
+    // From the last `doStep`, the one that failed; the steps before it keep their results.
+    await restart(ctx, components.workflow, task.workflowId as never, {
+      from: internal.api.tasks.doStep,
+    })
+  },
+})
+
 /** One task, for its card in the chat. */
 const get = authedQuery({
   args: { taskId: v.id('tasks') },
@@ -324,6 +353,7 @@ const forThread = authedQuery({
 })
 
 export const tasksApi = {
+  retry,
   startPlan,
   runPlan,
   stepCount,

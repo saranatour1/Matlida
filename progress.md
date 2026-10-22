@@ -626,6 +626,12 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 - A webhook email event used to start a full check right away, so a burst of mail ran several checks side by side. It now queues one check 2 seconds out unless one is already queued (`emails.schedulePoll`, with its scheduled run kept on the one `emailPolls` row, written only when queuing).
 - Same shape as the Telegram fix (#112). Verified with pnpm check and the tests (210), and pushed to dev.
 
+### Task steps aren't retried on their own (2026-10-22)
+
+- A task step that failed was retried automatically, up to the workflow's default number of attempts. Each try paid for the model again, and a step that had already set a reminder or added to a list could do it twice. Now a failed step stops the task once (`retry: false`).
+- The stopped task's card has a **Try again** button (`tasks.retry`). It restarts the workflow from the step that failed, with `restart(…, { from: doStep })`. The steps before it keep their results and aren't paid for again. The chat says to press it.
+- Verified with pnpm check and the tests (221): a failing step runs once, and Try again runs only that step, then finishes the task.
+
 ### Answers by voice on a review call (2026-10-22)
 
 - A review call opened with the due questions, but nothing recorded what you said back. Assistants now have `due_cards` (up to 5 due questions, with their ids) and `check_answer` (Jev grades your words against the card, then records good or again on your review schedule, like a typed answer). They work by voice on a call and in the chat. Fast voice can't use tools, so it can't grade.
