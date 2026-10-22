@@ -41,4 +41,6 @@ export const remindersTable = defineTable({
   scheduledId: v.optional(v.id('_scheduled_functions')),
   /** Calls you didn't pick up so far. Jev decides on another, up to `MAX_CALLS`. */
   attempts: v.optional(v.number()),
+  /** A call the assistant started on its own to check in, rather than one you asked for. */
+  kind: v.optional(literals('checkin')),
 }).index('by_project_and_status', ['projectId', 'status', 'dueAt'])

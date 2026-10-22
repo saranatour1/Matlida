@@ -25,6 +25,8 @@ crons.interval(
   internal.api.pages.refreshDue,
 )
 
+crons.interval('check in', { hours: 1 }, internal.api.checkIns.run)
+
 crons.interval(
   'sweep unsaved command files',
   { hours: 1 },

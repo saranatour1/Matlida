@@ -51,7 +51,7 @@ export const inDaytime = (at: number, timeZone?: string) => {
   return (time.hour < 9 ? nine : nine.plus({ days: 1 })).toMillis()
 }
 
-const localTime = (at: number, timeZone?: string) =>
+export const localTime = (at: number, timeZone?: string) =>
   zoned(at, timeZone).toFormat('cccc h:mm a')
 
 /** The cron spec for a reminder that recurs `every`, at `dueAt`'s time of day in `timeZone`. */
@@ -166,7 +166,11 @@ const schedule = internalMutation({
   },
 })
 
-const start = async (ctx: MutationCtx, id: Id<'reminders'>, dueAt: number) => {
+export const start = async (
+  ctx: MutationCtx,
+  id: Id<'reminders'>,
+  dueAt: number,
+) => {
   const scheduledId = await ctx.scheduler.runAt(
     dueAt,
     internal.api.reminders.fire,
@@ -355,7 +359,9 @@ const deliver = async (
   })
   const content = reminder.contactId
     ? `📨 **To ${reminder.toName ?? 'your contact'}:** ${reminder.say ?? reminder.message}`
-    : `⏰ **Reminder:** ${reminder.message}`
+    : reminder.kind === 'checkin'
+      ? `📞 **Check-in:** ${reminder.message}`
+      : `⏰ **Reminder:** ${reminder.message}`
   await saveMessage(ctx, components.agent, {
     threadId: reminder.threadId,
     message: {
@@ -414,6 +420,7 @@ const ringing = authedQuery({
           from: reminder.from,
           portrait: (bot ?? project).portrait,
           again: (reminder.attempts ?? 0) > 0,
+          checkIn: reminder.kind === 'checkin',
         })
       }
     }
@@ -431,6 +438,7 @@ const pickUp = internalMutation({
       botId: v.optional(v.id('bots')),
       from: v.string(),
       message: v.string(),
+      checkIn: v.boolean(),
     }),
     v.null(),
   ),
@@ -442,7 +450,8 @@ const pickUp = internalMutation({
     await deliver(ctx, id, 'You picked up.')
     const bot = (await assistantOf(ctx, reminder.threadId))?.bot
     const { projectId, threadId, from, message } = reminder
-    return { projectId, threadId, botId: bot?._id, from, message }
+    const checkIn = reminder.kind === 'checkin'
+    return { projectId, threadId, botId: bot?._id, from, message, checkIn }
   },
 })
 
@@ -545,15 +554,18 @@ const miss = internalAction({
     if (!found) return null
     const { reminder, chat, ownerId, timeZone } = found
     const attempts = (reminder.attempts ?? 0) + 1
+    // A missed check-in isn't worth another call.
     const next: AfterMissed =
-      attempts >= MAX_CALLS
-        ? 'text_instead'
-        : await nextAfterMiss(ctx, reminder, {
-            ownerId,
-            attempts,
-            declined,
-            timeZone,
-          })
+      reminder.kind === 'checkin'
+        ? 'leave_in_chat'
+        : attempts >= MAX_CALLS
+          ? 'text_instead'
+          : await nextAfterMiss(ctx, reminder, {
+              ownerId,
+              attempts,
+              declined,
+              timeZone,
+            })
     const missed = declined ? 'You declined the call.' : 'You missed the call.'
     if (next === 'call_again_soon' || next === 'call_again_later') {
       const at = inDaytime(Date.now() + AGAIN_MS[next], timeZone)

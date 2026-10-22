@@ -333,3 +333,67 @@ export const checkRecurring = async (
     cost: gatewayCost(providerMetadata),
   }
 }
+
+/**
+ * Whether the assistant should call the user now just to check in, and
+ * about what: one of their recent requests, work still running, or nothing
+ * in particular. `checkIns.run` acts at 0.7, within its limits.
+ */
+export const shouldCallNow = async (
+  model: Experimental_DecisionModel,
+  {
+    conversation,
+    openWork,
+    localTime,
+    hoursSinceLastChat,
+  }: {
+    conversation: Array<Turn>
+    openWork: Array<string>
+    localTime: string
+    hoursSinceLastChat: number
+  },
+  abortSignal?: AbortSignal,
+) => {
+  const topics = [
+    ...conversation
+      .filter((t) => t.role === 'user')
+      .slice(-5)
+      .map((t) => t.text),
+    ...openWork,
+  ]
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state: {
+      conversation,
+      open_work: openWork,
+      local_time: localTime,
+      hours_since_last_chat: hoursSinceLastChat,
+    },
+    questions: {
+      call_now: {
+        type: 'boolean',
+        instructions:
+          'Would a short call from the assistant right now be welcome and useful to the user? Yes when something in `conversation` or `open_work` is still owed, unfinished or worth checking on, and `local_time` and `hours_since_last_chat` make a call reasonable. No when nothing is pending, they just talked, or a call would feel intrusive.',
+      },
+      about: {
+        type: 'choice',
+        instructions:
+          'If the assistant calls now, what is the most useful thing to check in about?',
+        criteria: {
+          ...Object.fromEntries(
+            topics.map((text, i) => [`topic_${i + 1}`, text]),
+          ),
+          catch_up:
+            'Nothing specific: a friendly check-in on how things are going.',
+        },
+      },
+    },
+    abortSignal,
+  })
+  const index = /^topic_(\d+)$/.exec(answers.about.choice)?.[1]
+  return {
+    callNow: answers.call_now.probability,
+    about: index ? (topics[Number(index) - 1] ?? null) : null,
+    cost: gatewayCost(providerMetadata),
+  }
+}
