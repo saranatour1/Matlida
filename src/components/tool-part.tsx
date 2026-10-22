@@ -3,6 +3,7 @@ import { useMutation, useQuery } from 'convex/react'
 import {
   AlarmClockIcon,
   GlobeIcon,
+  PhoneOffIcon,
   PhoneOutgoingIcon,
   ScaleIcon,
   SendIcon,
@@ -196,6 +197,7 @@ export function CallPhonePart({
     api.api.calls.phoneState,
     callId ? { id: callId } : 'skip',
   )
+  const hangUp = useMutation(api.api.calls.hangUpPhone)
   const to = part.input?.to ?? '…'
   const live = phone && !phone.endedAt
   return (
@@ -210,6 +212,17 @@ export function CallPhonePart({
         : phone
           ? `${PHONE_STATUS[phone.status]} ${phone.to}${phone.note ? ` (${phone.note})` : ''}${live ? '…' : '.'}`
           : `Calling ${to}…`}
+      {live && callId && !phone.hangUp && (
+        <Button
+          size="sm"
+          variant="destructive"
+          className="ml-auto"
+          onClick={() => void hangUp({ id: callId })}
+        >
+          <PhoneOffIcon />
+          Hang up
+        </Button>
+      )}
     </div>
   )
 }

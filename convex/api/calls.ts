@@ -14,5 +14,6 @@ export const {
   startPhone,
   phoneCall,
   setPhone,
+  hangUpPhone,
   phoneState,
 } = callLogApi

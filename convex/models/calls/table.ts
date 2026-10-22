@@ -30,6 +30,8 @@ export const callsTable = defineTable({
       note: v.optional(v.string()),
       /** Audio packets that came back. 0 on an answered call means their side never reached us. */
       heard: v.optional(v.number()),
+      /** You pressed Hang up. The call action checks every 2 seconds. */
+      hangUp: v.optional(v.boolean()),
     }),
   ),
 }).index('by_project_and_bot', ['projectId', 'botId'])

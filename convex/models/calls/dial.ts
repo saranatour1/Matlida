@@ -253,6 +253,11 @@ const placeCall = async (
     if (request.method !== 'ACK') respond(request)
   })
 
+  /** Whether you pressed Hang up. */
+  const hangUp = async () =>
+    (await ctx.runQuery(internal.api.calls.phoneCall, { id: call._id })).call
+      .phone?.hangUp === true
+
   // Dial, answering one digest challenge with the line's SIP credential.
   let auth: [string, string] | undefined
   let inviteVia = ''
@@ -260,6 +265,7 @@ const placeCall = async (
   let answer: SipMessage | null = null
   let remote: { ip: string; port: number } | null = null
   let ringing = false
+  let cancelled = false
   const deadline = performance.now() + RING_MS
   for (let attempt = 0; attempt < 2; attempt++) {
     inviteVia = via()
@@ -284,8 +290,15 @@ const placeCall = async (
       ),
     )
     for (;;) {
-      answer = await sip.next(`${n} INVITE`, deadline - performance.now())
-      if (!answer?.status || answer.status >= 200) break
+      // Waits 2 seconds at a time, so Hang up can cancel the ringing.
+      const left = deadline - performance.now()
+      answer = await sip.next(`${n} INVITE`, Math.min(2000, left))
+      if (!answer) {
+        if (left > 2000 && !sip.isClosed() && !(await hangUp())) continue
+        cancelled = left > 2000 && !sip.isClosed()
+        break
+      }
+      if (!answer.status || answer.status >= 200) break
       if (answer.status === 180 || answer.status === 183) {
         remote = sdpAnswer(answer.body) ?? remote
         if (!ringing) {
@@ -313,7 +326,7 @@ const placeCall = async (
     const challenge =
       (answer?.status === 401 || answer?.status === 407) &&
       pickChallenge(answer)
-    if (!challenge || auth) break
+    if (!challenge || auth || cancelled) break
     auth = [
       answer?.status === 407 ? 'Proxy-Authorization' : 'Authorization',
       digest({
@@ -356,6 +369,7 @@ const placeCall = async (
     const dropped = sip.isClosed()
     sip.close()
     rtp.close()
+    if (cancelled) return { status: 'ended', note: 'you hung up' }
     return dropped && !ringing
       ? { status: 'failed', note: 'the connection to Photon closed' }
       : { status: 'no_answer' }
@@ -621,8 +635,16 @@ const placeCall = async (
   })
 
   const answeredAt = performance.now()
+  let ticks = 0
   const watch = setInterval(() => {
     const now = performance.now()
+    if (++ticks % 2 === 0) {
+      hangUp()
+        .then((yes) => {
+          if (yes) resolveEnd({ status: 'ended', note: 'you hung up' })
+        })
+        .catch((error: unknown) => console.error(error))
+    }
     if (sip.isClosed())
       resolveEnd({ status: 'ended', note: 'the line dropped' })
     if (now - answeredAt > MAX_CALL_MS) {

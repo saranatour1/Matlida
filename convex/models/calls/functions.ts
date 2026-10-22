@@ -295,6 +295,16 @@ const setPhone = internalMutation({
   },
 })
 
+/** Asks the call action to hang up, or to cancel the call while it rings. */
+const hangUpPhone = authedMutation({
+  args: { id: v.id('calls') },
+  handler: async (ctx, { id }) => {
+    const call = await getOwnedCall(ctx, ctx.userId, id)
+    if (!call.phone || call.endedAt) return
+    await ctx.db.patch('calls', id, { phone: { ...call.phone, hangUp: true } })
+  },
+})
+
 /** A phone call's progress, for its card in the chat. */
 const phoneState = authedQuery({
   args: { id: v.id('calls') },
@@ -310,6 +320,7 @@ export const callLogApi = {
   startPhone,
   phoneCall,
   setPhone,
+  hangUpPhone,
   phoneState,
   addLine,
   end,
