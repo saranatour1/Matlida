@@ -163,9 +163,9 @@ const run = internalAction({
             return { result, cost }
           },
         )
-        const call = callNow >= JEV_THRESHOLDS.checkInCall
+        const wanted = callNow >= JEV_THRESHOLDS.checkInCall
         const rang: boolean =
-          call &&
+          wanted &&
           (await ctx.runMutation(internal.api.checkIns.call, {
             userId: person.userId,
             projectId: person.projectId,
@@ -179,7 +179,7 @@ const run = internalAction({
           kind: 'check_in',
           scores: { callNow },
           choice: review ? 'review' : about ? 'topic' : 'catch_up',
-          outcome: rang ? 'called' : call ? 'over_the_limit' : 'no_call',
+          outcome: rang ? 'called' : wanted ? 'over_the_limit' : 'no_call',
         })
       } catch (error) {
         console.error(error)
