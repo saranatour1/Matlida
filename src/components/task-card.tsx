@@ -48,6 +48,7 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
   const task = useQuery(api.api.tasks.get, { taskId })
   const answer = useMutation(api.api.tasks.answer)
   const cancel = useMutation(api.api.tasks.cancel)
+  const retry = useMutation(api.api.tasks.retry)
   if (!task) return null
   return (
     <section
@@ -107,6 +108,13 @@ function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
             onClick={() => void answer({ taskId, start: false })}
           >
             Don&rsquo;t start
+          </Button>
+        </div>
+      )}
+      {task.status === 'failed' && (
+        <div>
+          <Button size="sm" onClick={() => void retry({ taskId })}>
+            Try again
           </Button>
         </div>
       )}
