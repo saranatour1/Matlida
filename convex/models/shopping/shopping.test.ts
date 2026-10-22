@@ -3,7 +3,7 @@ import { convexTest } from 'convex-test'
 import { afterEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
-import { modules } from '../../test.setup'
+import { modules, registerShopping } from '../../test.setup'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -59,6 +59,7 @@ const shopify = (
 
 const setup = async () => {
   const t = convexTest(schema, modules)
+  registerShopping(t)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { email: 'ada@example.com' }),
     await ctx.db.insert('users', {}),
@@ -237,12 +238,12 @@ test('a watched price posts in the chat once it drops, and a gone item stops the
       }),
     ),
   )
+  const asAda = t.withIdentity({ subject: ada })
   const status = () =>
-    t.run(async (ctx) =>
-      Promise.all(
-        watchIds.map(
-          async (id) => (await ctx.db.get('priceWatches', id))?.status,
-        ),
+    Promise.all(
+      watchIds.map(
+        async (id) =>
+          (await asAda.query(api.api.shopping.watch, { id }))?.status,
       ),
     )
 

@@ -67,6 +67,8 @@
 - [x] /make-my-problems-go-away: Jev says if AI can do it or a person should
 - [x] Record every assistant's chat once, then stop guessing
 - [x] Dropped the chat fields the messaging apps and email used to keep
+- [x] Dead code out, reads in `queries.ts`, contexts in `lib/ctx.ts`, arrow functions with a lint rule
+- [x] Shopping as a Convex component, a trial of the pattern
 - [x] An AI budget per person: $12 a month ($30 on dev), every model metered
 - [ ] Try messaging live once Photon, Telegram and WhatsApp credentials are set
 - [ ] WhatsApp templates for reminders outside the 24-hour window

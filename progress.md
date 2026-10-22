@@ -516,3 +516,10 @@
 - `mailboxes.threadId`, `inboxThreadId`, `phoneLinks.threadId`, `botThreads` and `activeBotId` are out of the schema. A one-off mutation unset them on `dev/matilda` first (one mailbox, one link; a second run changed nothing). Production has no rows from before, so nothing to run there.
 - With them went the lookup of an assistant's old chat and `recordMainThreads`: every assistant's chat is recorded on it, and a new assistant starts one on its first message.
 
+### Shopping is a Convex component (2026-10-22)
+
+- A trial of the component pattern: `convex/components/shopping/` has its own `convex.config.ts`, schema (`details`, `items`, `watches`, with user ids as strings) and functions (`details.get/save`, `cart.add/list/setQuantity/clearShop`, `watches.start/get/stop/due/recordCheck`), and the app registers it with `app.use(shopping)`. Its functions carry `returns` validators, since the generated component types are `any` without them.
+- The app's `models/shopping/functions.ts` is wrappers now: they check who you are, look the catalog up (`lib/shopify.ts` stays in the app) and hand the component your user id. The hourly price check reads due watches from the component and posts what it returns in the chat. The UI and the tools call the same `api.api.shopping.*` names as before.
+- `shoppingDetails`, `cartItems` and `priceWatches` left the app schema; dev had no rows in them. Tests register the component with `registerShopping(t)` from `test.setup.ts`.
+- Verdict on the pattern: it fits a feature that only needs its own rows and a user id. Threads, emails and texts write into the agent's thread, so they'd stay in the app.
+
