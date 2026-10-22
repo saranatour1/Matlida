@@ -17,6 +17,26 @@ export default defineConfig([
     files: ['convex/**/*.ts', 'src/lib/**/*.ts', 'src/hooks/**/*.ts'],
     rules: { 'func-style': ['error', 'expression'] },
   },
+  // Dates and times go through luxon (convex/lib/time.ts), never the native Date API.
+  {
+    files: ['convex/**/*.ts', 'src/**/*.{ts,tsx}'],
+    ignores: ['convex/tests/**', 'src/tests/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...[
+          "NewExpression[callee.name='Date']",
+          "CallExpression[callee.object.name='Date'][callee.property.name=/^(parse|UTC)$/]",
+          'MemberExpression[property.name=/^(toLocaleDateString|toLocaleTimeString|toISOString)$/]',
+          "MemberExpression[object.name='Intl'][property.name='DateTimeFormat']",
+        ].map((selector) => ({
+          selector,
+          message:
+            'Use luxon for dates and times: the helpers in convex/lib/time.ts, or DateTime.',
+        })),
+      ],
+    },
+  },
   {
     files: ['convex/*.ts'],
     ignores: [

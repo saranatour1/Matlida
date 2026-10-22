@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
+import { DateTime } from 'luxon'
 import { api } from '../../convex/_generated/api'
 import { formatTranscript } from '../../convex/lib/transcript'
 import type { Doc, Id } from '../../convex/_generated/dataModel'
@@ -38,10 +39,9 @@ export function CallHistory({
           >
             <span className="flex justify-between gap-2 text-xs">
               <span>
-                {new Date(call._creationTime).toLocaleString(undefined, {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
+                {DateTime.fromMillis(call._creationTime).toLocaleString(
+                  DateTime.DATETIME_MED,
+                )}
               </span>
               <span className="text-muted-foreground">
                 {duration(call.endedAt - call._creationTime)}
@@ -77,10 +77,9 @@ function Transcript({
   async function copy(said: Array<Doc<'callLines'>>) {
     const text = formatTranscript({
       name,
-      when: new Date(call._creationTime).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }),
+      when: DateTime.fromMillis(call._creationTime).toLocaleString(
+        DateTime.DATETIME_MED,
+      ),
       call,
       lines: said,
     })

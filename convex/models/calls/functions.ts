@@ -3,6 +3,7 @@ import { internalMutation, internalQuery } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/queries'
+import { zoned } from '../../lib/time'
 import { callLinesTable, liveTurnsTable } from './table'
 import { getOwnedCall, linesOf } from './queries'
 import type { Doc } from '../../lib/ctx'
@@ -118,7 +119,7 @@ const dump = internalQuery({
     ])
     return formatTranscript({
       name: (bot ?? project)?.name ?? 'Assistant',
-      when: `${new Date(call._creationTime).toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+      when: `${zoned(call._creationTime).toFormat('yyyy-MM-dd HH:mm')} UTC`,
       call,
       lines,
     })

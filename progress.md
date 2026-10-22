@@ -655,3 +655,9 @@ From Convex's "high-throughput mutations via precise queries" post. A mutation c
 From the Photon review (finding #7). `sendEmail` sent the same idempotency key to `/spaces` and to `/messages`. If Photon scopes keys per project rather than per endpoint, the message call would get the thread's cached response back and the email would never go out. Each call now gets its own key (`…:space`, `…:message`), so retries are still safe.
 
 Not done (finding #6): every email sent still looks up both Photon users first, 4 calls in all. That's only reminder emails and messages to contacts, a few a day, so caching the user ids isn't worth a table yet.
+
+### luxon everywhere, enforced (2026-10-22)
+
+- Dates and times now go through luxon on both sides. `convex/lib/time.ts` holds the shared helpers, used by the backend and the browser: `zoned`, `isTimeZone`, `iso`, `parseIso`, `localDayHour`, `localTimeZone`. Converted: emails, texts, calls, reminders, the lead's "it is now", find_emails/find_texts/set_reminder, the time-zone comparison and the daily news hour on the backend; call history, the news, today, time zones, post preview and reminder cards, and the browser's time zone on the frontend.
+- ESLint now refuses `new Date()`, `Date.parse`, `Date.UTC`, `toISOString`, `toLocaleDateString`, `toLocaleTimeString` and `Intl.DateTimeFormat` outside the tests, pointing to `convex/lib/time.ts`. A date's `toLocaleString` can't be told from a number's by syntax, so that one stays judgment. AGENTS.md says so.
+- Verified with pnpm check and the tests (223), and pushed to dev.

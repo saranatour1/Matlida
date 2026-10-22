@@ -26,6 +26,7 @@ import { MAX_FILES, MAX_FILE_BYTES, attachable } from '../../lib/attachments'
 import { getOwnedProject } from '../projects/queries'
 import { MODELS } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
+import { isTimeZone } from '../../lib/time'
 import { ensureMainThread } from './functions'
 import { assistantOf, getMembers, ownsThread } from './queries'
 import { createAgent } from './lead'
@@ -34,14 +35,7 @@ import type { Via } from './lead'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** An IANA time zone the runtime knows, like Europe/London. */
-export const zTimeZone = z.string().refine((tz) => {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz })
-    return true
-  } catch {
-    return false
-  }
-}, 'Unknown time zone.')
+export const zTimeZone = z.string().refine(isTimeZone, 'Unknown time zone.')
 
 /** An uploaded file, and its type as the browser saw it. */
 type Attachment = {

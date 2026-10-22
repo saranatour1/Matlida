@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
+import { localTimeZone } from '../../convex/lib/time'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
@@ -59,13 +60,13 @@ export function NewsSettings({
           avoid: String(data.get('avoid') ?? ''),
           perTopic: Number(data.get('perTopic')),
           dailyHour: dailyHour ? Number(dailyHour) : undefined,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timeZone: localTimeZone(),
         })
         if (data.get('then') === 'news') {
           await send({
             projectId,
             prompt: '/news',
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timeZone: localTimeZone(),
           })
         }
         onSaved?.()

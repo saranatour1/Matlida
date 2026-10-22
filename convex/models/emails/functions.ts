@@ -22,6 +22,7 @@ import schema from '../../schema'
 import { ensureMainThread } from '../threads/functions'
 import { getMembers, ownsThread } from '../threads/queries'
 import { READ_ONLY_TOOLS, createAgent } from '../threads/lead'
+import { iso, parseIso } from '../../lib/time'
 import type { Doc } from '../../lib/ctx'
 
 /** Photon's message list is eventually consistent, so each check looks back this far and skips what's recorded. */
@@ -278,7 +279,7 @@ const poll = internalAction({
       internal.api.emails.latest,
       {},
     )
-    const since = new Date((newest ?? Date.now()) - LOOKBACK_MS).toISOString()
+    const since = iso((newest ?? Date.now()) - LOOKBACK_MS)
 
     const emails = await listEmails(photon, since)
     const fresh: Array<string> = await ctx.runQuery(
@@ -298,7 +299,7 @@ const poll = internalAction({
       try {
         turn = await ctx.runMutation(internal.api.emails.receive, {
           messageId: email.id,
-          receivedAt: Date.parse(email.createdAt),
+          receivedAt: parseIso(email.createdAt),
           to: receivedBy.handle,
           from: email.sentBy.handle,
           fromName: email.sentBy.metadata?.displayName?.slice(0, 200),
@@ -313,7 +314,7 @@ const poll = internalAction({
         console.error(error)
         await ctx.runMutation(internal.api.emails.skip, {
           messageId: email.id,
-          receivedAt: Date.parse(email.createdAt),
+          receivedAt: parseIso(email.createdAt),
         })
         continue
       }

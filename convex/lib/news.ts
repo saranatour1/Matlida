@@ -1,5 +1,6 @@
 import { generateText } from 'ai'
 import { z } from 'zod'
+import { localDayHour } from './time'
 import type { LanguageModel } from 'ai'
 
 export type Story = {
@@ -74,30 +75,13 @@ export const fetchNews = async (
   )
 }
 
-/** The day and hour it is in `timeZone`. */
-const localNow = (now: number, timeZone: string) => {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    })
-      .formatToParts(now)
-      .map((p) => [p.type, p.value]),
-  )
-  return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: +parts.hour }
-}
-
 /** Whether a daily briefing should go out now: its hour in the user's zone, and not sent today. Returns the day to mark sent. */
 export const dueDay = (
   settings: { dailyHour?: number; timeZone?: string; lastSentDay?: string },
   now: number,
 ) => {
   if (settings.dailyHour === undefined) return null
-  const { day, hour } = localNow(now, settings.timeZone ?? 'UTC')
+  const { day, hour } = localDayHour(now, settings.timeZone)
   return hour === settings.dailyHour && day !== settings.lastSentDay
     ? day
     : null
