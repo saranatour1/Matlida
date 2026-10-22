@@ -58,6 +58,7 @@ export function Chat({
 }) {
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const redo = useMutation(api.api.chat.redo)
+  const stop = useMutation(api.api.chat.stop)
   const commands = useQuery(api.api.commands.list, { projectId: project._id })
   const threadId =
     useQuery(api.api.threads.main, {
@@ -312,6 +313,7 @@ export function Chat({
             <PromptForm
               placeholder={`Message ${lead}…`}
               isBusy={isBusy}
+              onStop={threadId ? () => void stop({ threadId }) : undefined}
               onSubmit={(prompt, files) => send({ prompt, files })}
               commands={[
                 ...BUILT_IN_COMMANDS.filter(
