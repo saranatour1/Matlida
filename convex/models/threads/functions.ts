@@ -1,4 +1,5 @@
 import { createThread } from '@convex-dev/agent'
+import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
 import { components } from '../../_generated/api'
@@ -11,78 +12,55 @@ import {
 import { MODEL_ID } from '../../lib/models'
 import { getBots } from '../bots/queries'
 import { getOwnedProject } from '../projects/queries'
-import { threadsTable } from './table'
-import { getMainThread, getOwnedThread } from './queries'
+import { getMainThread } from './queries'
 import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 
-type NewThread = Omit<Doc<'threads'>, '_id' | '_creationTime' | 'threadId'>
-
-/** Creates an agent thread for `userId` and records which project it belongs to. */
-export const startThread = async (
-  ctx: MutationCtx,
-  { userId, ...thread }: NewThread & { userId: Id<'users'> },
-) => {
-  const threadId = await createThread(ctx, components.agent, {
-    title: thread.title,
-    userId,
-  })
-  await ctx.db.insert('threads', { threadId, ...thread })
-  return threadId
-}
-
 /**
- * An assistant's one thread, recorded on it, and started on first use with
- * `model` and `effort` when given. Two first messages at once can't both
- * start one: both read and write the same project or bot, so Convex runs
- * them one after the other and the second finds the first's.
+ * An assistant's one thread, recorded on it, started on first use. Two first
+ * messages at once can't both start one: both read and write the same
+ * project or bot, so Convex runs them one after the other and the second
+ * finds the first's.
  */
 export const ensureMainThread = async (
   ctx: MutationCtx,
   project: Doc<'projects'>,
   bot: Doc<'bots'> | null,
-  start: Pick<NewThread, 'model' | 'effort'> = {},
 ) => {
-  const threadId =
-    getMainThread(project, bot) ??
-    (await startThread(ctx, {
-      projectId: project._id,
-      kind: 'chat',
-      botId: bot?._id,
-      title: (bot ?? project).name,
-      userId: project.ownerId,
-      ...start,
-    }))
-  if (bot && !bot.threadId) await ctx.db.patch('bots', bot._id, { threadId })
-  if (!bot && !project.threadId) {
-    await ctx.db.patch('projects', project._id, { threadId })
-  }
+  const recorded = getMainThread(project, bot)
+  if (recorded) return recorded
+  const threadId = await createThread(ctx, components.agent, {
+    title: (bot ?? project).name,
+    userId: project.ownerId,
+  })
+  if (bot) await ctx.db.patch('bots', bot._id, { threadId })
+  else await ctx.db.patch('projects', project._id, { threadId })
   return threadId
 }
 
-/** Starts a thread from an action, such as a sub-thread for a bot. */
-const start = internalMutation({
-  args: {
-    ...threadsTable.validator.omit('threadId').fields,
-    userId: v.id('users'),
-  },
-  returns: v.string(),
-  handler: startThread,
-})
+/** The assistant `botId` names in `projectId` (the lead when unset), when `userId` owns it. */
+const ownedAssistant = async (
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  projectId: Id<'projects'>,
+  botId?: Id<'bots'>,
+) => {
+  const project = await getOwnedProject(ctx, userId, projectId)
+  const bot = botId ? await ctx.db.get('bots', botId) : null
+  if (botId && bot?.projectId !== projectId) {
+    throw new ConvexError('Assistant not found.')
+  }
+  return { project, bot }
+}
 
-const list = authedQuery({
-  args: {
-    projectId: v.id('projects'),
-    kind: threadsTable.validator.fields.kind,
-  },
-  handler: async (ctx, { projectId, kind }) => {
-    await getOwnedProject(ctx, ctx.userId, projectId)
-    return await ctx.db
-      .query('threads')
-      .withIndex('by_project_and_kind', (q) =>
-        q.eq('projectId', projectId).eq('kind', kind),
-      )
-      .order('desc')
-      .take(50)
+/** An assistant's chat, started if it hasn't been: where `ask_bot`, tasks and tests post. */
+const startMain = internalMutation({
+  args: { projectId: v.id('projects'), botId: v.optional(v.id('bots')) },
+  returns: v.string(),
+  handler: async (ctx, { projectId, botId }) => {
+    const project = await ctx.db.get('projects', projectId)
+    if (!project) throw new Error('No such workspace.')
+    const bot = botId ? await ctx.db.get('bots', botId) : null
+    return await ensureMainThread(ctx, project, bot)
   },
 })
 
@@ -97,34 +75,31 @@ const main = authedQuery({
   },
 })
 
-/** Sets who the thread's assistant can hand work to. */
+/** Sets who an assistant can hand work to: other bots in its workspace. */
 const setMembers = authedMutation({
-  args: { threadId: v.string(), memberIds: v.array(v.id('bots')) },
-  handler: async (ctx, { threadId, memberIds }) => {
-    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
-    if (!thread) throw new ConvexError('Chat not found.')
-    const bots = await getBots(ctx, thread.projectId)
+  args: {
+    projectId: v.id('projects'),
+    botId: v.optional(v.id('bots')),
+    memberIds: v.array(v.id('bots')),
+  },
+  handler: async (ctx, { projectId, botId, memberIds }) => {
+    const { bot } = await ownedAssistant(ctx, ctx.userId, projectId, botId)
+    const bots = await getBots(ctx, projectId)
     if (
-      memberIds.some(
-        (id) => id === thread.botId || !bots.some((b) => b._id === id),
-      )
+      memberIds.some((id) => id === bot?._id || !bots.some((b) => b._id === id))
     ) {
       throw new ConvexError('Only other assistants in this workspace can join.')
     }
-    await ctx.db.patch('threads', thread._id, { memberIds })
+    if (bot) await ctx.db.patch('bots', bot._id, { memberIds })
+    else await ctx.db.patch('projects', projectId, { memberIds })
   },
 })
 
-const get = authedQuery({
-  args: { threadId: v.string() },
-  handler: async (ctx, { threadId }) =>
-    await getOwnedThread(ctx, ctx.userId, threadId),
-})
-
-/** Picks the model this chat's replies use from now on. The chat's history stays. Null goes back to the assistant's own. */
+/** Picks the model an assistant replies with from now on. Null goes back to the app's default. */
 const setModel = zAuthedMutation({
   args: {
-    threadId: z.string(),
+    projectId: zid('projects'),
+    botId: zid('bots').optional(),
     model: z
       .string()
       .trim()
@@ -132,23 +107,26 @@ const setModel = zAuthedMutation({
       .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
       .nullable(),
   },
-  handler: async (ctx, { threadId, model }) => {
-    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
-    if (!thread) throw new ConvexError('Chat not found.')
-    await ctx.db.patch('threads', thread._id, { model: model ?? undefined })
+  handler: async (ctx, { projectId, botId, model }) => {
+    const { bot } = await ownedAssistant(ctx, ctx.userId, projectId, botId)
+    const patch = { model: model ?? undefined }
+    if (bot) await ctx.db.patch('bots', bot._id, patch)
+    else await ctx.db.patch('projects', projectId, patch)
   },
 })
 
-/** Picks how hard this chat's replies work from now on. Null goes back to the assistant's own. */
+/** Picks how hard an assistant's replies work from now on. Null goes back to medium. */
 const setEffort = zAuthedMutation({
   args: {
-    threadId: z.string(),
+    projectId: zid('projects'),
+    botId: zid('bots').optional(),
     effort: z.enum(['low', 'medium', 'high']).nullable(),
   },
-  handler: async (ctx, { threadId, effort }) => {
-    const thread = await getOwnedThread(ctx, ctx.userId, threadId)
-    if (!thread) throw new ConvexError('Chat not found.')
-    await ctx.db.patch('threads', thread._id, { effort: effort ?? undefined })
+  handler: async (ctx, { projectId, botId, effort }) => {
+    const { bot } = await ownedAssistant(ctx, ctx.userId, projectId, botId)
+    const patch = { effort: effort ?? undefined }
+    if (bot) await ctx.db.patch('bots', bot._id, patch)
+    else await ctx.db.patch('projects', projectId, patch)
   },
 })
 
@@ -190,11 +168,9 @@ const openWork = internalQuery({
 
 export const threadsApi = {
   openWork,
-  start,
-  list,
+  startMain,
   main,
   setMembers,
-  get,
   setModel,
   setEffort,
 }

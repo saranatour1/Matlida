@@ -5,7 +5,6 @@ import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon, PhoneIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '../../convex/lib/commands'
-import type { Effort } from '../../convex/lib/models'
 import type { Doc } from '../../convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import { AssistantPanel } from '~/components/assistant-panel'
@@ -63,10 +62,6 @@ export function Chat({
       projectId: project._id,
       botId: bot?._id,
     }) ?? undefined
-  const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
-  // A new chat's model, until the first message starts the thread.
-  const [startModel, setStartModel] = React.useState<string>()
-  const [startEffort, setStartEffort] = React.useState<Effort>()
   const [creatingCommand, setCreatingCommand] = React.useState(false)
   const lead = bot?.name ?? project.name
   const { call, caller, startCall } = useCall()
@@ -109,8 +104,6 @@ export function Chat({
           projectId: project._id,
           botId: bot?._id,
           prompt,
-          model: threadId ? undefined : startModel,
-          effort: threadId ? undefined : startEffort,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         return undefined
@@ -128,9 +121,7 @@ export function Chat({
           <SidebarTrigger />
           <BotAvatar portrait={portraitOf(bot ?? project)} className="size-6" />
           <h1 className="truncate text-sm font-medium">{lead}</h1>
-          {threadId && (
-            <ThreadMembers project={project} bot={bot} threadId={threadId} />
-          )}
+          <ThreadMembers project={project} bot={bot} />
           <div className="ml-auto flex items-center gap-1">
             <Button
               variant="ghost"
@@ -291,16 +282,14 @@ export function Chat({
               tools={
                 <>
                   <EffortMenu
-                    threadId={threadId}
-                    effort={threadId ? thread?.effort : startEffort}
-                    own={bot ? bot.effort : project.effort}
-                    onPick={setStartEffort}
+                    projectId={project._id}
+                    botId={bot?._id}
+                    effort={bot ? bot.effort : project.effort}
                   />
                   <ModelMenu
-                    threadId={threadId}
-                    model={threadId ? thread?.model : startModel}
-                    own={bot ? bot.model : project.model}
-                    onPick={setStartModel}
+                    projectId={project._id}
+                    botId={bot?._id}
+                    model={bot ? bot.model : project.model}
                   />
                 </>
               }

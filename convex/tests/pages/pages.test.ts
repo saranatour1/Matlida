@@ -32,11 +32,8 @@ const setup = async () => {
     brief: '',
     guidelines: '',
   })
-  const threadId = await t.mutation(internal.api.threads.start, {
+  const threadId = await t.mutation(internal.api.threads.startMain, {
     projectId,
-    kind: 'chat',
-    title: 'Matilda',
-    userId: ada,
   })
   return {
     t,
@@ -125,12 +122,6 @@ test('a page kept up to date is updated by the lead once its period is up', asyn
   )
   await t.action(internal.api.pages.refreshDue, {})
   expect(await t.query(internal.api.pages.due, {})).toEqual([])
-  const work = (await t.run((ctx) => ctx.db.query('threads').take(10))).filter(
-    (thread) => thread.kind === 'subagent',
-  )
-  expect(work).toMatchObject([
-    { title: 'Updating Signups', parentThreadId: threadId },
-  ])
   await expect(
     t.mutation(internal.api.pages.keepUpdated, {
       projectId,

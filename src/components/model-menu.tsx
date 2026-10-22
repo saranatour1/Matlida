@@ -7,6 +7,7 @@ import {
   isListedModel,
   modelName,
 } from '../../convex/lib/models'
+import type { Id } from '../../convex/_generated/dataModel'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,30 +20,24 @@ import {
 import { InputGroupButton } from '~/components/ui/input-group'
 
 /**
- * Picks the model a chat replies with. On an open chat it's saved on the
- * thread at once and the history stays; on a new chat it's kept until the
- * first message starts the thread. "Assistant's own" goes back to what the
- * bot or the lead is set to.
+ * Picks the model the chat's assistant replies with, saved on the assistant
+ * at once; the history stays. "Default" goes back to the app's default.
  */
 export function ModelMenu({
-  threadId,
+  projectId,
+  botId,
   model,
-  own,
-  onPick,
 }: {
-  threadId?: string
-  /** The chat's own pick, when it has one. */
+  projectId: Id<'projects'>
+  /** The bot, or unset for the lead. */
+  botId?: Id<'bots'>
+  /** The assistant's own pick, when it has one. */
   model?: string
-  /** The assistant's own model, used when the chat has no pick. */
-  own?: string
-  /** For a new chat: remembers the pick for the first message. */
-  onPick: (model: string | undefined) => void
 }) {
   const setModel = useMutation(api.api.threads.setModel)
-  const current = model ?? own ?? MODELS.chat
+  const current = model ?? MODELS.chat
   const pick = (next: string | undefined) => {
-    onPick(next)
-    if (threadId) void setModel({ threadId, model: next ?? null })
+    void setModel({ projectId, botId, model: next ?? null })
   }
   return (
     <DropdownMenu>
@@ -89,9 +84,9 @@ export function ModelMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => pick(undefined)}>
           <span className="flex flex-col">
-            Assistant&rsquo;s own
+            Default
             <span className="text-xs text-muted-foreground">
-              {modelName(own)}, as set in its form
+              {modelName(undefined)}
             </span>
           </span>
         </DropdownMenuItem>

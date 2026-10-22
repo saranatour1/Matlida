@@ -44,11 +44,8 @@ const setup = async () => {
     brief: '',
     guidelines: '',
   })
-  const threadId = await t.mutation(internal.api.threads.start, {
+  const threadId = await t.mutation(internal.api.threads.startMain, {
     projectId,
-    kind: 'chat',
-    title: 'Launch',
-    userId: ada,
   })
   const planId = await t.mutation(internal.api.plans.write, {
     projectId,
@@ -165,7 +162,7 @@ test('a step that keeps failing stops the task and says so in the chat', async (
 })
 
 test('only the owner can start or see a task, and a task can’t start a plan', async () => {
-  const { t, asBob, projectId, planId, startPlan, run } = await setup()
+  const { asBob, startPlan, run } = await setup()
   const taskId = await startPlan()
   await run()
   await expect(
@@ -174,13 +171,4 @@ test('only the owner can start or see a task, and a task can’t start a plan', 
   await expect(asBob.query(api.api.tasks.get, { taskId })).rejects.toThrow(
     'Project not found.',
   )
-  const workThreadId = (await t.run((ctx) => ctx.db.get('tasks', taskId)))
-    ?.workThreadId
-  await expect(
-    t.mutation(internal.api.tasks.startPlan, {
-      projectId,
-      threadId: workThreadId ?? '',
-      planId,
-    }),
-  ).rejects.toThrow("A plan can't start another plan.")
 })

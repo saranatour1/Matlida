@@ -189,11 +189,7 @@ const forSpace = internalMutation({
       })
     }
     const threadId = await ensureMainThread(ctx, project, null)
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
-    return { project, members: await getMembers(ctx, thread), threadId }
+    return { project, members: await getMembers(ctx, project, null), threadId }
   },
 })
 

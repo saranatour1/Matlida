@@ -23,12 +23,12 @@ import schema from '../../schema'
 import { findCommand, getCommand } from '../commands/queries'
 import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { getOwnedProject } from '../projects/queries'
-import { MODELS, MODEL_ID } from '../../lib/models'
+import { MODELS } from '../../lib/models'
 import { gatewayCost } from '../usage/functions'
 import { ensureMainThread } from './functions'
-import { getMembers, getOwnedThread } from './queries'
+import { assistantOf, getMembers, ownsThread } from './queries'
 import { createAgent } from './lead'
-import type { Effort, Language } from '../../lib/models'
+import type { Language } from '../../lib/models'
 import type { Via } from './lead'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
@@ -53,16 +53,10 @@ export const postMessage = async (
     projectId,
     botId,
     prompt,
-    model,
-    effort,
   }: {
     projectId: Id<'projects'>
     botId?: Id<'bots'>
     prompt: string
-    /** For a new chat: the model it starts on. */
-    model?: string
-    /** For a new chat: the effort it starts on. */
-    effort?: Effort
   },
 ) => {
   const project = await getOwnedProject(ctx, userId, projectId)
@@ -71,7 +65,7 @@ export const postMessage = async (
     throw new ConvexError('Assistant not found.')
   }
   const command = await findCommand(ctx, projectId, prompt)
-  const id = await ensureMainThread(ctx, project, bot, { model, effort })
+  const id = await ensureMainThread(ctx, project, bot)
   const { messageId } = await saveMessage(ctx, components.agent, {
     threadId: id,
     prompt,
@@ -97,15 +91,6 @@ const sendMessage = zAuthedMutation({
       .trim()
       .min(1, 'Write a message first.')
       .max(4000, 'Messages can be at most 4000 characters.'),
-    /** For a new chat: the model it starts on. */
-    model: z
-      .string()
-      .trim()
-      .max(80)
-      .regex(MODEL_ID, 'Use a gateway model id like anthropic/claude-sonnet-5.')
-      .optional(),
-    /** For a new chat: the effort it starts on. */
-    effort: z.enum(['low', 'medium', 'high']).optional(),
   },
   handler: async (ctx, { timeZone, ...message }) => {
     const { threadId, promptMessageId, command } = await postMessage(
@@ -138,37 +123,22 @@ const context = internalQuery({
       }),
       v.null(),
     ),
-    /** The chat's own model, when one was picked. */
-    model: v.union(v.string(), v.null()),
-    /** The chat's own effort, when one was picked. */
-    effort: v.union(
-      v.literal('low'),
-      v.literal('medium'),
-      v.literal('high'),
-      v.null(),
-    ),
   }),
   handler: async (ctx, { threadId, command: name }) => {
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', threadId))
-      .unique()
-    const project = thread && (await ctx.db.get('projects', thread.projectId))
-    if (!project) throw new Error(`No project for thread ${threadId}`)
-    const stored = name ? await getCommand(ctx, thread.projectId, name) : null
+    const found = await assistantOf(ctx, threadId)
+    if (!found) throw new Error(`No project for thread ${threadId}`)
+    const { project, bot } = found
+    const stored = name ? await getCommand(ctx, project._id, name) : null
     const builtIn = BUILT_IN_COMMANDS.find((c) => c.name === name)
-    const bot = thread.botId ? await ctx.db.get('bots', thread.botId) : null
     return {
       project,
       bot,
-      members: await getMembers(ctx, thread),
+      members: await getMembers(ctx, project, bot),
       command: stored
         ? { name: stored.name, storageId: stored.storageId }
         : builtIn
           ? { name: builtIn.name, markdown: builtIn.markdown }
           : null,
-      model: thread.model ?? null,
-      effort: thread.effort ?? null,
     }
   },
 })
@@ -211,8 +181,6 @@ export const runReply = async (
     bot,
     members,
     command,
-    model,
-    effort,
   }: {
     project: Doc<'projects'>
     bot: Doc<'bots'> | null
@@ -222,8 +190,6 @@ export const runReply = async (
       markdown?: string
       storageId?: Id<'_storage'>
     } | null
-    model: string | null
-    effort: Effort | null
   } = await ctx.runQuery(internal.api.chat.context, {
     threadId,
     command: commandName,
@@ -239,8 +205,6 @@ export const runReply = async (
     via,
     cutOff,
     language,
-    model: model ?? undefined,
-    effort: effort ?? undefined,
     command: command && markdown ? { name: command.name, markdown } : undefined,
   })
   const started = Date.now()
@@ -306,7 +270,7 @@ const listMessages = authedQuery({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
-    if (!(await getOwnedThread(ctx, ctx.userId, args.threadId))) {
+    if (!(await ownsThread(ctx, ctx.userId, args.threadId))) {
       throw new ConvexError('Chat not found.')
     }
     const paginated = await listUIMessages(ctx, components.agent, args)

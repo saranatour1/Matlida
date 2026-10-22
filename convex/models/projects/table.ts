@@ -16,8 +16,12 @@ export const projectsTable = defineTable({
   model: v.optional(v.string()),
   /** The lead's one thread: the app, Telegram, email and calls all talk there. */
   threadId: v.optional(v.string()),
+  /** Bots the lead can hand work to with ask_bot. None until you add them. */
+  memberIds: v.optional(v.array(v.id('bots'))),
   /** How hard the lead works on a reply. Unset means medium. */
   effort: v.optional(
     v.union(v.literal('low'), v.literal('medium'), v.literal('high')),
   ),
-}).index('by_owner', ['ownerId'])
+})
+  .index('by_owner', ['ownerId'])
+  .index('by_threadId', ['threadId'])

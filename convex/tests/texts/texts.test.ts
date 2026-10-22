@@ -157,13 +157,10 @@ test('a linked chat talks to the lead in its own chat, in plain text', async () 
   expect(await text('space-1', 'What is on today?')).toBe('Hi from Matilda.')
 
   expect(JSON.stringify(calls)).toContain('You are replying by text message')
-  const [chat] = await asAda.query(api.api.threads.list, {
-    projectId,
-    kind: 'chat',
-  })
-  expect(chat).toMatchObject({ title: 'Matilda' })
+  const chat = await asAda.query(api.api.threads.main, { projectId })
+  expect(chat).toBeTruthy()
   const { page } = await asAda.query(api.api.chat.listMessages, {
-    threadId: chat.threadId,
+    threadId: chat ?? '',
     paginationOpts: { numItems: 10, cursor: null },
   })
   expect(page.map((m) => m.text).sort()).toEqual([
@@ -252,7 +249,7 @@ test('a project links one chat per app, and relinking an app replaces it', async
 
 test('texts only ever go to the lead, even with @name', async () => {
   const { asAda, projectId, text } = await setup()
-  await asAda.mutation(api.api.bots.save, {
+  const ivy = await asAda.mutation(api.api.bots.save, {
     projectId,
     name: 'Ivy',
     role: 'Researcher',
@@ -264,11 +261,10 @@ test('texts only ever go to the lead, even with @name', async () => {
   expect(await text('tg-1', '@ivy, find me a cafe', 'telegram')).toBe(
     'Hi from Matilda.',
   )
-  const chats = await asAda.query(api.api.threads.list, {
-    projectId,
-    kind: 'chat',
-  })
-  expect(chats.map((c) => [c.title, c.botId])).toEqual([['Matilda', undefined]])
+  expect(await asAda.query(api.api.threads.main, { projectId })).toBeTruthy()
+  expect(
+    await asAda.query(api.api.threads.main, { projectId, botId: ivy }),
+  ).toBeNull()
 })
 
 test('find_texts searches what you texted from a linked chat, and only yours', async () => {

@@ -11,8 +11,6 @@ export const tasksTable = defineTable({
   projectId: v.id('projects'),
   /** The chat that asked for it. Its card and the summary go there. */
   threadId: v.string(),
-  /** Where the steps do their work, so each step sees the ones before it. */
-  workThreadId: v.string(),
   kind: literals('run_plan'),
   title: v.string(),
   planId: v.optional(v.id('plans')),

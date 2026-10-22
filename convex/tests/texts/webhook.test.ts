@@ -165,13 +165,10 @@ test('linking from Telegram, then chatting, then a text reminder, all go through
     key: 'reply:m2',
   })
 
-  const [chat] = await asAda.query(api.api.threads.list, {
-    projectId,
-    kind: 'chat',
-  })
+  const chat = await asAda.query(api.api.threads.main, { projectId })
   const id = await t.mutation(internal.api.reminders.schedule, {
     projectId,
-    threadId: chat.threadId,
+    threadId: chat ?? '',
     from: 'Matilda',
     message: 'Call the bank',
     dueAt: Date.now() + 60_000,

@@ -203,15 +203,10 @@ const refreshDue = internalAction({
       })
       if (!project || !page.refresh) continue
       try {
+        // The lead's chat, for its history, with nothing saved: the page is the result.
         const threadId: string = await ctx.runMutation(
-          internal.api.threads.start,
-          {
-            projectId: project._id,
-            kind: 'subagent',
-            title: `Updating ${page.title}`,
-            parentThreadId: page.threadId || undefined,
-            userId: project.ownerId,
-          },
+          internal.api.threads.startMain,
+          { projectId: project._id },
         )
         const agent = createAgent(ctx, project, {
           tools: [
@@ -230,6 +225,7 @@ const refreshDue = internalAction({
           {
             prompt: `Keep the page "${page.title}" (pageId ${page._id}) up to date: ${page.refresh.instructions}\nRead it first with read_page and keep the user's own edits and structure. Change only what's out of date, then save the whole page with write_page.`,
           },
+          { storageOptions: { saveMessages: 'none' } },
         )
       } catch (error) {
         console.error(error)

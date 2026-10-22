@@ -2,6 +2,7 @@ import { useMutation } from 'convex/react'
 import { GaugeIcon } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { EFFORTS } from '../../convex/lib/models'
+import type { Id } from '../../convex/_generated/dataModel'
 import type { Effort } from '../../convex/lib/models'
 import {
   DropdownMenu,
@@ -20,24 +21,20 @@ import { InputGroupButton } from '~/components/ui/input-group'
  * until the first message. "Assistant's own" goes back to the bot's or lead's.
  */
 export function EffortMenu({
-  threadId,
+  projectId,
+  botId,
   effort,
-  own,
-  onPick,
 }: {
-  threadId?: string
-  /** The chat's own pick, when it has one. */
+  projectId: Id<'projects'>
+  /** The bot, or unset for the lead. */
+  botId?: Id<'bots'>
+  /** The assistant's own pick, when it has one. */
   effort?: Effort
-  /** The assistant's own effort, used when the chat has no pick. */
-  own?: Effort
-  /** For a new chat: remembers the pick for the first message. */
-  onPick: (effort: Effort | undefined) => void
 }) {
   const setEffort = useMutation(api.api.threads.setEffort)
-  const current = effort ?? own ?? 'medium'
+  const current = effort ?? 'medium'
   const pick = (next: Effort | undefined) => {
-    onPick(next)
-    if (threadId) void setEffort({ threadId, effort: next ?? null })
+    void setEffort({ projectId, botId, effort: next ?? null })
   }
   return (
     <DropdownMenu>
@@ -76,9 +73,9 @@ export function EffortMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => pick(undefined)}>
           <span className="flex flex-col">
-            Assistant&rsquo;s own
+            Default
             <span className="text-xs text-muted-foreground">
-              {EFFORTS[own ?? 'medium'].name}, as set in its form
+              {EFFORTS.medium.name}
             </span>
           </span>
         </DropdownMenuItem>

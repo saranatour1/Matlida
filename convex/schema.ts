@@ -22,7 +22,6 @@ import {
   receivedTextsTable,
   telegramPollsTable,
 } from './models/texts/table'
-import { threadsTable } from './models/threads/table'
 import { usageTable } from './models/usage/table'
 import { usersTable } from './models/users/table'
 import { videosTable } from './models/videos/table'
@@ -30,7 +29,6 @@ import { videosTable } from './models/videos/table'
 export default defineSchema({
   users: usersTable,
   projects: projectsTable,
-  threads: threadsTable,
   bots: botsTable,
   commands: commandsTable,
   comments: commentsTable,

@@ -66,9 +66,7 @@ test("a first message starts the lead's one chat and the lead replies in it", as
     ['assistant', 'Hello from the lead.'],
     ['user', 'Hi there'],
   ])
-  expect(
-    await asAda.query(api.api.threads.list, { projectId, kind: 'chat' }),
-  ).toMatchObject([{ threadId, title: 'Matilda', kind: 'chat' }])
+  expect(await asAda.query(api.api.threads.main, { projectId })).toBe(threadId)
 })
 
 test("another user can't read or post to the chat", async () => {
@@ -179,13 +177,15 @@ test('no bots are members until you add them', async () => {
   expect(await membersOf(rexThread)).toEqual([])
 
   await asAda.mutation(api.api.threads.setMembers, {
-    threadId: rexThread,
+    projectId,
+    botId: rex,
     memberIds: [ivy],
   })
   expect(await membersOf(rexThread)).toEqual(['Ivy'])
   await expect(
     asAda.mutation(api.api.threads.setMembers, {
-      threadId: rexThread,
+      projectId,
+      botId: rex,
       memberIds: [rex],
     }),
   ).rejects.toThrow('Only other assistants in this workspace can join.')

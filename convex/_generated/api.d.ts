@@ -108,7 +108,6 @@ import type * as models_threads_lead from "../models/threads/lead.js";
 import type * as models_threads_pages from "../models/threads/pages.js";
 import type * as models_threads_queries from "../models/threads/queries.js";
 import type * as models_threads_shopping from "../models/threads/shopping.js";
-import type * as models_threads_table from "../models/threads/table.js";
 import type * as models_threads_tools from "../models/threads/tools.js";
 import type * as models_threads_voice from "../models/threads/voice.js";
 import type * as models_usage_functions from "../models/usage/functions.js";
@@ -227,7 +226,6 @@ declare const fullApi: ApiFromModules<{
   "models/threads/pages": typeof models_threads_pages;
   "models/threads/queries": typeof models_threads_queries;
   "models/threads/shopping": typeof models_threads_shopping;
-  "models/threads/table": typeof models_threads_table;
   "models/threads/tools": typeof models_threads_tools;
   "models/threads/voice": typeof models_threads_voice;
   "models/usage/functions": typeof models_usage_functions;

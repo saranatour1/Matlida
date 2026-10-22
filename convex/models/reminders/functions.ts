@@ -16,6 +16,7 @@ import schema from '../../schema'
 import { getMailbox } from '../mailboxes/queries'
 import { getOwnedProject } from '../projects/queries'
 import { getLink } from '../texts/queries'
+import { assistantOf } from '../threads/queries'
 import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
@@ -238,13 +239,7 @@ const ringing = authedQuery({
         )
         .take(5)
       for (const reminder of rings) {
-        const thread = await ctx.db
-          .query('threads')
-          .withIndex('by_threadId', (q) => q.eq('threadId', reminder.threadId))
-          .unique()
-        const bot = thread?.botId
-          ? await ctx.db.get('bots', thread.botId)
-          : null
+        const bot = (await assistantOf(ctx, reminder.threadId))?.bot ?? null
         calls.push({
           _id: reminder._id,
           projectId: project._id,
@@ -278,12 +273,9 @@ const pickUp = internalMutation({
     await getOwnedProject(ctx, userId, reminder.projectId)
     if (reminder.status !== 'ringing') return null
     await deliver(ctx, id, 'You picked up.')
-    const thread = await ctx.db
-      .query('threads')
-      .withIndex('by_threadId', (q) => q.eq('threadId', reminder.threadId))
-      .unique()
+    const bot = (await assistantOf(ctx, reminder.threadId))?.bot
     const { projectId, threadId, from, message } = reminder
-    return { projectId, threadId, botId: thread?.botId, from, message }
+    return { projectId, threadId, botId: bot?._id, from, message }
   },
 })
 

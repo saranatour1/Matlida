@@ -56,17 +56,8 @@ const setup = async () => {
     brief: '',
     guidelines: '',
   })
-  const threadId = await t.run(async (ctx) => {
-    const { createThread } = await import('@convex-dev/agent')
-    const { components } = await import('../../_generated/api')
-    const id = await createThread(ctx, components.agent, { userId: ada })
-    await ctx.db.insert('threads', {
-      projectId,
-      threadId: id,
-      kind: 'chat',
-      title: 'Chat',
-    })
-    return id
+  const threadId = await t.mutation(internal.api.threads.startMain, {
+    projectId,
   })
   return { t, asAda, projectId, threadId }
 }

@@ -66,7 +66,6 @@ export function AssistantPanel({
     threadId ? { threadId } : 'skip',
   )
   const budget = useQuery(api.api.usage.budget, {})
-  const thread = useQuery(api.api.threads.get, threadId ? { threadId } : 'skip')
   const bots = useQuery(api.api.bots.list, { projectId: project._id })
   const plans = useQuery(api.api.plans.list, { projectId: project._id })
   const tasks = useQuery(
@@ -86,7 +85,7 @@ export function AssistantPanel({
   )
   const computeMs = rows.reduce((sum, r) => sum + (r.computeMs ?? 0), 0)
   const others = (bots ?? []).filter((b) => b._id !== bot?._id)
-  const memberIds = thread?.memberIds ?? []
+  const memberIds = (bot ?? project).memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
   const name = bot?.name ?? project.name
 
@@ -202,7 +201,7 @@ export function AssistantPanel({
               <dd className="truncate">{project.name}</dd>
               <dt className="text-muted-foreground">Model</dt>
               <dd className="truncate">
-                {thread?.model ?? bot?.model ?? project.model ?? MODELS.chat}
+                {bot?.model ?? project.model ?? MODELS.chat}
               </dd>
               <dt className="text-muted-foreground">Gateway</dt>
               <dd>Convex AI gateway</dd>
