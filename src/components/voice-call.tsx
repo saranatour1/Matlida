@@ -45,6 +45,7 @@ import {
 } from '~/hooks/use-call-settings'
 
 import { useUpload } from '~/hooks/use-upload'
+import { askToNotify } from '~/lib/ring-alert'
 import { toWav } from '~/lib/wav'
 import { hear, startListening } from '~/lib/turn-taking'
 
@@ -56,7 +57,12 @@ const pick = <T extends string>(saved: string) =>
   saved ? (saved as T) : undefined
 
 type Status =
-  'idle' | 'starting' | 'listening' | 'hearing' | 'thinking' | 'speaking'
+  | 'idle'
+  | 'starting'
+  | 'listening'
+  | 'hearing'
+  | 'thinking'
+  | 'speaking'
 
 /** Who the call is with. `threadId` fills in when the first turn starts a chat. */
 type CallTarget = {
@@ -73,12 +79,15 @@ type Session = CallTarget & {
   /** What the assistant is saying right now, for the speaking animation. */
   output: AnalyserNode
   analyser: AnalyserNode
+  /** Posts the mic's loudness from the audio thread (public/loudness-worklet.js). */
+  meter: AudioWorkletNode
   recorder?: MediaRecorder
   /** The assistant's reply while it arrives and plays. */
   reply?: Reply
-  frame?: number
   /** The call's record in history, from its first turn or the answered ring. */
   callId?: Id<'calls'>
+  /** What the assistant says first when it called you, while it loads. */
+  opening?: Opening
   ended: boolean
 }
 
@@ -158,14 +167,10 @@ function useVoiceCall({
     recorder.start()
     s.recorder = recorder
     if (!s.reply) setStatus('listening')
-    const samples = new Float32Array(s.analyser.fftSize)
-    const tick = () => {
+    s.meter.port.onmessage = ({ data: level }: MessageEvent<number>) => {
       if (s.ended || recorder.state !== 'recording') return
-      s.analyser.getFloatTimeDomainData(samples)
-      let sum = 0
-      for (const x of samples) sum += x * x
       const { next, event } = hear(state, {
-        level: Math.sqrt(sum / samples.length),
+        level,
         now: performance.now(),
         replying: s.reply !== undefined && !s.reply.paused,
         paused: s.reply?.paused !== undefined,
@@ -178,12 +183,10 @@ function useVoiceCall({
       }
       if (event === 'send' || event === 'resume' || event === 'restart') {
         outcome = event
+        s.meter.port.onmessage = null
         recorder.stop()
-        return
       }
-      s.frame = requestAnimationFrame(tick)
     }
-    s.frame = requestAnimationFrame(tick)
   }
 
   async function send(s: Session, clip: Blob, cutOff: boolean) {
@@ -199,6 +202,8 @@ function useVoiceCall({
       const fast = getFastVoice()
       const audio = fast ? await toWav(clip) : clip
       const storageId = await upload(audio)
+      // A turn before the opening line arrived still joins the answered call.
+      s.callId ??= (await s.opening)?.callId
       const liveKey = crypto.randomUUID()
       follow(s, liveKey)
       listen(s)
@@ -374,7 +379,13 @@ function useVoiceCall({
       })
       const analyser = audio.createAnalyser()
       analyser.fftSize = 1024
-      audio.createMediaStreamSource(stream).connect(analyser)
+      const mic = audio.createMediaStreamSource(stream)
+      mic.connect(analyser)
+      await audio.audioWorklet.addModule('/loudness-worklet.js')
+      const meter = new AudioWorkletNode(audio, 'loudness', {
+        numberOfOutputs: 0,
+      })
+      mic.connect(meter)
       const gain = audio.createGain()
       gain.gain.value = getCallVolume()
       gain.connect(audio.destination)
@@ -388,23 +399,28 @@ function useVoiceCall({
         gain,
         output,
         analyser,
+        meter,
         ended: false,
       }
       session.current = s
-      const first = await opening?.catch(() => null)
-      if (session.current !== s) return
-      if (first) setLines([{ who: 'them', text: first.text }])
-      s.callId = first?.callId
-      if (first?.audioUrl) {
+      // Listen now; the opening line joins whenever it's ready, so a slow
+      // one never holds the call on "Connecting…".
+      s.opening = opening?.catch(() => null)
+      listen(s)
+      void s.opening?.then((first) => {
+        if (session.current !== s || !first) return
+        setLines((l) => [{ who: 'them', text: first.text }, ...l])
+        s.callId ??= first.callId
+        // Not over a turn you already sent.
+        if (!first.audioUrl || s.reply) return
         s.reply = {
           pieces: [first.audioUrl],
           next: 0,
           done: true,
           stopWatching: () => {},
         }
-      }
-      listen(s)
-      playNext(s)
+        playNext(s)
+      })
     } catch {
       void audio.close()
       setError('Allow microphone access to call.')
@@ -419,7 +435,7 @@ function useVoiceCall({
     if (!s) return
     s.ended = true
     if (s.callId) void end({ id: s.callId })
-    if (s.frame) cancelAnimationFrame(s.frame)
+    s.meter.port.onmessage = null
     if (s.recorder?.state === 'recording') s.recorder.stop()
     drop(s)
     for (const track of s.stream.getTracks()) track.stop()
@@ -509,6 +525,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   })
   function startCall(target: CallTarget, who: Caller, opening?: Opening) {
     if (call.status !== 'idle') return
+    askToNotify()
     setCaller({ ...who, target })
     void call.start(target, opening)
   }
