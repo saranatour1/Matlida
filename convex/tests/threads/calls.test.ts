@@ -272,6 +272,33 @@ test('answering a ringing reminder opens with it spoken, once, and only for you'
   expect(await asAda.action(api.api.calls.answer, { id })).toBeNull()
 })
 
+test('a ring whose opening line can’t be spoken still answers, with the line and no audio', async () => {
+  const { t, asAda, projectId } = await setup()
+  const threadId = await chatWithReminder(t, projectId)
+  const id = await t.run((ctx) =>
+    ctx.db.insert('reminders', {
+      projectId,
+      threadId,
+      from: 'Matilda',
+      message: 'Stretch',
+      dueAt: Date.now(),
+      via: 'call',
+      status: 'ringing',
+    }),
+  )
+  vi.mocked(generateSpeech).mockRejectedValueOnce(
+    new DOMException('The operation timed out.', 'TimeoutError'),
+  )
+
+  expect(await asAda.action(api.api.calls.answer, { id })).toMatchObject({
+    text: "Hi, it's Matilda with your reminder. Stretch",
+    audioUrl: null,
+  })
+  expect(
+    vi.mocked(generateSpeech).mock.lastCall?.[0].abortSignal,
+  ).toBeInstanceOf(AbortSignal)
+})
+
 test('a call keeps every line from its first turn, for you only', async () => {
   heard.text = 'Hello Matilda'
   const { t, asAda, asBob, projectId, clip, talk } = await setup()

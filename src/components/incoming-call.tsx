@@ -8,6 +8,13 @@ import { Button } from '~/components/ui/button'
 import { useCall } from '~/components/voice-call'
 import { attempt } from '~/lib/attempt'
 import { trackEvent } from '~/lib/analytics'
+import { alertRing } from '~/lib/ring-alert'
+
+/** While a ring shows: the tab's title, and a notification if you're on another tab. */
+function RingAlert({ from }: { from: string }) {
+  const ref = React.useCallback(() => alertRing(from), [from])
+  return <span ref={ref} hidden />
+}
 
 /**
  * Rings when an assistant calls you with a reminder, on any page, unless
@@ -39,6 +46,7 @@ export function IncomingCall() {
       className="fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-2xl border bg-popover p-3 pr-4 text-popover-foreground shadow-lg"
     >
       <audio src="/ring.wav" autoPlay loop />
+      <RingAlert key={ring._id} from={ring.from} />
       <BotAvatar
         portrait={portrait}
         className="size-12 animate-pulse ring-2 ring-emerald-400/70"
