@@ -11,6 +11,11 @@ import type { Doc } from '../../lib/ctx'
  * lists the user ticks off.
  */
 export const everydayTools = (project: Doc<'projects'>) => {
+  // The model can call add_to_list several times in one step, and every call
+  // rewrites the same list, so racing them hits write conflicts. Run them one
+  // at a time. ponytail: only within one reply; two replies at once still
+  // race and fall back on Convex retrying the mutation.
+  let adding: Promise<unknown> = Promise.resolve()
   return {
     add_to_list: createTool({
       description:
@@ -31,12 +36,17 @@ export const everydayTools = (project: Doc<'projects'>) => {
           .max(60),
       }),
       execute: async (ctx, { list, items }) => {
-        const id: string = await ctx.runMutation(internal.api.plans.addItems, {
-          projectId: project._id,
-          threadId: ctx.threadId ?? '',
-          title: list,
-          items,
-        })
+        const add = adding.then(
+          (): Promise<string> =>
+            ctx.runMutation(internal.api.plans.addItems, {
+              projectId: project._id,
+              threadId: ctx.threadId ?? '',
+              title: list,
+              items,
+            }),
+        )
+        adding = add.catch(() => undefined)
+        const id = await add
         return { planId: id, added: items.length }
       },
     }),

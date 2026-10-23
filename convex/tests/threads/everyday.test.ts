@@ -51,3 +51,29 @@ test('every tool an email draft may use is a real tool, so a typo can’t drop o
     expect(all).toContain(tool)
   }
 })
+
+test('add_to_list calls in one step run one at a time, so they don’t race on the list', async () => {
+  const { everydayTools } = await import('../../models/threads/everyday')
+  let running = 0
+  let most = 0
+  const fake = {
+    threadId: 't1',
+    runMutation: async () => {
+      most = Math.max(most, ++running)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      running -= 1
+      return 'plan1'
+    },
+  }
+  const tool = { ...everydayTools(project).add_to_list, ctx: fake }
+  const call = (text: string) =>
+    tool.execute!(
+      { list: 'Shopping list', items: [{ text }] },
+      { toolCallId: text, messages: [], context: {} },
+    )
+  const results = await Promise.all([call('milk'), call('eggs'), call('bread')])
+  expect(most).toBe(1)
+  expect(results).toEqual(
+    Array(3).fill({ planId: 'plan1', added: 1 }),
+  )
+})
