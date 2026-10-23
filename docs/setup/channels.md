@@ -125,8 +125,9 @@ money and could be abused. The flag lives in Cloudflare Flagship, which the
 Worker reads through its `NO_PHONE_CALLS_YET` binding (`wrangler.jsonc`).
 Convex asks the Worker's `/api/flags` before each call.
 
-1. In Flagship's app, make a boolean flag `phone-calls`, off by default, with a
-   rule that serves on for `targetingKey` in a list of Convex user ids. Add or
+1. In Flagship's app, make a boolean flag `no-calls`, **on** by default, with a
+   rule that serves **off** when `targetingKey` equals one of a list of Convex
+   user ids (one Equals per id, joined with OR). Those people can call. Add or
    remove ids there to turn calls on or off for people.
 2. Make a long random secret and set it as `FLAGS_SECRET` on both the Worker
    (a secret, in its dashboard settings or with `wrangler secret put`) and the
@@ -134,7 +135,8 @@ Convex asks the Worker's `/api/flags` before each call.
 3. On dev, also set `FLAGS_URL=https://matilda-is-a-bot.app`: dev's
    `SITE_URL` is localhost, which Convex can't reach.
 
-Without the secret, or if the Worker doesn't answer, calls are refused. On dev,
+Without the secret, if the Worker doesn't answer, or if Flagship can't, calls
+are refused: the Worker's fallback for `no-calls` is on. On dev,
 `FLAGS_ON=phone-calls` turns calls on for everyone without Flagship. Never set
 it on prod.
 

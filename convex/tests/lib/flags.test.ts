@@ -24,19 +24,23 @@ test('a deployment can turn them on for everyone, without Flagship', async () =>
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(true)
 })
 
-test("the Worker's Flagship binding turns them on for one user", async () => {
+test("Flagship's no-calls, off for one user, turns calls on for them", async () => {
   vi.stubEnv('FLAGS_SECRET', 'shh')
   vi.stubEnv('FLAGS_URL', 'https://matilda.example')
-  const fetch = vi.fn(() => Promise.resolve(Response.json({ on: true })))
+  const fetch = vi.fn(() => Promise.resolve(Response.json({ value: false })))
   vi.stubGlobal('fetch', fetch)
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(true)
   const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit]
   expect(url).toBe('https://matilda.example/api/flags')
   expect(init.headers).toMatchObject({ authorization: 'Bearer shh' })
+  // If Flagship can't answer, the Worker falls back to no calls.
   expect(JSON.parse(init.body as string)).toEqual({
-    flag: 'phone-calls',
+    flag: 'no-calls',
     userId: 'user_1',
+    fallback: true,
   })
-  fetch.mockResolvedValue(Response.json({ on: false }))
+  fetch.mockResolvedValue(Response.json({ value: true }))
+  expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
+  fetch.mockResolvedValue(Response.json({}))
   expect(await flagOn(FLAGS.phoneCalls, 'user_1')).toBe(false)
 })

@@ -82,8 +82,8 @@ export function SetupPart({
         <Section title="Phone calls" done={false} setup={status('phone')}>
           <p>
             1. Phone calls cost money, so they&rsquo;re off until your account
-            is added to the <code>phone-calls</code> feature flag in Cloudflare
-            Flagship. Ask whoever runs this app to add your user id:
+            is added to the <code>no-calls</code> feature flag's rule in
+            Cloudflare Flagship. Ask whoever runs this app to add your user id:
           </p>
           <UserId />
           <p>
@@ -137,7 +137,7 @@ function Section({
   )
 }
 
-/** Your user id, which the phone-calls flag's rule lists, to copy and send on. */
+/** Your user id, which the no-calls flag's rule lists, to copy and send on. */
 function UserId() {
   const user = useQuery(api.api.users.current)
   if (!user) return null

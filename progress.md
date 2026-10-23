@@ -838,3 +838,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Telegram runs on Photon's platform API, and its webhook does deliver messages, so #166's voice notes (which listened on the Spectrum path) never reached Matilda. `/photon/webhook` now takes a Telegram voice note (`{ type: 'voice', attachmentId }`), downloads it from Photon (`downloadAttachment`, which waits while Photon is still fetching it), transcribes it and answers. Only a linked chat's are heard, charged to its owner. The Spectrum-side voice code is gone.
 - The setup docs and README say Telegram goes through Photon's webhook again; #165 had pointed them at Spectrum and `connectTelegram`, which would take the bot away from Photon.
 - Tested: `pnpm check` and the texts tests, with a voice note answered in a linked chat and never transcribed in an unlinked one.
+
+### Phone calls read Flagship's `no-calls` flag (2026-10-23)
+
+- Prod's Flagship has `no-calls` (on by default, served off for the users who may call), not the `phone-calls` the app asked for, so calls were refused for everyone. The app now reads `no-calls` the other way round: calls are on for a user when it's off for them (`FLAGS.phoneCalls` in `convex/lib/flags.ts`).
+- `/api/flags` takes the fallback from Convex, and Convex asks for "no calls" if Flagship can't answer, so a Flagship outage never turns calls on for everyone. It answers `{ value }`.
+- `FLAGS_ON=phone-calls` still turns calls on for everyone on a deployment. The setup guide, Matilda's refusal, the docs and the README name `no-calls`.
+- Tested: `pnpm check` and all 249 tests, with the flag test covering off-for-you, on, no answer, and the fallback Convex sends.
