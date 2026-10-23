@@ -1,35 +1,21 @@
 import { cronJobs } from 'convex/server'
 import { internal } from './_generated/api'
 
+/**
+ * Only what has to run on a timer. Everything else is scheduled for when
+ * it's due: check-ins after you chat, each watched price daily, each daily
+ * briefing at its hour, each kept-up-to-date page when due. Email comes in
+ * when you ask (and through Photon's webhook).
+ */
 const crons = cronJobs()
-
-// ponytail: checks every minute because Photon's beta webhooks don't document
-// their signature yet. Move to its webhook once they do, for instant replies.
-crons.interval('check email', { minutes: 1 }, internal.api.emails.poll)
 
 // ponytail: a backstop for /photon/webhook, which Photon hasn't delivered to yet.
 // Drop it once the webhook is seen answering Telegram.
 crons.interval('check telegram', { minutes: 1 }, internal.api.texts.poll, {})
 
 crons.interval(
-  'check watched prices',
-  { hours: 1 },
-  internal.api.shopping.checkPrices,
-)
-
-crons.interval('daily news', { hours: 1 }, internal.api.news.sendDaily)
-
-crons.interval(
-  'keep pages up to date',
-  { hours: 1 },
-  internal.api.pages.refreshDue,
-)
-
-crons.interval('check in', { hours: 1 }, internal.api.checkIns.run)
-
-crons.interval(
-  'sweep unsaved command files',
-  { hours: 1 },
+  'sweep unsaved files',
+  { hours: 24 },
   internal.api.commands.sweepFiles,
 )
 

@@ -28,6 +28,7 @@
 
 - [x] Stop a reply, which also unsticks a reply that died
 - [x] Contacts page: a table of people, with Email and Call that start the message in the chat
+- [x] Fewer crons: email when asked, check-ins, price watches, daily news and page refreshes scheduled for when they're due
 - [ ] Setup guide in the chat: clickable steps for email, Telegram, SMS, in-app calls and phone calls
 - Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 

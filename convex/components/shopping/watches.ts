@@ -53,21 +53,6 @@ export const stop = mutation({
   },
 })
 
-const HOUR = 60 * 60_000
-
-/** Watches not checked for about a day, oldest first. */
-export const due = query({
-  args: {},
-  returns: v.array(schema.doc('watches')),
-  handler: async (ctx) =>
-    await ctx.db
-      .query('watches')
-      .withIndex('by_status_and_checkedAt', (q) =>
-        q.eq('status', 'watching').lt('checkedAt', Date.now() - 23 * HOUR),
-      )
-      .take(50),
-})
-
 /**
  * Records a check. Returns what to tell the chat when the price dropped or
  * the item went, with the chat to say it in, or null when there's nothing to say.

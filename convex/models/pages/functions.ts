@@ -18,7 +18,7 @@ import { getOwnedProject } from '../projects/queries'
 import { createAgent } from '../threads/lead'
 import { pagesTable, vMetric } from './table'
 import { getOwnedPage } from './queries'
-import type { Doc } from '../../lib/ctx'
+import type { Doc, Id, MutationCtx } from '../../lib/ctx'
 
 const list = authedQuery({
   args: { projectId: v.id('projects') },
@@ -57,7 +57,7 @@ const save = zAuthedMutation({
 })
 
 const HOUR = 60 * 60_000
-const PERIOD = { day: 23 * HOUR, week: 7 * 24 * HOUR - HOUR }
+const PERIOD = { day: 24 * HOUR, week: 7 * 24 * HOUR }
 
 /** Refreshed now, and next due a period from now, or never when `every` is unset. */
 const refreshTimes = (every?: 'day' | 'week') => {
@@ -66,6 +66,28 @@ const refreshTimes = (every?: 'day' | 'week') => {
     refreshedAt: now,
     nextRefreshAt: every ? now + PERIOD[every] : undefined,
   }
+}
+
+/**
+ * Schedules the page's next refresh for `nextRefreshAt`, replacing the one
+ * pending. A page that isn't kept up to date schedules nothing, so turning
+ * it off cancels it. Run after anything that moves `nextRefreshAt`.
+ */
+const scheduleRefresh = async (ctx: MutationCtx, id: Id<'pages'>) => {
+  const page = await ctx.db.get('pages', id)
+  if (!page) return
+  const pending = page.job && (await ctx.db.system.get("_scheduled_functions", page.job))
+  if (pending && pending.state.kind === 'pending') {
+    await ctx.scheduler.cancel(pending._id)
+  }
+  const job = page.nextRefreshAt
+    ? await ctx.scheduler.runAt(
+        page.nextRefreshAt,
+        internal.api.pages.refreshOne,
+        { id },
+      )
+    : undefined
+  await ctx.db.patch('pages', id, { job })
 }
 
 /** The page's "Keep up to date" setting. Null `every` turns it off. */
@@ -88,6 +110,7 @@ const setRefresh = authedMutation({
         : undefined,
       ...refreshTimes(every ?? undefined),
     })
+    await scheduleRefresh(ctx, id)
   },
 })
 
@@ -164,21 +187,9 @@ const keepUpdated = internalMutation({
         every === 'off' || !instructions ? undefined : { every, instructions },
       ...refreshTimes(every === 'off' || !instructions ? undefined : every),
     })
+    await scheduleRefresh(ctx, page._id)
     return null
   },
-})
-
-/** Pages due a refresh: only those, by `nextRefreshAt`, oldest first. */
-const due = internalQuery({
-  args: {},
-  returns: v.array(schema.doc('pages')),
-  handler: async (ctx) =>
-    await ctx.db
-      .query('pages')
-      .withIndex('by_nextRefreshAt', (q) =>
-        q.gte('nextRefreshAt', 0).lte('nextRefreshAt', Date.now()),
-      )
-      .take(50),
 })
 
 const refreshed = internalMutation({
@@ -186,62 +197,67 @@ const refreshed = internalMutation({
   returns: v.null(),
   handler: async (ctx, { id }) => {
     const page = await ctx.db.get('pages', id)
-    if (page) await ctx.db.patch('pages', id, refreshTimes(page.refresh?.every))
+    if (!page) return null
+    await ctx.db.patch('pages', id, refreshTimes(page.refresh?.every))
+    await scheduleRefresh(ctx, id)
     return null
   },
 })
 
 /**
- * Hourly from `crons.ts`: the lead updates each page that's due, in its own
- * thread under the chat that made the page, with tools that read and look
+ * Refreshes one kept-up-to-date page, scheduled for when it's due
+ * (`scheduleRefresh`): the lead updates it with tools that read and look
  * things up, and saves it with `write_page`.
  */
-const refreshDue = internalAction({
-  args: {},
+const refreshOne = internalAction({
+  args: { id: v.id('pages') },
   returns: v.null(),
-  handler: async (ctx) => {
-    const pages: Array<Doc<'pages'>> = await ctx.runQuery(
-      internal.api.pages.due,
-      {},
+  handler: async (ctx, { id }) => {
+    const page: Doc<'pages'> | null = await ctx.runQuery(
+      internal.api.pages.getPage,
+      { id },
     )
-    for (const page of pages) {
-      // Marked first, so a failure waits a period instead of retrying hourly.
-      await ctx.runMutation(internal.api.pages.refreshed, { id: page._id })
-      const project = await ctx.runQuery(internal.api.pages.projectOf, {
-        id: page._id,
+    if (!page?.refresh) return null
+    // Marked first, which also schedules the next one, so a failure waits a period.
+    await ctx.runMutation(internal.api.pages.refreshed, { id })
+    const project = await ctx.runQuery(internal.api.pages.projectOf, { id })
+    if (!project) return null
+    try {
+      // The lead's chat, for its history, with nothing saved: the page is the result.
+      const threadId: string = await ctx.runMutation(
+        internal.api.threads.startMain,
+        { projectId: project._id },
+      )
+      const agent = createAgent(ctx, project, {
+        tools: [
+          'read_page',
+          'write_page',
+          'web_search',
+          'research',
+          'get_today',
+          'find_emails',
+          'find_texts',
+        ],
       })
-      if (!project || !page.refresh) continue
-      try {
-        // The lead's chat, for its history, with nothing saved: the page is the result.
-        const threadId: string = await ctx.runMutation(
-          internal.api.threads.startMain,
-          { projectId: project._id },
-        )
-        const agent = createAgent(ctx, project, {
-          tools: [
-            'read_page',
-            'write_page',
-            'web_search',
-            'research',
-            'get_today',
-            'find_emails',
-            'find_texts',
-          ],
-        })
-        await agent.generateText(
-          ctx,
-          { threadId, userId: project.ownerId },
-          {
-            prompt: `Keep the page "${page.title}" (pageId ${page._id}) up to date: ${page.refresh.instructions}\nRead it first with read_page and keep the user's own edits and structure. Change only what's out of date, then save the whole page with write_page.`,
-          },
-          { storageOptions: { saveMessages: 'none' } },
-        )
-      } catch (error) {
-        console.error(error)
-      }
+      await agent.generateText(
+        ctx,
+        { threadId, userId: project.ownerId },
+        {
+          prompt: `Keep the page "${page.title}" (pageId ${page._id}) up to date: ${page.refresh.instructions}\nRead it first with read_page and keep the user's own edits and structure. Change only what's out of date, then save the whole page with write_page.`,
+        },
+        { storageOptions: { saveMessages: 'none' } },
+      )
+    } catch (error) {
+      console.error(error)
     }
     return null
   },
+})
+
+const getPage = internalQuery({
+  args: { id: v.id('pages') },
+  returns: v.union(schema.doc('pages'), v.null()),
+  handler: async (ctx, { id }) => await ctx.db.get('pages', id),
 })
 
 const projectOf = internalQuery({
@@ -262,8 +278,8 @@ export const pagesApi = {
   write,
   read,
   keepUpdated,
-  due,
   refreshed,
-  refreshDue,
+  refreshOne,
+  getPage,
   projectOf,
 }

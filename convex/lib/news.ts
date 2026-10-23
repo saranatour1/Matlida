@@ -1,6 +1,6 @@
 import { generateText } from 'ai'
 import { z } from 'zod'
-import { localDayHour } from './time'
+import { zoned } from './time'
 import type { LanguageModel } from 'ai'
 
 export type Story = {
@@ -75,16 +75,19 @@ export const fetchNews = async (
   )
 }
 
-/** Whether a daily briefing should go out now: its hour in the user's zone, and not sent today. Returns the day to mark sent. */
-export const dueDay = (
-  settings: { dailyHour?: number; timeZone?: string; lastSentDay?: string },
-  now: number,
+/** When the next daily briefing goes out: the next `dailyHour` o'clock in the user's zone after `after`. */
+export const nextDaily = (
+  dailyHour: number,
+  timeZone: string | undefined,
+  after: number,
 ) => {
-  if (settings.dailyHour === undefined) return null
-  const { day, hour } = localDayHour(now, settings.timeZone)
-  return hour === settings.dailyHour && day !== settings.lastSentDay
-    ? day
-    : null
+  const today = zoned(after, timeZone).set({
+    hour: dailyHour,
+    minute: 0,
+    second: 0,
+    millisecond: 0,
+  })
+  return (today.toMillis() > after ? today : today.plus({ days: 1 })).toMillis()
 }
 
 /** A briefing as a chat message, for the daily one, which posts without a card. */

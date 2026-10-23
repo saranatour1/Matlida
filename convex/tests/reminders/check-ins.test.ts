@@ -61,7 +61,7 @@ const setup = async (user: { checkIns?: boolean } = {}) => {
     })
   await chatted(3 * HOUR)
   const run = async () => {
-    await t.action(internal.api.checkIns.run, {})
+    await t.action(internal.api.checkIns.run, { userId: ada })
     vi.advanceTimersByTime(1)
     await t.finishInProgressScheduledFunctions()
   }

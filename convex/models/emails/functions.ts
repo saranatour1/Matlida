@@ -265,7 +265,9 @@ const settle = internalMutation({
 })
 
 /**
- * Checks Photon for new email, every minute from `crons.ts`. Each email is
+ * Checks Photon for new email, when you ask (`check_email`, `find_emails`):
+ * nothing polls on a timer, and Photon's webhook brings mail in on its own
+ * once it delivers. Each email is
  * recorded and posted, and Matilda drafts a reply. Nothing is sent until you
  * press Reply.
  */

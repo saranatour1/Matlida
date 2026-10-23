@@ -4,7 +4,8 @@ export const {
   settings,
   saveSettings,
   forUser,
-  withDailyTime,
+  get,
+  scheduleNext,
   postBriefing,
   sendDaily,
 } = newsApi

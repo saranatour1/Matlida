@@ -13,20 +13,18 @@ import { rateLimiter } from '../../lib/limits'
 import { MODELS } from '../../lib/models'
 import { inDaytime, localTime, start } from './functions'
 
-/** Only people who chatted within this long, but not in the last hour. */
-const ACTIVE_MS = 7 * 24 * HOUR
+/** Not when you chatted in the last hour. */
 const JUST_TALKED_MS = HOUR
 /** No check-in within this long of a call or another check-in. */
 const GAP_MS = 2 * HOUR
 
 /**
- * Who might get a check-in call this hour, with the assistant they last
- * messaged: check-ins on, daytime for them, and no call with that assistant
- * or check-in in the last 2 hours.
+ * Whether `userId` might get a check-in call now, with the assistant they
+ * last messaged: check-ins on, daytime for them, not chatting right now, and
+ * no call with that assistant or check-in in the last 2 hours. Empty or one.
  */
-// ponytail: the 100 most recent chatters an hour; page through them if that's ever too few.
 const candidates = internalQuery({
-  args: {},
+  args: { userId: v.id('users') },
   returns: v.array(
     v.object({
       userId: v.id('users'),
@@ -38,17 +36,15 @@ const candidates = internalQuery({
       cardsDue: v.number(),
     }),
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, { userId }) => {
     const now = Date.now()
     const recent = await ctx.db
       .query('userActivity')
-      .withIndex('by_at', (q) =>
-        q.gte('at', now - ACTIVE_MS).lt('at', now - JUST_TALKED_MS),
-      )
-      .order('desc')
-      .take(100)
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .take(1)
     const people = []
     for (const last of recent) {
+      if (now - last.at < JUST_TALKED_MS) continue
       if (last.checkInAt && now - last.checkInAt < GAP_MS) continue
       const user = await ctx.db.get('users', last.userId)
       if (!user || user.checkIns === false) continue
@@ -131,16 +127,19 @@ const call = internalMutation({
 })
 
 /**
- * Hourly: for each candidate, Jev reads the chat with their assistant and
- * decides whether a call now would be welcome, and about what. It rings at
+ * Scheduled about 3 hours after you last chat (`noteChat`): Jev reads the
+ * chat with your assistant and decides whether a call now would be welcome,
+ * and about what. It rings at
  * `JEV_THRESHOLDS.checkInCall` or above, and every answer is kept in
- * `judgments`. One person's failure doesn't stop the rest.
+ * `judgments`.
  */
 const run = internalAction({
-  args: {},
+  args: { userId: v.id('users') },
   returns: v.null(),
-  handler: async (ctx) => {
-    const people = await ctx.runQuery(internal.api.checkIns.candidates, {})
+  handler: async (ctx, { userId }) => {
+    const people = await ctx.runQuery(internal.api.checkIns.candidates, {
+      userId,
+    })
     for (const person of people) {
       try {
         const [conversation, openWork] = await Promise.all([

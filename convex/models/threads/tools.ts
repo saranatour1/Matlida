@@ -463,6 +463,15 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         }))
       },
     }),
+    check_email: createTool({
+      description:
+        "Fetch new email to the user's assistant address now. Use it when they ask you to check their email or whether anything came in. Each new email shows up in the chat on its own, with a draft reply to their own.",
+      inputSchema: z.object({}),
+      execute: async (ctx) => {
+        await ctx.runAction(internal.api.emails.poll, {})
+        return { checked: true }
+      },
+    }),
     find_emails: createTool({
       description:
         "Search the user's earlier emails, theirs and other people's, by words in the subject or text, optionally only from one address. Use it for context when answering or drafting a reply.",
@@ -471,6 +480,8 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         from: z.email().optional().describe('Only emails from this address.'),
       }),
       execute: async (ctx, { query, from: sender }) => {
+        // Brings in anything new first, since nothing checks on a timer.
+        await ctx.runAction(internal.api.emails.poll, {}).catch(console.error)
         const found: Array<{
           from: string
           subject: string

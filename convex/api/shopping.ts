@@ -11,5 +11,5 @@ export const {
   startWatch,
   watch,
   stopWatch,
-  checkPrices,
+  checkWatch,
 } = shoppingApi

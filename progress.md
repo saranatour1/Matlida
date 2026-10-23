@@ -813,3 +813,14 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 - Convex Auth v2's login tokens lasted 60 seconds, so every open tab refreshed its session about every 51 s, and each refresh re-ran every open query (chats, bots, reminders, commands), during calls too. They now last 15 minutes (`accessTokenTtlSeconds` in `convex/models/users/auth.ts`). Refresh tokens still last 30 days. A signed-out session can keep working until its token runs out, which is why it isn't longer.
 
+### Fewer crons: work runs when it's due (2026-10-23)
+
+- Seven crons ran around the clock, most of them sweeping for nothing. Two are left: `check telegram` (every minute) and `sweep unsaved files` (now daily, was hourly).
+- **Email**: no more polling every minute. Mail arrives by Photon's webhook, and Matilda checks the inbox when you ask (`check_email`, and `find_emails` checks first).
+- **Check-ins**: each chat schedules one check-in 3 hours later, for that person only, and a newer chat moves it (`userActivity.checkInJob`).
+- **Watched prices**: each watch checks itself once a day (`shopping.checkWatch`) and stops once it drops, goes or is cancelled. Was every hour across every watch.
+- **Daily news**: saving a daily time schedules the briefing at that hour in your time zone (`newsSettings.job`). Each one schedules the next. "Only when I ask" cancels it.
+- **Kept-up-to-date pages** (pages you asked Matilda to refresh daily or weekly): each schedules its own refresh at its time (`pages.job`), a full day or week apart. Turning it off cancels it.
+- **The file sweep** found that it deleted phone call recordings, since they aren't attached to a command. It now skips anything a call points to (`calls.by_recording`), and checks a day of uploads at a time.
+- Nothing to migrate: dev and prod had no watches, daily briefings or kept-updated pages.
+- Tested: `pnpm check` and all 249 tests, with new ones for the scheduled briefing (and cancelling it), page refreshes and per-watch checks.

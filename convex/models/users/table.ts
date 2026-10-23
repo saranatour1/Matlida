@@ -30,6 +30,6 @@ export const userActivityTable = defineTable({
   at: v.number(),
   /** When an assistant last called to check in. */
   checkInAt: v.optional(v.number()),
-})
-  .index('by_user', ['userId'])
-  .index('by_at', ['at'])
+  /** The check-in scheduled after this chat, replaced by the next one. */
+  checkInJob: v.optional(v.id('_scheduled_functions')),
+}).index('by_user', ['userId'])

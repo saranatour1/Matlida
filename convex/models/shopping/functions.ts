@@ -153,8 +153,18 @@ const startWatch = internalMutation({
     target: v.number(),
   },
   returns: v.string(),
-  handler: async (ctx, args) =>
-    await ctx.runMutation(components.shopping.watches.start, args),
+  handler: async (ctx, args) => {
+    const id = await ctx.runMutation(components.shopping.watches.start, args)
+    await ctx.scheduler.runAfter(
+      WATCH_EVERY_MS,
+      internal.api.shopping.checkWatch,
+      {
+        userId: args.userId,
+        id,
+      },
+    )
+    return id
+  },
 })
 
 /** One watch, for its card. Null when it isn't yours. */
@@ -177,42 +187,61 @@ const stopWatch = authedMutation({
   },
 })
 
-/** Checks watched prices against the catalog. Hourly from `crons.ts`, so each watch about once a day. */
-const checkPrices = internalAction({
-  args: {},
+/** A watched price is checked once a day. */
+const WATCH_EVERY_MS = 24 * 60 * 60_000
+
+/**
+ * Checks one watched price against the catalog, then schedules its next
+ * check a day later. A watch that stopped, dropped or went ends here, so
+ * only watches someone asked for are ever checked.
+ */
+const checkWatch = internalAction({
+  args: { userId: v.id('users'), id: v.string() },
   returns: v.null(),
-  handler: async (ctx) => {
-    const watches = await ctx.runQuery(components.shopping.watches.due, {})
-    for (const found of watches) {
-      const { country }: { country: string | null } = await ctx.runQuery(
-        internal.api.shopping.forAssistant,
-        { userId: found.userId as Id<'users'> },
+  handler: async (ctx, { userId, id }) => {
+    const found = await ctx.runQuery(components.shopping.watches.get, {
+      userId,
+      id,
+    })
+    if (found?.status !== 'watching') return null
+    const { country }: { country: string | null } = await ctx.runQuery(
+      internal.api.shopping.forAssistant,
+      { userId },
+    )
+    try {
+      const offer = await lookupVariant(found.variantId, country ?? undefined)
+      const say = await ctx.runMutation(
+        components.shopping.watches.recordCheck,
+        {
+          id: found._id,
+          // Out of stock isn't gone: keep watching at the last price.
+          price: !offer
+            ? null
+            : offer.available
+              ? offer.price
+              : found.lastPrice,
+        },
       )
-      try {
-        const offer = await lookupVariant(found.variantId, country ?? undefined)
-        const say = await ctx.runMutation(
-          components.shopping.watches.recordCheck,
-          {
-            id: found._id,
-            // Out of stock isn't gone: keep watching at the last price.
-            price: !offer
-              ? null
-              : offer.available
-                ? offer.price
-                : found.lastPrice,
-          },
-        )
-        if (say) {
-          await saveMessage(ctx, components.agent, {
-            threadId: say.threadId,
-            message: { role: 'assistant', content: say.message },
-          })
-        }
-      } catch (error) {
-        // A failed lookup is tried again at the next check.
-        console.error(error)
+      if (say) {
+        // It dropped or went: the watch is over.
+        await saveMessage(ctx, components.agent, {
+          threadId: say.threadId,
+          message: { role: 'assistant', content: say.message },
+        })
+        return null
       }
+    } catch (error) {
+      // A failed lookup is tried again at the next check.
+      console.error(error)
     }
+    await ctx.scheduler.runAfter(
+      WATCH_EVERY_MS,
+      internal.api.shopping.checkWatch,
+      {
+        userId,
+        id,
+      },
+    )
     return null
   },
 })
@@ -228,5 +257,5 @@ export const shoppingApi = {
   startWatch,
   watch,
   stopWatch,
-  checkPrices,
+  checkWatch,
 }

@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import type { Id } from '../../_generated/dataModel'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
@@ -98,7 +99,7 @@ test('an assistant writes a page, you edit it, and the assistant reads your edit
   ).rejects.toThrow('No such page in this workspace.')
 })
 
-test('a page kept up to date is updated by the lead once its period is up', async () => {
+test('a page kept up to date schedules its own refresh, and stops when turned off', async () => {
   const start = Date.now()
   vi.useFakeTimers({ now: start, toFake: ['Date'] })
   const { t, projectId, threadId } = await setup()
@@ -108,27 +109,34 @@ test('a page kept up to date is updated by the lead once its period is up', asyn
     updatedBy: 'Matilda',
     ...dashboard,
   })
+  const id = pageId as Id<'pages'>
+  /** When the page's next refresh runs, or null when none is scheduled. */
+  const scheduledFor = () =>
+    t.run(async (ctx) => {
+      const page = await ctx.db.get('pages', id)
+      const job = page?.job && (await ctx.db.system.get("_scheduled_functions", page.job))
+      return job && job.state.kind === 'pending' ? job.scheduledTime : null
+    })
+  expect(await scheduledFor()).toBeNull()
   await t.mutation(internal.api.pages.keepUpdated, {
     projectId,
     pageId,
     every: 'day',
     instructions: 'Refresh the numbers.',
   })
-  expect(await t.query(internal.api.pages.due, {})).toEqual([])
+  expect(await scheduledFor()).toBe(start + 24 * 60 * 60_000)
 
+  // When it runs, the next one is a day after that.
   vi.setSystemTime(start + 24 * 60 * 60_000)
-  expect((await t.query(internal.api.pages.due, {})).map((p) => p._id)).toEqual(
-    [pageId],
-  )
-  await t.action(internal.api.pages.refreshDue, {})
-  expect(await t.query(internal.api.pages.due, {})).toEqual([])
-  vi.setSystemTime(start + 3 * 24 * 60 * 60_000)
+  await t.action(internal.api.pages.refreshOne, { id })
+  expect(await scheduledFor()).toBe(start + 2 * 24 * 60 * 60_000)
+
   await t.mutation(internal.api.pages.keepUpdated, {
     projectId,
     pageId,
     every: 'off',
   })
-  expect(await t.query(internal.api.pages.due, {})).toEqual([])
+  expect(await scheduledFor()).toBeNull()
   await expect(
     t.mutation(internal.api.pages.keepUpdated, {
       projectId,
@@ -136,4 +144,5 @@ test('a page kept up to date is updated by the lead once its period is up', asyn
       every: 'week',
     }),
   ).rejects.toThrow('Say in `instructions` what to keep up to date.')
+  vi.useRealTimers()
 })

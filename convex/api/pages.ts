@@ -9,8 +9,8 @@ export const {
   write,
   read,
   keepUpdated,
-  due,
   refreshed,
-  refreshDue,
+  refreshOne,
+  getPage,
   projectOf,
 } = pagesApi
