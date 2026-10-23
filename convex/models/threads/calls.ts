@@ -1,19 +1,32 @@
+import { vResultValidator, vWorkflowId } from '@convex-dev/workflow'
 import { zid } from 'convex-helpers/server/zod4'
-import { v } from 'convex/values'
+import { literals } from 'convex-helpers/validators'
+import { ConvexError, v } from 'convex/values'
 import { z } from 'zod'
 import { generateSpeech } from 'ai'
 import { internal } from '../../_generated/api'
-import { internalMutation } from '../../_generated/server'
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from '../../_generated/server'
 import { speechModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
 import { AUDIO_VOICES, PCM_RATE, pcmToWav } from '../../lib/audio'
-import { zAuthedAction } from '../../lib/functions'
+import { zAuthedAction, zAuthedMutation } from '../../lib/functions'
+import { workflow } from '../../lib/workflow'
 import { LANGUAGES, MODELS, VOICES, voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
+import { addCallLine, updateLiveTurn } from '../calls/functions'
+import { getOwnedCall } from '../calls/queries'
+import { turnStatus } from '../calls/table'
+import { getOwnedProject } from '../projects/queries'
 import { gatewayCost } from '../usage/functions'
 import { postMessage, runReply, transcribeClip, zTimeZone } from './chat'
+import { ensureMainThread } from './functions'
 import { concat, speakWith } from './voice'
-import type { ActionCtx, Id } from '../../lib/ctx'
+import type { Infer, ObjectType } from 'convex/values'
+import type { ActionCtx, Id, MutationCtx } from '../../lib/ctx'
 import type { Language } from '../../lib/models'
 
 /** How long a spoken reply stays in storage, long enough to play it. */
@@ -87,29 +100,45 @@ const speak = async (
   return url
 }
 
-type Turn = {
-  threadId: string | null
-  /** The call's record, started by its first turn. */
-  callId: Id<'calls'> | null
-  transcript: string
-  reply: string | null
+/** A turn's statuses while it runs. A new turn cancels one still in them. */
+const RUNNING = new Set(['hearing', 'thinking', 'speaking'])
+
+/** What a call turn's workflow and its steps work from. */
+const turnArgs = {
+  userId: v.id('users'),
+  projectId: v.id('projects'),
+  botId: v.optional(v.id('bots')),
+  threadId: v.string(),
+  callId: v.id('calls'),
+  storageId: v.id('_storage'),
+  /** The live turn the browser watches. */
+  liveKey: v.string(),
+  /** When the turn started, for how long the reply took. */
+  startedAt: v.number(),
+  timeZone: v.optional(v.string()),
+  interrupted: v.optional(v.boolean()),
+  fast: v.optional(v.boolean()),
+  voice: v.optional(literals(...VOICES)),
+  audioVoice: v.optional(literals(...AUDIO_VOICES)),
+  /** An ISO 639-1 code, checked by `startTurn`. */
+  language: v.optional(v.string()),
 }
+type TurnArgs = ObjectType<typeof turnArgs>
 
 /**
- * One turn of a voice call: transcribes what the user said, saves it to the
- * chat, and lets the chat's assistant answer as it would in the chat but
- * written to be spoken. The answer is spoken a piece at a time as it streams,
- * into the live turn `liveKey` the browser is watching, so it starts playing
- * after the first sentence. Silence gets no reply.
+ * One turn of a call, from the browser once you stop talking: records it as
+ * the call's current turn and starts the workflow that answers it. A turn
+ * still running on the call is cancelled first, so only one ever runs and a
+ * reply you talked over stops instead of finishing unheard. The browser
+ * watches the live turn `liveKey` for the reply's pieces.
  */
-const turn = zAuthedAction({
+const startTurn = zAuthedMutation({
   args: {
     projectId: zid('projects'),
     botId: zid('bots').optional(),
-    threadId: z.string().optional(),
     storageId: zid('_storage'),
     timeZone: zTimeZone.optional(),
-    /** The call's record, from its first turn or `calls.answer`, so the turn joins its transcript. */
+    /** The call, from its first turn or `calls.answer`. Unset starts one. */
     callId: zid('calls').optional(),
     /** You talked over the last reply, so it's marked cut off. */
     interrupted: z.boolean().optional(),
@@ -126,88 +155,229 @@ const turn = zAuthedAction({
       .enum(Object.keys(LANGUAGES) as [Language, ...Array<Language>])
       .optional(),
   },
-  handler: async (
-    ctx,
-    {
-      storageId,
-      timeZone,
-      interrupted,
-      liveKey,
-      fast,
-      voice: pickedVoice,
-      audioVoice,
-      language,
-      ...where
-    },
-  ): Promise<Turn> => {
-    const started = Date.now()
-    const live = (update: {
-      heard?: string
-      piece?: { text: string; url: string; storageId: Id<'_storage'> }
-      done?: boolean
-    }) =>
-      ctx.runMutation(internal.api.calls.updateLive, {
-        key: liveKey,
-        userId: ctx.userId,
-        ...update,
-      })
-    await live({})
-    await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forgetLive, {
-      key: liveKey,
-    })
-    if (fast) {
-      return await fastTurn(ctx, {
-        ...where,
-        storageId,
-        timeZone,
-        interrupted,
-        started,
-        live,
-        voice: audioVoice,
-        language,
-      })
+  handler: async (ctx, { callId: given, ...turn }) => {
+    const project = await getOwnedProject(ctx, ctx.userId, turn.projectId)
+    const bot = turn.botId ? await ctx.db.get('bots', turn.botId) : null
+    if (turn.botId && bot?.projectId !== project._id) {
+      throw new ConvexError('Assistant not found.')
     }
-    const heard = await transcribeClip(ctx, ctx.userId, storageId, language)
-    if (!heard.text) {
-      await live({ heard: '', done: true })
-      return {
-        threadId: where.threadId ?? null,
-        callId: where.callId ?? null,
-        transcript: '',
-        reply: null,
-      }
-    }
-    await live({ heard: heard.text })
     // The reply goes to the assistant's one thread, whatever the call started on.
-    const { callId: _, threadId: __, ...message } = where
-    const posted = await ctx.runMutation(internal.api.calls.post, {
-      userId: ctx.userId,
-      ...message,
-      prompt: heard.text.slice(0, 4000),
+    const threadId = await ensureMainThread(ctx, project, bot)
+    let callId = given
+    if (callId) {
+      const call = await getOwnedCall(ctx, ctx.userId, callId)
+      if (call.turn && RUNNING.has(call.turn.status)) {
+        await workflow.cancel(ctx, call.turn.workflowId)
+        await updateLiveTurn(ctx, {
+          key: call.turn.key,
+          userId: ctx.userId,
+          done: true,
+        })
+      }
+    } else {
+      callId = await ctx.db.insert('calls', {
+        projectId: project._id,
+        botId: bot?._id,
+        threadId,
+      })
+    }
+    await updateLiveTurn(ctx, { key: turn.liveKey, userId: ctx.userId })
+    await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forgetLive, {
+      key: turn.liveKey,
     })
-    // Saved before the reply, so a failed reply can't lose what you said.
-    let callId: Id<'calls'> = await ctx.runMutation(
-      internal.api.calls.addLine,
+    const workflowId = await workflow.start(
+      ctx,
+      internal.api.calls.runTurn,
+      { ...turn, userId: ctx.userId, threadId, callId, startedAt: Date.now() },
       {
-        callId: where.callId,
-        projectId: where.projectId,
-        botId: where.botId,
-        threadId: posted.threadId,
-        who: 'you',
-        text: heard.text,
-        afterCutOff: interrupted,
+        onComplete: internal.api.calls.turnFinished,
+        context: { callId, liveKey: turn.liveKey, userId: ctx.userId },
       },
     )
-    await ctx.runMutation(internal.api.usage.record, {
-      projectId: where.projectId,
-      threadId: posted.threadId,
+    await ctx.db.patch('calls', callId, {
+      turn: { key: turn.liveKey, workflowId, status: 'hearing' },
+    })
+    return { callId, threadId }
+  },
+})
+
+/**
+ * A call turn: hear what you said and save it, then answer it out loud.
+ * Fast voice does both in one step. No step is retried: a turn answered
+ * again seconds later would be out of place on a call.
+ */
+const runTurn = workflow
+  .define({ args: turnArgs })
+  .handler(async (step, turn): Promise<void> => {
+    if (turn.fast) {
+      await step.runAction(internal.api.calls.fastStep, turn, { retry: false })
+      return
+    }
+    const heard = await step.runAction(internal.api.calls.hearStep, turn, {
+      retry: false,
+    })
+    if (!heard) return
+    await step.runAction(
+      internal.api.calls.replyStep,
+      { ...turn, ...heard },
+      { retry: false },
+    )
+  })
+
+/** Transcribes the turn and saves it. Null when nothing was said. */
+const hearStep = internalAction({
+  args: turnArgs,
+  returns: v.union(
+    v.null(),
+    v.object({
+      promptMessageId: v.string(),
+      command: v.optional(v.string()),
+    }),
+  ),
+  handler: async (
+    ctx,
+    turn,
+  ): Promise<{ promptMessageId: string; command?: string } | null> => {
+    const heard = await transcribeClip(
+      ctx,
+      turn.userId,
+      turn.storageId,
+      turn.language as Language | undefined,
+    )
+    if (!heard.text) {
+      await ctx.runMutation(internal.api.calls.updateLive, {
+        key: turn.liveKey,
+        userId: turn.userId,
+        heard: '',
+        done: true,
+      })
+      return null
+    }
+    return await ctx.runMutation(internal.api.calls.heard, {
+      userId: turn.userId,
+      projectId: turn.projectId,
+      botId: turn.botId,
+      threadId: turn.threadId,
+      callId: turn.callId,
+      liveKey: turn.liveKey,
+      interrupted: turn.interrupted,
+      text: heard.text,
+      aiCost: gatewayCost(heard.providerMetadata),
+    })
+  },
+})
+
+/**
+ * Everything a heard turn saves, in one write: the message in the chat, the
+ * call's line, what listening cost, the live turn, and the call's status.
+ */
+const heard = internalMutation({
+  args: {
+    userId: v.id('users'),
+    projectId: v.id('projects'),
+    botId: v.optional(v.id('bots')),
+    threadId: v.string(),
+    callId: v.id('calls'),
+    liveKey: v.string(),
+    interrupted: v.optional(v.boolean()),
+    text: v.string(),
+    aiCost: v.number(),
+  },
+  returns: v.object({
+    promptMessageId: v.string(),
+    command: v.optional(v.string()),
+  }),
+  handler: async (ctx, turn) => {
+    const posted = await postMessage(ctx, turn.userId, {
+      projectId: turn.projectId,
+      botId: turn.botId,
+      prompt: turn.text.slice(0, 4000),
+    })
+    await addCallLine(ctx, {
+      callId: turn.callId,
+      projectId: turn.projectId,
+      threadId: turn.threadId,
+      who: 'you',
+      text: turn.text,
+      afterCutOff: turn.interrupted,
+    })
+    await ctx.db.insert('usage', {
+      projectId: turn.projectId,
+      threadId: turn.threadId,
       kind: 'voice',
       label: 'Listening',
-      aiCost: gatewayCost(heard.providerMetadata),
+      aiCost: turn.aiCost,
       inputTokens: 0,
       outputTokens: 0,
     })
-    // Each finished piece is voiced in order while the rest still streams.
+    await updateLiveTurn(ctx, {
+      key: turn.liveKey,
+      userId: turn.userId,
+      heard: turn.text,
+    })
+    await setStatus(ctx, turn.callId, turn.liveKey, 'thinking')
+    return { promptMessageId: posted.promptMessageId, command: posted.command }
+  },
+})
+
+/** Moves the call's turn along, unless a newer turn took its place. */
+const setStatus = async (
+  ctx: MutationCtx,
+  callId: Id<'calls'>,
+  key: string,
+  status: Infer<typeof turnStatus>,
+  note?: string,
+) => {
+  const call = await ctx.db.get('calls', callId)
+  if (call?.turn?.key !== key) return
+  await ctx.db.patch('calls', callId, {
+    turn: { ...call.turn, status, ...(note ? { note } : {}) },
+  })
+}
+
+const setTurn = internalMutation({
+  args: { callId: v.id('calls'), key: v.string(), status: turnStatus },
+  returns: v.null(),
+  handler: async (ctx, { callId, key, status }) => {
+    await setStatus(ctx, callId, key, status)
+    return null
+  },
+})
+
+/** Whether `key` is still the call's turn, or a newer one took over. */
+const isCurrent = internalQuery({
+  args: { callId: v.id('calls'), key: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, { callId, key }) =>
+    (await ctx.db.get('calls', callId))?.turn?.key === key,
+})
+
+/**
+ * The chat's assistant answers the heard turn as it would in the chat, but
+ * written to be spoken, a piece at a time as it streams, into the live turn
+ * the browser plays from. Before each piece it checks the turn is still the
+ * call's, and stops the reply when you've moved on.
+ */
+const replyStep = internalAction({
+  args: {
+    ...turnArgs,
+    promptMessageId: v.string(),
+    command: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, turn) => {
+    const { userId, callId, liveKey: key } = turn
+    const stop = new AbortController()
+    const current = async () => {
+      if (stop.signal.aborted) return false
+      const still: boolean = await ctx.runQuery(internal.api.calls.isCurrent, {
+        callId,
+        key,
+      })
+      if (!still) stop.abort()
+      return still
+    }
+    if (!(await current())) return null
     let buffer = ''
     let spoken = 0
     let firstMs: number | undefined
@@ -217,24 +387,39 @@ const turn = zAuthedAction({
       if (!text) return
       spoken += text.length
       speaking = speaking.then(async () => {
+        if (!(await current())) return
         const audio = await voice(
           ctx,
-          ctx.userId,
+          userId,
           text,
-          pickedVoice ?? voiceFor(name),
+          turn.voice ?? voiceFor(name),
         )
-        firstMs ??= Date.now() - started
-        await live({ piece: { text, ...audio } })
+        if (firstMs === undefined) {
+          firstMs = Date.now() - turn.startedAt
+          await ctx.runMutation(internal.api.calls.setTurn, {
+            callId,
+            key,
+            status: 'speaking',
+          })
+        }
+        await ctx.runMutation(internal.api.calls.updateLive, {
+          key,
+          userId,
+          piece: { text, ...audio },
+        })
       })
     }
     let text = ''
     try {
       const reply = await runReply(ctx, {
-        ...posted,
-        timeZone,
+        threadId: turn.threadId,
+        promptMessageId: turn.promptMessageId,
+        command: turn.command,
+        timeZone: turn.timeZone,
         via: 'voice',
-        cutOff: interrupted,
-        language,
+        cutOff: turn.interrupted,
+        language: turn.language as Language | undefined,
+        abortSignal: stop.signal,
         onText: (delta, who) => {
           buffer += delta
           const ready = takePieces(buffer, {
@@ -255,29 +440,74 @@ const turn = zAuthedAction({
         say(piece, name)
       }
       await speaking
+    } catch (error) {
+      // A newer turn stopped this one: nothing more to say.
+      if (!stop.signal.aborted) throw error
     } finally {
-      // If the reply itself failed, a piece still being voiced can't matter.
       await speaking.catch(() => undefined)
-      await live({ done: true })
-      if (text.trim()) {
+      await ctx.runMutation(internal.api.calls.updateLive, {
+        key,
+        userId,
+        done: true,
+      })
+      if (text.trim() && !stop.signal.aborted) {
         // Saved even when speaking fails, with how long the reply took.
-        callId = await ctx.runMutation(internal.api.calls.addLine, {
+        await ctx.runMutation(internal.api.calls.addLine, {
           callId,
-          projectId: where.projectId,
-          threadId: posted.threadId,
+          projectId: turn.projectId,
+          threadId: turn.threadId,
           who: 'them',
           text,
-          ms: Date.now() - started,
+          ms: Date.now() - turn.startedAt,
           firstMs,
         })
       }
     }
-    return {
-      threadId: posted.threadId,
-      callId,
-      transcript: heard.text,
-      reply: text.trim() ? text : null,
+    return null
+  },
+})
+
+/**
+ * When a turn's workflow ends, however it ended: its live turn is closed, so
+ * the browser never waits on a turn that died, and the call's status says how
+ * it went, unless a newer turn took over.
+ */
+const turnFinished = internalMutation({
+  args: {
+    workflowId: vWorkflowId,
+    result: vResultValidator,
+    context: v.object({
+      callId: v.id('calls'),
+      liveKey: v.string(),
+      userId: v.id('users'),
+    }),
+  },
+  returns: v.null(),
+  handler: async (ctx, { result, context: { callId, liveKey } }) => {
+    const live = await ctx.db
+      .query('liveTurns')
+      .withIndex('by_key', (q) => q.eq('key', liveKey))
+      .unique()
+    if (live && !live.done) {
+      await ctx.db.patch('liveTurns', live._id, {
+        done: true,
+        ...(result.kind === 'failed'
+          ? { error: "Couldn't reach the assistant. Try again." }
+          : {}),
+      })
     }
+    await setStatus(
+      ctx,
+      callId,
+      liveKey,
+      result.kind === 'success'
+        ? 'done'
+        : result.kind === 'failed'
+          ? 'failed'
+          : 'canceled',
+      result.kind === 'failed' ? result.error.slice(0, 300) : undefined,
+    )
+    return null
   },
 })
 
@@ -290,26 +520,23 @@ const PIECE_BYTES = PCM_RATE * 2 * 2
  * voice, cut into pieces as it streams so it starts playing early. Saved to
  * the chat and the call's transcript like any turn. No tools.
  */
-const fastTurn = async (
-  ctx: ActionCtx & { userId: Id<'users'> },
-  fast: {
-    projectId: Id<'projects'>
-    botId?: Id<'bots'>
-    callId?: Id<'calls'>
-    storageId: Id<'_storage'>
-    timeZone?: string
-    interrupted?: boolean
-    started: number
-    /** From the call's settings. */
-    voice?: (typeof AUDIO_VOICES)[number]
-    language?: Language
-    live: (update: {
-      heard?: string
-      piece?: { text: string; url: string; storageId: Id<'_storage'> }
-      done?: boolean
-    }) => Promise<unknown>
+const fastStep = internalAction({
+  args: turnArgs,
+  returns: v.null(),
+  handler: async (ctx, turn) => {
+    await fastTurn(ctx, turn)
+    return null
   },
-): Promise<Turn> => {
+})
+
+const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
+  const { userId, callId, liveKey: key } = fast
+  const live = (update: {
+    heard?: string
+    piece?: { text: string; url: string; storageId: Id<'_storage'> }
+    done?: boolean
+  }) =>
+    ctx.runMutation(internal.api.calls.updateLive, { key, userId, ...update })
   let pending: Array<Uint8Array> = []
   let pendingBytes = 0
   let saidChars = 0
@@ -329,18 +556,30 @@ const fastTurn = async (
       await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
         storageId,
       })
-      firstMs ??= Date.now() - fast.started
+      if (firstMs === undefined) {
+        firstMs = Date.now() - fast.startedAt
+        await ctx.runMutation(internal.api.calls.setTurn, {
+          callId,
+          key,
+          status: 'speaking',
+        })
+      }
       const url = (await ctx.storage.getUrl(storageId)) ?? ''
-      await fast.live({ piece: { text, url, storageId } })
+      await live({ piece: { text, url, storageId } })
     })
   }
   let spoken
   try {
     spoken = await speakWith(ctx, {
-      ...fast,
-      userId: ctx.userId,
+      userId,
+      projectId: fast.projectId,
+      botId: fast.botId,
+      storageId: fast.storageId,
+      timeZone: fast.timeZone,
+      voice: fast.audioVoice,
+      language: fast.language as Language | undefined,
       cutOff: fast.interrupted,
-      onHeard: (text) => fast.live({ heard: text }),
+      onHeard: (text) => live({ heard: text }),
       onAudio: (pcm, transcript) => {
         pending.push(pcm)
         pendingBytes += pcm.length
@@ -354,24 +593,17 @@ const fastTurn = async (
     await speaking
   } finally {
     await speaking.catch(() => undefined)
-    await fast.live({ done: true })
+    await live({ done: true })
   }
-  if (!spoken.heard) {
-    return {
-      threadId: spoken.threadId,
-      callId: fast.callId ?? null,
-      transcript: '',
-      reply: null,
-    }
-  }
+  if (!spoken.heard) return
   await ctx.runMutation(internal.api.voice.save, {
     threadId: spoken.threadId,
     heard: spoken.heard,
     reply: spoken.reply,
     agentName: (spoken.bot ?? spoken.project).name,
   })
-  let callId: Id<'calls'> = await ctx.runMutation(internal.api.calls.addLine, {
-    callId: fast.callId,
+  await ctx.runMutation(internal.api.calls.addLine, {
+    callId,
     projectId: fast.projectId,
     botId: fast.botId,
     threadId: spoken.threadId,
@@ -380,21 +612,15 @@ const fastTurn = async (
     afterCutOff: fast.interrupted,
   })
   if (spoken.reply) {
-    callId = await ctx.runMutation(internal.api.calls.addLine, {
+    await ctx.runMutation(internal.api.calls.addLine, {
       callId,
       projectId: fast.projectId,
       threadId: spoken.threadId,
       who: 'them',
       text: spoken.reply,
-      ms: Date.now() - fast.started,
+      ms: Date.now() - fast.startedAt,
       firstMs,
     })
-  }
-  return {
-    threadId: spoken.threadId,
-    callId,
-    transcript: spoken.heard,
-    reply: spoken.reply || null,
   }
 }
 
@@ -446,4 +672,17 @@ const answer = zAuthedAction({
   },
 })
 
-export const callsApi = { post, forget, turn, answer }
+export const callsApi = {
+  post,
+  forget,
+  answer,
+  startTurn,
+  runTurn,
+  hearStep,
+  heard,
+  setTurn,
+  isCurrent,
+  replyStep,
+  fastStep,
+  turnFinished,
+}

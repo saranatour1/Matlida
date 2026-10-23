@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useMatch, useNavigate } from '@tanstack/react-router'
-import { useAction, useConvex, useMutation } from 'convex/react'
+import { useConvex, useMutation } from 'convex/react'
 import {
   MicIcon,
   MicOffIcon,
@@ -128,7 +128,7 @@ function useVoiceCall({
   const session = React.useRef<Session | null>(null)
   const convex = useConvex()
   const upload = useUpload()
-  const turn = useAction(api.api.calls.turn)
+  const startTurn = useMutation(api.api.calls.startTurn)
   const end = useMutation(api.api.calls.end)
 
   /**
@@ -202,10 +202,10 @@ function useVoiceCall({
       const liveKey = crypto.randomUUID()
       follow(s, liveKey)
       listen(s)
-      const result = await turn({
+      // Starts the turn's workflow; the reply arrives through the live turn.
+      const result = await startTurn({
         projectId: s.projectId,
         botId: s.botId,
-        threadId: s.threadId,
         storageId,
         timeZone: localTimeZone(),
         callId: s.callId,
@@ -219,8 +219,8 @@ function useVoiceCall({
       // The user may have hung up while we waited.
       if (session.current !== s) return
       setError(undefined)
-      s.callId = result.callId ?? s.callId
-      if (result.threadId && result.threadId !== s.threadId) {
+      s.callId = result.callId
+      if (result.threadId !== s.threadId) {
         s.threadId = result.threadId
         onThread?.({
           projectId: s.projectId,
@@ -276,6 +276,7 @@ function useVoiceCall({
             : [...l, { who: 'them', text }],
         )
       }
+      if (state.error) setError(state.error)
       if (state.done) {
         reply.done = true
         reply.stopWatching()
