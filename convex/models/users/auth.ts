@@ -10,7 +10,13 @@ import type { AuthMethod } from '../../lib/authMethods'
 /** SITE_URL without any trailing slash or path. */
 const siteUrl = new URL(env.SITE_URL).origin
 
-const core = setupConvexAuth({ component: components.auth })
+const core = setupConvexAuth({
+  component: components.auth,
+  // The default of 60 s refreshes the session every minute, and each refresh
+  // re-runs every open query, calls included. A signed-out session can keep
+  // working until its token runs out, so it stays short.
+  accessTokenTtlSeconds: 15 * 60,
+})
 const { signOut, refreshSession, isAuthenticated } = core
 
 const callbacks = {
