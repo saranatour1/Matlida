@@ -8,7 +8,7 @@ import {
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
-import { photonKeys, sendText } from '../../lib/photon'
+import { downloadAttachment, photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/queries'
 import { budgetMessage } from '../../lib/budget'
@@ -19,6 +19,7 @@ import { transcribeBytes } from '../threads/chat'
 import { commandName, resolveCommand } from '../commands/queries'
 import { spectrum } from './spectrum'
 import { getLinks } from './queries'
+import type { PhotonKeys } from '../../lib/photon'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** Letters and digits that can't be confused with each other when typed. */
@@ -302,6 +303,8 @@ const received = internalMutation({
     platform: v.string(),
     agentId: v.string(),
     text: v.string(),
+    /** A voice note's attachment, heard before answering. */
+    voiceId: v.optional(v.string()),
   },
   returns: v.boolean(),
   handler: async (ctx, { messageId, ...message }) => {
@@ -327,6 +330,24 @@ const received = internalMutation({
   },
 })
 
+/**
+ * What a linked chat's voice note says, charged to its owner, or null for
+ * an unlinked chat: a stranger can't run up transcription.
+ */
+const hear = async (
+  ctx: ActionCtx,
+  keys: PhotonKeys,
+  spaceId: string,
+  voiceId: string,
+) => {
+  const ownerId = await ctx.runQuery(internal.api.texts.linkedOwner, {
+    spaceId,
+  })
+  if (!ownerId) return null
+  const audio = await downloadAttachment(keys, voiceId)
+  return (await transcribeBytes(ctx, ownerId, audio)).text
+}
+
 /** Answers a message from Photon's platform API in its chat, as the project's agent there. */
 const replyOnPhoton = internalAction({
   args: {
@@ -335,22 +356,30 @@ const replyOnPhoton = internalAction({
     platform: v.string(),
     agentId: v.string(),
     text: v.string(),
+    voiceId: v.optional(v.string()),
     admitted: v.boolean(),
   },
   returns: v.null(),
   handler: async (
     ctx,
-    { messageId, spaceId, platform, agentId, text, admitted },
+    { messageId, spaceId, platform, agentId, text, voiceId, admitted },
   ) => {
     const keys = photonKeys(env)
     if (!keys) return null
-    const reply = await answer(ctx, {
-      spaceId,
-      platform,
-      text,
-      agentId,
-      admitted,
-    }).catch((error: unknown) => {
+    const reply = await (async () => {
+      const heard =
+        voiceId && admitted ? await hear(ctx, keys, spaceId, voiceId) : null
+      if (heard === '') {
+        return "I couldn't make out that voice message. Try again, or type it."
+      }
+      return await answer(ctx, {
+        spaceId,
+        platform,
+        text: heard ?? text,
+        agentId,
+        admitted,
+      })
+    })().catch((error: unknown) => {
       console.error(error)
       return (
         budgetMessage(error) ??
@@ -403,64 +432,6 @@ const textOf = (message: unknown) => {
     : ''
 }
 
-/** A voice note's file id, or ''. Spectrum sends voice notes as audio attachments. */
-const voiceOf = (message: unknown) => {
-  const content = (
-    message as {
-      content?: { type?: unknown; id?: unknown; mimeType?: unknown }
-    }
-  ).content
-  const audio =
-    content?.type === 'voice' ||
-    (content?.type === 'attachment' &&
-      typeof content.mimeType === 'string' &&
-      content.mimeType.startsWith('audio/'))
-  return audio && typeof content.id === 'string' ? content.id : ''
-}
-
-/** At most this many voice notes are heard per burst. */
-const MAX_VOICES = 3
-
-/** A Telegram file's bytes, by its id. The token is in the URL, so neither is ever logged. */
-const telegramFile = async (token: string, fileId: string) => {
-  const found = await fetch(
-    `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
-  )
-  const { result } = (await found.json()) as { result?: { file_path?: string } }
-  if (!result?.file_path)
-    throw new Error("Telegram didn't find the voice note.")
-  const file = await fetch(
-    `https://api.telegram.org/file/bot${token}/${result.file_path}`,
-  )
-  if (!file.ok)
-    throw new Error(`Telegram sent ${file.status} for a voice note.`)
-  return new Uint8Array(await file.arrayBuffer())
-}
-
-/**
- * What a linked Telegram chat's voice notes say, charged to its owner.
- * Nothing for an unlinked chat, so a stranger can't run up transcription.
- */
-const hear = async (
-  ctx: ActionCtx,
-  spaceId: string,
-  fileIds: Array<string>,
-) => {
-  const token = env.TELEGRAM_BOT_TOKEN
-  if (!fileIds.length || !token) return []
-  const ownerId = await ctx.runQuery(internal.api.texts.linkedOwner, {
-    spaceId,
-  })
-  if (!ownerId) return []
-  const heard: Array<string> = []
-  for (const fileId of fileIds) {
-    const audio = await telegramFile(token, fileId)
-    const { text } = await transcribeBytes(ctx, ownerId, audio)
-    if (text) heard.push(text)
-  }
-  return heard
-}
-
 /**
  * The Spectrum SDK's batch handler: one turn per burst of texts from a chat
  * on iMessage, WhatsApp or Telegram. A mutation, so the chat's limit is
@@ -476,16 +447,11 @@ const batch = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, { spaceId, chainId, messages, carried }) => {
-    const all = [...carried, ...messages]
-    const text = all.map(textOf).filter(Boolean).join('\n')
-    const platform =
-      (await spectrum.getSpace(ctx, { spaceId }))?.platform ?? 'imessage'
-    // ponytail: Telegram only, since its bot token downloads the audio; iMessage needs the SDK's getAttachment in a Node action.
-    const voices =
-      platform === 'telegram'
-        ? all.map(voiceOf).filter(Boolean).slice(0, MAX_VOICES)
-        : []
-    if (!text && !voices.length) {
+    const text = [...carried, ...messages]
+      .map(textOf)
+      .filter(Boolean)
+      .join('\n')
+    if (!text) {
       await spectrum.completeChain(ctx, { spaceId, chainId })
       return null
     }
@@ -494,12 +460,13 @@ const batch = internalMutation({
       spaceId,
       linkCode(text) ? 'link' : 'message',
     )
+    const platform =
+      (await spectrum.getSpace(ctx, { spaceId }))?.platform ?? 'imessage'
     await ctx.scheduler.runAfter(0, internal.api.texts.respond, {
       spaceId,
       chainId,
       platform,
       text,
-      voices,
       admitted,
     })
     return null
@@ -517,28 +484,15 @@ const respond = internalAction({
     chainId: v.string(),
     platform: v.string(),
     text: v.string(),
-    /** Telegram voice notes' file ids, heard before answering. */
-    voices: v.optional(v.array(v.string())),
     admitted: v.boolean(),
   },
   returns: v.null(),
-  handler: async (ctx, { chainId, voices = [], ...message }) => {
+  handler: async (ctx, { chainId, ...message }) => {
     const chain = { spaceId: message.spaceId, chainId }
     try {
       // ponytail: a text that lands while the model runs still pays for this reply; abort mid-way if that shows up in costs.
       if (await spectrum.isCancelled(ctx, chain)) return null
-      const reply = await (async () => {
-        const heard = message.admitted
-          ? await hear(ctx, message.spaceId, voices)
-          : []
-        const text = [message.text, ...heard].filter(Boolean).join('\n')
-        if (!text) {
-          return voices.length && message.admitted
-            ? "I couldn't make out that voice message. Try again, or type it."
-            : ''
-        }
-        return await answer(ctx, { ...message, text })
-      })().catch((error: unknown) => {
+      const reply = await answer(ctx, message).catch((error: unknown) => {
         console.error(error)
         return (
           budgetMessage(error) ??

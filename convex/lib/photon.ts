@@ -61,6 +61,27 @@ const call = async (keys: PhotonKeys, path: string, init?: RequestInit) => {
   return (await response.json()) as unknown
 }
 
+/**
+ * An attachment's bytes, like a voice note's. Photon answers 409 while it's
+ * still fetching one, so this waits and tries again a few times.
+ */
+export const downloadAttachment = async (
+  keys: PhotonKeys,
+  attachmentId: string,
+) => {
+  for (let tries = 1; ; tries++) {
+    const response = await fetch(
+      `${API}/projects/${keys.projectId}/attachments/${encodeURIComponent(attachmentId)}/content`,
+      { headers: { Authorization: `Bearer ${keys.apiKey}` } },
+    )
+    if (response.ok) return new Uint8Array(await response.arrayBuffer())
+    if (response.status !== 409 || tries === 4) {
+      throw new Error(`Photon ${response.status} for an attachment`)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000))
+  }
+}
+
 /** Every message received on `platform` since `since` (ISO), oldest first, unparsed. */
 const listReceived = async (
   keys: PhotonKeys,

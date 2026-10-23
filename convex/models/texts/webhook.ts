@@ -10,7 +10,11 @@ const zReceived = z.object({
     object: z.object({
       id: z.string(),
       platform: z.string(),
-      content: z.object({ type: z.string(), text: z.string().optional() }),
+      content: z.object({
+        type: z.string(),
+        text: z.string().optional(),
+        attachmentId: z.string().optional(),
+      }),
       receivedBy: z.object({ id: z.string() }).optional(),
       space: z.object({ id: z.string() }),
     }),
@@ -19,8 +23,8 @@ const zReceived = z.object({
 
 /**
  * `POST /photon/webhook`: events from Photon's platform API. The signature is
- * checked over the raw bytes before anything is parsed. A Telegram text is
- * recorded and answered; an email starts the email check. Everything else is
+ * checked over the raw bytes before anything is parsed. A Telegram text or
+ * voice note is recorded and answered; an email starts the email check. Everything else is
  * acknowledged and ignored.
  */
 export const photonWebhook = httpAction(async (ctx, request) => {
@@ -52,19 +56,19 @@ export const photonWebhook = httpAction(async (ctx, request) => {
 
   if (message.platform === 'email') {
     await ctx.runMutation(internal.api.emails.schedulePoll, {})
-  } else if (
-    message.platform === 'telegram' &&
-    message.content.type === 'text' &&
-    message.content.text &&
-    message.receivedBy
-  ) {
-    await ctx.runMutation(internal.api.texts.received, {
-      messageId: message.id,
-      spaceId: message.space.id,
-      platform: message.platform,
-      agentId: message.receivedBy.id,
-      text: message.content.text,
-    })
+  } else if (message.platform === 'telegram' && message.receivedBy) {
+    const { type, text, attachmentId } = message.content
+    const voiceId = type === 'voice' ? attachmentId : undefined
+    if ((type === 'text' && text) || voiceId) {
+      await ctx.runMutation(internal.api.texts.received, {
+        messageId: message.id,
+        spaceId: message.space.id,
+        platform: message.platform,
+        agentId: message.receivedBy.id,
+        text: text ?? '',
+        voiceId,
+      })
+    }
   }
   return new Response('ok')
 })

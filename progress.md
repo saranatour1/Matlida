@@ -832,3 +832,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - `connectTelegram` also lists the built-in commands in the bot's / menu (Telegram's `setMyCommands`). Names with a dash, like `make-my-problems-go-away`, aren't allowed in the menu but still work typed.
 - Voice notes on Telegram are downloaded through the bot token, transcribed (`transcribeBytes`, the same model and budget as in-app voice) and answered with the rest of the burst. At most 3 per burst, and only for a linked chat, charged to its owner.
 - Tested: `pnpm check` and all 249 tests, with new ones for a command and `/start`, and for a voice note heard in a linked chat and ignored in an unlinked one.
+
+### Telegram voice notes through Photon (2026-10-23)
+
+- Telegram runs on Photon's platform API, and its webhook does deliver messages, so #166's voice notes (which listened on the Spectrum path) never reached Matilda. `/photon/webhook` now takes a Telegram voice note (`{ type: 'voice', attachmentId }`), downloads it from Photon (`downloadAttachment`, which waits while Photon is still fetching it), transcribes it and answers. Only a linked chat's are heard, charged to its owner. The Spectrum-side voice code is gone.
+- The setup docs and README say Telegram goes through Photon's webhook again; #165 had pointed them at Spectrum and `connectTelegram`, which would take the bot away from Photon.
+- Tested: `pnpm check` and the texts tests, with a voice note answered in a linked chat and never transcribed in an unlinked one.
