@@ -6,6 +6,8 @@
 
 <p align="center">Matilda is the only assistant you need, doesn't f**k around</p>
 
+<p align="center"><a href="https://matilda-is-a-bot.app">matilda-is-a-bot.app</a></p>
+
 ## What's here
 
 - Sign in with email and password, Google or GitHub (Convex Auth v2, emails sent through Resend).
