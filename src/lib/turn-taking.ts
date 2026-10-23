@@ -7,6 +7,12 @@
 export const SPEECH_LEVEL = 0.035
 /** Louder bar while the assistant talks, so its own voice leaking into the mic doesn't count. */
 export const OVER_REPLY_LEVEL = 0.05
+/**
+ * While it talks, the mic must also beat this share of how loud it's playing
+ * right now, since its voice through speakers can reach the mic louder than
+ * OVER_REPLY_LEVEL. Raise it if replies still get cut off on speakers.
+ */
+export const ECHO_RATIO = 0.5
 /** Talking over the assistant this long pauses it. Shorter is a cough. */
 export const PAUSE_AFTER_MS = 250
 /** Talking over it for less than this, then going quiet, lets it carry on: an "mm-hm". */
@@ -47,7 +53,10 @@ export const startListening = (now: number): Listening => {
   return { began: now, voiceFrom: null, heardAt: null, lastVoice: now }
 }
 
-/** One microphone sample. `replying` is the assistant audibly talking; `paused` is its reply on hold for you. */
+/**
+ * One microphone sample. `replying` is the assistant audibly talking, and
+ * `echo` how loud it's playing right now; `paused` is its reply on hold for you.
+ */
 export const hear = (
   state: Listening,
   {
@@ -55,11 +64,21 @@ export const hear = (
     now,
     replying,
     paused,
-  }: { level: number; now: number; replying: boolean; paused: boolean },
+    echo = 0,
+  }: {
+    level: number
+    now: number
+    replying: boolean
+    paused: boolean
+    echo?: number
+  },
 ): { next: Listening; event: TurnEvent } => {
   const { heardAt } = state
   let { voiceFrom, lastVoice } = state
-  if (level > (replying ? OVER_REPLY_LEVEL : SPEECH_LEVEL)) {
+  const bar = replying
+    ? Math.max(OVER_REPLY_LEVEL, echo * ECHO_RATIO)
+    : SPEECH_LEVEL
+  if (level > bar) {
     voiceFrom ??= now
     lastVoice = now
   } else if (voiceFrom !== null && now - lastVoice > DIP_MS) {

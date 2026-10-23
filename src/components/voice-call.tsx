@@ -174,6 +174,8 @@ function useVoiceCall({
         now: performance.now(),
         replying: s.reply !== undefined && !s.reply.paused,
         paused: s.reply?.paused !== undefined,
+        // How loud the assistant is playing, so its voice through speakers doesn't count as you.
+        echo: rmsOf(s.output),
       })
       state = next
       if (event === 'hearing') setStatus('hearing')
@@ -488,14 +490,18 @@ function useVoiceCall({
   }
 }
 
-/** The loudness of what `analyser` hears, scaled so speech reaches about 1. */
-function levelOf(analyser: AnalyserNode | undefined) {
-  if (!analyser) return 0
+/** The loudness (RMS) of what `analyser` hears right now. */
+function rmsOf(analyser: AnalyserNode) {
   const samples = new Float32Array(analyser.fftSize)
   analyser.getFloatTimeDomainData(samples)
   let sum = 0
   for (const x of samples) sum += x * x
-  return Math.min(1, Math.sqrt(sum / samples.length) * 8)
+  return Math.sqrt(sum / samples.length)
+}
+
+/** The loudness of what `analyser` hears, scaled so speech reaches about 1. */
+function levelOf(analyser: AnalyserNode | undefined) {
+  return analyser ? Math.min(1, rmsOf(analyser) * 8) : 0
 }
 
 type Caller = {

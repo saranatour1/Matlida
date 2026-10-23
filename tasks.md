@@ -111,4 +111,5 @@
 - [x] `add_to_list` calls in one reply run one at a time (write conflicts on `plans`)
 - [x] Answered calls no longer wait on the opening line's speech to connect
 - [x] A ring shows in the tab title, and as a system notification when you're on another tab
-- [ ] Check whether the assistant's own voice through speakers cuts her replies off (each cut-off logs "already has generation number" from the workflow pool)
+- [x] Her voice through speakers no longer counts as you talking: while she talks, the mic must beat half of how loud she plays (`ECHO_RATIO`)
+- [ ] Tune `ECHO_RATIO` from real calls on speakers; fewer "already has generation number" warnings in the logs means fewer cut-off replies

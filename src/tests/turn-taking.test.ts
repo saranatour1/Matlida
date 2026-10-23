@@ -14,7 +14,7 @@ type Segment = { ms: number; level: number }
  * and returns each non-"none" event with the time it fired. `replying` flips
  * to false on "pause", true on "resume", like the audio does.
  */
-const run = (segments: Array<Segment>, { replying = false } = {}) => {
+const run = (segments: Array<Segment>, { replying = false, echo = 0 } = {}) => {
   let state = startListening(0)
   let playing = replying
   let paused = false
@@ -27,6 +27,7 @@ const run = (segments: Array<Segment>, { replying = false } = {}) => {
         now,
         replying: playing,
         paused,
+        echo: playing ? echo : 0,
       })
       state = next
       if (event === 'none') continue
@@ -81,6 +82,17 @@ describe('talking over the assistant', () => {
 
   test('its own voice leaking into the mic does not pause it', () => {
     expect(run([{ ms: 3000, level: ECHO }], { replying: true })).toEqual([])
+  })
+
+  test('its voice through speakers, louder than the usual bar, does not pause it either', () => {
+    // Playing at 0.3, it reaches the mic at 0.12: under half of what it plays.
+    expect(
+      run([{ ms: 3000, level: 0.12 }], { replying: true, echo: 0.3 }),
+    ).toEqual([])
+    // You, louder than half of it, still get through.
+    expect(
+      run([{ ms: 1000, level: 0.2 }], { replying: true, echo: 0.3 }),
+    ).toEqual([['pause', 250]])
   })
 
   test('a quarter second of talking pauses it', () => {
