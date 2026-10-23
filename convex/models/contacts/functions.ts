@@ -1,6 +1,13 @@
+import { zid } from 'convex-helpers/server/zod4'
 import { ConvexError, v } from 'convex/values'
+import { z } from 'zod'
 import { internalMutation, internalQuery } from '../../_generated/server'
-import { authedMutation, authedQuery } from '../../lib/functions'
+import {
+  authedMutation,
+  authedQuery,
+  zAuthedMutation,
+} from '../../lib/functions'
+import { PHONE_NUMBER } from '../../lib/phone'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/queries'
 import { findContacts, keyOf } from './queries'
@@ -66,4 +73,50 @@ const remove = authedMutation({
   },
 })
 
-export const contactsApi = { save, find, list, remove }
+/**
+ * Adds a contact from the Contacts page, or edits one (`id`). Names stay
+ * unique in a workspace, since the assistants find people by name.
+ */
+const put = zAuthedMutation({
+  args: {
+    projectId: zid('projects'),
+    id: zid('contacts').optional(),
+    name: z.string().trim().min(1, 'Give them a name.').max(80),
+    email: z.email('That email address looks wrong.').optional(),
+    phone: z
+      .string()
+      .regex(PHONE_NUMBER, 'Use international format, like +14155550123.')
+      .optional(),
+    note: z.string().trim().max(200).optional(),
+  },
+  handler: async (ctx, { projectId, id, name, ...details }) => {
+    await getOwnedProject(ctx, ctx.userId, projectId)
+    const key = keyOf(name)
+    const same = await ctx.db
+      .query('contacts')
+      .withIndex('by_project_and_key', (q) =>
+        q.eq('projectId', projectId).eq('key', key),
+      )
+      .unique()
+    if (same && same._id !== id) {
+      throw new ConvexError(`There's already a contact named ${same.name}.`)
+    }
+    if (!id) {
+      return await ctx.db.insert('contacts', {
+        projectId,
+        name,
+        key,
+        ...details,
+      })
+    }
+    const contact = await ctx.db.get('contacts', id)
+    if (contact?.projectId !== projectId) {
+      throw new ConvexError('Contact not found.')
+    }
+    // Cleared fields are removed, not kept.
+    await ctx.db.replace('contacts', id, { projectId, name, key, ...details })
+    return id
+  },
+})
+
+export const contactsApi = { save, find, list, remove, put }

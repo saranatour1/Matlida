@@ -791,4 +791,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
   - Calls in the app: where the Talk button is, and the microphone prompt.
   - Phone calls: that their account has to be added to the `phone-calls` flag in Cloudflare Flagship first, with their user id to copy and send on, then how to ask, and Contacts → Call. Matilda's refusal says the same and points to `/setup phone`.
 - The card reads the live state (channel status, your address, pending codes), so it updates as you go, and says what the deployment still needs when a channel isn't set up.
+### Contacts page (2026-10-23)
+
+- A Contacts page (command menu → Contacts) lists the people the assistants can reach: name, email, phone and a note, in a table. You add, edit and delete them there; the assistants still add people too when you give details in a chat (`save_contact`). Names stay unique in a workspace, since assistants find people by name (`contacts.put`, validated with zod: a real email, a phone in international format).
+- Each row's **Email** and **Call** open the lead's chat with the message started ("Email Luke at …: ", "Call Luke at … and "), so you say what to tell them and send. The usual checks still apply: emails to contacts wait for your OK, and a call only goes to a number in your own message, which this is.
+- The chat takes the start of a message from the URL (`?draft=`), which the box opens with.
+- Phone numbers in the table show their last 4 digits.
 

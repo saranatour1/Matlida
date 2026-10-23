@@ -22,6 +22,7 @@ import { Route as ApiFlagsRouteImport } from './routes/api/flags'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
 import { Route as AppPProjectIdConnectionsRouteImport } from './routes/_app/p/$projectId/connections'
+import { Route as AppPProjectIdContactsRouteImport } from './routes/_app/p/$projectId/contacts'
 import { Route as AppPProjectIdLibraryRouteImport } from './routes/_app/p/$projectId/library'
 import { Route as AppPProjectIdMessagingRouteImport } from './routes/_app/p/$projectId/messaging'
 import { Route as AppPProjectIdModelsRouteImport } from './routes/_app/p/$projectId/models'
@@ -92,6 +93,11 @@ const AppPProjectIdConnectionsRoute =
     path: '/p/$projectId/connections',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppPProjectIdContactsRoute = AppPProjectIdContactsRouteImport.update({
+  id: '/p/$projectId/contacts',
+  path: '/p/$projectId/contacts',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPProjectIdLibraryRoute = AppPProjectIdLibraryRouteImport.update({
   id: '/p/$projectId/library',
   path: '/p/$projectId/library',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/api/flags': typeof ApiFlagsRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
+  '/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/models': typeof AppPProjectIdModelsRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/api/flags': typeof ApiFlagsRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
+  '/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
   '/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/p/$projectId/models': typeof AppPProjectIdModelsRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/api/flags': typeof ApiFlagsRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/_app/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
+  '/_app/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
   '/_app/p/$projectId/library': typeof AppPProjectIdLibraryRoute
   '/_app/p/$projectId/messaging': typeof AppPProjectIdMessagingRoute
   '/_app/p/$projectId/models': typeof AppPProjectIdModelsRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/api/flags'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
+    | '/p/$projectId/contacts'
     | '/p/$projectId/library'
     | '/p/$projectId/messaging'
     | '/p/$projectId/models'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/api/flags'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
+    | '/p/$projectId/contacts'
     | '/p/$projectId/library'
     | '/p/$projectId/messaging'
     | '/p/$projectId/models'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/api/flags'
     | '/_app/p/$projectId/bots'
     | '/_app/p/$projectId/connections'
+    | '/_app/p/$projectId/contacts'
     | '/_app/p/$projectId/library'
     | '/_app/p/$projectId/messaging'
     | '/_app/p/$projectId/models'
@@ -335,6 +347,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPProjectIdConnectionsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/p/$projectId/contacts': {
+      id: '/_app/p/$projectId/contacts'
+      path: '/p/$projectId/contacts'
+      fullPath: '/p/$projectId/contacts'
+      preLoaderRoute: typeof AppPProjectIdContactsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/p/$projectId/library': {
       id: '/_app/p/$projectId/library'
       path: '/p/$projectId/library'
@@ -377,6 +396,7 @@ interface AppRouteRouteChildren {
   AppProjectsRoute: typeof AppProjectsRoute
   AppPProjectIdBotsRoute: typeof AppPProjectIdBotsRoute
   AppPProjectIdConnectionsRoute: typeof AppPProjectIdConnectionsRoute
+  AppPProjectIdContactsRoute: typeof AppPProjectIdContactsRoute
   AppPProjectIdLibraryRoute: typeof AppPProjectIdLibraryRoute
   AppPProjectIdMessagingRoute: typeof AppPProjectIdMessagingRoute
   AppPProjectIdModelsRoute: typeof AppPProjectIdModelsRoute
@@ -389,6 +409,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProjectsRoute: AppProjectsRoute,
   AppPProjectIdBotsRoute: AppPProjectIdBotsRoute,
   AppPProjectIdConnectionsRoute: AppPProjectIdConnectionsRoute,
+  AppPProjectIdContactsRoute: AppPProjectIdContactsRoute,
   AppPProjectIdLibraryRoute: AppPProjectIdLibraryRoute,
   AppPProjectIdMessagingRoute: AppPProjectIdMessagingRoute,
   AppPProjectIdModelsRoute: AppPProjectIdModelsRoute,
