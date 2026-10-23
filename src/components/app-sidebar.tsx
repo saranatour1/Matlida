@@ -1,6 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Link, useSearch } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
 import {
   ChevronDownIcon,
   ChevronsUpDownIcon,
@@ -11,6 +10,7 @@ import {
 import { api } from '@convex/_generated/api'
 import type { Doc, Id } from '@convex/_generated/dataModel'
 import type { Portrait } from '@convex/lib/portraits'
+import { useQuery } from '~/lib/query-snapshots'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { CommandMenu } from '~/components/command-menu'
 import {

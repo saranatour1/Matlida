@@ -19,6 +19,7 @@ import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AuthVerifyEmailRouteImport } from './routes/_auth/verify-email'
 import { Route as ApiFlagsRouteImport } from './routes/api/flags'
+import { Route as ApiSnapshotRouteImport } from './routes/api/snapshot'
 import { Route as AppPProjectIdIndexRouteImport } from './routes/_app/p/$projectId/index'
 import { Route as AppPProjectIdBotsRouteImport } from './routes/_app/p/$projectId/bots'
 import { Route as AppPProjectIdConnectionsRouteImport } from './routes/_app/p/$projectId/connections'
@@ -75,6 +76,11 @@ const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
 const ApiFlagsRoute = ApiFlagsRouteImport.update({
   id: '/api/flags',
   path: '/api/flags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSnapshotRoute = ApiSnapshotRouteImport.update({
+  id: '/api/snapshot',
+  path: '/api/snapshot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppPProjectIdIndexRoute = AppPProjectIdIndexRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/api/flags': typeof ApiFlagsRoute
+  '/api/snapshot': typeof ApiSnapshotRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/verify-email': typeof AuthVerifyEmailRoute
   '/api/flags': typeof ApiFlagsRoute
+  '/api/snapshot': typeof ApiSnapshotRoute
   '/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_auth/verify-email': typeof AuthVerifyEmailRoute
   '/api/flags': typeof ApiFlagsRoute
+  '/api/snapshot': typeof ApiSnapshotRoute
   '/_app/p/$projectId/bots': typeof AppPProjectIdBotsRoute
   '/_app/p/$projectId/connections': typeof AppPProjectIdConnectionsRoute
   '/_app/p/$projectId/contacts': typeof AppPProjectIdContactsRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/api/flags'
+    | '/api/snapshot'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
     | '/p/$projectId/contacts'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/verify-email'
     | '/api/flags'
+    | '/api/snapshot'
     | '/p/$projectId/bots'
     | '/p/$projectId/connections'
     | '/p/$projectId/contacts'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-up'
     | '/_auth/verify-email'
     | '/api/flags'
+    | '/api/snapshot'
     | '/_app/p/$projectId/bots'
     | '/_app/p/$projectId/connections'
     | '/_app/p/$projectId/contacts'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   ApiFlagsRoute: typeof ApiFlagsRoute
+  ApiSnapshotRoute: typeof ApiSnapshotRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/api/flags'
       fullPath: '/api/flags'
       preLoaderRoute: typeof ApiFlagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/snapshot': {
+      id: '/api/snapshot'
+      path: '/api/snapshot'
+      fullPath: '/api/snapshot'
+      preLoaderRoute: typeof ApiSnapshotRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/p/$projectId/': {
@@ -447,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
   AuthRouteRoute: AuthRouteRouteWithChildren,
   ApiFlagsRoute: ApiFlagsRoute,
+  ApiSnapshotRoute: ApiSnapshotRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
