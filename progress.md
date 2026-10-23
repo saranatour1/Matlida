@@ -798,3 +798,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The chat takes the start of a message from the URL (`?draft=`), which the box opens with.
 - Phone numbers in the table show their last 4 digits.
 
+### Calls keep listening in a background tab (2026-10-23)
+
+- On a call, the assistant could stop answering: on prod on 2026-10-23 a call sent turns until 15:25:02, then nothing for 84 s until hang-up, with no server errors. The microphone was checked in a `requestAnimationFrame` loop, which browsers pause when the tab is hidden or the window covered, so the assistant kept talking but nothing heard you.
+- The mic's loudness is now measured on the audio thread by an AudioWorklet (`startMicLevel` in `src/lib/mic-level.ts`), about every 20 ms, which keeps going in the background. Checked in a browser: about 50 readings a second, and a 0.5 tone reads 0.352 RMS (0.354 expected).
+- The call also resumes its audio when the browser suspends it (like when headphones change), and a call that fails to start now releases the mic, so the next one can start.
+

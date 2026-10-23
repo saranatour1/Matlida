@@ -46,6 +46,7 @@ import {
 
 import { useUpload } from '~/hooks/use-upload'
 import { toWav } from '~/lib/wav'
+import { startMicLevel } from '~/lib/mic-level'
 import { hear, startListening } from '~/lib/turn-taking'
 
 type CallVoice = (typeof VOICES)[number]
@@ -76,7 +77,10 @@ type Session = CallTarget & {
   recorder?: MediaRecorder
   /** The assistant's reply while it arrives and plays. */
   reply?: Reply
-  frame?: number
+  /** Measures the mic on the audio thread, so listening goes on in a background tab. */
+  meter?: AudioWorkletNode
+  /** What the current recording does with each mic reading. */
+  onLevel?: (level: number) => void
   /** The call's record in history, from its first turn or the answered ring. */
   callId?: Id<'calls'>
   ended: boolean
@@ -158,14 +162,10 @@ function useVoiceCall({
     recorder.start()
     s.recorder = recorder
     if (!s.reply) setStatus('listening')
-    const samples = new Float32Array(s.analyser.fftSize)
-    const tick = () => {
+    s.onLevel = (level) => {
       if (s.ended || recorder.state !== 'recording') return
-      s.analyser.getFloatTimeDomainData(samples)
-      let sum = 0
-      for (const x of samples) sum += x * x
       const { next, event } = hear(state, {
-        level: Math.sqrt(sum / samples.length),
+        level,
         now: performance.now(),
         replying: s.reply !== undefined && !s.reply.paused,
         paused: s.reply?.paused !== undefined,
@@ -179,11 +179,8 @@ function useVoiceCall({
       if (event === 'send' || event === 'resume' || event === 'restart') {
         outcome = event
         recorder.stop()
-        return
       }
-      s.frame = requestAnimationFrame(tick)
     }
-    s.frame = requestAnimationFrame(tick)
   }
 
   async function send(s: Session, clip: Blob, cutOff: boolean) {
@@ -373,7 +370,8 @@ function useVoiceCall({
       })
       const analyser = audio.createAnalyser()
       analyser.fftSize = 1024
-      audio.createMediaStreamSource(stream).connect(analyser)
+      const mic = audio.createMediaStreamSource(stream)
+      mic.connect(analyser)
       const gain = audio.createGain()
       gain.gain.value = getCallVolume()
       gain.connect(audio.destination)
@@ -390,6 +388,11 @@ function useVoiceCall({
         ended: false,
       }
       session.current = s
+      s.meter = await startMicLevel(audio, mic, (level) => s.onLevel?.(level))
+      // Browsers can suspend audio, like when headphones change: carry on.
+      audio.onstatechange = () => {
+        if (!s.ended && audio.state !== 'running') void audio.resume()
+      }
       const first = await opening?.catch(() => null)
       if (session.current !== s) return
       if (first) setLines([{ who: 'them', text: first.text }])
@@ -405,6 +408,10 @@ function useVoiceCall({
       listen(s)
       playNext(s)
     } catch {
+      // Whatever got started before the failure stops, so the next call can start.
+      for (const track of session.current?.stream.getTracks() ?? [])
+        track.stop()
+      session.current = null
       void audio.close()
       setError('Allow microphone access to call.')
       setStatus('idle')
@@ -418,7 +425,8 @@ function useVoiceCall({
     if (!s) return
     s.ended = true
     if (s.callId) void end({ id: s.callId })
-    if (s.frame) cancelAnimationFrame(s.frame)
+    s.onLevel = undefined
+    s.meter?.disconnect()
     if (s.recorder?.state === 'recording') s.recorder.stop()
     drop(s)
     for (const track of s.stream.getTracks()) track.stop()
