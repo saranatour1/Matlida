@@ -102,3 +102,10 @@
 
 - [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters. Checked 2026-10-22: 3.8.1 still uses exporters 0.218, which pin core 2.7.1 (Dependabot #2). Check with `pnpm view @photon-ai/otel dependencies`, and drop it once `@opentelemetry/exporter-trace-otlp-http` is past 0.218
 - [ ] Set `VITE_SITE_URL` on the deployed app so `og:image` is an absolute URL
+- [x] tsrs (Rust port of TypeScript 7) as a dev dependency, for fast local type checks
+- [x] oxfmt in place of Prettier (`pnpm format`)
+- [ ] Run `pnpm format` once to reformat the 21 files oxfmt flags (16 were already off under Prettier)
+- [x] KV snapshots: a drop-in `useQuery` (`~/lib/query-snapshots`) that shows each user's last result from Cloudflare KV until Convex answers, on the sidebar, projects and project pages
+- [ ] Measure KV snapshots against the cloud deployment; locally Convex answers first
+- [x] Throttle snapshot refreshes to once per entry every 5 minutes (KV metadata `refreshedAt`)
+- [x] `add_to_list` calls in one reply run one at a time (write conflicts on `plans`)
