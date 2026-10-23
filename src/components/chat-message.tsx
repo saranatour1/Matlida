@@ -10,6 +10,7 @@ import { BotPart } from '~/components/bot-part'
 import { CartPart } from '~/components/cart-part'
 import { ChecklistPart } from '~/components/checklist-part'
 import { CommandsPart } from '~/components/commands-part'
+import { SetupPart } from '~/components/setup-part'
 import { StudyPart } from '~/components/study-part'
 import { CopyButton } from '~/components/copy-button'
 import { Button } from '~/components/ui/button'
@@ -348,6 +349,8 @@ function renderPart(
       return <PostPreviewsPart key={part.toolCallId} part={part} />
     case 'tool-generate_image':
       return <ImagePart key={part.toolCallId} part={part} />
+    case 'tool-show_setup':
+      return <SetupPart key={part.toolCallId} part={part} />
     case 'tool-show_commands':
       return <CommandsPart key={part.toolCallId} part={part} onSend={onSend} />
     case 'tool-make_study_set':

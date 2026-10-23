@@ -83,7 +83,7 @@ Type `/` in the message box to pick one, or ask an assistant "what can you do?" 
 | Decide and solve           | `/decide` (Jev picks between options), `/make-my-problems-go-away` (can AI do this, or should a person?), `/fix`, `/convex`, `/compare`, `/research`, `/explain`, `/tldr` |
 | Learn                      | `/study` (flash cards), `/quiz` (test yourself)                                                                                                                           |
 | Shopping                   | `/shop`, `/gift`, `/watch` (hear when a price drops), `/cart`, `/shopping` (list by aisle), `/meals`, `/recipe`                                                           |
-| Everyday                   | `/news`, `/split` (who owes whom), `/meet` (a time across time zones), `/convert`, `/pack`                                                                                |
+| Everyday                   | `/news`, `/split` (who owes whom), `/meet` (a time across time zones), `/convert`, `/pack`, `/setup` (connect email, Telegram, texts and calls)                           |
 | Words                      | `/rewrite`, `/reply`, `/translate`                                                                                                                                        |
 
 The full list, with what each one does, is in `convex/lib/commands.ts`. A test checks that this table names every built-in command.

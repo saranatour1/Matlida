@@ -387,6 +387,17 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         }),
       }),
     }),
+    show_setup: createTool({
+      description:
+        'Show a setup guide the user can click through: their email address, linking Telegram, texting (iMessage, SMS or WhatsApp), calls in the app, and phone calls. Each step shows whether it is done. Use it when they ask how to connect, set up or reach you somewhere.',
+      inputSchema: z.object({
+        topic: z
+          .enum(['all', 'email', 'telegram', 'texts', 'calls', 'phone'])
+          .default('all')
+          .describe('Only that part, when they asked about one.'),
+      }),
+      execute: (_ctx, { topic }) => Promise.resolve({ topic }),
+    }),
     save_command: createTool({
       description:
         "Save a new reusable command the user can run as /name. The markdown is the instructions you follow when it runs, written to you. It can't change an existing command: the user edits those in the Library.",
@@ -611,7 +622,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         if (!ctx.threadId) throw new Error('Calls need a chat.')
         if (!(await flagOn(FLAGS.phoneCalls, project.ownerId))) {
           throw new Error(
-            "Calling numbers is turned off for this account right now. Tell the user it's switched on with the phone-calls flag in Cloudflare Flagship, and try this tool again when they ask.",
+            'Calling numbers is turned off for this account right now. Tell the user phone calls cost money, so whoever runs the app has to add their account to the phone-calls feature flag in Cloudflare Flagship; /setup phone shows the user id to add. Try this tool again when they ask.',
           )
         }
         // Their last few messages, so "call +1…" then "tell her hello" works.
