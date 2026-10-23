@@ -806,4 +806,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - However a turn's workflow ends, `turnFinished` closes its live turn (with an error the browser shows, if it failed), so the browser never waits on a turn that died.
 - The heard turn's saves (chat message, call line, usage, live turn, status) are one mutation instead of four round trips.
 - Tested: the call and voice tests (12), including a new turn cancelling a running one so only one is answered.
+### Login tokens last 15 minutes (2026-10-23)
+
+- Convex Auth v2's login tokens lasted 60 seconds, so every open tab refreshed its session about every 51 s, and each refresh re-ran every open query (chats, bots, reminders, commands), during calls too. They now last 15 minutes (`accessTokenTtlSeconds` in `convex/models/users/auth.ts`). Refresh tokens still last 30 days. A signed-out session can keep working until its token runs out, which is why it isn't longer.
 
