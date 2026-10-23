@@ -64,9 +64,14 @@ message is pushed to `/spectrum/webhook` the moment it's sent. Nothing polls.
 2. Create the bot with @BotFather and set its token as `TELEGRAM_BOT_TOKEN`.
 3. Point the bot at Photon, once:
    `pnpm exec convex run api/sender:connectTelegram` (add `--prod` for
-   production). Run it again only if the token changes.
+   production). It also lists the built-in commands in the bot's / menu. Run
+   it again if the token or the built-in commands change.
 4. In the app, get a code on Messaging and send `link <code>` to the bot.
    Then message it. Everything goes to Matilda.
+
+Commands work like in the app: `/tldr …`, `/news`, your own Library
+commands. Voice notes are transcribed and answered, at most 3 per burst,
+charged to the chat's owner; an unlinked chat's are never transcribed.
 
 Chats linked before this went through Photon's platform API, which never
 delivered Telegram events to `/photon/webhook`. Send a new link code from

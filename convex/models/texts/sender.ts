@@ -6,6 +6,7 @@ import { telegram } from '@spectrum-ts/telegram'
 import { whatsappBusiness } from '@spectrum-ts/whatsapp-business'
 import { v } from 'convex/values'
 import { env, internalAction } from '../../_generated/server'
+import { BUILT_IN_COMMANDS } from '../../lib/commands'
 import { spectrum } from './spectrum'
 import type { SendJob, SendOutcome } from '@spectrum-ts/convex/sender'
 
@@ -104,8 +105,10 @@ const deliver = internalAction({
 })
 
 /**
- * Points the Telegram bot's webhook at Photon, so its messages reach Matilda.
- * Run once after setting TELEGRAM_BOT_TOKEN: `convex run api/sender:connectTelegram`.
+ * Points the Telegram bot's webhook at Photon, so its messages reach Matilda,
+ * and lists the built-in commands in the bot's / menu. Run once after setting
+ * TELEGRAM_BOT_TOKEN, and again when commands change:
+ * `convex run api/sender:connectTelegram`.
  */
 const connectTelegram = internalAction({
   args: {},
@@ -113,6 +116,19 @@ const connectTelegram = internalAction({
   handler: async () => {
     telegramApp = startTelegram()
     await telegramApp
+    // Telegram's menu takes a-z, 0-9 and _, so names with a dash still work typed, just unlisted.
+    const commands = BUILT_IN_COMMANDS.filter((c) =>
+      /^[a-z0-9_]{1,32}$/.test(c.name),
+    ).map((c) => ({ command: c.name, description: c.description }))
+    const set = await fetch(
+      `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setMyCommands`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ commands }),
+      },
+    )
+    if (!set.ok) throw new Error(`Telegram refused the commands: ${set.status}`)
     return null
   },
 })

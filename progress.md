@@ -825,3 +825,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Nothing to migrate: dev and prod had no watches, daily briefings or kept-updated pages.
 - Tested: `pnpm check` and all 249 tests, with new ones for the scheduled briefing (and cancelling it), page refreshes and per-watch checks.
 - **Telegram** no longer polls every minute either. It goes through the Spectrum SDK's push webhook like iMessage and WhatsApp: set `TELEGRAM_BOT_TOKEN` and run `api/sender:connectTelegram` once. The poll, its fast loop and the `telegramPolls` table are gone. That leaves one cron, the daily file sweep.
+
+### Telegram: commands and voice notes (2026-10-23)
+
+- Commands work on Telegram like in the app: `/tldr …`, `/news`, `/setup`, or your own Library commands, also as `/name@bot`. An unknown `/name`, like Telegram's `/start`, is answered as a plain message. The web chat and texts share one lookup (`commandName`, `resolveCommand` in `convex/models/commands/queries.ts`).
+- `connectTelegram` also lists the built-in commands in the bot's / menu (Telegram's `setMyCommands`). Names with a dash, like `make-my-problems-go-away`, aren't allowed in the menu but still work typed.
+- Voice notes on Telegram are downloaded through the bot token, transcribed (`transcribeBytes`, the same model and budget as in-app voice) and answered with the rest of the burst. At most 3 per burst, and only for a linked chat, charged to its owner.
+- Tested: `pnpm check` and all 249 tests, with new ones for a command and `/start`, and for a voice note heard in a linked chat and ignored in an unlinked one.

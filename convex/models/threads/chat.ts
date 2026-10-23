@@ -22,8 +22,7 @@ import {
   zAuthedMutation,
 } from '../../lib/functions'
 import schema from '../../schema'
-import { findCommand, getCommand } from '../commands/queries'
-import { BUILT_IN_COMMANDS } from '../../lib/commands'
+import { findCommand, resolveCommand } from '../commands/queries'
 import { MAX_FILES, MAX_FILE_BYTES, attachable } from '../../lib/attachments'
 import { getOwnedProject } from '../projects/queries'
 import { MODELS } from '../../lib/models'
@@ -163,7 +162,8 @@ const noteChat = async (
   ) {
     // One check-in, a while after you last chatted: no job sweeps everyone.
     const pending =
-      last?.checkInJob && (await ctx.db.system.get("_scheduled_functions", last.checkInJob))
+      last?.checkInJob &&
+      (await ctx.db.system.get('_scheduled_functions', last.checkInJob))
     if (pending && pending.state.kind === 'pending') {
       await ctx.scheduler.cancel(pending._id)
     }
@@ -258,17 +258,11 @@ const context = internalQuery({
     const found = await assistantOf(ctx, threadId)
     if (!found) throw new Error(`No project for thread ${threadId}`)
     const { project, bot } = found
-    const stored = name ? await getCommand(ctx, project._id, name) : null
-    const builtIn = BUILT_IN_COMMANDS.find((c) => c.name === name)
     return {
       project,
       bot,
       members: await getMembers(ctx, project, bot),
-      command: stored
-        ? { name: stored.name, storageId: stored.storageId }
-        : builtIn
-          ? { name: builtIn.name, markdown: builtIn.markdown }
-          : null,
+      command: name ? await resolveCommand(ctx, project._id, name) : null,
     }
   },
 })
@@ -567,7 +561,22 @@ export const transcribeClip = async (
   const audio = await ctx.storage.get(storageId)
   await ctx.storage.delete(storageId)
   if (!audio) throw new ConvexError('The recording was lost. Try again.')
-  if (audio.size > 10 * 1024 * 1024) {
+  return await transcribeBytes(
+    ctx,
+    userId,
+    new Uint8Array(await audio.arrayBuffer()),
+    language,
+  )
+}
+
+/** What's said in `audio`, charged to `userId`. */
+export const transcribeBytes = async (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  audio: Uint8Array,
+  language?: Language,
+) => {
+  if (audio.byteLength > 10 * 1024 * 1024) {
     throw new ConvexError('Recordings can be at most 10 MB.')
   }
   const { text, providerMetadata } = await metered(
@@ -576,7 +585,7 @@ export const transcribeClip = async (
     async () => {
       const heard = await transcribeAudio({
         model: transcriptionModel,
-        audio: new Uint8Array(await audio.arrayBuffer()),
+        audio,
         ...(language && { providerOptions: { convexGateway: { language } } }),
       })
       return { result: heard, cost: gatewayCost(heard.providerMetadata) }

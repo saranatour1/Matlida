@@ -8,6 +8,7 @@ import { api, components, internal } from '../../_generated/api'
 import { languageModel } from '../../lib/ai'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import type * as Ai from 'ai'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
@@ -16,8 +17,19 @@ vi.mock('../../lib/ai', async () => {
     languageModel: mockModel({
       content: [{ type: 'text', text: 'Hi from Matilda.' }],
     }),
+    transcriptionModel: {},
   }
 })
+
+const transcribe = vi.hoisted(() =>
+  vi.fn(() =>
+    Promise.resolve({ text: 'Buy milk tomorrow', providerMetadata: {} }),
+  ),
+)
+vi.mock('ai', async (original) => ({
+  ...(await original<typeof Ai>()),
+  transcribe,
+}))
 
 const delivered = vi.hoisted(
   () => [] as Array<{ spaceId: string; content?: unknown }>,
@@ -65,6 +77,7 @@ const calls = (languageModel as unknown as { doGenerateCalls: Array<unknown> })
   .doGenerateCalls
 
 beforeEach(() => {
+  transcribe.mockClear()
   calls.length = 0
   delivered.length = 0
   sentOn.length = 0
@@ -74,6 +87,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
 })
 
 const setup = async () => {
@@ -313,13 +327,14 @@ const arrive = async (
   spaceId: string,
   platform: string,
   text: string,
+  content: unknown = { type: 'text', text },
 ) => {
   await t.run(async (ctx) => {
     await ctx.runMutation(components.spectrum.inbound.enqueue, {
       spaceId,
       messageId: `${spaceId}-${text}-${arrivals++}`,
       platform,
-      content: { type: 'text', text },
+      content,
       mode: 'collapse',
       onBatch: await createFunctionHandle(internal.api.texts.batch),
     })
@@ -442,4 +457,54 @@ test('a text that replaces a queued reply means one answer, and the replaced tur
   expect(delivered.slice(answered)).toMatchObject([
     { content: { text: 'Hi from Matilda.' } },
   ])
+})
+
+test('commands run on Telegram like in the app, and /start is a plain message', async () => {
+  const { asAda, projectId, text } = await setup()
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await text('space-1', `link ${code}`)
+
+  expect(await text('space-1', '/tldr@MatildaBot the meeting notes')).toBe(
+    'Hi from Matilda.',
+  )
+  expect(JSON.stringify(calls)).toContain('after /tldr')
+  calls.length = 0
+  expect(await text('space-1', '/start')).toBe('Hi from Matilda.')
+  expect(JSON.stringify(calls)).not.toContain('after /tldr')
+})
+
+test("a linked chat's Telegram voice note is heard and answered; an unlinked one's never is", async () => {
+  const { t, asAda, projectId, text } = await setup()
+  const fetched: Array<string> = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => {
+      fetched.push(url.replace('1:token', 'TOKEN'))
+      return Promise.resolve(
+        url.includes('/getFile')
+          ? Response.json({ ok: true, result: { file_path: 'voice/1.oga' } })
+          : new Response(new Uint8Array([1, 2, 3])),
+      )
+    }),
+  )
+  const voiceNote = {
+    type: 'attachment',
+    id: 'file-1',
+    name: 'voice.ogg',
+    mimeType: 'audio/ogg',
+  }
+  vi.useFakeTimers()
+  await arrive(t, 'space-9', 'telegram', '', voiceNote)
+  expect(transcribe).not.toHaveBeenCalled()
+
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await text('space-1', `link ${code}`)
+  const before = sentOn.length
+  await arrive(t, 'space-1', 'telegram', '', voiceNote)
+  expect(sentOn.at(before)?.text).toBe('Hi from Matilda.')
+  expect(fetched).toEqual([
+    'https://api.telegram.org/botTOKEN/getFile?file_id=file-1',
+    'https://api.telegram.org/file/botTOKEN/voice/1.oga',
+  ])
+  expect(JSON.stringify(calls)).toContain('Buy milk tomorrow')
 })
