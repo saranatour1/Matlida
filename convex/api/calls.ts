@@ -1,7 +1,20 @@
 import { callLogApi } from '../models/calls/functions'
 import { callsApi } from '../models/threads/calls'
 
-export const { post, forget, turn, answer } = callsApi
+export const {
+  post,
+  forget,
+  answer,
+  startTurn,
+  runTurn,
+  hearStep,
+  heard,
+  setTurn,
+  isCurrent,
+  replyStep,
+  fastStep,
+  turnFinished,
+} = callsApi
 export const {
   addLine,
   end,

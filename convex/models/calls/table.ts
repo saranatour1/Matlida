@@ -1,3 +1,4 @@
+import { vWorkflowId } from '@convex-dev/workflow'
 import { literals } from 'convex-helpers/validators'
 import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
@@ -13,6 +14,16 @@ export const phoneStatus = literals(
   'failed',
 )
 
+/** Where an in-app call's current turn is. The last three are how it ended. */
+export const turnStatus = literals(
+  'hearing',
+  'thinking',
+  'speaking',
+  'done',
+  'failed',
+  'canceled',
+)
+
 /** A voice call with one assistant. It started at `_creationTime`. */
 export const callsTable = defineTable({
   projectId: v.id('projects'),
@@ -21,6 +32,18 @@ export const callsTable = defineTable({
   /** The chat the call's turns land in, once there is one. */
   threadId: v.optional(v.string()),
   endedAt: v.optional(v.number()),
+  /**
+   * The in-app call's current turn: its live turn's key, the workflow running
+   * it, and where it is. A new turn cancels this one, so only one ever runs.
+   */
+  turn: v.optional(
+    v.object({
+      key: v.string(),
+      workflowId: vWorkflowId,
+      status: turnStatus,
+      note: v.optional(v.string()),
+    }),
+  ),
   /** Set on a phone call an assistant placed through Photon. On its lines, `you` is the person called. */
   phone: v.optional(
     v.object({
@@ -72,4 +95,6 @@ export const liveTurnsTable = defineTable({
     }),
   ),
   done: v.boolean(),
+  /** Why the turn failed, for the browser to show. */
+  error: v.optional(v.string()),
 }).index('by_key', ['key'])

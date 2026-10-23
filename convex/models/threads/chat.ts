@@ -260,6 +260,7 @@ export const runReply = async (
     cutOff,
     language,
     onText,
+    abortSignal,
   }: {
     threadId: string
     promptMessageId: string
@@ -276,6 +277,8 @@ export const runReply = async (
       delta: string,
       who: { project: Doc<'projects'>; bot: Doc<'bots'> | null },
     ) => void
+    /** Stops the reply, like when a call moved on to a newer turn. */
+    abortSignal?: AbortSignal
   },
 ) => {
   const {
@@ -315,7 +318,7 @@ export const runReply = async (
     const result = await agent.streamText(
       ctx,
       { threadId, userId: project.ownerId },
-      { promptMessageId },
+      { promptMessageId, abortSignal },
       { saveStreamDeltas: true },
     )
     if (onText) {
