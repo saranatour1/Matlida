@@ -782,3 +782,13 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 - `wrangler.jsonc` turns on everything for the Worker: every request's logs (with invocation logs) and traces, kept in the dashboard, and Issues, which groups recurring failures. The dashboard's snippet said `issue_detection`, which Wrangler doesn't know; the documented key is `observability.issues.enabled`.
 - Query strings are redacted in the logs (`redact_query_string: true`): reset-password and verify-email links carry one-time codes there.
+
+### Setup guide in the chat (2026-10-23)
+
+- Ask an assistant how to connect something, or type `/setup` (optionally `email`, `telegram`, `texts`, `calls` or `phone`), and it shows a card you click through (`show_setup`, `SetupPart`). Each way to reach the assistants gets its steps and a tick when it's done:
+  - Email: claim your address right in the card, then email from your sign-in address.
+  - Telegram, and texts (iMessage, SMS, WhatsApp): a "Get a code" button, then the `link CODE` to send.
+  - Calls in the app: where the Talk button is, and the microphone prompt.
+  - Phone calls: how to ask, and Contacts → Call.
+- The card reads the live state (channel status, your address, pending codes), so it updates as you go, and says what the deployment still needs when a channel isn't set up.
+

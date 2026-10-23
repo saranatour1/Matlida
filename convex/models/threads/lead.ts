@@ -30,7 +30,7 @@ export type RunCommand = { name: string; markdown: string }
 export type Via = 'chat' | 'text' | 'email' | 'voice'
 
 const STYLE: Record<Via, string> = {
-  chat: 'Keep replies concise and use markdown. When asked what you can do, show your commands with show_commands and add one line.',
+  chat: 'Keep replies concise and use markdown. When asked what you can do, show your commands with show_commands and add one line. When asked how to connect or set up email, Telegram, texts or calls, show the steps with show_setup and add one line.',
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
     'You are drafting a reply to an email, which the user checks and sends: plain text with no markdown, short paragraphs, no subject line and no signature. Look up earlier emails with find_emails when they would help.',
@@ -233,6 +233,7 @@ export const READ_ONLY_TOOLS = [
   'preview_posts',
   'ask_bot',
   'show_commands',
+  'show_setup',
 ]
 
 /** Who answers one reply, and how. See `createAgent`. */

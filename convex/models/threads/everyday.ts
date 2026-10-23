@@ -273,6 +273,7 @@ export const everydayTools = (project: Doc<'projects'>) => {
 const CARD_TOOLS = new Set([
   'make_study_set',
   'show_commands',
+  'show_setup',
   'show_chart',
   'preview_post',
   'preview_posts',

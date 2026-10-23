@@ -263,6 +263,12 @@ export const BUILT_IN_COMMANDS = [
       'Explain what the user asks after /explain as if they are new to it: a one-sentence answer first, then a plain explanation with one everyday example, then one short question to check it landed. Define any jargon you use.',
   },
   {
+    name: 'setup',
+    description: 'Set up email, Telegram, texts and calls',
+    markdown:
+      'Show the setup guide with show_setup, for what the user named after /setup (email, telegram, texts, calls or phone), or all of it when they named nothing. Add one line on where to start.',
+  },
+  {
     name: 'research',
     description: 'Research a topic in depth',
     markdown:
