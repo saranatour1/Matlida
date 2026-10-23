@@ -858,3 +858,11 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - `/api/flags` takes the fallback from Convex, and Convex asks for "no calls" if Flagship can't answer, so a Flagship outage never turns calls on for everyone. It answers `{ value }`.
 - `FLAGS_ON=phone-calls` still turns calls on for everyone on a deployment. The setup guide, Matilda's refusal, the docs and the README name `no-calls`.
 - Tested: `pnpm check` and all 249 tests, with the flag test covering off-for-you, on, no answer, and the fallback Convex sends.
+
+### In-app calls: connecting, background tabs and rings (2026-10-24)
+
+- **Answered calls stuck on "Connecting…".** The call waited for both the mic and `calls.answer`, which waited for the opening line's speech with no time limit. The call now listens as soon as the mic is granted, and the opening line shows and plays whenever it arrives, unless you've already sent a turn. Speech gives up after 15 seconds (`SPEECH_TIMEOUT_MS`), and `answer` returns the line with no audio if speaking fails. A turn sent before the opening arrives still joins the answered call.
+- **Background tabs.** The loudness check that ends your turn ran on `requestAnimationFrame`, which stops in a hidden tab. It now runs in an AudioWorklet (`public/loudness-worklet.js`), which posts the mic's RMS about every 23 ms from the audio thread, into the same `hear()` with the same thresholds.
+- **Rings.** While a ring shows, the tab title reads "📞 <name> is calling", and if you allowed notifications and the tab isn't in focus, a system notification brings you back when clicked. The browser asks for notification permission the first time you start or answer a call.
+- **The production "already has generation number" error** is a warning from `@convex-dev/workflow`'s pool: a turn's step finished after a newer turn cancelled it. Nothing fails, but each one is a reply that got cut off.
+- Tested: `pnpm check` and all 1,099 tests, including a new one for a ring whose speech fails (answered, with the line and no audio). In the browser, the worklet posted 43 readings a second and read a 0.1-amplitude test tone as 0.070–0.071 RMS, against 0.0707 expected. A truly hidden tab couldn't be reproduced in the preview pane. No calls were placed.

@@ -97,7 +97,7 @@
 - [ ] WhatsApp templates for reminders outside the 24-hour window
 - [x] Calls: pause when you talk over the assistant, and wait longer before taking the turn
 - [x] Calls: speak the reply sentence by sentence as it streams
-- [ ] Calls: keep listening in a background tab (the mic check runs on animation frames)
+- [x] Calls: keep listening in a background tab (the mic check runs in an AudioWorklet)
 - [ ] Tune the turn-taking thresholds from real calls (`npx convex run api/calls:dump`)
 
 - [ ] Drop the `@opentelemetry/core` override once `@photon-ai/otel` updates its exporters. Checked 2026-10-22: 3.8.1 still uses exporters 0.218, which pin core 2.7.1 (Dependabot #2). Check with `pnpm view @photon-ai/otel dependencies`, and drop it once `@opentelemetry/exporter-trace-otlp-http` is past 0.218
@@ -109,3 +109,6 @@
 - [ ] Measure KV snapshots against the cloud deployment; locally Convex answers first
 - [x] Throttle snapshot refreshes to once per entry every 5 minutes (KV metadata `refreshedAt`)
 - [x] `add_to_list` calls in one reply run one at a time (write conflicts on `plans`)
+- [x] Answered calls no longer wait on the opening line's speech to connect
+- [x] A ring shows in the tab title, and as a system notification when you're on another tab
+- [ ] Check whether the assistant's own voice through speakers cuts her replies off (each cut-off logs "already has generation number" from the workflow pool)
