@@ -20,8 +20,8 @@ const zReceived = z.object({
 /**
  * `POST /photon/webhook`: events from Photon's platform API. The signature is
  * checked over the raw bytes before anything is parsed. A Telegram text is
- * recorded and answered; an email starts the email check now instead of at
- * the next minute. Everything else is acknowledged and ignored.
+ * recorded and answered; an email starts the email check. Everything else is
+ * acknowledged and ignored.
  */
 export const photonWebhook = httpAction(async (ctx, request) => {
   const secret = env.PHOTON_WEBHOOK_SECRET

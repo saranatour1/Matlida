@@ -291,6 +291,12 @@ export const sweepable = ({ contentType }: { contentType?: string }) => {
   return contentType === 'text/markdown' || !!contentType?.startsWith('audio/')
 }
 
+/**
+ * Daily from `crons.ts`: deletes yesterday's uploads nothing kept, like a
+ * command file abandoned in its dialog. Files under an hour old may still be
+ * on their way to being saved, so they wait for the next sweep.
+ */
+// ponytail: 1000 files a day; page through them if uploads ever pass that.
 const sweepFiles = internalMutation({
   args: {},
   returns: v.number(),
@@ -300,10 +306,10 @@ const sweepFiles = internalMutation({
       .query('_storage')
       .withIndex('by_creation_time', (q) =>
         q
-          .gte('_creationTime', now - 2 * HOUR - 10 * 60_000)
+          .gte('_creationTime', now - 25 * HOUR - 10 * 60_000)
           .lt('_creationTime', now - HOUR),
       )
-      .take(500)
+      .take(1000)
     let deleted = 0
     for (const file of files) {
       if (!sweepable(file)) continue
@@ -312,6 +318,11 @@ const sweepFiles = internalMutation({
         .withIndex('by_storageId', (q) => q.eq('storageId', file._id))
         .first()
       if (used) continue
+      const recording = await ctx.db
+        .query('calls')
+        .withIndex('by_recording', (q) => q.eq('phone.recording', file._id))
+        .first()
+      if (recording) continue
       await ctx.storage.delete(file._id)
       deleted++
     }

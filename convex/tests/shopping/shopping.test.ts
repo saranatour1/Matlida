@@ -244,13 +244,20 @@ test('a watched price posts in the chat once it drops, and a gone item stops the
       ),
     )
 
-  // Not due yet: checked just now.
-  await t.action(internal.api.shopping.checkPrices, {})
-  expect(await status()).toEqual(['watching', 'watching'])
+  // Each watch has its own check, a day later.
+  const pendingChecks = () =>
+    t.run(async (ctx) =>
+      (await ctx.db.system.query('_scheduled_functions').take(50)).filter(
+        (f) => f.name.includes('checkWatch') && f.state.kind === 'pending',
+      ),
+    )
+  expect(await pendingChecks()).toHaveLength(2)
 
   vi.advanceTimersByTime(24 * 60 * 60_000)
   delete prices['gid://shopify/ProductVariant/1']
-  await t.action(internal.api.shopping.checkPrices, {})
+  for (const id of watchIds) {
+    await t.action(internal.api.shopping.checkWatch, { userId: ada, id })
+  }
   expect(await status()).toEqual(['gone', 'dropped'])
   const { page } = await t
     .withIdentity({ subject: ada })

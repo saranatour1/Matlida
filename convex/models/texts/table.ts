@@ -34,12 +34,6 @@ export const phoneLinksTable = defineTable(
   .index('by_code', ['code'])
   .index('by_spaceId', ['spaceId'])
 
-/** Until when the fast Telegram check keeps running, and its next scheduled run. One row, kept fresh while a chat is active. */
-export const telegramPollsTable = defineTable({
-  until: v.number(),
-  scheduled: v.optional(v.id('_scheduled_functions')),
-})
-
 /** What you texted the lead from a linked chat, for `find_texts`. Link codes aren't kept. */
 export const receivedTextsTable = defineTable({
   userId: v.id('users'),

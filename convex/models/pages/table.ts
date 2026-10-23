@@ -37,6 +37,6 @@ export const pagesTable = defineTable({
   refreshedAt: v.optional(v.number()),
   /** When it's next due a refresh. Unset when it isn't kept up to date. */
   nextRefreshAt: v.optional(v.number()),
-})
-  .index('by_project', ['projectId'])
-  .index('by_nextRefreshAt', ['nextRefreshAt'])
+  /** The next refresh, scheduled for `nextRefreshAt`. */
+  job: v.optional(v.id('_scheduled_functions')),
+}).index('by_project', ['projectId'])

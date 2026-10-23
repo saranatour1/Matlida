@@ -21,7 +21,6 @@ import {
   phoneLinksTable,
   photonMessagesTable,
   receivedTextsTable,
-  telegramPollsTable,
 } from './models/texts/table'
 import { usageTable } from './models/usage/table'
 import { userActivityTable, usersTable } from './models/users/table'
@@ -38,7 +37,6 @@ export default defineSchema({
   phoneLinks: phoneLinksTable,
   photonMessages: photonMessagesTable,
   receivedTexts: receivedTextsTable,
-  telegramPolls: telegramPollsTable,
   mailboxes: mailboxesTable,
   emails: emailsTable,
   emailPolls: emailPollsTable,

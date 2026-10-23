@@ -8,14 +8,13 @@ import {
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
-import { listTexts, photonKeys, sendText } from '../../lib/photon'
+import { photonKeys, sendText } from '../../lib/photon'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/queries'
 import { budgetMessage } from '../../lib/budget'
 import { ensureMainThread } from '../threads/functions'
 import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
-import { iso } from '../../lib/time'
 import { spectrum } from './spectrum'
 import { getLinks } from './queries'
 import type { ActionCtx, Doc, MutationCtx } from '../../lib/ctx'
@@ -269,24 +268,6 @@ const received = internalMutation({
       .unique()
     if (seen) return false
     await ctx.db.insert('photonMessages', { messageId })
-    // A chat is active: check every few seconds for a while, starting the loop unless one is running.
-    const until = Date.now() + FAST_FOR_MS
-    const poll = await ctx.db.query('telegramPolls').first()
-    const next =
-      poll?.scheduled &&
-      (await ctx.db.system.get('_scheduled_functions', poll.scheduled))
-    const scheduled =
-      poll?.scheduled && next?.state.kind === 'pending'
-        ? poll.scheduled
-        : await ctx.scheduler.runAfter(FAST_POLL_MS, internal.api.texts.poll, {
-            fast: true,
-          })
-    // Every message reads this one row; writing it only when it moves keeps a
-    // burst of messages from conflicting with each other and with `nextPoll`.
-    if (!poll) await ctx.db.insert('telegramPolls', { until, scheduled })
-    else if (scheduled !== poll.scheduled || until - poll.until > 15_000) {
-      await ctx.db.patch('telegramPolls', poll._id, { until, scheduled })
-    }
     // The limit is taken here, one message at a time, not in the replies that
     // run side by side, so two quick messages don't conflict on the same bucket.
     const admitted = await admitText(
@@ -340,87 +321,6 @@ const replyOnPhoton = internalAction({
       text: reply,
       key: `reply:${messageId}`,
     })
-    return null
-  },
-})
-
-/** How far back each Telegram check looks. Photon's list is eventually consistent, and `received` skips repeats. */
-const TELEGRAM_LOOKBACK_MS = 3 * 60_000
-
-/** While a Telegram chat is active, the check runs this often, for this long after the last message. */
-const FAST_POLL_MS = 3_000
-const FAST_FOR_MS = 2 * 60_000
-
-/** Until when the fast Telegram check should keep going, or 0. */
-/** Which of `ids` haven't been received yet, so a check only records what's new. */
-const unseen = internalQuery({
-  args: { ids: v.array(v.string()) },
-  returns: v.array(v.string()),
-  handler: async (ctx, { ids }) => {
-    const fresh: Array<string> = []
-    for (const id of ids) {
-      const seen = await ctx.db
-        .query('photonMessages')
-        .withIndex('by_messageId', (q) => q.eq('messageId', id))
-        .first()
-      if (!seen) fresh.push(id)
-    }
-    return fresh
-  },
-})
-
-/** Every 3 seconds right after a message, then every 10 until the window ends. */
-const SLOW_POLL_MS = 10_000
-const SLOW_AFTER_MS = 30_000
-
-/** The fast check's next run, while its window lasts: soon after a message, slower later. */
-const nextPoll = internalMutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    const poll = await ctx.db.query('telegramPolls').first()
-    const left = (poll?.until ?? 0) - Date.now()
-    if (!poll || left <= 0) return null
-    const delay =
-      left > FAST_FOR_MS - SLOW_AFTER_MS ? FAST_POLL_MS : SLOW_POLL_MS
-    const scheduled = await ctx.scheduler.runAfter(
-      delay,
-      internal.api.texts.poll,
-      { fast: true },
-    )
-    await ctx.db.patch('telegramPolls', poll._id, { scheduled })
-    return null
-  },
-})
-
-/**
- * Checks Photon for Telegram texts: every minute from `crons.ts`, and every
- * few seconds (`fast`) while a chat is active, since Photon's webhook doesn't
- * deliver them. Each goes through `received`, which answers a message once
- * however it arrived.
- */
-const poll = internalAction({
-  args: { fast: v.optional(v.boolean()) },
-  returns: v.null(),
-  handler: async (ctx, { fast }) => {
-    const keys = photonKeys(env)
-    if (!keys) return null
-    const since = iso(Date.now() - TELEGRAM_LOOKBACK_MS)
-    const messages = await listTexts(keys, 'telegram', since)
-    const fresh: Array<string> = await ctx.runQuery(internal.api.texts.unseen, {
-      ids: messages.map((m) => m.id),
-    })
-    for (const message of messages) {
-      if (!fresh.includes(message.id)) continue
-      await ctx.runMutation(internal.api.texts.received, {
-        messageId: message.id,
-        spaceId: message.space.id,
-        platform: 'telegram',
-        agentId: message.receivedBy.id,
-        text: message.content.text,
-      })
-    }
-    if (fast) await ctx.runMutation(internal.api.texts.nextPoll, {})
     return null
   },
 })
@@ -551,7 +451,4 @@ export const textsApi = {
   search,
   received,
   replyOnPhoton,
-  unseen,
-  nextPoll,
-  poll,
 }

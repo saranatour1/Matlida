@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { briefingMarkdown, dueDay, parseStories } from '../../lib/news'
+import { briefingMarkdown, nextDaily, parseStories } from '../../lib/news'
 
 test('stories come from the JSON in the answer, and bad ones are dropped', () => {
   const text = `Here you go:
@@ -29,14 +29,15 @@ Sources above.`
   expect(parseStories('[not json]', 3)).toEqual([])
 })
 
-test("a daily briefing is due at its hour in the user's zone, once a day", () => {
-  // 05:00 UTC is 9am in Dubai.
+test("the next daily briefing is at its hour in the user's zone", () => {
+  // 05:10 UTC is 9:10am in Dubai: 9am has passed, so tomorrow's.
   const at = Date.parse('2026-10-21T05:10:00Z')
-  const dubai = { dailyHour: 9, timeZone: 'Asia/Dubai' }
-  expect(dueDay(dubai, at)).toBe('2026-10-21')
-  expect(dueDay({ ...dubai, lastSentDay: '2026-10-21' }, at)).toBeNull()
-  expect(dueDay({ ...dubai, dailyHour: 8 }, at)).toBeNull()
-  expect(dueDay({ timeZone: 'Asia/Dubai' }, at)).toBeNull()
+  expect(nextDaily(9, 'Asia/Dubai', at)).toBe(
+    Date.parse('2026-10-22T05:00:00Z'),
+  )
+  expect(nextDaily(10, 'Asia/Dubai', at)).toBe(
+    Date.parse('2026-10-21T06:00:00Z'),
+  )
 })
 
 test('the daily briefing lists each topic with linked headlines', () => {

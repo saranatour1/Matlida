@@ -75,28 +75,39 @@ test('you choose what you follow, in your own workspace only', async () => {
   ).rejects.toThrow('Pick at least one topic.')
 })
 
-test("the daily briefing posts in the lead's chat at your hour, once a day", async () => {
+test('the daily briefing posts at your hour, schedules the next, and stops when you turn it off', async () => {
   const { t, asAda, projectId } = await setup()
-  // 05:00 UTC is 9am in Dubai.
-  vi.useFakeTimers({ now: Date.parse('2026-10-21T05:10:00Z') })
-  await asAda.mutation(api.api.news.saveSettings, {
-    projectId,
-    topics: ['World'],
-    regions: [],
-    perTopic: 2,
-    dailyHour: 9,
-    timeZone: 'Asia/Dubai',
-  })
-  vi.useRealTimers()
+  // 05:10 UTC is 9:10am in Dubai.
   vi.useFakeTimers({
     now: Date.parse('2026-10-21T05:10:00Z'),
     toFake: ['Date'],
   })
-  await t.action(internal.api.news.sendDaily, {})
-  await t.action(internal.api.news.sendDaily, {})
+  const save = (dailyHour?: number) =>
+    asAda.mutation(api.api.news.saveSettings, {
+      projectId,
+      topics: ['World'],
+      regions: [],
+      perTopic: 2,
+      dailyHour,
+      timeZone: 'Asia/Dubai',
+    })
+  const settings = async () => {
+    const found = await asAda.query(api.api.news.settings, {})
+    if (!found) throw new Error('No settings saved.')
+    return found
+  }
+  /** When the pending briefing goes out, or null when none is scheduled. */
+  const scheduledFor = async () => {
+    const { job } = await settings()
+    const found = job && (await t.run((ctx) => ctx.db.system.get('_scheduled_functions', job)))
+    return found && found.state.kind === 'pending' ? found.scheduledTime : null
+  }
+  await save(9)
+  // 9am already passed in Dubai today, so the first one is tomorrow's.
+  expect(await scheduledFor()).toBe(Date.parse('2026-10-22T05:00:00Z'))
 
+  await t.action(internal.api.news.sendDaily, { id: (await settings())._id })
   const threadId = await asAda.query(api.api.threads.main, { projectId })
-  expect(threadId).toBeTruthy()
   const { page } = await asAda.query(api.api.chat.listMessages, {
     threadId: threadId!,
     paginationOpts: { numItems: 10, cursor: null },
@@ -104,7 +115,17 @@ test("the daily briefing posts in the lead's chat at your hour, once a day", asy
   expect(page.map((m) => m.text)).toEqual([
     '**Your news for today**\n\n**World**\n- [Ceasefire holds](https://www.reuters.com/a): Talks resume.',
   ])
-  expect((await asAda.query(api.api.news.settings, {}))?.lastSentDay).toBe(
-    '2026-10-21',
+  expect((await settings()).lastSentDay).toBe('2026-10-21')
+  // One briefing is waiting for tomorrow, never two.
+  const pending = await t.run(async (ctx) =>
+    (await ctx.db.system.query('_scheduled_functions').take(50)).filter(
+      (f) => f.name.includes('sendDaily') && f.state.kind === 'pending',
+    ),
   )
+  expect(pending).toHaveLength(1)
+
+  // "Only when I ask" cancels it.
+  await save(undefined)
+  expect(await scheduledFor()).toBeNull()
+  vi.useRealTimers()
 })

@@ -11,7 +11,4 @@ export const {
   search,
   received,
   replyOnPhoton,
-  unseen,
-  nextPoll,
-  poll,
 } = textsApi

@@ -134,6 +134,9 @@ export const postMessage = async (
   }
 }
 
+/** How long after you last chatted an assistant may check in. */
+const CHECK_IN_AFTER_MS = 3 * 60 * 60_000
+
 /**
  * Saves your time zone (when it changed) and the assistant you last messaged
  * (on `userActivity`, at most every 10 minutes), so most messages write nothing.
@@ -152,14 +155,39 @@ const noteChat = async (
     .query('userActivity')
     .withIndex('by_user', (q) => q.eq('userId', userId))
     .unique()
-  if (!last) {
-    await ctx.db.insert('userActivity', { userId, projectId, botId, at: now })
-  } else if (
+  if (
+    !last ||
     last.projectId !== projectId ||
     last.botId !== botId ||
     now - last.at > 10 * 60_000
   ) {
-    await ctx.db.patch('userActivity', last._id, { projectId, botId, at: now })
+    // One check-in, a while after you last chatted: no job sweeps everyone.
+    const pending =
+      last?.checkInJob && (await ctx.db.system.get("_scheduled_functions", last.checkInJob))
+    if (pending && pending.state.kind === 'pending') {
+      await ctx.scheduler.cancel(pending._id)
+    }
+    const checkInJob = await ctx.scheduler.runAfter(
+      CHECK_IN_AFTER_MS,
+      internal.api.checkIns.run,
+      { userId },
+    )
+    if (!last) {
+      await ctx.db.insert('userActivity', {
+        userId,
+        projectId,
+        botId,
+        at: now,
+        checkInJob,
+      })
+    } else {
+      await ctx.db.patch('userActivity', last._id, {
+        projectId,
+        botId,
+        at: now,
+        checkInJob,
+      })
+    }
   }
   if (!timeZone) return
   const user = await ctx.db.get('users', userId)

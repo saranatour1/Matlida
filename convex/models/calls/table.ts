@@ -62,7 +62,10 @@ export const callsTable = defineTable({
       hangUp: v.optional(v.boolean()),
     }),
   ),
-}).index('by_project_and_bot', ['projectId', 'botId'])
+})
+  .index('by_project_and_bot', ['projectId', 'botId'])
+  // So the daily file sweep never deletes a call's recording.
+  .index('by_recording', ['phone.recording'])
 
 /** One thing said on a call, in order. */
 export const callLinesTable = defineTable({
