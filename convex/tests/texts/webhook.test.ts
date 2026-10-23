@@ -6,6 +6,7 @@ import { api, internal } from '../../_generated/api'
 import { signWebhook } from '../../lib/webhooks'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import type * as Ai from 'ai'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
 vi.mock('../../lib/ai', async () => {
@@ -14,8 +15,19 @@ vi.mock('../../lib/ai', async () => {
     languageModel: mockModel({
       content: [{ type: 'text', text: 'Hi from Matilda.' }],
     }),
+    transcriptionModel: {},
   }
 })
+
+const transcribe = vi.hoisted(() =>
+  vi.fn(() =>
+    Promise.resolve({ text: 'Buy milk tomorrow', providerMetadata: {} }),
+  ),
+)
+vi.mock('ai', async (original) => ({
+  ...(await original<typeof Ai>()),
+  transcribe,
+}))
 
 const SECRET = `whsec_${btoa('photon-test-secret')}`
 
@@ -29,6 +41,7 @@ const sent: Array<{
 
 beforeEach(() => {
   vi.useFakeTimers()
+  transcribe.mockClear()
   sent.length = 0
   vi.stubEnv('PHOTON_PROJECT_ID', 'pho_prj_test')
   vi.stubEnv('PHOTON_API_KEY', 'pho_sk_test')
@@ -36,6 +49,12 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
+      if (url.includes('/attachments/')) {
+        expect(url).toBe(
+          'https://api.photon.codes/v1/projects/pho_prj_test/attachments/att-1/content',
+        )
+        return Promise.resolve(new Response(new Uint8Array([1, 2, 3])))
+      }
       expect(init?.method).toBe('POST')
       expect(url).toBe(
         'https://api.photon.codes/v1/projects/pho_prj_test/messages',
@@ -78,7 +97,11 @@ const setup = async () => {
   const deliver = async (
     id: string,
     text: string,
-    { secret = SECRET, at = Date.now() }: { secret?: string; at?: number } = {},
+    {
+      secret = SECRET,
+      at = Date.now(),
+      content = { type: 'text', text },
+    }: { secret?: string; at?: number; content?: unknown } = {},
   ) => {
     const body = new TextEncoder().encode(
       JSON.stringify({
@@ -93,7 +116,7 @@ const setup = async () => {
             id,
             platform: 'telegram',
             status: 'received',
-            content: { type: 'text', text },
+            content,
             sentBy: { id: 'user-ada', kind: 'human' },
             receivedBy: { id: 'agent-bot', kind: 'agent' },
             space: { id: 'tg-chat-1', kind: 'direct' },
@@ -218,4 +241,25 @@ test('a burst of texts is limited as it is recorded, so parallel replies never r
         "You're sending a lot of messages. Give me a few minutes and try again.",
     ),
   ).toHaveLength(1)
+})
+
+test("a linked chat's voice note is heard and answered; an unlinked chat's never is", async () => {
+  const { asAda, projectId, deliver } = await setup()
+  const voice = { content: { type: 'voice', attachmentId: 'att-1' } }
+  await deliver('v0', '', voice)
+  expect(transcribe).not.toHaveBeenCalled()
+
+  const code = await asAda.mutation(api.api.texts.startLink, { projectId })
+  await deliver('m0', `link ${code}`)
+  sent.length = 0
+  await deliver('v1', '', voice)
+  expect(transcribe).toHaveBeenCalledOnce()
+  expect(sent).toEqual([
+    {
+      spaceId: 'tg-chat-1',
+      senderId: 'agent-bot',
+      text: 'Hi from Matilda.',
+      key: 'reply:v1',
+    },
+  ])
 })
