@@ -16,6 +16,8 @@ export const Route = createFileRoute('/_app/p/$projectId/')({
     new: z.boolean().optional(),
     /** A shared assistant to copy, from a template link. */
     template: z.string().optional(),
+    /** A message to start the box with, like "Email Luke at …: " from Contacts. */
+    draft: z.string().max(500).optional(),
   }),
   component: ProjectPage,
 })
@@ -59,6 +61,7 @@ function ProjectPage() {
         project={project}
         bot={bot}
         panel={panel}
+        draft={search.draft}
       />
       {(search.new || template) && (
         <NewAssistantDialog

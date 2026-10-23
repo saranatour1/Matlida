@@ -26,6 +26,8 @@
 - [x] Old attachments no longer sent with every reply (they ran replies out of memory)
 
 - [x] Stop a reply, which also unsticks a reply that died
+- [x] Contacts page: a table of people, with Email and Call that start the message in the chat
+- [ ] Setup guide in the chat: clickable steps for email, Telegram, SMS, in-app calls and phone calls
 - Plan, Jev judgments and limits: `docs/decisions/2026-10-22-calls-and-reminders.md`
 
 - [x] Assistants sidebar: Matilda first, then bots, each with its chats

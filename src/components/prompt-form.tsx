@@ -54,6 +54,7 @@ type Attaching = {
 }
 
 export function PromptForm({
+  defaultValue,
   placeholder,
   isBusy,
   onSubmit,
@@ -63,6 +64,8 @@ export function PromptForm({
   onStop,
   tools,
 }: {
+  /** What the box starts with, ready to finish and send. */
+  defaultValue?: string
   placeholder: string
   isBusy: boolean
   /** Stops the reply in progress. While one runs, it takes the send button's place. */
@@ -130,7 +133,7 @@ export function PromptForm({
       return all.filter((f) => f.key !== key)
     })
   // The box stays uncontrolled; this mirrors it so `/` can open the command list.
-  const [value, setValue] = React.useState('')
+  const [value, setValue] = React.useState(defaultValue ?? '')
   const [active, setActive] = React.useState(0)
   /** The text Esc closed the list at; typing on opens it again. */
   const [closedAt, setClosedAt] = React.useState<string>()
@@ -259,6 +262,8 @@ export function PromptForm({
         <InputGroupTextarea
           ref={textarea}
           name="prompt"
+          defaultValue={defaultValue}
+          autoFocus={Boolean(defaultValue)}
           required={files.length === 0}
           maxLength={4000}
           placeholder={placeholder}
