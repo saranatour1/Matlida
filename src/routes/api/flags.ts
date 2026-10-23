@@ -2,9 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 
 /**
- * Whether a feature flag is on for a user, for Convex: the flags live in
- * Cloudflare Flagship, which only the Worker's binding can read. Only callers
- * with `FLAGS_SECRET` get an answer, so nobody can probe it.
+ * A boolean feature flag's value for a user, for Convex: the flags live in
+ * Cloudflare Flagship, which only the Worker's binding can read. `fallback`
+ * is what to answer if Flagship can't, so the caller picks the safe side.
+ * Only callers with `FLAGS_SECRET` get an answer, so nobody can probe it.
  */
 export const Route = createFileRoute('/api/flags')({
   server: {
@@ -15,20 +16,25 @@ export const Route = createFileRoute('/api/flags')({
         if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
           return new Response('Not found', { status: 404 })
         }
-        const { flag, userId } = (await request.json()) as {
+        const { flag, userId, fallback } = (await request.json()) as {
           flag?: unknown
           userId?: unknown
+          fallback?: unknown
         }
-        // An unknown flag is simply off: Flagship answers with the fallback.
-        if (typeof flag !== 'string' || typeof userId !== 'string') {
+        // An unknown flag gets the fallback from Flagship.
+        if (
+          typeof flag !== 'string' ||
+          typeof userId !== 'string' ||
+          typeof fallback !== 'boolean'
+        ) {
           return new Response('Bad request', { status: 400 })
         }
-        const on = await env.NO_PHONE_CALLS_YET.getBooleanValue(
+        const value = await env.NO_PHONE_CALLS_YET.getBooleanValue(
           flag,
-          false,
+          fallback,
           { targetingKey: userId },
         )
-        return Response.json({ on })
+        return Response.json({ value })
       },
     },
   },
