@@ -798,3 +798,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The chat takes the start of a message from the URL (`?draft=`), which the box opens with.
 - Phone numbers in the table show their last 4 digits.
 
+### Calls answer at low effort (2026-10-23)
+
+- On prod on 2026-10-23, each in-app call reply took 5 to 10.5 s before its first words: the model reasoned at the chat's effort before saying anything. Replies on a call (`via: 'voice'`) now always run at low effort (little reasoning, at most 4 tool steps), whatever the chat is set to (`createAgent` in `lead.ts`). Typed chats keep their effort.
+
