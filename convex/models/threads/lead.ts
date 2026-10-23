@@ -261,8 +261,13 @@ export const createAgent = (
 ) => {
   const model =
     options.model ?? (bot ? bot.model : project.model) ?? MODELS.chat
+  // On a call a quick answer beats a long think: the chat's effort would
+  // leave seconds of silence before each reply.
   const effort =
-    options.effort ?? (bot ? bot.effort : project.effort) ?? 'medium'
+    options.effort ??
+    (options.via === 'voice'
+      ? 'low'
+      : ((bot ? bot.effort : project.effort) ?? 'medium'))
   const name = bot?.name ?? project.name
   return new Agent(components.agent, {
     name,

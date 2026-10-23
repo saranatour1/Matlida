@@ -798,6 +798,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - The chat takes the start of a message from the URL (`?draft=`), which the box opens with.
 - Phone numbers in the table show their last 4 digits.
 
+### Calls answer at low effort (2026-10-23)
+
+- On prod on 2026-10-23, each in-app call reply took 5 to 10.5 s before its first words: the model reasoned at the chat's effort before saying anything. Replies on a call (`via: 'voice'`) now always run at low effort (little reasoning, at most 4 tool steps), whatever the chat is set to (`createAgent` in `lead.ts`). Typed chats keep their effort.
 ### Call turns run as workflows, one at a time (2026-10-23)
 
 - An in-app call turn is now a Convex workflow (`runTurn` in `convex/models/threads/calls.ts`): `hearStep` transcribes and saves, then `replyStep` answers out loud a piece at a time. Fast voice does both in `fastStep`. No step is retried, since a turn answered again seconds later would be out of place.
