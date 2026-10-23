@@ -50,11 +50,14 @@ export function Chat({
   project,
   bot,
   panel,
+  draft,
 }: {
   project: Doc<'projects'>
   bot?: Doc<'bots'>
   /** Whether the right sidebar is open. It lives in the URL as `?panel=true`. */
   panel?: boolean
+  /** A message to start the box with. It lives in the URL as `?draft=`. */
+  draft?: string
 }) {
   const sendMessage = useMutation(api.api.chat.sendMessage)
   const redo = useMutation(api.api.chat.redo)
@@ -311,6 +314,8 @@ export function Chat({
             <VoiceBar />
           ) : (
             <PromptForm
+              key={draft}
+              defaultValue={draft}
               placeholder={`Message ${lead}…`}
               isBusy={isBusy}
               onStop={threadId ? () => void stop({ threadId }) : undefined}
