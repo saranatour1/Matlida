@@ -33,6 +33,8 @@ import type { Language } from '../../lib/models'
 const AUDIO_TTL_MS = 10 * 60_000
 /** Replies past this many characters stay in the chat but aren't read out. */
 const MAX_SPOKEN = 2000
+/** Speech that takes longer than this gives up, so a call never waits on it forever. */
+export const SPEECH_TIMEOUT_MS = 15_000
 
 /** `postMessage` for a call turn, which runs in an action. */
 const post = internalMutation({
@@ -76,6 +78,7 @@ const voice = async (
         model: speechModel,
         text: text.slice(0, MAX_SPOKEN),
         voice: spokenBy,
+        abortSignal: AbortSignal.timeout(SPEECH_TIMEOUT_MS),
       })
       return { result: spoken, cost: gatewayCost(spoken.providerMetadata) }
     },
@@ -663,12 +666,14 @@ const answer = zAuthedAction({
         text,
       },
     )
-    return {
-      ...call,
-      text,
-      callId,
-      audioUrl: await speak(ctx, ctx.userId, text, call.from),
-    }
+    // Without audio the call still opens: the line shows, and you can talk.
+    const audioUrl = await speak(ctx, ctx.userId, text, call.from).catch(
+      (error: unknown) => {
+        console.error('opening line not spoken', error)
+        return null
+      },
+    )
+    return { ...call, text, callId, audioUrl }
   },
 })
 
