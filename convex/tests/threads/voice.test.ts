@@ -1,9 +1,11 @@
 import agentTest from '@convex-dev/agent/test'
+import workflowTest from '@convex-dev/workflow/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api } from '../../_generated/api'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
+import type { FunctionArgs } from 'convex/server'
 import type * as Ai from 'ai'
 import type * as Server from 'convex/server'
 
@@ -61,9 +63,15 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+type TalkArgs = Omit<
+  FunctionArgs<typeof api.api.calls.startTurn>,
+  'liveKey'
+> & { liveKey?: string }
+
 const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
+  workflowTest.register(t)
   const [ada, bob] = await t.run(async (ctx) => [
     await ctx.db.insert('users', { name: 'Ada' }),
     await ctx.db.insert('users', { name: 'Bob' }),
@@ -74,6 +82,27 @@ const setup = async () => {
     brief: '',
     guidelines: '',
   })
+  /**
+   * One call turn, as the browser starts it, run to the end: the turn's
+   * workflow runs on real timers, so the 10-minute cleanups never fire here.
+   */
+  const talk = async (
+    as: typeof asAda,
+    { liveKey = crypto.randomUUID(), ...turn }: TalkArgs,
+  ) => {
+    const started = await as.mutation(api.api.calls.startTurn, {
+      ...turn,
+      liveKey,
+    })
+    for (let i = 0; i < 300; i++) {
+      await t.finishInProgressScheduledFunctions()
+      const call = await t.run((ctx) => ctx.db.get('calls', started.callId))
+      if (call?.turn?.key !== liveKey) break
+      if (!['hearing', 'thinking', 'speaking'].includes(call.turn.status)) break
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    return { ...started, liveKey }
+  }
   const clip = () =>
     t.run((ctx) => ctx.storage.store(new Blob(['RIFF'], { type: 'audio/wav' })))
   const messages = async (threadId: string) =>
@@ -90,21 +119,18 @@ const setup = async () => {
     projectId,
     clip,
     messages,
+    talk,
   }
 }
 
 test('a Fast voice call turn answers in pieces and saves to the chat and the call', async () => {
-  const { asAda, projectId, clip, messages } = await setup()
+  const { asAda, projectId, clip, messages, talk } = await setup()
   const liveKey = 'fast-voice-turn-1'
-  const result = await asAda.action(api.api.calls.turn, {
+  const result = await talk(asAda, {
     projectId,
     storageId: await clip(),
     liveKey,
     fast: true,
-  })
-  expect(result).toMatchObject({
-    transcript: 'What is the capital of France?',
-    reply: 'Paris it is.',
   })
   // The first piece goes out after 0.6 seconds of audio, the rest at the end.
   expect(await asAda.query(api.api.calls.live, { key: liveKey })).toMatchObject(
@@ -117,21 +143,20 @@ test('a Fast voice call turn answers in pieces and saves to the chat and the cal
       ],
     },
   )
-  expect(
-    (await messages(result.threadId ?? '')).map((m) => m.text).sort(),
-  ).toEqual(['Paris it is.', 'What is the capital of France?'])
+  expect((await messages(result.threadId)).map((m) => m.text).sort()).toEqual([
+    'Paris it is.',
+    'What is the capital of France?',
+  ])
 })
 
 test('a silent Fast voice turn gets no answer and saves nothing', async () => {
   heard.text = ''
-  const { asAda, projectId, clip, messages } = await setup()
-  const result = await asAda.action(api.api.calls.turn, {
+  const { asAda, projectId, clip, messages, talk } = await setup()
+  const result = await talk(asAda, {
     projectId,
     storageId: await clip(),
     liveKey: 'fast-voice-turn-2',
     fast: true,
   })
-  expect(result).toMatchObject({ transcript: '', reply: null })
-  const threadId = (await asAda.query(api.api.threads.main, { projectId }))!
-  expect(await messages(threadId)).toEqual([])
+  expect(await messages(result.threadId)).toEqual([])
 })

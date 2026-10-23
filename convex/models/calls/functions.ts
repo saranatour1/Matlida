@@ -10,53 +10,65 @@ import { getOwnedProject } from '../projects/queries'
 import { zoned } from '../../lib/time'
 import { callLinesTable, liveTurnsTable, phoneStatus } from './table'
 import { getOwnedCall, linesOf } from './queries'
-import type { Doc } from '../../lib/ctx'
+import type { ObjectType } from 'convex/values'
+import type { Doc, MutationCtx } from '../../lib/ctx'
 
 /** Longer lines stay whole in the chat but are cut in the call's transcript. */
 const MAX_LINE = 4000
 
+const lineArgs = {
+  callId: v.optional(v.id('calls')),
+  projectId: v.id('projects'),
+  botId: v.optional(v.id('bots')),
+  threadId: v.string(),
+  ...callLinesTable.validator.pick('who', 'text', 'ms', 'firstMs').fields,
+  /** You talked over the call's last reply before saying this. */
+  afterCutOff: v.optional(v.boolean()),
+}
+
+/** `addLine`, inside another mutation. */
+export const addCallLine = async (
+  ctx: MutationCtx,
+  {
+    callId,
+    projectId,
+    botId,
+    threadId,
+    afterCutOff,
+    ...line
+  }: ObjectType<typeof lineArgs>,
+) => {
+  let id = callId
+  if (id) {
+    const call = await ctx.db.get('calls', id)
+    if (call?.projectId !== projectId) throw new ConvexError('Call not found.')
+    if (!call.threadId) await ctx.db.patch('calls', id, { threadId })
+    if (afterCutOff) {
+      const last = await linesOf(ctx, id).order('desc').first()
+      if (last?.who === 'them') {
+        await ctx.db.patch('callLines', last._id, { cutOff: true })
+      }
+    }
+  } else {
+    id = await ctx.db.insert('calls', { projectId, botId, threadId })
+  }
+  await ctx.db.insert('callLines', {
+    ...line,
+    callId: id,
+    text: line.text.slice(0, MAX_LINE),
+  })
+  return id
+}
+
 /**
  * Saves one line of a call as soon as it's said, starting the call's record
- * with its first line. For `calls.turn` and `calls.answer`, which have checked
+ * with its first line. For call turns and `calls.answer`, which have checked
  * the project is the caller's. Returns the call's id.
  */
 const addLine = internalMutation({
-  args: {
-    callId: v.optional(v.id('calls')),
-    projectId: v.id('projects'),
-    botId: v.optional(v.id('bots')),
-    threadId: v.string(),
-    ...callLinesTable.validator.pick('who', 'text', 'ms', 'firstMs').fields,
-    /** You talked over the call's last reply before saying this. */
-    afterCutOff: v.optional(v.boolean()),
-  },
+  args: lineArgs,
   returns: v.id('calls'),
-  handler: async (
-    ctx,
-    { callId, projectId, botId, threadId, afterCutOff, ...line },
-  ) => {
-    let id = callId
-    if (id) {
-      const call = await ctx.db.get('calls', id)
-      if (call?.projectId !== projectId)
-        throw new ConvexError('Call not found.')
-      if (!call.threadId) await ctx.db.patch('calls', id, { threadId })
-      if (afterCutOff) {
-        const last = await linesOf(ctx, id).order('desc').first()
-        if (last?.who === 'them') {
-          await ctx.db.patch('callLines', last._id, { cutOff: true })
-        }
-      }
-    } else {
-      id = await ctx.db.insert('calls', { projectId, botId, threadId })
-    }
-    await ctx.db.insert('callLines', {
-      ...line,
-      callId: id,
-      text: line.text.slice(0, MAX_LINE),
-    })
-    return id
-  },
+  handler: async (ctx, line) => await addCallLine(ctx, line),
 })
 
 const end = authedMutation({
@@ -133,37 +145,50 @@ const dump = internalQuery({
   },
 })
 
-/** A live turn by its key, for `calls.turn`: starts it, then adds what was heard, a voiced piece, or done. */
-const updateLive = internalMutation({
-  args: {
-    key: v.string(),
-    userId: v.id('users'),
-    heard: v.optional(v.string()),
-    piece: v.optional(liveTurnsTable.validator.fields.pieces.element),
-    done: v.optional(v.boolean()),
-  },
-  returns: v.null(),
-  handler: async (ctx, { key, userId, heard, piece, done }) => {
-    const turn = await ctx.db
-      .query('liveTurns')
-      .withIndex('by_key', (q) => q.eq('key', key))
-      .unique()
-    if (!turn) {
-      await ctx.db.insert('liveTurns', {
-        key,
-        userId,
-        heard,
-        pieces: piece ? [piece] : [],
-        done: done ?? false,
-      })
-      return null
-    }
-    if (turn.userId !== userId) throw new ConvexError('Turn not found.')
-    await ctx.db.patch('liveTurns', turn._id, {
-      ...(heard === undefined ? {} : { heard }),
-      ...(piece ? { pieces: [...turn.pieces, piece] } : {}),
-      ...(done === undefined ? {} : { done }),
+const liveArgs = {
+  key: v.string(),
+  userId: v.id('users'),
+  heard: v.optional(v.string()),
+  piece: v.optional(liveTurnsTable.validator.fields.pieces.element),
+  done: v.optional(v.boolean()),
+  error: v.optional(v.string()),
+}
+
+/** `updateLive`, inside another mutation. */
+export const updateLiveTurn = async (
+  ctx: MutationCtx,
+  { key, userId, heard, piece, done, error }: ObjectType<typeof liveArgs>,
+) => {
+  const turn = await ctx.db
+    .query('liveTurns')
+    .withIndex('by_key', (q) => q.eq('key', key))
+    .unique()
+  if (!turn) {
+    await ctx.db.insert('liveTurns', {
+      key,
+      userId,
+      heard,
+      pieces: piece ? [piece] : [],
+      done: done ?? false,
+      error,
     })
+    return
+  }
+  if (turn.userId !== userId) throw new ConvexError('Turn not found.')
+  await ctx.db.patch('liveTurns', turn._id, {
+    ...(heard === undefined ? {} : { heard }),
+    ...(piece ? { pieces: [...turn.pieces, piece] } : {}),
+    ...(done === undefined ? {} : { done }),
+    ...(error === undefined ? {} : { error }),
+  })
+}
+
+/** A live turn by its key: starts it, then adds what was heard, a voiced piece, done, or why it failed. */
+const updateLive = internalMutation({
+  args: liveArgs,
+  returns: v.null(),
+  handler: async (ctx, update) => {
+    await updateLiveTurn(ctx, update)
     return null
   },
 })
