@@ -5,6 +5,7 @@ import { api } from '@convex/_generated/api'
 import type { ReactNode } from 'react'
 import type { Doc } from '@convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { CopyButton } from '~/components/copy-button'
 import { EmailAddress } from '~/components/email-address'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
@@ -80,9 +81,15 @@ export function SetupPart({
       {show('phone') && (
         <Section title="Phone calls" done={false} setup={status('phone')}>
           <p>
-            Ask in the chat: &ldquo;call +14155550123 and tell them dinner is at
-            8&rdquo;, with the number in the same message. Or open Contacts and
-            press Call. It works for accounts the phone-calls flag allows.
+            1. Phone calls cost money, so they&rsquo;re off until your account
+            is added to the <code>phone-calls</code> feature flag in Cloudflare
+            Flagship. Ask whoever runs this app to add your user id:
+          </p>
+          <UserId />
+          <p>
+            2. Then ask in the chat: &ldquo;call +14155550123 and tell them
+            dinner is at 8&rdquo;, with the number in the same message. Or open
+            Contacts and press Call.
           </p>
         </Section>
       )}
@@ -127,6 +134,18 @@ function Section({
         )}
       </div>
     </section>
+  )
+}
+
+/** Your user id, which the phone-calls flag's rule lists, to copy and send on. */
+function UserId() {
+  const user = useQuery(api.api.users.current)
+  if (!user) return null
+  return (
+    <p className="flex items-center gap-1">
+      <code className="text-foreground">{user._id}</code>
+      <CopyButton compact text={user._id} label="Copy your user id" />
+    </p>
   )
 }
 

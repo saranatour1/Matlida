@@ -789,6 +789,6 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
   - Email: claim your address right in the card, then email from your sign-in address.
   - Telegram, and texts (iMessage, SMS, WhatsApp): a "Get a code" button, then the `link CODE` to send.
   - Calls in the app: where the Talk button is, and the microphone prompt.
-  - Phone calls: how to ask, and Contacts → Call.
+  - Phone calls: that their account has to be added to the `phone-calls` flag in Cloudflare Flagship first, with their user id to copy and send on, then how to ask, and Contacts → Call. Matilda's refusal says the same and points to `/setup phone`.
 - The card reads the live state (channel status, your address, pending codes), so it updates as you go, and says what the deployment still needs when a channel isn't set up.
 

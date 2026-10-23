@@ -622,7 +622,7 @@ export const assistantTools = (project: Doc<'projects'>, from: string) => {
         if (!ctx.threadId) throw new Error('Calls need a chat.')
         if (!(await flagOn(FLAGS.phoneCalls, project.ownerId))) {
           throw new Error(
-            "Calling numbers is turned off for this account right now. Tell the user it's switched on with the phone-calls flag in Cloudflare Flagship, and try this tool again when they ask.",
+            'Calling numbers is turned off for this account right now. Tell the user phone calls cost money, so whoever runs the app has to add their account to the phone-calls feature flag in Cloudflare Flagship; /setup phone shows the user id to add. Try this tool again when they ask.',
           )
         }
         // Their last few messages, so "call +1…" then "tell her hello" works.
