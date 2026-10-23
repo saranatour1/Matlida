@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    ".nitro/",
+    ".output/",
+    ".tanstack/",
+    "**/api",
+    "**/build",
+    "**/public",
+    "convex/_generated/",
+    "example/convex/_generated/",
+    "convex/README.md",
+    "pnpm-lock.yaml",
+    "routeTree.gen.ts",
+    ".agents/skills/",
+    ".claude/skills/"
+  ]
+}

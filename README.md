@@ -99,7 +99,7 @@ The full list, with what each one does, is in `convex/lib/commands.ts`. A test c
 | `pnpm preview`                                                     | Serve the production build locally, in Cloudflare's runtime                                                 |
 | `pnpm run deploy`                                                  | Build, then deploy the `matlida` Worker to Cloudflare (`pnpm deploy` is a different, built-in pnpm command) |
 | `pnpm lint`                                                        | Type check and ESLint                                                                                       |
-| `pnpm format`                                                      | Prettier                                                                                                    |
+| `pnpm format`                                                      | oxfmt                                                                                                       |
 | `scripts/pr-size.sh origin/master`                                 | Lines a PR changes, against the 2000 limit                                                                  |
 | `pnpm exec convex dev --once --typecheck disable`                  | Push functions and schema to the dev deployment once                                                        |
 | `pnpm exec convex insights`                                        | Write conflicts and limits over the last 72 hours (`--prod` for production)                                 |
