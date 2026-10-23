@@ -95,27 +95,6 @@ export const listEmails = async (keys: PhotonKeys, since: string) => {
   return emails
 }
 
-const zReceivedText = z.object({
-  id: z.string(),
-  content: z.object({ type: z.literal('text'), text: z.string() }),
-  receivedBy: z.object({ id: z.string() }),
-  space: z.object({ id: z.string() }),
-})
-
-/** Text messages received on `platform` (a Telegram chat, for one) since `since`, oldest first. */
-export const listTexts = async (
-  keys: PhotonKeys,
-  platform: string,
-  since: string,
-) => {
-  const texts: Array<z.infer<typeof zReceivedText>> = []
-  for (const item of await listReceived(keys, platform, since)) {
-    const text = zReceivedText.safeParse(item)
-    if (text.success) texts.push(text.data)
-  }
-  return texts
-}
-
 /** The email's plain-text body: its text, or the plain part of a multipart email. */
 export const plainText = (content: PhotonEmail['content']) => {
   if (content.type === 'text') return content.text ?? ''

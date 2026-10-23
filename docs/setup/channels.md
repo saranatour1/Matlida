@@ -57,20 +57,20 @@ read, and drafts are capped at 5 at once, then 20 an hour.
 
 ## Telegram
 
-1. Connect your Telegram bot to the project in the Photon beta dashboard
-   (create it with @BotFather and give Photon its token). The app never sees
-   the token.
-2. Point the project's webhook at
-   `https://<deployment>.convex.site/photon/webhook`, and set its signing
-   secret (`whsec_…`) as `PHOTON_WEBHOOK_SECRET`. `PHOTON_PROJECT_ID` and
-   `PHOTON_API_KEY` are the same as for email.
-3. In the app, get a code on Messaging and send `link <code>` to the bot.
+Telegram goes through the Spectrum SDK, like iMessage and WhatsApp, so each
+message is pushed to `/spectrum/webhook` the moment it's sent. Nothing polls.
+
+1. Set up the Spectrum keys and webhook as in the next section.
+2. Create the bot with @BotFather and set its token as `TELEGRAM_BOT_TOKEN`.
+3. Point the bot at Photon, once:
+   `pnpm exec convex run api/sender:connectTelegram` (add `--prod` for
+   production). Run it again only if the token changes.
+4. In the app, get a code on Messaging and send `link <code>` to the bot.
    Then message it. Everything goes to Matilda.
 
-Replies go out through Photon's API. Photon hasn't delivered events to the
-webhook yet, so the app also checks Photon for new Telegram messages every
-minute, and every 3 seconds for 2 minutes after any message: the first reply
-after a quiet spell can take up to a minute.
+Chats linked before this went through Photon's platform API, which never
+delivered Telegram events to `/photon/webhook`. Send a new link code from
+those chats.
 
 ## Texting: iMessage and SMS
 

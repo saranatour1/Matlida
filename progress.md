@@ -824,3 +824,4 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **The file sweep** found that it deleted phone call recordings, since they aren't attached to a command. It now skips anything a call points to (`calls.by_recording`), and checks a day of uploads at a time.
 - Nothing to migrate: dev and prod had no watches, daily briefings or kept-updated pages.
 - Tested: `pnpm check` and all 249 tests, with new ones for the scheduled briefing (and cancelling it), page refreshes and per-watch checks.
+- **Telegram** no longer polls every minute either. It goes through the Spectrum SDK's push webhook like iMessage and WhatsApp: set `TELEGRAM_BOT_TOKEN` and run `api/sender:connectTelegram` once. The poll, its fast loop and the `telegramPolls` table are gone. That leaves one cron, the daily file sweep.
