@@ -11,4 +11,5 @@ export const {
   search,
   received,
   replyOnPhoton,
+  linkedOwner,
 } = textsApi
