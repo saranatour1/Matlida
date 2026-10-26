@@ -53,18 +53,20 @@ Every model call goes through the Convex AI gateway. Matilda holds no provider k
 
 ### Models by job
 
-| Job             | Model id                        | What it's for                                                                                               | Set up in                             |
-| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| `chat`          | `anthropic/claude-sonnet-5`     | Every reply, with all the tools. The default for each assistant and chat.                                   | `convex/lib/ai.ts:languageModel`      |
-| `summary`       | `google/gemini-2.5-flash`       | `/tldr` and `quick_summary`.                                                                                | `convex/lib/ai.ts:summaryModel`       |
-| `decide`        | `~typesafe/jev-latest`          | Jev, through the gateway's decisions endpoint (alpha): `/decide`, follow-ups, check-ins, hang-ups, grading. | `convex/lib/ai.ts:decisionModel`      |
-| `search`        | `perplexity/sonar`              | Web search in replies, and the news briefing.                                                               | `convex/lib/ai.ts:searchModel`        |
-| `research`      | `perplexity/sonar-pro`          | `/research` and `/report`.                                                                                  | `convex/lib/ai.ts:researchModel`      |
-| `transcription` | `openai/whisper-large-v3-turbo` | What you say on calls, in voice notes and with the mic button.                                              | `convex/lib/ai.ts:transcriptionModel` |
-| `speech`        | `hexgrad/kokoro-82m`            | Reading replies out on calls.                                                                               | `convex/lib/ai.ts:speechModel`        |
-| `audioChat`     | `openai/gpt-audio-mini`         | Fast voice: hears and answers in one request, with no tools.                                                | `convex/lib/audio.ts:audioChat`       |
-| `image`         | `openai/gpt-image-1`            | `/image`.                                                                                                   | `convex/lib/ai.ts:imageModel`         |
-| `video`         | `google/veo-3.1-fast`           | `/video`.                                                                                                   | `convex/lib/ai.ts:videoModel`         |
+| Job             | Model id                        | What it's for                                                                                               | Set up in                                          |
+| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `chat`          | `anthropic/claude-sonnet-5`     | Every reply, with all the tools. The default for each assistant and chat.                                   | `convex/lib/ai.ts:languageModel`                   |
+| `summary`       | `google/gemini-2.5-flash`       | `/tldr` and `quick_summary`.                                                                                | `convex/lib/ai.ts:summaryModel`                    |
+| `decide`        | `~typesafe/jev-latest`          | Jev, through the gateway's decisions endpoint (alpha): `/decide`, follow-ups, check-ins, grading.           | `convex/lib/ai.ts:decisionModel`                   |
+| `callDecide`    | `openai/gpt-6-luna-decisions`   | OpenAI's Decisions model, on calls: whether a quick answer will do, and whether to hang up after the reply. | `convex/lib/ai.ts:callDecisionModel`               |
+| `quickVoice`    | `anthropic/claude-haiku-5.5`    | Quick answers on calls, with no tools, for turns that need none.                                            | `convex/models/threads/chat.ts:runReply` (`quick`) |
+| `search`        | `perplexity/sonar`              | Web search in replies, and the news briefing.                                                               | `convex/lib/ai.ts:searchModel`                     |
+| `research`      | `perplexity/sonar-pro`          | `/research` and `/report`.                                                                                  | `convex/lib/ai.ts:researchModel`                   |
+| `transcription` | `openai/whisper-large-v3-turbo` | What you say on calls, in voice notes and with the mic button.                                              | `convex/lib/ai.ts:transcriptionModel`              |
+| `speech`        | `hexgrad/kokoro-82m`            | Reading replies out on calls.                                                                               | `convex/lib/ai.ts:speechModel`                     |
+| `audioChat`     | `openai/gpt-audio-mini`         | Fast voice: hears and answers in one request, with no tools.                                                | `convex/lib/audio.ts:audioChat`                    |
+| `image`         | `openai/gpt-image-1`            | `/image`.                                                                                                   | `convex/lib/ai.ts:imageModel`                      |
+| `video`         | `google/veo-3.1-fast`           | `/video`.                                                                                                   | `convex/lib/ai.ts:videoModel`                      |
 
 ### Chat models in the model menu
 

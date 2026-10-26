@@ -57,8 +57,10 @@ export const JEV_THRESHOLDS = {
   checkInCall: 0.7,
   /** At least this for a study answer to count as right. */
   correctAnswer: 0.5,
-  /** At least this sure a phone call is over before hanging up. */
+  /** At least this sure a call is over before hanging up. */
   hangUp: 0.7,
+  /** At least this sure a call turn needs no tools before the quick model answers it. */
+  quickReply: 0.8,
 }
 
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
@@ -430,14 +432,16 @@ export const shouldCallNow = async (
 export const OPEN_CALL =
   'The user called their own assistant to talk. There is no set purpose: the call is over only when the user says they are done or says goodbye.'
 
-/** Whether a reply ends the call by itself, the way every call's instructions ask it to. */
-export const saidGoodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
+/** The word a call's instructions end it with, and the one `saidGoodbye` listens for. */
+export const GOODBYE_WORD = 'Goodbye'
+
+export const saidGoodbye = (text: string) =>
+  new RegExp(`${GOODBYE_WORD}[.!]*\\s*$`, 'i').test(text)
 
 /**
  * Whether a call should end once the assistant has answered the last thing
- * said. Asked as soon as it's heard, so the answer is in before the reply is.
- * In `conversation`, `user` is the person on the other end. The call hangs up
- * at `JEV_THRESHOLDS.hangUp`.
+ * said. In `conversation`, `user` is the person on the other end. The call
+ * hangs up at `JEV_THRESHOLDS.hangUp`.
  */
 export const callIsOver = async (
   model: Experimental_DecisionModel,
@@ -457,6 +461,33 @@ export const callIsOver = async (
     abortSignal,
   })
   return { over: answers.over.probability, cost: gatewayCost(providerMetadata) }
+}
+
+/**
+ * Whether the assistant can answer the last thing said on a call right away,
+ * with no tools. A quick answer at `JEV_THRESHOLDS.quickReply`.
+ */
+export const needsNoTools = async (
+  model: Experimental_DecisionModel,
+  { conversation }: { conversation: Array<Turn> },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state: { conversation },
+    questions: {
+      quick: {
+        type: 'boolean',
+        instructions:
+          'The user is talking to their assistant on a call. Can the assistant answer the last thing the user said right away, from general knowledge and the conversation alone? Yes for small talk, greetings, thanks, goodbyes, opinions, jokes, or questions about what was already said. No when answering needs a lookup (the web, news, email, texts, contacts, reminders, plans, pages, prices), an action (set a reminder, save, send, call, buy, make something), or facts about the user that are not in the conversation.',
+      },
+    },
+    abortSignal,
+  })
+  return {
+    quick: answers.quick.probability,
+    cost: gatewayCost(providerMetadata),
+  }
 }
 
 /** Whether a short answer to a study question is right, given the expected one. Right at `JEV_THRESHOLDS.correctAnswer`. */

@@ -11,6 +11,10 @@ export const MODELS = {
   audioChat: 'openai/gpt-audio-mini',
   /** TypeSafe's Jev, for `decide`: typed picks with probabilities. */
   decide: '~typesafe/jev-latest',
+  /** OpenAI's Decisions model, for calls: whether a turn needs the assistant's tools, and whether to hang up. */
+  callDecide: 'openai/gpt-6-luna-decisions',
+  /** Answers what needs no tools on a call, so the reply starts sooner. */
+  quickVoice: 'anthropic/claude-haiku-5.5',
   image: 'openai/gpt-image-1',
   video: 'google/veo-3.1-fast',
 } as const
@@ -42,6 +46,20 @@ export const JOBS = {
     model: 'Jev',
     maker: 'TypeSafe',
     note: '/decide: picks between options, with the odds for each. Also checks what from earlier still needs a follow-up, in chats, texts and calls.',
+  },
+  callDecide: {
+    group: 'Voice',
+    name: 'Call decisions',
+    model: 'GPT-6 Luna Decisions',
+    maker: 'OpenAI',
+    note: 'On calls, as soon as you’ve spoken: whether a quick answer will do or the assistant needs its tools, and whether to hang up after the reply.',
+  },
+  quickVoice: {
+    group: 'Voice',
+    name: 'Quick answers on calls',
+    model: 'Claude Haiku 5.5',
+    maker: 'Anthropic',
+    note: 'Small talk and anything answered from the conversation, with no tools, so the reply starts sooner. The rest goes to the assistant’s own model.',
   },
   search: {
     group: 'Looking things up',

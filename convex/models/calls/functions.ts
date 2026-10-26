@@ -3,9 +3,9 @@ import { ConvexError, v } from 'convex/values'
 import { components, internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import schema from '../../schema'
-import { decisionModel } from '../../lib/ai'
+import { callDecisionModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
-import { callIsOver } from '../../lib/decide'
+import { callIsOver, needsNoTools } from '../../lib/decide'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { MODELS } from '../../lib/models'
 import { maskNumber } from '../../lib/phone'
@@ -16,6 +16,7 @@ import { callLinesTable, liveTurnsTable, phoneStatus } from './table'
 import { getOwnedCall, linesOf } from './queries'
 import type { ObjectType } from 'convex/values'
 import type { Turn } from '../../lib/decide'
+import type { Experimental_DecisionModel } from 'ai'
 import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** Longer lines stay whole in the chat but are cut in the call's transcript. */
@@ -131,22 +132,20 @@ const transcript = authedQuery({
   },
 })
 
-/**
- * Jev's read, 0 to 1, on whether a call ends once the assistant has answered
- * the last thing said. 0 when Jev fails, so the call goes on.
- */
-export const hangUpScore = async (
+const callDecision = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
-  call: { about: string; conversation: Array<Turn> },
+  ask: (
+    model: Experimental_DecisionModel,
+  ) => Promise<{ score: number; cost: number }>,
 ) => {
   try {
     return await metered(
       ctx,
-      { userId, model: MODELS.decide, estimate: 0.005 },
+      { userId, model: MODELS.callDecide, estimate: 0.005 },
       async () => {
-        const judged = await callIsOver(decisionModel, call)
-        return { result: judged.over, cost: judged.cost }
+        const { score, cost } = await ask(callDecisionModel)
+        return { result: score, cost }
       },
     )
   } catch (error) {
@@ -155,7 +154,28 @@ export const hangUpScore = async (
   }
 }
 
-/** A call's last 30 lines, oldest first, as Jev reads them: `user` is whoever's on the other end. */
+/** Whether a call ends once the assistant has answered the last thing said. 0 on failure, so the call goes on. */
+export const hangUpScore = (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  call: { about: string; conversation: Array<Turn> },
+) =>
+  callDecision(ctx, userId, async (model) => {
+    const judged = await callIsOver(model, call)
+    return { score: judged.over, cost: judged.cost }
+  })
+
+/** Whether a quick answer with no tools will do for the last thing said. 0 on failure, so the assistant answers. */
+export const quickScore = (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  conversation: Array<Turn>,
+) =>
+  callDecision(ctx, userId, async (model) => {
+    const judged = await needsNoTools(model, { conversation })
+    return { score: judged.quick, cost: judged.cost }
+  })
+
 const conversation = internalQuery({
   args: { callId: v.id('calls') },
   returns: v.array(

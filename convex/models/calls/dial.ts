@@ -11,7 +11,7 @@ import { env, internalAction } from '../../_generated/server'
 import { transcriptionModel } from '../../lib/ai'
 import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 import { metered } from '../../lib/budget'
-import { JEV_THRESHOLDS, saidGoodbye } from '../../lib/decide'
+import { GOODBYE_WORD, JEV_THRESHOLDS, saidGoodbye } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import {
   FRAME,
@@ -173,7 +173,7 @@ const instructionsFor = ({
     `You opened with: "${say}"`,
     'Speak naturally, in one or two short sentences at a time, with no lists or formatting.',
     `Only say what you know from this. If they ask for anything else, say you'll pass it on to ${owner}. If they ask, you're an AI assistant.`,
-    'When the conversation is over, say a short goodbye that ends with the word "Goodbye."',
+    `When the conversation is over, say a short goodbye that ends with the word "${GOODBYE_WORD}."`,
   ].join('\n')
 
 /**
@@ -618,7 +618,6 @@ const placeCall = async (
     lastHeard = performance.now()
     busy = false
   }
-  /** Jev's read on whether the call is done once she answers what they just said. */
   const isOver = (them: string) =>
     hangUpScore(ctx, userId, {
       about,
@@ -646,7 +645,6 @@ const placeCall = async (
           if (!text) stop.abort()
           return text
         })
-        // Asked as soon as they're heard, alongside the reply, so it never adds a wait.
         const ending = hearing
           .then((text) => (text ? isOver(text) : 0))
           .catch(() => 0)
@@ -676,6 +674,7 @@ const placeCall = async (
         await ctx.runMutation(internal.api.judgments.record, {
           userId,
           kind: 'hang_up',
+          model: MODELS.callDecide,
           scores: { over: score },
           outcome: goodbye ? 'said_goodbye' : done ? 'hung_up' : 'kept_talking',
         })
@@ -684,11 +683,9 @@ const placeCall = async (
           resolveEnd({ status: 'ended' })
           return
         }
-        // Don't keep the line open once it's done: Jev decides, and she says
-        // goodbye, queued straight after the reply instead of after it plays.
         if (done) {
           const bye = await speak({
-            text: 'The call is done. Say a short, warm goodbye that ends with "Goodbye."',
+            text: `The call is done. Say a short, warm goodbye that ends with "${GOODBYE_WORD}."`,
           })
           history.push({ role: 'assistant', content: bye })
           await addLine('them', bye)
@@ -738,7 +735,7 @@ const placeCall = async (
       speak({
         text: asking
           ? 'Nobody has said anything for a while. Ask briefly if they are still there.'
-          : 'They have gone quiet. Say a short goodbye that ends with "Goodbye."',
+          : `They have gone quiet. Say a short goodbye that ends with "${GOODBYE_WORD}."`,
       })
         .then(async (said) => {
           history.push({ role: 'assistant', content: said })

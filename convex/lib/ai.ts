@@ -32,3 +32,6 @@ export const speechModel = convexGateway.speechModel(MODELS.speech)
 /** Jev, through the gateway's decisions endpoint (alpha), for `decide`. */
 export const decisionModel: Experimental_DecisionModel =
   convexGateway.evaluationModel(MODELS.decide)
+
+export const callDecisionModel: Experimental_DecisionModel =
+  convexGateway.evaluationModel(MODELS.callDecide)

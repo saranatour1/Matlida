@@ -82,7 +82,6 @@ type Session = CallTarget & {
   /** Posts the mic's loudness from the audio thread (public/loudness-worklet.js). */
   meter: AudioWorkletNode
   recorder?: MediaRecorder
-  /** Where the next turn's recording uploads, fetched ahead so sending it is one request. */
   uploadUrl?: Promise<string>
   /** The assistant's reply while it arrives and plays. */
   reply?: Reply
@@ -101,10 +100,8 @@ type Reply = {
   next: number
   /** Every piece is in. */
   done: boolean
-  /** The reply ends the call: hang up once it has played. */
   hangUp?: boolean
-  /** Pieces already loading, by URL, so the next one starts without a gap. */
-  loaded?: Map<string, HTMLAudioElement>
+  preloading?: Map<string, HTMLAudioElement>
   playing?: { el: HTMLAudioElement }
   /** On hold while you talk over it: where it stopped in the current piece, in seconds. */
   paused?: { offset: number }
@@ -147,7 +144,6 @@ function useVoiceCall({
   const startTurn = useMutation(api.api.calls.startTurn)
   const end = useMutation(api.api.calls.end)
 
-  /** An upload URL for the next turn, asked for now. A failure shows when it's used. */
   function nextUploadUrl() {
     const url = uploadUrl()
     url.catch(() => undefined)
@@ -270,7 +266,7 @@ function useVoiceCall({
       pieces: [],
       next: 0,
       done: false,
-      loaded: new Map(),
+      preloading: new Map(),
       stopWatching: () => {},
     }
     let heardShown = false
@@ -291,7 +287,7 @@ function useVoiceCall({
       }
       for (const piece of state.pieces.slice(reply.pieces.length)) {
         reply.pieces.push(piece.url)
-        reply.loaded?.set(piece.url, audioFor(piece.url))
+        reply.preloading?.set(piece.url, audioFor(piece.url))
       }
       if (state.hangUp) reply.hangUp = true
       const text = state.pieces.map((piece) => piece.text).join(' ')
@@ -334,9 +330,8 @@ function useVoiceCall({
 
   /** Plays one piece from `offset` seconds in, through the call's volume, at the speed setting. */
   function play(s: Session, reply: Reply, url: string, offset: number) {
-    // A piece plays once from the start, so its preloaded element is used once.
-    const el = (!offset && reply.loaded?.get(url)) || audioFor(url)
-    reply.loaded?.delete(url)
+    const el = (!offset && reply.preloading?.get(url)) || audioFor(url)
+    reply.preloading?.delete(url)
     el.playbackRate = getCallSpeed()
     el.currentTime = offset
     s.audio.createMediaElementSource(el).connect(s.gain)
@@ -514,7 +509,6 @@ function useVoiceCall({
   }
 }
 
-/** An `<audio>` for a reply piece, loading from now on. */
 function audioFor(url: string) {
   const el = new Audio()
   el.crossOrigin = 'anonymous'
