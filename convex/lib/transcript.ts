@@ -23,6 +23,8 @@ export const formatTranscript = ({
     text: string
     ms?: number
     firstMs?: number
+    heardMs?: number
+    textMs?: number
     cutOff?: boolean
     _creationTime: number
   }>
@@ -40,9 +42,15 @@ export const formatTranscript = ({
   ]
   const body = lines.map((line) => {
     const who = line.who === 'you' ? (phone ? 'Them' : 'You') : name
+    const stages = [
+      line.heardMs === undefined ? '' : `heard in ${seconds(line.heardMs)}, `,
+      line.textMs === undefined
+        ? ''
+        : `first text in ${seconds(line.textMs)}, `,
+    ].join('')
     const took =
       line.firstMs !== undefined && line.ms !== undefined
-        ? `, first words in ${seconds(line.firstMs)}, all of it in ${seconds(line.ms)}`
+        ? `, ${stages}first words in ${seconds(line.firstMs)}, all of it in ${seconds(line.ms)}`
         : line.ms === undefined
           ? ''
           : `, replied in ${seconds(line.ms)}`
