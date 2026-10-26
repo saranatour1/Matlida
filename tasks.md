@@ -119,3 +119,5 @@
 - [x] In-app calls hang up after a goodbye or when Jev says they're done; phone calls ask Jev while the reply is generated
 - [ ] In-app voice chat on GPT-Live (full duplex, Decisions while you talk); needs an OpenAI API key
 - [ ] Tune `END_SILENCE_MS` and `JEV_THRESHOLDS.hangUp` from the new timings and `hang_up` judgments
+- [x] Call decisions (hang-up, quick answer or assistant) on OpenAI's `gpt-6-luna-decisions` through the gateway; small talk answered by Claude Haiku 5.5 with no tools
+- [ ] Measure the routing decision's latency on real calls, and run it alongside the reply if it's slow

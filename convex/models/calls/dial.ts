@@ -676,6 +676,7 @@ const placeCall = async (
         await ctx.runMutation(internal.api.judgments.record, {
           userId,
           kind: 'hang_up',
+          model: MODELS.callDecide,
           scores: { over: score },
           outcome: goodbye ? 'said_goodbye' : done ? 'hung_up' : 'kept_talking',
         })

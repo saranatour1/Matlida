@@ -18,7 +18,12 @@ import { zAuthedAction, zAuthedMutation } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import { LANGUAGES, MODELS, VOICES, voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
-import { addCallLine, hangUpScore, updateLiveTurn } from '../calls/functions'
+import {
+  addCallLine,
+  hangUpScore,
+  quickScore,
+  updateLiveTurn,
+} from '../calls/functions'
 import { getOwnedCall } from '../calls/queries'
 import { turnStatus } from '../calls/table'
 import { getOwnedProject } from '../projects/queries'
@@ -241,7 +246,11 @@ const runTurn = workflow
 const hearTurn = async (
   ctx: ActionCtx,
   turn: TurnArgs,
-): Promise<{ promptMessageId: string; command?: string } | null> => {
+): Promise<{
+  promptMessageId: string
+  command?: string
+  name: string
+} | null> => {
   const heard = await transcribeClip(
     ctx,
     turn.userId,
@@ -289,8 +298,13 @@ const heard = internalMutation({
   returns: v.object({
     promptMessageId: v.string(),
     command: v.optional(v.string()),
+    /** Who answers, for the voice they speak in. */
+    name: v.string(),
   }),
   handler: async (ctx, turn) => {
+    const who = turn.botId
+      ? await ctx.db.get('bots', turn.botId)
+      : await ctx.db.get('projects', turn.projectId)
     const posted = await postMessage(ctx, turn.userId, {
       projectId: turn.projectId,
       botId: turn.botId,
@@ -319,7 +333,11 @@ const heard = internalMutation({
       heard: turn.text,
     })
     await setStatus(ctx, turn.callId, turn.liveKey, 'thinking')
-    return { promptMessageId: posted.promptMessageId, command: posted.command }
+    return {
+      promptMessageId: posted.promptMessageId,
+      command: posted.command,
+      name: who?.name ?? '',
+    }
   },
 })
 
@@ -355,8 +373,11 @@ const isCurrent = internalQuery({
     (await ctx.db.get('calls', callId))?.turn?.key === key,
 })
 
-/** Said when Jev ends the call and the reply didn't say goodbye itself. */
+/** Said when the call is judged done and the reply didn't say goodbye itself. */
 const GOODBYE = 'Talk soon. Goodbye.'
+/** Said when the assistant hasn't started its answer by `FILLER_AFTER_MS`. */
+const FILLER = 'One moment.'
+const FILLER_AFTER_MS = 1500
 
 /**
  * Hears the turn, then the chat's assistant answers it as it would in the
@@ -375,13 +396,28 @@ const turnStep = internalAction({
     const said = await hearTurn(ctx, turn)
     if (!said) return null
     const heardMs = Date.now() - turn.startedAt
+    const conversation = await ctx.runQuery(internal.api.calls.conversation, {
+      callId,
+    })
     // Asked now, from what you just said, so the answer is in before the reply is.
-    const judging = ctx
-      .runQuery(internal.api.calls.conversation, { callId })
-      .then((conversation) =>
-        hangUpScore(ctx, userId, { about: OPEN_CALL, conversation }),
-      )
-      .catch(() => 0)
+    const judging = hangUpScore(ctx, userId, {
+      about: OPEN_CALL,
+      conversation,
+    })
+    // GPT-Live's delegation: what needs no tools gets a quick answer, the
+    // rest goes to the assistant. A command always goes to the assistant.
+    const quickness = said.command
+      ? 0
+      : await quickScore(ctx, userId, conversation)
+    const quick = quickness >= JEV_THRESHOLDS.quickReply
+    // Kept off the reply's path: awaited once the turn is done.
+    const routed = ctx.runMutation(internal.api.judgments.record, {
+      userId,
+      kind: 'voice_route',
+      model: MODELS.callDecide,
+      scores: { quick: quickness },
+      outcome: quick ? 'quick' : 'assistant',
+    })
     const stop = new AbortController()
     const current = async () => {
       if (stop.signal.aborted) return false
@@ -398,10 +434,11 @@ const turnStep = internalAction({
     let textMs: number | undefined
     let firstMs: number | undefined
     let speaking = Promise.resolve()
-    const say = (piece: string, name: string) => {
+    /** `filler` is "One moment.", which doesn't count as the reply's first words. */
+    const say = (piece: string, name: string, filler = false) => {
       const text = piece.slice(0, MAX_SPOKEN - spoken)
       if (!text || stop.signal.aborted) return
-      spoken += text.length
+      if (!filler) spoken += text.length
       // Voiced right away, alongside the pieces before it, then stored and played in order.
       const audio = synthesize(ctx, userId, text, turn.voice ?? voiceFor(name))
       audio.catch(() => undefined)
@@ -409,6 +446,14 @@ const turnStep = internalAction({
         const spokenAudio = await audio
         if (!(await current())) return
         const ready = await store(ctx, spokenAudio)
+        if (filler) {
+          await ctx.runMutation(internal.api.calls.updateLive, {
+            key,
+            userId,
+            piece: { text, ...ready },
+          })
+          return
+        }
         if (firstMs === undefined) {
           firstMs = Date.now() - turn.startedAt
           await ctx.runMutation(internal.api.calls.setTurn, {
@@ -426,6 +471,12 @@ const turnStep = internalAction({
     }
     let text = ''
     let hangUp = false
+    // The assistant can take a while with its tools: say so, as GPT-Live does.
+    const holding = quick
+      ? undefined
+      : setTimeout(() => {
+          if (spoken === 0) say(FILLER, said.name, true)
+        }, FILLER_AFTER_MS)
     try {
       const reply = await runReply(ctx, {
         threadId: turn.threadId,
@@ -435,6 +486,7 @@ const turnStep = internalAction({
         via: 'voice',
         cutOff: turn.interrupted,
         language: turn.language as Language | undefined,
+        quick,
         abortSignal: stop.signal,
         onText: (delta, who) => {
           textMs ??= Date.now() - turn.startedAt
@@ -469,6 +521,7 @@ const turnStep = internalAction({
         await ctx.runMutation(internal.api.judgments.record, {
           userId,
           kind: 'hang_up',
+          model: MODELS.callDecide,
           scores: { over: await judging },
           outcome: goodbye ? 'said_goodbye' : over ? 'hung_up' : 'kept_talking',
         })
@@ -478,6 +531,8 @@ const turnStep = internalAction({
       // A newer turn stopped this one: nothing more to say.
       if (!stop.signal.aborted) throw error
     } finally {
+      clearTimeout(holding)
+      await routed
       await speaking.catch(() => undefined)
       await ctx.runMutation(internal.api.calls.updateLive, {
         key,

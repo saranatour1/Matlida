@@ -22,15 +22,17 @@ vi.mock('../../lib/ai', async () => {
     transcriptionModel: {},
     speechModel: {},
     decisionModel: {},
+    callDecisionModel: {},
   }
 })
 
 const heard = vi.hoisted(() => ({ text: 'Hello Matilda' }))
-/** Jev's read on whether the call is done. */
-const jev = vi.hoisted(() => ({ over: 0 }))
+/** The call decisions: whether the call is done, and whether a quick answer will do. */
+const jev = vi.hoisted(() => ({ over: 0, quick: 0 }))
 vi.mock('../../lib/decide', async (original) => ({
   ...(await original<typeof Decide>()),
   callIsOver: vi.fn(() => Promise.resolve({ over: jev.over, cost: 0 })),
+  needsNoTools: vi.fn(() => Promise.resolve({ quick: jev.quick, cost: 0 })),
 }))
 vi.mock('ai', async (original) => ({
   ...(await original<typeof Ai>()),
@@ -197,9 +199,19 @@ test('when Jev says the call is done, she says goodbye and the call hangs up aft
   )
   // Kept for tuning the threshold.
   expect(
-    await t.run((ctx) => ctx.db.query('judgments').take(10)),
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'hang_up'))
+        .take(10),
+    ),
   ).toMatchObject([
-    { kind: 'hang_up', scores: { over: 0.9 }, outcome: 'hung_up' },
+    {
+      kind: 'hang_up',
+      model: 'openai/gpt-6-luna-decisions',
+      scores: { over: 0.9 },
+      outcome: 'hung_up',
+    },
   ])
 })
 
@@ -217,8 +229,55 @@ test('the call goes on while Jev says it isn’t done', async () => {
     'Bye for now.',
   ])
   expect(
-    await t.run((ctx) => ctx.db.query('judgments').take(10)),
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'hang_up'))
+        .take(10),
+    ),
   ).toMatchObject([{ kind: 'hang_up', outcome: 'kept_talking' }])
+})
+
+test('what needs no tools gets a quick answer, and the rest goes to the assistant', async () => {
+  const { t, asAda, projectId, clip, talk } = await setup()
+  heard.text = 'How are you?'
+  jev.quick = 0.95
+  const small = await talk(asAda, { projectId, storageId: await clip() })
+  heard.text = 'What is on my calendar tomorrow?'
+  jev.quick = 0.3
+  await talk(asAda, {
+    projectId,
+    storageId: await clip(),
+    callId: small.callId,
+  })
+  jev.quick = 0
+
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'voice_route'))
+        .take(10),
+    ),
+  ).toMatchObject([
+    { scores: { quick: 0.95 }, outcome: 'quick' },
+    { scores: { quick: 0.3 }, outcome: 'assistant' },
+  ])
+  // Both were answered and spoken.
+  const lines = await asAda.query(api.api.calls.transcript, {
+    id: small.callId,
+  })
+  expect(lines.map((l) => l.who)).toEqual(['you', 'them', 'you', 'them'])
+  // The quick answer came from the quick model, the other from the assistant's.
+  const usage = await t.run((ctx) =>
+    ctx.db
+      .query('usage')
+      .withIndex('by_thread', (q) => q.eq('threadId', small.threadId))
+      .take(50),
+  )
+  expect(
+    usage.filter((u) => u.kind === 'reply').map((u) => u.model),
+  ).toEqual(['anthropic/claude-haiku-5.5', 'anthropic/claude-sonnet-5'])
 })
 
 test('silence gets no reply', async () => {
