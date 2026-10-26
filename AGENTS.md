@@ -16,6 +16,10 @@ Convex agent skills for common tasks can be installed by running
 
 A TanStack Start app on Convex. Use pnpm for everything. Before you say a change works, run `pnpm check`. It typechecks, runs ESLint and builds. There's no CI, so nothing else runs it.
 
+To find where a feature lives, start at `docs/skills/features/features.md` (the `features` skill keeps it up to date after each merge).
+
+To confirm Convex work, and for what each Convex component and AI gateway model does here, read `docs/skills/convex/convex.md` (the `matilda-convex` skill).
+
 ## Rules
 
 When the operator corrects you, fix the mistake and add its rule here. If the rule was already here and nothing enforces it, the mistake is a repeat. Enforce it in the same change, with a type, a lint rule or a script in `scripts/`. Drop a rule once its mistake can't happen.

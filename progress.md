@@ -554,7 +554,6 @@
 - The fast check after a Telegram message ran every 3 seconds for 2 minutes, re-recording every message of the last 3 minutes each time: about 40 checks and 120 function calls per message. Now one query says which messages are new before anything is recorded, the check runs every 3 seconds for 30 seconds and then every 10, and a second message can't start a second loop: the row remembers the scheduled run and checks it's still pending.
 - It was never endless: the window ends 2 minutes after the last message, and dev's logs showed it stopping on time.
 
-
 ### No call button in the chat header (2026-10-22)
 
 - The phone button at the top right of a chat is gone, with the `onCall` prop that fed it. Calls still start from the voice bar in the prompt and from incoming calls.
@@ -665,6 +664,7 @@ Not done (finding #6): every email sent still looks up both Photon users first, 
 ### Texts: a replaced turn doesn't pay (2026-10-22)
 
 From the Photon review (finding #5). In collapse mode a newer text replaces the turn before it, but `respond` only checked that after the model had answered, so a replaced turn still paid for its reply and saved it in the chat. It now checks before calling the model too. A text that lands in the few seconds while the model is already running still pays for that reply. Stopping mid-way needs a timer that checks during generation, and that's left until costs show it's worth it (`ponytail` note in `respond`).
+
 - New test: a second text that lands while the first reply is queued means one model call and one reply. It fails without the check.
 - Verified with pnpm check and the tests (224), and pushed to dev.
 
@@ -791,6 +791,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
   - Calls in the app: where the Talk button is, and the microphone prompt.
   - Phone calls: that their account has to be added to the `phone-calls` flag in Cloudflare Flagship first, with their user id to copy and send on, then how to ask, and Contacts → Call. Matilda's refusal says the same and points to `/setup phone`.
 - The card reads the live state (channel status, your address, pending codes), so it updates as you go, and says what the deployment still needs when a channel isn't set up.
+
 ### Contacts page (2026-10-23)
 
 - A Contacts page (command menu → Contacts) lists the people the assistants can reach: name, email, phone and a note, in a table. You add, edit and delete them there; the assistants still add people too when you give details in a chat (`save_contact`). Names stay unique in a workspace, since assistants find people by name (`contacts.put`, validated with zod: a real email, a phone in international format).
@@ -801,6 +802,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 ### Calls answer at low effort (2026-10-23)
 
 - On prod on 2026-10-23, each in-app call reply took 5 to 10.5 s before its first words: the model reasoned at the chat's effort before saying anything. Replies on a call (`via: 'voice'`) now always run at low effort (little reasoning, at most 4 tool steps), whatever the chat is set to (`createAgent` in `lead.ts`). Typed chats keep their effort.
+
 ### Call turns run as workflows, one at a time (2026-10-23)
 
 - An in-app call turn is now a Convex workflow (`runTurn` in `convex/models/threads/calls.ts`): `hearStep` transcribes and saves, then `replyStep` answers out loud a piece at a time. Fast voice does both in `fastStep`. No step is retried, since a turn answered again seconds later would be out of place.
@@ -809,6 +811,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - However a turn's workflow ends, `turnFinished` closes its live turn (with an error the browser shows, if it failed), so the browser never waits on a turn that died.
 - The heard turn's saves (chat message, call line, usage, live turn, status) are one mutation instead of four round trips.
 - Tested: the call and voice tests (12), including a new turn cancelling a running one so only one is answered.
+
 ### Login tokens last 15 minutes (2026-10-23)
 
 - Convex Auth v2's login tokens lasted 60 seconds, so every open tab refreshed its session about every 51 s, and each refresh re-ran every open query (chats, bots, reminders, commands), during calls too. They now last 15 minutes (`accessTokenTtlSeconds` in `convex/models/users/auth.ts`). Refresh tokens still last 30 days. A signed-out session can keep working until its token runs out, which is why it isn't longer.
@@ -852,6 +855,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Tested: `src/tests/snapshots.test.ts` covers keys per user, 401 for a missing or forged token, never storing the request body, and 400 for a bad name or args. On a local backend with a test account, the second visit got the projects list back from KV. But the local backend answered at about the same time (live data 399–446ms, snapshots 386–477ms), so the speedup still needs measuring against the cloud deployment.
 - Refreshes are throttled: an entry re-runs its query on Convex only when it is missing or its `refreshedAt` (KV metadata) is over 5 minutes old (`REFRESH_EVERY_MS`). Each refresh writes once, even when nothing changed, to stamp the time, so an entry costs at most one Convex query and one KV write per 5 minutes. A snapshot can be up to 5 minutes old, which the live query replaces right away.
 - **Write conflict.** `api/plans:addItems` retried on `plans` when the model called `add_to_list` several times in one step, because every call rewrites the same list. The tool now queues its calls within a reply. A workpool didn't fit, because the chat card needs the list id straight away. Two replies at once can still race and rely on Convex retrying. Tested: a test that fails without the queue (3 calls overlapped) and passes with it.
+
 ### Phone calls read Flagship's `no-calls` flag (2026-10-23)
 
 - Prod's Flagship has `no-calls` (on by default, served off for the users who may call), not the `phone-calls` the app asked for, so calls were refused for everyone. The app now reads `no-calls` the other way round: calls are on for a user when it's off for them (`FLAGS.phoneCalls` in `convex/lib/flags.ts`).
@@ -867,3 +871,14 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **The production "already has generation number" error** is a warning from `@convex-dev/workflow`'s pool: a turn's step finished after a newer turn cancelled it. Nothing fails, but each one is a reply that got cut off.
 - Tested: `pnpm check` and all 1,099 tests, including a new one for a ring whose speech fails (answered, with the line and no audio). In the browser, the worklet posted 43 readings a second and read a 0.1-amplitude test tone as 0.070–0.071 RMS, against 0.0707 expected. A truly hidden tab couldn't be reproduced in the preview pane. No calls were placed.
 - **Replies cut off by her own voice.** While she talks, the mic now has to beat half of how loud she's playing right now (`ECHO_RATIO` in `src/lib/turn-taking.ts`, read from the call's output analyser), as well as the old `OVER_REPLY_LEVEL`. Her voice coming back through speakers reaches the mic quieter than she plays, so it no longer pauses her or starts a new turn, while you talking over her still does. Tested: a new turn-taking test (her voice at 0.12 while she plays at 0.3 doesn't pause her; you at 0.2 do). Not tried on a real call.
+
+### Features map (2026-10-26)
+
+- `docs/skills/features/features.md` maps each feature to its folders, its entry points as `file:symbol`, and the last merged PR that changed it, with when that PR's last commit was made and when it merged. It also says what each folder holds, and where README's "What's next" items would land. It's mapped through #171.
+- The `features` skill (`.claude/skills/features/`) says how to use the map and how to update it after a merge. A PR goes in only once it's merged on master and `pnpm check` passes there. The update steps use plain `git log`, `gh pr view` and `grep`, with no script.
+- Checked when written: every path and `file:symbol` on the map exists, every feature file belongs to a section, and each `Last PR:` is the newest merged PR touching its section's paths.
+
+### Convex page (2026-10-26)
+
+- `docs/skills/convex/convex.md` covers three things. First, how to confirm Convex work, in order: which deployment, `pnpm check`, `pnpm test` with mocked models, what dev runs (`function-spec`), logs, insights and data, then the browser. Second, what each of the 14 installed components does in Matilda and where it's used. Third, every model reached through the Convex AI gateway, by job and in the model menu, with how calls are authenticated and metered.
+- The `matilda-convex` skill (`.claude/skills/matilda-convex/`) points at it. It lists the `grep` commands that compare the page with `convex.config.ts` and `models.ts`, and the steps before calling Convex work done. When written, the page matched both files, every `file:symbol` resolved, and `pnpm check` and all 257 tests passed.
