@@ -115,3 +115,7 @@
 - [ ] Tune `ECHO_RATIO` from real calls on speakers; fewer "already has generation number" warnings in the logs means fewer cut-off replies
 - [x] Features map (`docs/skills/features/features.md`) and the `features` skill that keeps it in step with master
 - [x] Convex page (`docs/skills/convex/convex.md`) and the `matilda-convex` skill: confirming Convex work, what each component does, and every AI gateway model
+- [x] Call replies: one step per turn, speech generated in parallel, upload URL fetched ahead, pieces preloaded, and stage timings on each reply line
+- [x] In-app calls hang up after a goodbye or when Jev says they're done; phone calls ask Jev while the reply is generated
+- [ ] In-app voice chat on GPT-Live (full duplex, Decisions while you talk); needs an OpenAI API key
+- [ ] Tune `END_SILENCE_MS` and `JEV_THRESHOLDS.hangUp` from the new timings and `hang_up` judgments

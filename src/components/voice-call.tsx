@@ -82,6 +82,8 @@ type Session = CallTarget & {
   /** Posts the mic's loudness from the audio thread (public/loudness-worklet.js). */
   meter: AudioWorkletNode
   recorder?: MediaRecorder
+  /** Where the next turn's recording uploads, fetched ahead so sending it is one request. */
+  uploadUrl?: Promise<string>
   /** The assistant's reply while it arrives and plays. */
   reply?: Reply
   /** The call's record in history, from its first turn or the answered ring. */
@@ -99,6 +101,10 @@ type Reply = {
   next: number
   /** Every piece is in. */
   done: boolean
+  /** The reply ends the call: hang up once it has played. */
+  hangUp?: boolean
+  /** Pieces already loading, by URL, so the next one starts without a gap. */
+  loaded?: Map<string, HTMLAudioElement>
   playing?: { el: HTMLAudioElement }
   /** On hold while you talk over it: where it stopped in the current piece, in seconds. */
   paused?: { offset: number }
@@ -137,8 +143,16 @@ function useVoiceCall({
   const session = React.useRef<Session | null>(null)
   const convex = useConvex()
   const upload = useUpload()
+  const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
   const startTurn = useMutation(api.api.calls.startTurn)
   const end = useMutation(api.api.calls.end)
+
+  /** An upload URL for the next turn, asked for now. A failure shows when it's used. */
+  function nextUploadUrl() {
+    const url = uploadUrl()
+    url.catch(() => undefined)
+    return url
+  }
 
   /**
    * Records until your turn is done, deciding from the mic's loudness (see
@@ -203,7 +217,11 @@ function useVoiceCall({
       // Fast voice's audio model takes WAV, not the browser's WebM.
       const fast = getFastVoice()
       const audio = fast ? await toWav(clip) : clip
-      const storageId = await upload(audio)
+      // A URL fetched ahead can have expired on a long pause: then get a fresh one.
+      const storageId = await upload(audio, s.uploadUrl).catch(() =>
+        upload(audio),
+      )
+      s.uploadUrl = nextUploadUrl()
       // A turn before the opening line arrived still joins the answered call.
       s.callId ??= (await s.opening)?.callId
       const liveKey = crypto.randomUUID()
@@ -252,6 +270,7 @@ function useVoiceCall({
       pieces: [],
       next: 0,
       done: false,
+      loaded: new Map(),
       stopWatching: () => {},
     }
     let heardShown = false
@@ -272,7 +291,9 @@ function useVoiceCall({
       }
       for (const piece of state.pieces.slice(reply.pieces.length)) {
         reply.pieces.push(piece.url)
+        reply.loaded?.set(piece.url, audioFor(piece.url))
       }
+      if (state.hangUp) reply.hangUp = true
       const text = state.pieces.map((piece) => piece.text).join(' ')
       if (text) {
         const shown = replyShown
@@ -303,6 +324,7 @@ function useVoiceCall({
     if (index >= reply.pieces.length) {
       if (reply.done) {
         s.reply = undefined
+        if (reply.hangUp) return hangUp()
         setStatus('listening')
       }
       return
@@ -312,8 +334,9 @@ function useVoiceCall({
 
   /** Plays one piece from `offset` seconds in, through the call's volume, at the speed setting. */
   function play(s: Session, reply: Reply, url: string, offset: number) {
-    const el = new Audio(url)
-    el.crossOrigin = 'anonymous'
+    // A piece plays once from the start, so its preloaded element is used once.
+    const el = (!offset && reply.loaded?.get(url)) || audioFor(url)
+    reply.loaded?.delete(url)
     el.playbackRate = getCallSpeed()
     el.currentTime = offset
     s.audio.createMediaElementSource(el).connect(s.gain)
@@ -405,6 +428,7 @@ function useVoiceCall({
         ended: false,
       }
       session.current = s
+      s.uploadUrl = nextUploadUrl()
       // Listen now; the opening line joins whenever it's ready, so a slow
       // one never holds the call on "Connecting…".
       s.opening = opening?.catch(() => null)
@@ -488,6 +512,15 @@ function useVoiceCall({
     setVolume,
     setSpeed,
   }
+}
+
+/** An `<audio>` for a reply piece, loading from now on. */
+function audioFor(url: string) {
+  const el = new Audio()
+  el.crossOrigin = 'anonymous'
+  el.preload = 'auto'
+  el.src = url
+  return el
 }
 
 /** The loudness (RMS) of what `analyser` hears right now. */

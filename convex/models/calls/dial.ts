@@ -8,10 +8,10 @@ import { transcribe } from 'ai'
 import { v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { env, internalAction } from '../../_generated/server'
-import { decisionModel, transcriptionModel } from '../../lib/ai'
+import { transcriptionModel } from '../../lib/ai'
 import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 import { metered } from '../../lib/budget'
-import { JEV_THRESHOLDS, callIsOver } from '../../lib/decide'
+import { JEV_THRESHOLDS, saidGoodbye } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import {
   FRAME,
@@ -38,6 +38,7 @@ import {
   uriOf,
 } from '../../lib/sip'
 import { gatewayCost } from '../usage/functions'
+import { hangUpScore } from './functions'
 import type { AudioChatTurn } from '../../lib/audio'
 import type { SipMessage } from '../../lib/sip'
 import type { ActionCtx, Doc } from '../../lib/ctx'
@@ -617,30 +618,15 @@ const placeCall = async (
     lastHeard = performance.now()
     busy = false
   }
-  const goodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
-  /** Jev's read on whether the call has done its job. Keeps talking if Jev fails. */
-  const isOver = async () => {
-    try {
-      const done = await metered(
-        ctx,
-        { userId, model: MODELS.decide, estimate: 0.005 },
-        async () => {
-          const judged = await callIsOver(decisionModel, {
-            about,
-            conversation: history.map((h) => ({
-              role: h.role,
-              text: h.content,
-            })),
-          })
-          return { result: judged.over, cost: judged.cost }
-        },
-      )
-      return done >= JEV_THRESHOLDS.hangUp
-    } catch (error) {
-      console.error(error)
-      return false
-    }
-  }
+  /** Jev's read on whether the call is done once she answers what they just said. */
+  const isOver = (them: string) =>
+    hangUpScore(ctx, userId, {
+      about,
+      conversation: [
+        ...history.map((h) => ({ role: h.role, text: h.content })),
+        { role: 'user' as const, text: them },
+      ],
+    })
 
   const talk = async () => {
     const opening = await speak({
@@ -660,6 +646,10 @@ const placeCall = async (
           if (!text) stop.abort()
           return text
         })
+        // Asked as soon as they're heard, alongside the reply, so it never adds a wait.
+        const ending = hearing
+          .then((text) => (text ? isOver(text) : 0))
+          .catch(() => 0)
         const answering = speak(
           { audio: Buffer.from(wav).toString('base64'), format: 'wav' },
           stop.signal,
@@ -680,14 +670,23 @@ const placeCall = async (
           history.push({ role: 'assistant', content: reply })
           await addLine('them', reply)
         }
-        if (reply && goodbye(reply)) {
+        const goodbye = !!reply && saidGoodbye(reply)
+        const score = await ending
+        const done = score >= JEV_THRESHOLDS.hangUp
+        await ctx.runMutation(internal.api.judgments.record, {
+          userId,
+          kind: 'hang_up',
+          scores: { over: score },
+          outcome: goodbye ? 'said_goodbye' : done ? 'hung_up' : 'kept_talking',
+        })
+        if (goodbye) {
           await drained()
           resolveEnd({ status: 'ended' })
           return
         }
-        // Don't keep the line open once it's done: Jev decides, and she says goodbye.
-        if (await isOver()) {
-          await drained()
+        // Don't keep the line open once it's done: Jev decides, and she says
+        // goodbye, queued straight after the reply instead of after it plays.
+        if (done) {
           const bye = await speak({
             text: 'The call is done. Say a short, warm goodbye that ends with "Goodbye."',
           })

@@ -426,10 +426,18 @@ export const shouldCallNow = async (
   }
 }
 
+/** `about` for an in-app call, which has no purpose of its own. */
+export const OPEN_CALL =
+  'The user called their own assistant to talk. There is no set purpose: the call is over only when the user says they are done or says goodbye.'
+
+/** Whether a reply ends the call by itself, the way every call's instructions ask it to. */
+export const saidGoodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
+
 /**
- * Whether a phone call the assistant placed has done its job and should end
- * now. In `conversation`, `user` is the person called. The call hangs up at
- * `JEV_THRESHOLDS.hangUp`.
+ * Whether a call should end once the assistant has answered the last thing
+ * said. Asked as soon as it's heard, so the answer is in before the reply is.
+ * In `conversation`, `user` is the person on the other end. The call hangs up
+ * at `JEV_THRESHOLDS.hangUp`.
  */
 export const callIsOver = async (
   model: Experimental_DecisionModel,
@@ -443,7 +451,7 @@ export const callIsOver = async (
       over: {
         type: 'boolean',
         instructions:
-          'The assistant phoned someone for `call_purpose`. Should it say goodbye and hang up now? Yes when the purpose is done (the message was delivered and acknowledged, or the question answered) and the person has nothing more to ask, or when they are wrapping up, saying bye or asking to end the call. No while they are still asking or telling something, or the purpose is not done yet.',
+          'The assistant is on a call for `call_purpose`, and is about to answer the last thing the user said. Should it say goodbye and hang up after that answer? Yes when the purpose is done (the message was delivered and acknowledged, or the question answered) and the user has nothing more to ask, or when they are wrapping up, saying bye or asking to end the call. No while they are still asking or telling something, or the purpose is not done yet.',
       },
     },
     abortSignal,

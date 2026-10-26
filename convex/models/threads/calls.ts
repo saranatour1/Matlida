@@ -13,11 +13,12 @@ import {
 import { speechModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
 import { AUDIO_VOICES, PCM_RATE, pcmToWav } from '../../lib/audio'
+import { JEV_THRESHOLDS, OPEN_CALL, saidGoodbye } from '../../lib/decide'
 import { zAuthedAction, zAuthedMutation } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import { LANGUAGES, MODELS, VOICES, voiceFor } from '../../lib/models'
 import { takePieces } from '../../lib/sentences'
-import { addCallLine, updateLiveTurn } from '../calls/functions'
+import { addCallLine, hangUpScore, updateLiveTurn } from '../calls/functions'
 import { getOwnedCall } from '../calls/queries'
 import { turnStatus } from '../calls/table'
 import { getOwnedProject } from '../projects/queries'
@@ -63,8 +64,8 @@ const forget = internalMutation({
   },
 })
 
-/** Reads `text` out in `spokenBy`, a Kokoro voice, and stores it. */
-const voice = async (
+/** Reads `text` out in `spokenBy`, a Kokoro voice. */
+const synthesize = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   text: string,
@@ -83,11 +84,27 @@ const voice = async (
       return { result: spoken, cost: gatewayCost(spoken.providerMetadata) }
     },
   )
+  return audio
+}
+
+/** Spoken audio, stored for the browser to play. */
+const store = async (
+  ctx: ActionCtx,
+  audio: Awaited<ReturnType<typeof synthesize>>,
+) => {
   const storageId = await ctx.storage.store(
     new Blob([new Uint8Array(audio.uint8Array)], { type: audio.mediaType }),
   )
   return { storageId, url: (await ctx.storage.getUrl(storageId)) ?? '' }
 }
+
+/** Reads `text` out in `spokenBy`, a Kokoro voice, and stores it. */
+const voice = async (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  text: string,
+  spokenBy: (typeof VOICES)[number],
+) => await store(ctx, await synthesize(ctx, userId, text, spokenBy))
 
 /** `voice`, deleted after 10 minutes. Returns its URL. */
 const speak = async (
@@ -205,70 +222,53 @@ const startTurn = zAuthedMutation({
 })
 
 /**
- * A call turn: hear what you said and save it, then answer it out loud.
- * Fast voice does both in one step. No step is retried: a turn answered
- * again seconds later would be out of place on a call.
+ * A call turn: hear what you said and answer it out loud, in one step so the
+ * reply starts without waiting on another. Fast voice does both in one model
+ * call. No step is retried: a turn answered again seconds later would be out
+ * of place on a call.
  */
 const runTurn = workflow
   .define({ args: turnArgs })
   .handler(async (step, turn): Promise<void> => {
-    if (turn.fast) {
-      await step.runAction(internal.api.calls.fastStep, turn, { retry: false })
-      return
-    }
-    const heard = await step.runAction(internal.api.calls.hearStep, turn, {
-      retry: false,
-    })
-    if (!heard) return
     await step.runAction(
-      internal.api.calls.replyStep,
-      { ...turn, ...heard },
+      turn.fast ? internal.api.calls.fastStep : internal.api.calls.turnStep,
+      turn,
       { retry: false },
     )
   })
 
 /** Transcribes the turn and saves it. Null when nothing was said. */
-const hearStep = internalAction({
-  args: turnArgs,
-  returns: v.union(
-    v.null(),
-    v.object({
-      promptMessageId: v.string(),
-      command: v.optional(v.string()),
-    }),
-  ),
-  handler: async (
+const hearTurn = async (
+  ctx: ActionCtx,
+  turn: TurnArgs,
+): Promise<{ promptMessageId: string; command?: string } | null> => {
+  const heard = await transcribeClip(
     ctx,
-    turn,
-  ): Promise<{ promptMessageId: string; command?: string } | null> => {
-    const heard = await transcribeClip(
-      ctx,
-      turn.userId,
-      turn.storageId,
-      turn.language as Language | undefined,
-    )
-    if (!heard.text) {
-      await ctx.runMutation(internal.api.calls.updateLive, {
-        key: turn.liveKey,
-        userId: turn.userId,
-        heard: '',
-        done: true,
-      })
-      return null
-    }
-    return await ctx.runMutation(internal.api.calls.heard, {
+    turn.userId,
+    turn.storageId,
+    turn.language as Language | undefined,
+  )
+  if (!heard.text) {
+    await ctx.runMutation(internal.api.calls.updateLive, {
+      key: turn.liveKey,
       userId: turn.userId,
-      projectId: turn.projectId,
-      botId: turn.botId,
-      threadId: turn.threadId,
-      callId: turn.callId,
-      liveKey: turn.liveKey,
-      interrupted: turn.interrupted,
-      text: heard.text,
-      aiCost: gatewayCost(heard.providerMetadata),
+      heard: '',
+      done: true,
     })
-  },
-})
+    return null
+  }
+  return await ctx.runMutation(internal.api.calls.heard, {
+    userId: turn.userId,
+    projectId: turn.projectId,
+    botId: turn.botId,
+    threadId: turn.threadId,
+    callId: turn.callId,
+    liveKey: turn.liveKey,
+    interrupted: turn.interrupted,
+    text: heard.text,
+    aiCost: gatewayCost(heard.providerMetadata),
+  })
+}
 
 /**
  * Everything a heard turn saves, in one write: the message in the chat, the
@@ -355,21 +355,33 @@ const isCurrent = internalQuery({
     (await ctx.db.get('calls', callId))?.turn?.key === key,
 })
 
+/** Said when Jev ends the call and the reply didn't say goodbye itself. */
+const GOODBYE = 'Talk soon. Goodbye.'
+
 /**
- * The chat's assistant answers the heard turn as it would in the chat, but
- * written to be spoken, a piece at a time as it streams, into the live turn
- * the browser plays from. Before each piece it checks the turn is still the
- * call's, and stops the reply when you've moved on.
+ * Hears the turn, then the chat's assistant answers it as it would in the
+ * chat, but written to be spoken, a piece at a time as it streams, into the
+ * live turn the browser plays from. Each piece is voiced as soon as it's
+ * written and played in order. Before each piece it checks the turn is still
+ * the call's, and stops the reply when you've moved on. While it answers,
+ * Jev reads whether the call is done, and a reply that ends the call tells
+ * the browser to hang up once it has played.
  */
-const replyStep = internalAction({
-  args: {
-    ...turnArgs,
-    promptMessageId: v.string(),
-    command: v.optional(v.string()),
-  },
+const turnStep = internalAction({
+  args: turnArgs,
   returns: v.null(),
   handler: async (ctx, turn) => {
     const { userId, callId, liveKey: key } = turn
+    const said = await hearTurn(ctx, turn)
+    if (!said) return null
+    const heardMs = Date.now() - turn.startedAt
+    // Asked now, from what you just said, so the answer is in before the reply is.
+    const judging = ctx
+      .runQuery(internal.api.calls.conversation, { callId })
+      .then((conversation) =>
+        hangUpScore(ctx, userId, { about: OPEN_CALL, conversation }),
+      )
+      .catch(() => 0)
     const stop = new AbortController()
     const current = async () => {
       if (stop.signal.aborted) return false
@@ -383,20 +395,20 @@ const replyStep = internalAction({
     if (!(await current())) return null
     let buffer = ''
     let spoken = 0
+    let textMs: number | undefined
     let firstMs: number | undefined
     let speaking = Promise.resolve()
     const say = (piece: string, name: string) => {
       const text = piece.slice(0, MAX_SPOKEN - spoken)
-      if (!text) return
+      if (!text || stop.signal.aborted) return
       spoken += text.length
+      // Voiced right away, alongside the pieces before it, then stored and played in order.
+      const audio = synthesize(ctx, userId, text, turn.voice ?? voiceFor(name))
+      audio.catch(() => undefined)
       speaking = speaking.then(async () => {
+        const spokenAudio = await audio
         if (!(await current())) return
-        const audio = await voice(
-          ctx,
-          userId,
-          text,
-          turn.voice ?? voiceFor(name),
-        )
+        const ready = await store(ctx, spokenAudio)
         if (firstMs === undefined) {
           firstMs = Date.now() - turn.startedAt
           await ctx.runMutation(internal.api.calls.setTurn, {
@@ -408,22 +420,24 @@ const replyStep = internalAction({
         await ctx.runMutation(internal.api.calls.updateLive, {
           key,
           userId,
-          piece: { text, ...audio },
+          piece: { text, ...ready },
         })
       })
     }
     let text = ''
+    let hangUp = false
     try {
       const reply = await runReply(ctx, {
         threadId: turn.threadId,
-        promptMessageId: turn.promptMessageId,
-        command: turn.command,
+        promptMessageId: said.promptMessageId,
+        command: said.command,
         timeZone: turn.timeZone,
         via: 'voice',
         cutOff: turn.interrupted,
         language: turn.language as Language | undefined,
         abortSignal: stop.signal,
         onText: (delta, who) => {
+          textMs ??= Date.now() - turn.startedAt
           buffer += delta
           const ready = takePieces(buffer, {
             first: spoken === 0,
@@ -442,6 +456,23 @@ const replyStep = internalAction({
       }).pieces) {
         say(piece, name)
       }
+      const goodbye = saidGoodbye(text.trim())
+      const over = (await judging) >= JEV_THRESHOLDS.hangUp
+      if (text.trim() && !stop.signal.aborted) {
+        hangUp = goodbye || over
+        // The goodbye is in English, so other languages end on the reply.
+        if (over && !goodbye && (turn.language ?? 'en') === 'en') {
+          say(GOODBYE, name)
+          text = `${text.trim()} ${GOODBYE}`
+        }
+        await speaking
+        await ctx.runMutation(internal.api.judgments.record, {
+          userId,
+          kind: 'hang_up',
+          scores: { over: await judging },
+          outcome: goodbye ? 'said_goodbye' : over ? 'hung_up' : 'kept_talking',
+        })
+      }
       await speaking
     } catch (error) {
       // A newer turn stopped this one: nothing more to say.
@@ -452,9 +483,10 @@ const replyStep = internalAction({
         key,
         userId,
         done: true,
+        ...(hangUp && !stop.signal.aborted ? { hangUp: true } : {}),
       })
       if (text.trim() && !stop.signal.aborted) {
-        // Saved even when speaking fails, with how long the reply took.
+        // Saved even when speaking fails, with how long each part took.
         await ctx.runMutation(internal.api.calls.addLine, {
           callId,
           projectId: turn.projectId,
@@ -462,6 +494,8 @@ const replyStep = internalAction({
           who: 'them',
           text,
           ms: Date.now() - turn.startedAt,
+          heardMs,
+          textMs,
           firstMs,
         })
       }
@@ -538,11 +572,13 @@ const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
     heard?: string
     piece?: { text: string; url: string; storageId: Id<'_storage'> }
     done?: boolean
+    hangUp?: boolean
   }) =>
     ctx.runMutation(internal.api.calls.updateLive, { key, userId, ...update })
   let pending: Array<Uint8Array> = []
   let pendingBytes = 0
   let saidChars = 0
+  let heardMs: number | undefined
   let firstMs: number | undefined
   let speaking = Promise.resolve()
   const flush = (transcript: string) => {
@@ -582,7 +618,10 @@ const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
       voice: fast.audioVoice,
       language: fast.language as Language | undefined,
       cutOff: fast.interrupted,
-      onHeard: (text) => live({ heard: text }),
+      onHeard: (text) => {
+        heardMs = Date.now() - fast.startedAt
+        return live({ heard: text })
+      },
       onAudio: (pcm, transcript) => {
         pending.push(pcm)
         pendingBytes += pcm.length
@@ -596,7 +635,13 @@ const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
     await speaking
   } finally {
     await speaking.catch(() => undefined)
-    await live({ done: true })
+    // Fast voice has no Jev: it hangs up when the reply says goodbye.
+    await live({
+      done: true,
+      ...(spoken?.heard && saidGoodbye(spoken.reply.trim())
+        ? { hangUp: true }
+        : {}),
+    })
   }
   if (!spoken.heard) return
   await ctx.runMutation(internal.api.voice.save, {
@@ -622,6 +667,7 @@ const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
       who: 'them',
       text: spoken.reply,
       ms: Date.now() - fast.startedAt,
+      heardMs,
       firstMs,
     })
   }
@@ -683,11 +729,10 @@ export const callsApi = {
   answer,
   startTurn,
   runTurn,
-  hearStep,
+  turnStep,
   heard,
   setTurn,
   isCurrent,
-  replyStep,
   fastStep,
   turnFinished,
 }
