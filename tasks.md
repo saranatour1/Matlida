@@ -113,3 +113,5 @@
 - [x] A ring shows in the tab title, and as a system notification when you're on another tab
 - [x] Her voice through speakers no longer counts as you talking: while she talks, the mic must beat half of how loud she plays (`ECHO_RATIO`)
 - [ ] Tune `ECHO_RATIO` from real calls on speakers; fewer "already has generation number" warnings in the logs means fewer cut-off replies
+- [x] Features map (`docs/skills/features/features.md`) and the `features` skill that keeps it in step with master
+- [x] Convex page (`docs/skills/convex/convex.md`) and the `matilda-convex` skill: confirming Convex work, what each component does, and every AI gateway model
