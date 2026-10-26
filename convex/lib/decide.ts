@@ -432,14 +432,16 @@ export const shouldCallNow = async (
 export const OPEN_CALL =
   'The user called their own assistant to talk. There is no set purpose: the call is over only when the user says they are done or says goodbye.'
 
-/** Whether a reply ends the call by itself, the way every call's instructions ask it to. */
-export const saidGoodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
+/** The word a call's instructions end it with, and the one `saidGoodbye` listens for. */
+export const GOODBYE_WORD = 'Goodbye'
+
+export const saidGoodbye = (text: string) =>
+  new RegExp(`${GOODBYE_WORD}[.!]*\\s*$`, 'i').test(text)
 
 /**
  * Whether a call should end once the assistant has answered the last thing
- * said. Asked as soon as it's heard, so the answer is in before the reply is.
- * In `conversation`, `user` is the person on the other end. The call hangs up
- * at `JEV_THRESHOLDS.hangUp`.
+ * said. In `conversation`, `user` is the person on the other end. The call
+ * hangs up at `JEV_THRESHOLDS.hangUp`.
  */
 export const callIsOver = async (
   model: Experimental_DecisionModel,
@@ -463,9 +465,7 @@ export const callIsOver = async (
 
 /**
  * Whether the assistant can answer the last thing said on a call right away,
- * with no tools: GPT-Live's delegation, where small talk gets a quick answer
- * and the rest goes to the assistant. A quick answer at
- * `JEV_THRESHOLDS.quickReply`.
+ * with no tools. A quick answer at `JEV_THRESHOLDS.quickReply`.
  */
 export const needsNoTools = async (
   model: Experimental_DecisionModel,

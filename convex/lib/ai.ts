@@ -33,6 +33,5 @@ export const speechModel = convexGateway.speechModel(MODELS.speech)
 export const decisionModel: Experimental_DecisionModel =
   convexGateway.evaluationModel(MODELS.decide)
 
-/** OpenAI's Decisions model, through the same endpoint, for the decisions a call makes while it runs. */
 export const callDecisionModel: Experimental_DecisionModel =
   convexGateway.evaluationModel(MODELS.callDecide)

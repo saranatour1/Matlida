@@ -13,7 +13,12 @@ import {
 import { speechModel } from '../../lib/ai'
 import { metered } from '../../lib/budget'
 import { AUDIO_VOICES, PCM_RATE, pcmToWav } from '../../lib/audio'
-import { JEV_THRESHOLDS, OPEN_CALL, saidGoodbye } from '../../lib/decide'
+import {
+  GOODBYE_WORD,
+  JEV_THRESHOLDS,
+  OPEN_CALL,
+  saidGoodbye,
+} from '../../lib/decide'
 import { zAuthedAction, zAuthedMutation } from '../../lib/functions'
 import { workflow } from '../../lib/workflow'
 import { LANGUAGES, MODELS, VOICES, voiceFor } from '../../lib/models'
@@ -69,7 +74,6 @@ const forget = internalMutation({
   },
 })
 
-/** Reads `text` out in `spokenBy`, a Kokoro voice. */
 const synthesize = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
@@ -92,7 +96,6 @@ const synthesize = async (
   return audio
 }
 
-/** Spoken audio, stored for the browser to play. */
 const store = async (
   ctx: ActionCtx,
   audio: Awaited<ReturnType<typeof synthesize>>,
@@ -103,22 +106,17 @@ const store = async (
   return { storageId, url: (await ctx.storage.getUrl(storageId)) ?? '' }
 }
 
-/** Reads `text` out in `spokenBy`, a Kokoro voice, and stores it. */
-const voice = async (
-  ctx: ActionCtx,
-  userId: Id<'users'>,
-  text: string,
-  spokenBy: (typeof VOICES)[number],
-) => await store(ctx, await synthesize(ctx, userId, text, spokenBy))
-
-/** `voice`, deleted after 10 minutes. Returns its URL. */
+/** Speech for `text`, stored and deleted after 10 minutes. Returns its URL. */
 const speak = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
   text: string,
   name: string,
 ) => {
-  const { storageId, url } = await voice(ctx, userId, text, voiceFor(name))
+  const { storageId, url } = await store(
+    ctx,
+    await synthesize(ctx, userId, text, voiceFor(name)),
+  )
   await ctx.scheduler.runAfter(AUDIO_TTL_MS, internal.api.calls.forget, {
     storageId,
   })
@@ -226,12 +224,6 @@ const startTurn = zAuthedMutation({
   },
 })
 
-/**
- * A call turn: hear what you said and answer it out loud, in one step so the
- * reply starts without waiting on another. Fast voice does both in one model
- * call. No step is retried: a turn answered again seconds later would be out
- * of place on a call.
- */
 const runTurn = workflow
   .define({ args: turnArgs })
   .handler(async (step, turn): Promise<void> => {
@@ -249,7 +241,7 @@ const hearTurn = async (
 ): Promise<{
   promptMessageId: string
   command?: string
-  name: string
+  speaker: string
 } | null> => {
   const heard = await transcribeClip(
     ctx,
@@ -298,8 +290,7 @@ const heard = internalMutation({
   returns: v.object({
     promptMessageId: v.string(),
     command: v.optional(v.string()),
-    /** Who answers, for the voice they speak in. */
-    name: v.string(),
+    speaker: v.string(),
   }),
   handler: async (ctx, turn) => {
     const who = turn.botId
@@ -336,7 +327,7 @@ const heard = internalMutation({
     return {
       promptMessageId: posted.promptMessageId,
       command: posted.command,
-      name: who?.name ?? '',
+      speaker: who?.name ?? '',
     }
   },
 })
@@ -373,21 +364,10 @@ const isCurrent = internalQuery({
     (await ctx.db.get('calls', callId))?.turn?.key === key,
 })
 
-/** Said when the call is judged done and the reply didn't say goodbye itself. */
-const GOODBYE = 'Talk soon. Goodbye.'
-/** Said when the assistant hasn't started its answer by `FILLER_AFTER_MS`. */
+const GOODBYE = `Talk soon. ${GOODBYE_WORD}.`
 const FILLER = 'One moment.'
 const FILLER_AFTER_MS = 1500
 
-/**
- * Hears the turn, then the chat's assistant answers it as it would in the
- * chat, but written to be spoken, a piece at a time as it streams, into the
- * live turn the browser plays from. Each piece is voiced as soon as it's
- * written and played in order. Before each piece it checks the turn is still
- * the call's, and stops the reply when you've moved on. While it answers,
- * Jev reads whether the call is done, and a reply that ends the call tells
- * the browser to hang up once it has played.
- */
 const turnStep = internalAction({
   args: turnArgs,
   returns: v.null(),
@@ -399,18 +379,14 @@ const turnStep = internalAction({
     const conversation = await ctx.runQuery(internal.api.calls.conversation, {
       callId,
     })
-    // Asked now, from what you just said, so the answer is in before the reply is.
     const judging = hangUpScore(ctx, userId, {
       about: OPEN_CALL,
       conversation,
     })
-    // GPT-Live's delegation: what needs no tools gets a quick answer, the
-    // rest goes to the assistant. A command always goes to the assistant.
     const quickness = said.command
       ? 0
       : await quickScore(ctx, userId, conversation)
     const quick = quickness >= JEV_THRESHOLDS.quickReply
-    // Kept off the reply's path: awaited once the turn is done.
     const routed = ctx.runMutation(internal.api.judgments.record, {
       userId,
       kind: 'voice_route',
@@ -434,12 +410,10 @@ const turnStep = internalAction({
     let textMs: number | undefined
     let firstMs: number | undefined
     let speaking = Promise.resolve()
-    /** `filler` is "One moment.", which doesn't count as the reply's first words. */
     const say = (piece: string, name: string, filler = false) => {
       const text = piece.slice(0, MAX_SPOKEN - spoken)
       if (!text || stop.signal.aborted) return
       if (!filler) spoken += text.length
-      // Voiced right away, alongside the pieces before it, then stored and played in order.
       const audio = synthesize(ctx, userId, text, turn.voice ?? voiceFor(name))
       audio.catch(() => undefined)
       speaking = speaking.then(async () => {
@@ -471,11 +445,10 @@ const turnStep = internalAction({
     }
     let text = ''
     let hangUp = false
-    // The assistant can take a while with its tools: say so, as GPT-Live does.
     const holding = quick
       ? undefined
       : setTimeout(() => {
-          if (spoken === 0) say(FILLER, said.name, true)
+          if (spoken === 0) say(FILLER, said.speaker, true)
         }, FILLER_AFTER_MS)
     try {
       const reply = await runReply(ctx, {
@@ -512,8 +485,8 @@ const turnStep = internalAction({
       const over = (await judging) >= JEV_THRESHOLDS.hangUp
       if (text.trim() && !stop.signal.aborted) {
         hangUp = goodbye || over
-        // The goodbye is in English, so other languages end on the reply.
-        if (over && !goodbye && (turn.language ?? 'en') === 'en') {
+        const english = (turn.language ?? 'en') === 'en'
+        if (over && !goodbye && english) {
           say(GOODBYE, name)
           text = `${text.trim()} ${GOODBYE}`
         }
@@ -541,7 +514,6 @@ const turnStep = internalAction({
         ...(hangUp && !stop.signal.aborted ? { hangUp: true } : {}),
       })
       if (text.trim() && !stop.signal.aborted) {
-        // Saved even when speaking fails, with how long each part took.
         await ctx.runMutation(internal.api.calls.addLine, {
           callId,
           projectId: turn.projectId,
@@ -690,7 +662,6 @@ const fastTurn = async (ctx: ActionCtx, fast: TurnArgs) => {
     await speaking
   } finally {
     await speaking.catch(() => undefined)
-    // Fast voice has no Jev: it hangs up when the reply says goodbye.
     await live({
       done: true,
       ...(spoken?.heard && saidGoodbye(spoken.reply.trim())

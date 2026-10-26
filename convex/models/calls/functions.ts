@@ -132,7 +132,6 @@ const transcript = authedQuery({
   },
 })
 
-/** One call decision from OpenAI's Decisions model, 0 to 1, charged to `userId`. 0 when it fails. */
 const callDecision = async (
   ctx: ActionCtx,
   userId: Id<'users'>,
@@ -177,7 +176,6 @@ export const quickScore = (
     return { score: judged.quick, cost: judged.cost }
   })
 
-/** A call's last 30 lines, oldest first, as Jev reads them: `user` is whoever's on the other end. */
 const conversation = internalQuery({
   args: { callId: v.id('calls') },
   returns: v.array(
