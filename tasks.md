@@ -114,3 +114,11 @@
 - [x] A ring shows in the tab title, and as a system notification when you're on another tab
 - [x] Her voice through speakers no longer counts as you talking: while she talks, the mic must beat half of how loud she plays (`ECHO_RATIO`)
 - [ ] Tune `ECHO_RATIO` from real calls on speakers; fewer "already has generation number" warnings in the logs means fewer cut-off replies
+- [x] Features map (`docs/skills/features/features.md`) and the `features` skill that keeps it in step with master
+- [x] Convex page (`docs/skills/convex/convex.md`) and the `matilda-convex` skill: confirming Convex work, what each component does, and every AI gateway model
+- [x] Call replies: one step per turn, speech generated in parallel, upload URL fetched ahead, pieces preloaded, and stage timings on each reply line
+- [x] In-app calls hang up after a goodbye or when Jev says they're done; phone calls ask Jev while the reply is generated
+- [ ] In-app voice chat on GPT-Live (full duplex, Decisions while you talk); needs an OpenAI API key
+- [ ] Tune `END_SILENCE_MS` and `JEV_THRESHOLDS.hangUp` from the new timings and `hang_up` judgments
+- [x] Call decisions (hang-up, quick answer or assistant) on OpenAI's `gpt-6-luna-decisions` through the gateway; small talk answered by Claude Haiku 5.5 with no tools
+- [ ] Measure the routing decision's latency on real calls, and run it alongside the reply if it's slow

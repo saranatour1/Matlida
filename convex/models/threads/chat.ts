@@ -281,6 +281,7 @@ export const runReply = async (
     via,
     cutOff,
     language,
+    quick,
     onText,
     abortSignal,
   }: {
@@ -294,6 +295,8 @@ export const runReply = async (
     cutOff?: boolean
     /** On a call: the language to speak. */
     language?: Language
+    /** On a call: a turn that needs no tools, answered by the quick model. */
+    quick?: boolean
     /** Each piece of the reply's text as it streams, with who is replying. */
     onText?: (
       delta: string,
@@ -333,6 +336,9 @@ export const runReply = async (
     cutOff,
     language,
     command: command && markdown ? { name: command.name, markdown } : undefined,
+    ...(quick
+      ? { model: MODELS.quickVoice, effort: 'low' as const, tools: false }
+      : {}),
   })
   const started = Date.now()
   let text: string

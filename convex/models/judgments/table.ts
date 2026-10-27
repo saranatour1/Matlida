@@ -9,7 +9,16 @@ import { v } from 'convex/values'
  */
 export const judgmentsTable = defineTable({
   userId: v.id('users'),
-  kind: literals('after_missed_call', 'recurring', 'check_in', 'answer'),
+  kind: literals(
+    'after_missed_call',
+    'recurring',
+    'check_in',
+    'answer',
+    'hang_up',
+    'voice_route',
+  ),
+  /** The decision model that answered, when it isn't Jev. */
+  model: v.optional(v.string()),
   /** Jev's probabilities, by question or option. */
   scores: v.record(v.string(), v.number()),
   /** The option Jev picked, for a choice. */

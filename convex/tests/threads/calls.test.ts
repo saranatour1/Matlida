@@ -9,6 +9,7 @@ import schema from '../../schema'
 import { modules } from '../../test.setup'
 import type { FunctionArgs } from 'convex/server'
 import type * as Ai from 'ai'
+import type * as Decide from '../../lib/decide'
 import type { Id } from '../../lib/ctx'
 
 vi.mock('../../lib/budget', () => import('../../test.budget'))
@@ -20,10 +21,20 @@ vi.mock('../../lib/ai', async () => {
     }),
     transcriptionModel: {},
     speechModel: {},
+    decisionModel: {},
+    callDecisionModel: {},
   }
 })
 
 const heard = vi.hoisted(() => ({ text: 'Hello Matilda' }))
+const decisions = vi.hoisted(() => ({ over: 0, quick: 0 }))
+vi.mock('../../lib/decide', async (original) => ({
+  ...(await original<typeof Decide>()),
+  callIsOver: vi.fn(() => Promise.resolve({ over: decisions.over, cost: 0 })),
+  needsNoTools: vi.fn(() =>
+    Promise.resolve({ quick: decisions.quick, cost: 0 }),
+  ),
+}))
 vi.mock('ai', async (original) => ({
   ...(await original<typeof Ai>()),
   transcribe: vi.fn(() =>
@@ -138,6 +149,133 @@ test('a call turn saves what you said and the reply, and returns it spoken', asy
   expect(page.map((m) => m.text).sort()).toEqual([
     'Hello Matilda',
     'Sure, talk soon. Bye for now.',
+  ])
+})
+
+test('a turn records how long hearing, the first text and the first words took', async () => {
+  heard.text = 'Hello Matilda'
+  decisions.over = 0
+  const { asAda, projectId, clip, talk } = await setup()
+  const result = await talk(asAda, { projectId, storageId: await clip() })
+  const [, reply] = await asAda.query(api.api.calls.transcript, {
+    id: result.callId,
+  })
+  expect(reply).toMatchObject({
+    who: 'them',
+    heardMs: expect.any(Number),
+    textMs: expect.any(Number),
+    firstMs: expect.any(Number),
+    ms: expect.any(Number),
+  })
+  const { heardMs = 0, textMs = 0, firstMs = 0, ms = 0 } = reply
+  expect(heardMs).toBeLessThanOrEqual(textMs)
+  expect(textMs).toBeLessThanOrEqual(firstMs)
+  expect(firstMs).toBeLessThanOrEqual(ms)
+})
+
+test('when the call is judged done, she says goodbye and the call hangs up after it', async () => {
+  heard.text = "That's all, thanks"
+  decisions.over = 0.9
+  vi.mocked(generateSpeech).mockClear()
+  const { t, asAda, projectId, clip, talk } = await setup()
+  const result = await talk(asAda, { projectId, storageId: await clip() })
+  decisions.over = 0
+
+  expect(
+    await asAda.query(api.api.calls.live, { key: result.liveKey }),
+  ).toMatchObject({
+    done: true,
+    hangUp: true,
+    pieces: [
+      { text: 'Sure, talk soon.' },
+      { text: 'Bye for now.' },
+      { text: 'Talk soon. Goodbye.' },
+    ],
+  })
+  const lines = await asAda.query(api.api.calls.transcript, {
+    id: result.callId,
+  })
+  expect(lines.at(-1)?.text).toBe(
+    'Sure, talk soon. Bye for now. Talk soon. Goodbye.',
+  )
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'hang_up'))
+        .take(10),
+    ),
+  ).toMatchObject([
+    {
+      kind: 'hang_up',
+      model: 'openai/gpt-6-luna-decisions',
+      scores: { over: 0.9 },
+      outcome: 'hung_up',
+    },
+  ])
+})
+
+test('the call goes on while it isn’t judged done', async () => {
+  heard.text = 'What else is on today?'
+  decisions.over = 0.2
+  const { t, asAda, projectId, clip, talk } = await setup()
+  const result = await talk(asAda, { projectId, storageId: await clip() })
+  decisions.over = 0
+
+  const live = await asAda.query(api.api.calls.live, { key: result.liveKey })
+  expect(live?.hangUp).toBeUndefined()
+  expect(live?.pieces.map((p) => p.text)).toEqual([
+    'Sure, talk soon.',
+    'Bye for now.',
+  ])
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'hang_up'))
+        .take(10),
+    ),
+  ).toMatchObject([{ kind: 'hang_up', outcome: 'kept_talking' }])
+})
+
+test('what needs no tools gets a quick answer, and the rest goes to the assistant', async () => {
+  const { t, asAda, projectId, clip, talk } = await setup()
+  heard.text = 'How are you?'
+  decisions.quick = 0.95
+  const small = await talk(asAda, { projectId, storageId: await clip() })
+  heard.text = 'What is on my calendar tomorrow?'
+  decisions.quick = 0.3
+  await talk(asAda, {
+    projectId,
+    storageId: await clip(),
+    callId: small.callId,
+  })
+  decisions.quick = 0
+
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query('judgments')
+        .withIndex('by_kind', (q) => q.eq('kind', 'voice_route'))
+        .take(10),
+    ),
+  ).toMatchObject([
+    { scores: { quick: 0.95 }, outcome: 'quick' },
+    { scores: { quick: 0.3 }, outcome: 'assistant' },
+  ])
+  const lines = await asAda.query(api.api.calls.transcript, {
+    id: small.callId,
+  })
+  expect(lines.map((l) => l.who)).toEqual(['you', 'them', 'you', 'them'])
+  const usage = await t.run((ctx) =>
+    ctx.db
+      .query('usage')
+      .withIndex('by_thread', (q) => q.eq('threadId', small.threadId))
+      .take(50),
+  )
+  expect(usage.filter((u) => u.kind === 'reply').map((u) => u.model)).toEqual([
+    'anthropic/claude-haiku-5.5',
+    'anthropic/claude-sonnet-5',
   ])
 })
 
@@ -342,7 +480,7 @@ test('a call keeps every line from its first turn, for you only', async () => {
   expect(text).toContain('Call with Matilda')
   expect(text).toMatch(/\] You: Hello Matilda/)
   expect(text).toMatch(
-    /\] Matilda, first words in \d+\.\d s, all of it in \d+\.\d s: Sure, talk soon\./,
+    /\] Matilda, heard in \d+\.\d s, first text in \d+\.\d s, first words in \d+\.\d s, all of it in \d+\.\d s: Sure, talk soon\./,
   )
 
   await expect(

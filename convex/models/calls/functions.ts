@@ -3,7 +3,11 @@ import { ConvexError, v } from 'convex/values'
 import { components, internal } from '../../_generated/api'
 import { internalMutation, internalQuery } from '../../_generated/server'
 import schema from '../../schema'
+import { callDecisionModel } from '../../lib/ai'
+import { metered } from '../../lib/budget'
+import { callIsOver, needsNoTools } from '../../lib/decide'
 import { authedMutation, authedQuery } from '../../lib/functions'
+import { MODELS } from '../../lib/models'
 import { maskNumber } from '../../lib/phone'
 import { formatTranscript } from '../../lib/transcript'
 import { getOwnedProject } from '../projects/queries'
@@ -11,7 +15,9 @@ import { zoned } from '../../lib/time'
 import { callLinesTable, liveTurnsTable, phoneStatus } from './table'
 import { getOwnedCall, linesOf } from './queries'
 import type { ObjectType } from 'convex/values'
-import type { Doc, MutationCtx } from '../../lib/ctx'
+import type { Turn } from '../../lib/decide'
+import type { Experimental_DecisionModel } from 'ai'
+import type { ActionCtx, Doc, Id, MutationCtx } from '../../lib/ctx'
 
 /** Longer lines stay whole in the chat but are cut in the call's transcript. */
 const MAX_LINE = 4000
@@ -21,7 +27,14 @@ const lineArgs = {
   projectId: v.id('projects'),
   botId: v.optional(v.id('bots')),
   threadId: v.string(),
-  ...callLinesTable.validator.pick('who', 'text', 'ms', 'firstMs').fields,
+  ...callLinesTable.validator.pick(
+    'who',
+    'text',
+    'ms',
+    'firstMs',
+    'heardMs',
+    'textMs',
+  ).fields,
   /** You talked over the call's last reply before saying this. */
   afterCutOff: v.optional(v.boolean()),
 }
@@ -119,6 +132,67 @@ const transcript = authedQuery({
   },
 })
 
+const callDecision = async (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  ask: (
+    model: Experimental_DecisionModel,
+  ) => Promise<{ score: number; cost: number }>,
+) => {
+  try {
+    return await metered(
+      ctx,
+      { userId, model: MODELS.callDecide, estimate: 0.005 },
+      async () => {
+        const { score, cost } = await ask(callDecisionModel)
+        return { result: score, cost }
+      },
+    )
+  } catch (error) {
+    console.error(error)
+    return 0
+  }
+}
+
+/** Whether a call ends once the assistant has answered the last thing said. 0 on failure, so the call goes on. */
+export const hangUpScore = (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  call: { about: string; conversation: Array<Turn> },
+) =>
+  callDecision(ctx, userId, async (model) => {
+    const judged = await callIsOver(model, call)
+    return { score: judged.over, cost: judged.cost }
+  })
+
+/** Whether a quick answer with no tools will do for the last thing said. 0 on failure, so the assistant answers. */
+export const quickScore = (
+  ctx: ActionCtx,
+  userId: Id<'users'>,
+  conversation: Array<Turn>,
+) =>
+  callDecision(ctx, userId, async (model) => {
+    const judged = await needsNoTools(model, { conversation })
+    return { score: judged.quick, cost: judged.cost }
+  })
+
+const conversation = internalQuery({
+  args: { callId: v.id('calls') },
+  returns: v.array(
+    v.object({
+      role: v.union(v.literal('user'), v.literal('assistant')),
+      text: v.string(),
+    }),
+  ),
+  handler: async (ctx, { callId }) => {
+    const lines = await linesOf(ctx, callId).order('desc').take(30)
+    return lines.reverse().map((line) => ({
+      role: line.who === 'you' ? ('user' as const) : ('assistant' as const),
+      text: line.text,
+    }))
+  },
+})
+
 /**
  * A call's transcript as plain text, with timings: the most recent call, or
  * `id`. For the CLI: `npx convex run api/calls:dump`.
@@ -152,12 +226,21 @@ const liveArgs = {
   piece: v.optional(liveTurnsTable.validator.fields.pieces.element),
   done: v.optional(v.boolean()),
   error: v.optional(v.string()),
+  hangUp: v.optional(v.boolean()),
 }
 
 /** `updateLive`, inside another mutation. */
 export const updateLiveTurn = async (
   ctx: MutationCtx,
-  { key, userId, heard, piece, done, error }: ObjectType<typeof liveArgs>,
+  {
+    key,
+    userId,
+    heard,
+    piece,
+    done,
+    error,
+    hangUp,
+  }: ObjectType<typeof liveArgs>,
 ) => {
   const turn = await ctx.db
     .query('liveTurns')
@@ -171,6 +254,7 @@ export const updateLiveTurn = async (
       pieces: piece ? [piece] : [],
       done: done ?? false,
       error,
+      hangUp,
     })
     return
   }
@@ -180,6 +264,7 @@ export const updateLiveTurn = async (
     ...(piece ? { pieces: [...turn.pieces, piece] } : {}),
     ...(done === undefined ? {} : { done }),
     ...(error === undefined ? {} : { error }),
+    ...(hangUp === undefined ? {} : { hangUp }),
   })
 }
 
@@ -375,6 +460,7 @@ export const callLogApi = {
   end,
   history,
   transcript,
+  conversation,
   dump,
   updateLive,
   live,

@@ -554,7 +554,6 @@
 - The fast check after a Telegram message ran every 3 seconds for 2 minutes, re-recording every message of the last 3 minutes each time: about 40 checks and 120 function calls per message. Now one query says which messages are new before anything is recorded, the check runs every 3 seconds for 30 seconds and then every 10, and a second message can't start a second loop: the row remembers the scheduled run and checks it's still pending.
 - It was never endless: the window ends 2 minutes after the last message, and dev's logs showed it stopping on time.
 
-
 ### No call button in the chat header (2026-10-22)
 
 - The phone button at the top right of a chat is gone, with the `onCall` prop that fed it. Calls still start from the voice bar in the prompt and from incoming calls.
@@ -665,6 +664,7 @@ Not done (finding #6): every email sent still looks up both Photon users first, 
 ### Texts: a replaced turn doesn't pay (2026-10-22)
 
 From the Photon review (finding #5). In collapse mode a newer text replaces the turn before it, but `respond` only checked that after the model had answered, so a replaced turn still paid for its reply and saved it in the chat. It now checks before calling the model too. A text that lands in the few seconds while the model is already running still pays for that reply. Stopping mid-way needs a timer that checks during generation, and that's left until costs show it's worth it (`ponytail` note in `respond`).
+
 - New test: a second text that lands while the first reply is queued means one model call and one reply. It fails without the check.
 - Verified with pnpm check and the tests (224), and pushed to dev.
 
@@ -791,6 +791,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
   - Calls in the app: where the Talk button is, and the microphone prompt.
   - Phone calls: that their account has to be added to the `phone-calls` flag in Cloudflare Flagship first, with their user id to copy and send on, then how to ask, and Contacts → Call. Matilda's refusal says the same and points to `/setup phone`.
 - The card reads the live state (channel status, your address, pending codes), so it updates as you go, and says what the deployment still needs when a channel isn't set up.
+
 ### Contacts page (2026-10-23)
 
 - A Contacts page (command menu → Contacts) lists the people the assistants can reach: name, email, phone and a note, in a table. You add, edit and delete them there; the assistants still add people too when you give details in a chat (`save_contact`). Names stay unique in a workspace, since assistants find people by name (`contacts.put`, validated with zod: a real email, a phone in international format).
@@ -801,6 +802,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 ### Calls answer at low effort (2026-10-23)
 
 - On prod on 2026-10-23, each in-app call reply took 5 to 10.5 s before its first words: the model reasoned at the chat's effort before saying anything. Replies on a call (`via: 'voice'`) now always run at low effort (little reasoning, at most 4 tool steps), whatever the chat is set to (`createAgent` in `lead.ts`). Typed chats keep their effort.
+
 ### Call turns run as workflows, one at a time (2026-10-23)
 
 - An in-app call turn is now a Convex workflow (`runTurn` in `convex/models/threads/calls.ts`): `hearStep` transcribes and saves, then `replyStep` answers out loud a piece at a time. Fast voice does both in `fastStep`. No step is retried, since a turn answered again seconds later would be out of place.
@@ -809,6 +811,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - However a turn's workflow ends, `turnFinished` closes its live turn (with an error the browser shows, if it failed), so the browser never waits on a turn that died.
 - The heard turn's saves (chat message, call line, usage, live turn, status) are one mutation instead of four round trips.
 - Tested: the call and voice tests (12), including a new turn cancelling a running one so only one is answered.
+
 ### Login tokens last 15 minutes (2026-10-23)
 
 - Convex Auth v2's login tokens lasted 60 seconds, so every open tab refreshed its session about every 51 s, and each refresh re-ran every open query (chats, bots, reminders, commands), during calls too. They now last 15 minutes (`accessTokenTtlSeconds` in `convex/models/users/auth.ts`). Refresh tokens still last 30 days. A signed-out session can keep working until its token runs out, which is why it isn't longer.
@@ -852,6 +855,7 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Tested: `src/tests/snapshots.test.ts` covers keys per user, 401 for a missing or forged token, never storing the request body, and 400 for a bad name or args. On a local backend with a test account, the second visit got the projects list back from KV. But the local backend answered at about the same time (live data 399–446ms, snapshots 386–477ms), so the speedup still needs measuring against the cloud deployment.
 - Refreshes are throttled: an entry re-runs its query on Convex only when it is missing or its `refreshedAt` (KV metadata) is over 5 minutes old (`REFRESH_EVERY_MS`). Each refresh writes once, even when nothing changed, to stamp the time, so an entry costs at most one Convex query and one KV write per 5 minutes. A snapshot can be up to 5 minutes old, which the live query replaces right away.
 - **Write conflict.** `api/plans:addItems` retried on `plans` when the model called `add_to_list` several times in one step, because every call rewrites the same list. The tool now queues its calls within a reply. A workpool didn't fit, because the chat card needs the list id straight away. Two replies at once can still race and rely on Convex retrying. Tested: a test that fails without the queue (3 calls overlapped) and passes with it.
+
 ### Phone calls read Flagship's `no-calls` flag (2026-10-23)
 
 - Prod's Flagship has `no-calls` (on by default, served off for the users who may call), not the `phone-calls` the app asked for, so calls were refused for everyone. The app now reads `no-calls` the other way round: calls are on for a user when it's off for them (`FLAGS.phoneCalls` in `convex/lib/flags.ts`).
@@ -873,3 +877,30 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **React runtime swapped for Redact 0.1.5** (`redact()` in `vite.config.ts`). App code still imports `react`; the plugin aliases it in the client and SSR builds. Pinned to 0.1.5 because 0.2.0 is inside pnpm's minimum release age, and 0.2.0's Cloudflare wrapper would also need `@cloudflare/vite-plugin` pinned to exactly 1.65.0.
 - **Size.** Entry chunk 360 → 152 KB (110 → 46 KB gzip, −58%). All client JS 2.47 → 2.28 MB (751 → 704 KB gzip, −6%). Worker bundle 6.25 → 5.88 MB. The big lazy chunks (markdown editor, charts) don't change.
 - Tested: `pnpm lint` and `vitest run` pass, production build passes. On `vite dev`, the landing page server-renders and hydrates with no console errors, and client navigation to `/sign-in` works. Signed-in pages (chat, editor, charts, calls) weren't tried.
+### Features map (2026-10-26)
+
+- `docs/skills/features/features.md` maps each feature to its folders, its entry points as `file:symbol`, and the last merged PR that changed it, with when that PR's last commit was made and when it merged. It also says what each folder holds, and where README's "What's next" items would land. It's mapped through #171.
+- The `features` skill (`.claude/skills/features/`) says how to use the map and how to update it after a merge. A PR goes in only once it's merged on master and `pnpm check` passes there. The update steps use plain `git log`, `gh pr view` and `grep`, with no script.
+- Checked when written: every path and `file:symbol` on the map exists, every feature file belongs to a section, and each `Last PR:` is the newest merged PR touching its section's paths.
+
+### Convex page (2026-10-26)
+
+- `docs/skills/convex/convex.md` covers three things. First, how to confirm Convex work, in order: which deployment, `pnpm check`, `pnpm test` with mocked models, what dev runs (`function-spec`), logs, insights and data, then the browser. Second, what each of the 14 installed components does in Matilda and where it's used. Third, every model reached through the Convex AI gateway, by job and in the model menu, with how calls are authenticated and metered.
+- The `matilda-convex` skill (`.claude/skills/matilda-convex/`) points at it. It lists the `grep` commands that compare the page with `convex.config.ts` and `models.ts`, and the steps before calling Convex work done. When written, the page matched both files, every `file:symbol` resolved, and `pnpm check` and all 257 tests passed.
+
+### Faster call replies, and calls that hang up when they're done (2026-10-26)
+
+- **Where the time went.** In the last ten in-app turns on dev, the first words came 1.6–2.5 s after the turn reached Convex, and the whole reply took 2.5–5.5 s. On top of that, the browser waits `END_SILENCE_MS` (1.2 s) of quiet before it sends your turn. Each reply line now also records `heardMs` (transcribed) and `textMs` (first reply text), next to `firstMs` and `ms`, and `api/calls:dump` prints all four. The next real calls will show which stage to cut.
+- **Fewer waits per turn.** Hearing and replying run in one workflow step (`turnStep`), so the reply no longer waits for a second action to start. Each spoken piece's speech is generated as soon as its text is written, instead of after the piece before it is stored, and the pieces are still stored and played in order. The browser fetches the next upload URL ahead of time, so sending a turn takes one request instead of two (with a fresh URL if the early one has expired). It also starts loading each piece's audio as soon as it arrives, so pieces play without a gap.
+- **In-app calls hang up.** A voice reply that ends with "Goodbye." closes the call once it has played. Voice replies are told to say it when you're done. As soon as your turn is transcribed, Jev (`callIsOver`, with `OPEN_CALL` as the purpose) reads whether the call is done, alongside the reply. At `JEV_THRESHOLDS.hangUp`, a reply that didn't say goodbye gets "Talk soon. Goodbye." added (in English only), and the call hangs up after it. Fast voice hangs up only on the model's own goodbye.
+- **Phone calls hang up sooner.** Jev now reads the call as soon as the person is transcribed, alongside the reply, instead of after it. Its goodbye is generated right away and queued behind the reply, instead of starting once the reply has finished playing.
+- Every hang-up answer is kept as a `hang_up` judgment: `said_goodbye`, `hung_up` or `kept_talking`. Check `pnpm exec convex run api/judgments:summary '{"kind":"hang_up"}'` before moving the threshold.
+- Tested: `pnpm check` and all 260 tests. New tests cover the stage timings in order, Jev ending an in-app call (goodbye added, `hangUp` set, judgment kept), and Jev keeping a call going. The phone call loop has no unit test (it needs SIP), and no call was placed, so the browser's hang-up and preloading, and the real speedup, are unverified until the next real calls.
+
+### Calls decide with OpenAI's Decisions model, and delegate like GPT-Live (2026-10-26)
+
+- GPT-Live, from OpenAI's "Connect voice to Decisions" guide, isn't on the Convex AI gateway: the gateway has no live two-way audio sessions. It does serve OpenAI's Decisions model, `openai/gpt-6-luna-decisions`, on the same Decisions endpoint as Jev. So this PR rebuilds the guide's two ideas on the gateway, with no OpenAI key.
+- **Call decisions on OpenAI's model.** `MODELS.callDecide` (`callDecisionModel` in `lib/ai.ts`) now answers the hang-up question on in-app and phone calls, in place of Jev. Each `hang_up` judgment records the `model`, so the two can be compared in `judgments`.
+- **Delegation.** As soon as an in-app turn is heard, `needsNoTools` asks whether the assistant can answer from the conversation alone. At `JEV_THRESHOLDS.quickReply` (0.8), `anthropic/claude-haiku-5.5` (`MODELS.quickVoice`) answers at low effort with no tools. Anything else goes to the assistant's own model with its tools, and a command always does. When the assistant hasn't started its answer after 1.5 s, it says "One moment." first. That line doesn't count as the reply's first words. Each pick is kept as a `voice_route` judgment. A failed decision sends the turn to the assistant.
+- Both new models are on the Models page (`JOBS`) and the Convex skill page.
+- Tested: `pnpm check` and all tests. A new test checks that a turn scored 0.95 is answered by Haiku and one scored 0.3 by the chat's model, and that both picks are kept. The model's answers through the gateway weren't checked: no local deployment was set up, and no call was placed. If the model fails, calls fall back safely: no hang-up from it, and every turn goes to the assistant. The routing question adds one decision call before every reply, so its latency needs measuring on real calls (`textMs` in `api/calls:dump`). "One moment." has no test.

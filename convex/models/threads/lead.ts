@@ -5,6 +5,7 @@ import { gatewayCost } from '../usage/functions'
 import { components, internal } from '../../_generated/api'
 import { withoutAttachments } from '../../lib/attachments'
 import { budgetedModel } from '../../lib/budget'
+import { GOODBYE_WORD } from '../../lib/decide'
 import { EFFORTS, LANGUAGES, MODELS } from '../../lib/models'
 import { zoned } from '../../lib/time'
 import { showsVia } from './everyday'
@@ -34,8 +35,7 @@ const STYLE: Record<Via, string> = {
   text: 'You are replying by text message: plain text with no markdown, a few sentences at most.',
   email:
     'You are drafting a reply to an email, which the user checks and sends: plain text with no markdown, short paragraphs, no subject line and no signature. Look up earlier emails with find_emails when they would help.',
-  voice:
-    'You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more.',
+  voice: `You are talking out loud on a call: plain spoken sentences with no markdown, lists, links or emoji, two or three sentences unless the user asks for more. When the user says goodbye or that they are done, answer with a short goodbye that ends with the word "${GOODBYE_WORD}." and the call hangs up after it. Never end with "${GOODBYE_WORD}." otherwise.`,
 }
 
 /** How this reply differs from a normal chat reply. */

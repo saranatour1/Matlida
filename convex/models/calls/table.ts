@@ -76,6 +76,9 @@ export const callLinesTable = defineTable({
   ms: v.optional(v.number()),
   /** For a reply: how long until its first words were ready to play. */
   firstMs: v.optional(v.number()),
+  /** For a reply: how long until what you said was transcribed, and until the reply's first text. */
+  heardMs: v.optional(v.number()),
+  textMs: v.optional(v.number()),
   /** For a reply: you talked over it before it finished. */
   cutOff: v.optional(v.boolean()),
 }).index('by_call', ['callId'])
@@ -100,4 +103,6 @@ export const liveTurnsTable = defineTable({
   done: v.boolean(),
   /** Why the turn failed, for the browser to show. */
   error: v.optional(v.string()),
+  /** The reply ends the call: the browser hangs up once it has played. */
+  hangUp: v.optional(v.boolean()),
 }).index('by_key', ['key'])
