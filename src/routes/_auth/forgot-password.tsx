@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useStartPasswordRecovery } from '@convex-dev/auth/methods/email-password/react'
-import { api } from '@convex/_generated/api'
 import type { FormState } from '~/lib/auth'
+import { api } from '~/lib/api'
 import { AuthPage, NoPasswords } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { Button } from '~/components/ui/button'
@@ -18,7 +18,7 @@ const backToSignIn = <Link to="/sign-in">Back to sign in</Link>
 
 function ForgotPassword() {
   const methods = useSignInMethods()
-  const { startPasswordRecovery } = useStartPasswordRecovery(api.api.auth)
+  const { startPasswordRecovery } = useStartPasswordRecovery(api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const parsed = forgotPasswordSchema.safeParse(Object.fromEntries(data))

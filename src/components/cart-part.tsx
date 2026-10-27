@@ -1,8 +1,8 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { MinusIcon, PlusIcon, ShoppingCartIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { money } from '~/lib/money'
@@ -36,9 +36,9 @@ export function CartPart({ part }: { part: CartToolPart }) {
  */
 function Cart() {
   const { projectId } = useParams({ strict: false })
-  const cart = useQuery(api.api.shopping.cart)
-  const setQuantity = useMutation(api.api.shopping.setQuantity)
-  const clearShop = useMutation(api.api.shopping.clearShop)
+  const cart = useQuery(api.shopping.cart)
+  const setQuantity = useMutation(api.shopping.setQuantity)
+  const clearShop = useMutation(api.shopping.clearShop)
   if (!cart) return null
   return (
     <section

@@ -1,9 +1,9 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { ListChecksIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { attempt } from '~/lib/attempt'
@@ -30,13 +30,13 @@ export function ChecklistPart({ part }: { part: ChecklistToolPart }) {
 
 function Checklist({ id }: { id: string }) {
   const { projectId } = useParams({ strict: false })
-  const plan = useQuery(api.api.plans.get, { id })
-  const toggle = useMutation(api.api.plans.toggleStep).withOptimisticUpdate(
+  const plan = useQuery(api.plans.get, { id })
+  const toggle = useMutation(api.plans.toggleStep).withOptimisticUpdate(
     (store, { index }) => {
-      const current = store.getQuery(api.api.plans.get, { id })
+      const current = store.getQuery(api.plans.get, { id })
       if (!current) return
       store.setQuery(
-        api.api.plans.get,
+        api.plans.get,
         { id },
         {
           ...current,
@@ -47,7 +47,7 @@ function Checklist({ id }: { id: string }) {
       )
     },
   )
-  const clearDone = useMutation(api.api.plans.clearDone)
+  const clearDone = useMutation(api.plans.clearDone)
   if (plan === undefined) return <CardSkeleton />
   if (plan === null) {
     return (

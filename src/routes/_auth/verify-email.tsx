@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useCompleteSignUp } from '@convex-dev/auth/methods/email-password/react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { AuthPage } from '~/components/auth-page'
 import { authErrorMessage, emailLinkSearch } from '~/lib/auth'
 
@@ -12,7 +12,7 @@ export const Route = createFileRoute('/_auth/verify-email')({
 
 function VerifyEmail() {
   const { code } = Route.useSearch()
-  const state = useCompleteSignUp(api.api.auth, { emailCode: code })
+  const state = useCompleteSignUp(api.auth, { emailCode: code })
 
   if (state.status === 'error') {
     return (

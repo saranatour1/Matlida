@@ -1,9 +1,9 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import { CHANNELS, STATUS_LABELS } from '@convex/lib/channels'
 import type { Channel, ChannelStatus } from '@convex/lib/channels'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { EmailAddress } from '~/components/email-address'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
@@ -32,14 +32,14 @@ const DOT: Record<ChannelStatus, string> = {
 }
 
 type Status = NonNullable<
-  ReturnType<typeof useQuery<typeof api.api.channels.list>>
+  ReturnType<typeof useQuery<typeof api.channels.list>>
 >[number]
 
 /** Every channel the app supports, and whether this workspace has it connected. */
 function Connections() {
   const project = useProject()
   const statuses = useQuery(
-    api.api.channels.list,
+    api.channels.list,
     project ? { projectId: project._id } : 'skip',
   )
   if (!project) {

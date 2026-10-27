@@ -15,10 +15,10 @@ import {
   TelescopeIcon,
   XIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { CHANNELS } from '@convex/lib/channels'
 import { MODELS, modelName } from '@convex/lib/models'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { encodeTemplate } from '~/lib/bot-template'
 import { errorMessage } from '~/lib/errors'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
@@ -134,8 +134,8 @@ function DetailsTab({
   project: Doc<'projects'>
   bot?: Doc<'bots'>
 }) {
-  const bots = useQuery(api.api.bots.list, { projectId: project._id })
-  const channels = useQuery(api.api.channels.list, { projectId: project._id })
+  const bots = useQuery(api.bots.list, { projectId: project._id })
+  const channels = useQuery(api.channels.list, { projectId: project._id })
   const others = (bots ?? []).filter((b) => b._id !== bot?._id)
   const memberIds = (bot ?? project).memberIds ?? []
   const members = others.filter((b) => memberIds.includes(b._id))
@@ -226,12 +226,12 @@ function LibraryTab({
   project: Doc<'projects'>
   threadId?: string
 }) {
-  const plans = useQuery(api.api.plans.list, { projectId: project._id })
+  const plans = useQuery(api.plans.list, { projectId: project._id })
   const tasks = useQuery(
-    api.api.tasks.forThread,
+    api.tasks.forThread,
     threadId ? { threadId } : 'skip',
   )
-  const reminders = useQuery(api.api.reminders.list, {
+  const reminders = useQuery(api.reminders.list, {
     projectId: project._id,
   })
   return (
@@ -304,10 +304,10 @@ function LibraryTab({
 
 function CostsTab({ threadId }: { threadId?: string }) {
   const usage = useQuery(
-    api.api.usage.forThread,
+    api.usage.forThread,
     threadId ? { threadId } : 'skip',
   )
-  const budget = useQuery(api.api.usage.budget, {})
+  const budget = useQuery(api.usage.budget, {})
   const rows = usage ?? []
   const aiCost = rows.reduce((sum, r) => sum + r.aiCost, 0)
   const tokens = rows.reduce(
@@ -434,7 +434,7 @@ function Connector({
 
 /** Copy a bot into this workspace, or share a link others can copy it from. */
 function ShareMenu({ bot }: { bot: Doc<'bots'> }) {
-  const duplicate = useMutation(api.api.bots.duplicate)
+  const duplicate = useMutation(api.bots.duplicate)
   const navigate = useNavigate()
   const [status, setStatus] = React.useState<string>()
   const flash = (message: string) => {

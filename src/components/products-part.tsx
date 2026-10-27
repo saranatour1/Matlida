@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { ShoppingBagIcon, StarIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'
@@ -51,7 +51,7 @@ export function ProductsPart({ part }: { part: ProductsToolPart }) {
 }
 
 function ProductTile({ product }: { product: Product }) {
-  const addToCart = useAction(api.api.shopping.addToCart)
+  const addToCart = useAction(api.shopping.addToCart)
   const [result, add, isAdding] = React.useActionState(async () => {
     try {
       await addToCart({ variantId: product.variantId })

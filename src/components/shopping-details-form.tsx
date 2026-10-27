@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -25,9 +25,9 @@ const FIELDS = [
  * no card details, since you pay on the store's checkout.
  */
 export function ShoppingDetailsForm() {
-  const details = useQuery(api.api.shopping.details)
-  const user = useQuery(api.api.users.current)
-  const save = useMutation(api.api.shopping.saveDetails)
+  const details = useQuery(api.shopping.details)
+  const user = useQuery(api.users.current)
+  const save = useMutation(api.shopping.saveDetails)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const field = (name: string) => String(data.get(name) ?? '')

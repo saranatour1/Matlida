@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { SignInMethod } from '~/lib/analytics'
+import { api } from '~/lib/api'
 import { identifyUser, trackEvent } from '~/lib/analytics'
 
 /** Where the sign-in page leaves the method you picked, for the signed_in event. */
@@ -12,7 +12,7 @@ export const SIGN_IN_METHOD_KEY = 'matilda.signInMethod'
  * browser already has that user, so a re-render never sends twice.
  */
 export function IdentifyUser() {
-  const user = useQuery(api.api.users.current)
+  const user = useQuery(api.users.current)
   if (user && identifyUser(user._id)) {
     let method: SignInMethod | 'returning' = 'returning'
     try {

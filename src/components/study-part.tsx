@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { GraduationCapIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -46,9 +46,9 @@ type Shown = { flipped: true } | { correct: boolean; expected: string }
  * Each answer schedules the item's next review.
  */
 export function StudyDeck({ deckId }: { deckId: string }) {
-  const found = useQuery(api.api.study.deck, { id: deckId })
-  const grade = useMutation(api.api.study.grade)
-  const check = useAction(api.api.study.check)
+  const found = useQuery(api.study.deck, { id: deckId })
+  const grade = useMutation(api.study.grade)
+  const check = useAction(api.study.check)
   const [index, setIndex] = React.useState(0)
   const [shown, setShown] = React.useState<Shown>()
   const [right, setRight] = React.useState(0)

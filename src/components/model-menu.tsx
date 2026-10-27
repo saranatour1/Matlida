@@ -1,6 +1,5 @@
 import { useMutation } from 'convex/react'
 import { CpuIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import {
   CHAT_MODELS,
   MODELS,
@@ -8,6 +7,7 @@ import {
   modelName,
 } from '@convex/lib/models'
 import type { Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +36,7 @@ export function ModelMenu({
   /** The assistant's own pick, when it has one. */
   model?: string
 }) {
-  const setModel = useMutation(api.api.threads.setModel)
+  const setModel = useMutation(api.threads.setModel)
   const current = model ?? MODELS.chat
   const pick = (next: string | undefined) => {
     trackEvent('model_changed', {

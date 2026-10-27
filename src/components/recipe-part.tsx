@@ -2,9 +2,9 @@ import * as React from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { ChefHatIcon, ClockIcon, MinusIcon, PlusIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { formatAmount } from '~/lib/amounts'
@@ -32,7 +32,7 @@ export function RecipePart({ part }: { part: RecipeToolPart }) {
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   const { projectId } = useParams({ strict: false })
   const [servings, setServings] = React.useState(recipe.servings)
-  const addToList = useMutation(api.api.plans.addToYourList)
+  const addToList = useMutation(api.plans.addToYourList)
   const scale = servings / recipe.servings
   const ingredients = recipe.ingredients.map(({ item, amount, unit }) =>
     [amount && formatAmount(amount * scale), unit, item]

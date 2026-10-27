@@ -2,10 +2,10 @@ import * as React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { DateTime } from 'luxon'
-import { api } from '@convex/_generated/api'
 import { maskNumber } from '@convex/lib/phone'
 import { formatTranscript } from '@convex/lib/transcript'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 
 /** An assistant's recent calls, each opening to its transcript. */
 export function CallHistory({
@@ -18,7 +18,7 @@ export function CallHistory({
   /** The assistant's name, for the copied transcript. */
   name: string
 }) {
-  const calls = useQuery(api.api.calls.history, { projectId, botId })
+  const calls = useQuery(api.calls.history, { projectId, botId })
   const [open, setOpen] = React.useState<Id<'calls'>>()
   if (calls === undefined) return null
   if (calls.length === 0) {
@@ -91,7 +91,7 @@ function Transcript({
   botId?: Id<'bots'>
   name: string
 }) {
-  const lines = useQuery(api.api.calls.transcript, { id: call._id })
+  const lines = useQuery(api.calls.transcript, { id: call._id })
   const [copied, setCopied] = React.useState(false)
   if (lines === undefined) return null
   async function copy(said: Array<Doc<'callLines'>>) {

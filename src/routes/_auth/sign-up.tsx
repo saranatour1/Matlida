@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useSignUpWithEmailPassword } from '@convex-dev/auth/methods/email-password/react'
-import { api } from '@convex/_generated/api'
 import type { FormState } from '~/lib/auth'
+import { api } from '~/lib/api'
 import { AuthPage } from '~/components/auth-page'
 import { FormField } from '~/components/form-field'
 import { OAuthButtons } from '~/components/oauth-buttons'
@@ -18,7 +18,7 @@ export const Route = createFileRoute('/_auth/sign-up')({
 
 function SignUp() {
   const methods = useSignInMethods()
-  const { signUp } = useSignUpWithEmailPassword(api.api.auth)
+  const { signUp } = useSignUpWithEmailPassword(api.auth)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const parsed = signUpSchema.safeParse(Object.fromEntries(data))

@@ -9,11 +9,11 @@ import {
   SendIcon,
   TelescopeIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { maskNumber } from '@convex/lib/phone'
 import type { ComponentType, ReactNode } from 'react'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { reminderWhen } from '~/lib/reminders'
 import { Markdown } from '~/components/chat-message'
@@ -209,10 +209,10 @@ export function CallPhonePart({
           ? 'the reply stopped first.'
           : null
   const phone = useQuery(
-    api.api.calls.phoneState,
+    api.calls.phoneState,
     callId ? { id: callId } : 'skip',
   )
-  const hangUp = useMutation(api.api.calls.hangUpPhone)
+  const hangUp = useMutation(api.calls.hangUpPhone)
   const to = part.input?.to ? maskNumber(part.input.to) : '…'
   const live = phone && !phone.endedAt
   return (
@@ -252,9 +252,9 @@ function ContactReminder({
   to: string
   at: string
 }) {
-  const state = useQuery(api.api.reminders.state, { id: reminderId })
-  const confirm = useMutation(api.api.reminders.confirm)
-  const cancel = useMutation(api.api.reminders.cancel)
+  const state = useQuery(api.reminders.state, { id: reminderId })
+  const confirm = useMutation(api.reminders.confirm)
+  const cancel = useMutation(api.reminders.cancel)
   // One click at a time: the buttons wait while it runs.
   const [busy, startTransition] = React.useTransition()
   const when = reminderWhen(at)

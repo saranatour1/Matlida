@@ -3,8 +3,8 @@ import { QueryClient } from '@tanstack/react-query'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexAuthProvider } from '@convex-dev/auth/react'
-import { api } from '@convex/_generated/api'
 import { routeTree } from './routeTree.gen'
+import { api } from '~/lib/api'
 import { ErrorScreen, NotFoundScreen } from '~/components/error-screen'
 
 export function getRouter() {
@@ -37,8 +37,8 @@ export function getRouter() {
       <ConvexAuthProvider
         client={convexQueryClient.convexClient}
         api={{
-          refreshSession: api.api.auth.refreshSession,
-          signOut: api.api.auth.signOut,
+          refreshSession: api.auth.refreshSession,
+          signOut: api.auth.signOut,
         }}
       >
         {children}

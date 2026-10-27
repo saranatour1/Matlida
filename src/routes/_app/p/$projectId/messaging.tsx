@@ -2,8 +2,8 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { messagingAppName } from '@convex/lib/channels'
-import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { useProject } from '~/hooks/use-project'
 import { errorMessage } from '~/lib/errors'
@@ -18,11 +18,11 @@ type Action = { type: 'code' } | { type: 'unlink'; id: Id<'phoneLinks'> }
 function Messaging() {
   const project = useProject()
   const links = useQuery(
-    api.api.texts.links,
+    api.texts.links,
     project ? { projectId: project._id } : 'skip',
   )
-  const startLink = useMutation(api.api.texts.startLink)
-  const unlink = useMutation(api.api.texts.unlink)
+  const startLink = useMutation(api.texts.startLink)
+  const unlink = useMutation(api.texts.unlink)
   const [error, act, isPending] = React.useActionState(
     async (_previous: string | undefined, action: Action) => {
       if (!project) return undefined

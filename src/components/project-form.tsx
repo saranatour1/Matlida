@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import {
   PortraitPicker,
   portraitFromForm,
@@ -28,7 +28,7 @@ type FormState = { error?: string; values?: ProjectValues }
 
 /** Creates a workspace, or edits one when `project` is given. */
 export function ProjectForm({ project }: { project?: Doc<'projects'> }) {
-  const save = useMutation(api.api.projects.save)
+  const save = useMutation(api.projects.save)
   const navigate = useNavigate()
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {

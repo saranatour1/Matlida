@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -11,9 +11,9 @@ type FormState = { error?: string; saved?: boolean }
 
 /** Your name, the email you signed in with, and whether assistants may call to check in. */
 export function AccountForm() {
-  const user = useQuery(api.api.users.current)
-  const updateProfile = useMutation(api.api.users.updateProfile)
-  const setCheckIns = useMutation(api.api.users.setCheckIns)
+  const user = useQuery(api.users.current)
+  const updateProfile = useMutation(api.users.updateProfile)
+  const setCheckIns = useMutation(api.users.setCheckIns)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       try {

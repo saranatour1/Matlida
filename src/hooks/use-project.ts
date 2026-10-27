@@ -1,6 +1,6 @@
 import { useParams } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 
 /**
  * The project in the URL (`/p/$projectId`). Undefined while loading or outside
@@ -8,5 +8,5 @@ import { api } from '@convex/_generated/api'
  */
 export const useProject = () => {
   const { projectId } = useParams({ strict: false })
-  return useQuery(api.api.projects.get, projectId ? { id: projectId } : 'skip')
+  return useQuery(api.projects.get, projectId ? { id: projectId } : 'skip')
 }

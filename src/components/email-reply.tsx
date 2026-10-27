@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { ReplyIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { FunctionReturnType } from 'convex/server'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -15,7 +15,7 @@ import {
 import { Textarea } from '~/components/ui/textarea'
 import { errorMessage } from '~/lib/errors'
 
-type Email = FunctionReturnType<typeof api.api.emails.forMessages>[number]
+type Email = FunctionReturnType<typeof api.emails.forMessages>[number]
 
 /** Reply under an email in the chat: starts from the assistant's draft, sent once you press Send. */
 export function EmailReply({
@@ -25,7 +25,7 @@ export function EmailReply({
   email: Email
   className?: string
 }) {
-  const reply = useAction(api.api.emails.reply)
+  const reply = useAction(api.emails.reply)
   const [open, setOpen] = React.useState(false)
   const [error, send, isSending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {

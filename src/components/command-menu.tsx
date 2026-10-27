@@ -12,8 +12,8 @@ import {
   SettingsIcon,
   SmartphoneIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -31,7 +31,7 @@ import { useSidebar } from '~/components/ui/sidebar'
 export function CommandMenu({ project }: { project: Doc<'projects'> }) {
   const projectId = project._id
   const [open, setOpen] = React.useState(false)
-  const bots = useQuery(api.api.bots.list, { projectId })
+  const bots = useQuery(api.bots.list, { projectId })
   const navigate = useNavigate()
   const { setOpenMobile } = useSidebar()
 
