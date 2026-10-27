@@ -867,3 +867,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **The production "already has generation number" error** is a warning from `@convex-dev/workflow`'s pool: a turn's step finished after a newer turn cancelled it. Nothing fails, but each one is a reply that got cut off.
 - Tested: `pnpm check` and all 1,099 tests, including a new one for a ring whose speech fails (answered, with the line and no audio). In the browser, the worklet posted 43 readings a second and read a 0.1-amplitude test tone as 0.070–0.071 RMS, against 0.0707 expected. A truly hidden tab couldn't be reproduced in the preview pane. No calls were placed.
 - **Replies cut off by her own voice.** While she talks, the mic now has to beat half of how loud she's playing right now (`ECHO_RATIO` in `src/lib/turn-taking.ts`, read from the call's output analyser), as well as the old `OVER_REPLY_LEVEL`. Her voice coming back through speakers reaches the mic quieter than she plays, so it no longer pauses her or starts a new turn, while you talking over her still does. Tested: a new turn-taking test (her voice at 0.12 while she plays at 0.3 doesn't pause her; you at 0.2 do). Not tried on a real call.
+
+### KV query snapshots removed (2026-10-27)
+
+- Not needed, so the `snapshot` KV binding is gone from `wrangler.jsonc`, along with `/api/snapshot`, `~/lib/query-snapshots`, `~/lib/snapshots`, their test and the `jose` dependency. The sidebar, `/projects` and the project page use convex/react's `useQuery` again.
+- The KV namespace itself still exists in Cloudflare until it's deleted there.
+- Tested: `pnpm check` and all 1,874 tests.

@@ -11,18 +11,5 @@ declare module 'cloudflare:workers' {
     }
     /** Shared with Convex, which sends it to /api/flags. */
     FLAGS_SECRET?: string
-    /** KV of each user's last query results, for /api/snapshot. */
-    snapshot: {
-      getWithMetadata: <TMetadata>(
-        key: string,
-      ) => Promise<{ value: string | null; metadata: TMetadata | null }>
-      put: (
-        key: string,
-        value: string,
-        options?: { metadata?: unknown },
-      ) => Promise<void>
-    }
   }
-  /** Keeps the Worker alive for work that finishes after the response. */
-  export const waitUntil: (promise: Promise<unknown>) => void
 }
