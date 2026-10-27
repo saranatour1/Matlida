@@ -57,7 +57,6 @@
     "cn": "^0.5.0",
     "convex": "^1.47.0",
     "convex-helpers": "^0.1.128",
-    "jose": "^5.10.0",
     "lucide-react": "^1.59.0",
     "luxon": "^3.7.2",
     "motion": "14.2.0",

@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
 import { z } from 'zod'
 import { api } from '~/lib/api'
-import { useQuery } from '~/lib/query-snapshots'
 import { Chat } from '~/components/chat'
 import { NewAssistantDialog } from '~/components/new-assistant-dialog'
 import { SidebarTrigger } from '~/components/ui/sidebar'

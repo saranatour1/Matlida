@@ -909,3 +909,9 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 
 - Frontend code calls `api.chat.sendMessage` instead of `api.api.chat.sendMessage`. `src/lib/api.ts` re-exports Convex's `api.api` (the functions in `convex/api/`) as `api`, and all 50 frontend files import it from `~/lib/api`. Function paths on the backend don't change, so backend tests still use `api.api`.
 - Tested: `pnpm lint`, `vitest run` (261 tests) and `vite build` pass.
+
+### KV query snapshots removed (2026-10-27)
+
+- Not needed, so the `snapshot` KV binding is gone from `wrangler.jsonc`, along with `/api/snapshot`, `~/lib/query-snapshots`, `~/lib/snapshots`, their test and the `jose` dependency. The sidebar, `/projects` and the project page use convex/react's `useQuery` again.
+- The KV namespace itself still exists in Cloudflare until it's deleted there.
+- Tested: `pnpm check` and all 1,874 tests.

@@ -108,7 +108,8 @@
 - [x] oxfmt in place of Prettier (`pnpm format`)
 - [ ] Run `pnpm format` once to reformat the 21 files oxfmt flags (16 were already off under Prettier)
 - [x] KV snapshots: a drop-in `useQuery` (`~/lib/query-snapshots`) that shows each user's last result from Cloudflare KV until Convex answers, on the sidebar, projects and project pages
-- [ ] Measure KV snapshots against the cloud deployment; locally Convex answers first
+- [x] ~~Measure KV snapshots against the cloud deployment~~ dropped: snapshots removed 2026-10-27
+- [ ] Delete the `snapshot` KV namespace in Cloudflare once the Worker without the binding is deployed
 - [x] Throttle snapshot refreshes to once per entry every 5 minutes (KV metadata `refreshedAt`)
 - [x] `add_to_list` calls in one reply run one at a time (write conflicts on `plans`)
 - [x] Answered calls no longer wait on the opening line's speech to connect

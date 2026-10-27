@@ -34,11 +34,4 @@
       "app_id": "3e920fef-5b9e-4d56-9884-561a4f797b3a",
     },
   ],
-  // Last result of each signed-in query, per user, shown before Convex answers (src/routes/api/snapshot.ts).
-  "kv_namespaces": [
-    {
-      "binding": "snapshot",
-      "id": "4263538451124eebbb7cdfc91e596417",
-    },
-  ],
 }
