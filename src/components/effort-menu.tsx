@@ -1,9 +1,9 @@
 import { useMutation } from 'convex/react'
 import { GaugeIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { EFFORTS } from '@convex/lib/models'
 import type { Id } from '@convex/_generated/dataModel'
 import type { Effort } from '@convex/lib/models'
+import { api } from '~/lib/api'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +33,7 @@ export function EffortMenu({
   /** The assistant's own pick, when it has one. */
   effort?: Effort
 }) {
-  const setEffort = useMutation(api.api.threads.setEffort)
+  const setEffort = useMutation(api.threads.setEffort)
   const current = effort ?? 'medium'
   const pick = (next: Effort | undefined) => {
     trackEvent('effort_changed', {

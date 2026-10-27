@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { MarkdownEditor } from '~/components/markdown-editor'
 import { PageMetrics } from '~/components/page-metrics'
 import { Badge } from '~/components/ui/badge'
@@ -21,9 +21,9 @@ type Saved = { error?: string; saved?: boolean }
 /** A report, memo or dashboard: edit it here, or have an assistant keep it up to date. */
 function Page() {
   const { projectId, pageId } = Route.useParams()
-  const page = useQuery(api.api.pages.get, { id: pageId })
-  const save = useMutation(api.api.pages.save)
-  const remove = useMutation(api.api.pages.remove)
+  const page = useQuery(api.pages.get, { id: pageId })
+  const save = useMutation(api.pages.save)
+  const remove = useMutation(api.pages.remove)
   const navigate = useNavigate()
   const [state, submit, isPending] = React.useActionState(
     async (_previous: Saved, data: FormData): Promise<Saved> => {
@@ -116,7 +116,7 @@ function Page() {
 }
 
 function KeepUpdated({ page }: { page: Doc<'pages'> }) {
-  const setRefresh = useMutation(api.api.pages.setRefresh)
+  const setRefresh = useMutation(api.pages.setRefresh)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: Saved, data: FormData): Promise<Saved> => {
       const every = String(data.get('every'))

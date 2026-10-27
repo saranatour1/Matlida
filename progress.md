@@ -904,3 +904,8 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - **Delegation.** As soon as an in-app turn is heard, `needsNoTools` asks whether the assistant can answer from the conversation alone. At `JEV_THRESHOLDS.quickReply` (0.8), `anthropic/claude-haiku-5.5` (`MODELS.quickVoice`) answers at low effort with no tools. Anything else goes to the assistant's own model with its tools, and a command always does. When the assistant hasn't started its answer after 1.5 s, it says "One moment." first. That line doesn't count as the reply's first words. Each pick is kept as a `voice_route` judgment. A failed decision sends the turn to the assistant.
 - Both new models are on the Models page (`JOBS`) and the Convex skill page.
 - Tested: `pnpm check` and all tests. A new test checks that a turn scored 0.95 is answered by Haiku and one scored 0.3 by the chat's model, and that both picks are kept. The model's answers through the gateway weren't checked: no local deployment was set up, and no call was placed. If the model fails, calls fall back safely: no hang-up from it, and every turn goes to the assistant. The routing question adds one decision call before every reply, so its latency needs measuring on real calls (`textMs` in `api/calls:dump`). "One moment." has no test.
+
+## 2026-10-27: Shorter API paths on the frontend
+
+- Frontend code calls `api.chat.sendMessage` instead of `api.api.chat.sendMessage`. `src/lib/api.ts` re-exports Convex's `api.api` (the functions in `convex/api/`) as `api`, and all 50 frontend files import it from `~/lib/api`. Function paths on the backend don't change, so backend tests still use `api.api`.
+- Tested: `pnpm lint`, `vitest run` (261 tests) and `vite build` pass.

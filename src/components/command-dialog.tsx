@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -28,8 +28,8 @@ export function CommandDialog({
   projectId: Id<'projects'>
   onClose: () => void
 }) {
-  const draft = useAction(api.api.commands.draft)
-  const save = useAction(api.api.commands.save)
+  const draft = useAction(api.commands.draft)
+  const save = useAction(api.commands.save)
   const [written, setWritten] = React.useState<Draft>()
 
   const [draftError, write, isWriting] = React.useActionState(

@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { CheckCircle2Icon, CircleIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ReactNode } from 'react'
 import type { Doc } from '@convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { CopyButton } from '~/components/copy-button'
 import { EmailAddress } from '~/components/email-address'
 import { Button } from '~/components/ui/button'
@@ -25,7 +25,7 @@ export function SetupPart({
 }) {
   const project = useProject()
   const channels = useQuery(
-    api.api.channels.list,
+    api.channels.list,
     project ? { projectId: project._id } : 'skip',
   )
   if (part.state !== 'output-available' || !project || !channels) return null
@@ -139,7 +139,7 @@ function Section({
 
 /** Your user id, which the no-calls flag's rule lists, to copy and send on. */
 function UserId() {
-  const user = useQuery(api.api.users.current)
+  const user = useQuery(api.users.current)
   if (!user) return null
   return (
     <p className="flex items-center gap-1">
@@ -151,8 +151,8 @@ function UserId() {
 
 /** A code that links a Telegram, iMessage, SMS or WhatsApp chat, valid for 10 minutes. */
 function LinkCode({ project }: { project: Doc<'projects'> }) {
-  const links = useQuery(api.api.texts.links, { projectId: project._id })
-  const startLink = useMutation(api.api.texts.startLink)
+  const links = useQuery(api.texts.links, { projectId: project._id })
+  const startLink = useMutation(api.texts.startLink)
   const [busy, startTransition] = React.useTransition()
   const pending = links?.find((l) => l.status === 'pending')
   return pending?.code ? (

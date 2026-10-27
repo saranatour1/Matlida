@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction, useConvex, useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { MarkdownEditor } from '~/components/markdown-editor'
 import { StudyDeck } from '~/components/study-part'
 import { Button } from '~/components/ui/button'
@@ -22,16 +22,16 @@ type Editing = Doc<'commands'> & { markdown: string }
 function Library() {
   const project = useProject()
   const commands = useQuery(
-    api.api.commands.list,
+    api.commands.list,
     project ? { projectId: project._id } : 'skip',
   )
-  const remove = useMutation(api.api.commands.remove)
+  const remove = useMutation(api.commands.remove)
   const convex = useConvex()
   // The markdown lives in Convex storage, so Edit fetches it before the form opens.
   const [editing, edit, isLoading] = React.useActionState(
     async (_previous: Editing | undefined, command: Doc<'commands'> | null) => {
       if (!command) return undefined
-      const found = await convex.query(api.api.commands.get, {
+      const found = await convex.query(api.commands.get, {
         id: command._id,
       })
       const markdown = found?.url ? await (await fetch(found.url)).text() : ''
@@ -123,7 +123,7 @@ function CommandForm({
   command?: Editing
   onDone: () => void
 }) {
-  const save = useAction(api.api.commands.save)
+  const save = useAction(api.commands.save)
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {
       const values = {
@@ -198,9 +198,9 @@ function CommandForm({
 
 /** Plans assistants saved with `save_plan`. Tick steps off as you go. */
 function Plans({ projectId }: { projectId: Id<'projects'> }) {
-  const plans = useQuery(api.api.plans.list, { projectId })
-  const toggle = useMutation(api.api.plans.toggleStep)
-  const remove = useMutation(api.api.plans.remove)
+  const plans = useQuery(api.plans.list, { projectId })
+  const toggle = useMutation(api.plans.toggleStep)
+  const remove = useMutation(api.plans.remove)
   return (
     <section className="mt-4 flex flex-col gap-2">
       <h2 className="font-medium">Plans</h2>
@@ -255,7 +255,7 @@ function Plans({ projectId }: { projectId: Id<'projects'> }) {
 
 /** Reports, memos and dashboards, newest first. */
 function Pages({ projectId }: { projectId: Id<'projects'> }) {
-  const pages = useQuery(api.api.pages.list, { projectId })
+  const pages = useQuery(api.pages.list, { projectId })
   if (!pages?.length) return null
   return (
     <section className="mt-4 flex flex-col gap-2" aria-labelledby="pages">
@@ -285,10 +285,10 @@ function Pages({ projectId }: { projectId: Id<'projects'> }) {
 
 /** Reminders waiting to go out. Recurring ones can be paused and resumed. */
 function Reminders({ projectId }: { projectId: Id<'projects'> }) {
-  const reminders = useQuery(api.api.reminders.list, { projectId })
-  const cancel = useMutation(api.api.reminders.cancel)
-  const pause = useMutation(api.api.reminders.pause)
-  const resume = useMutation(api.api.reminders.resume)
+  const reminders = useQuery(api.reminders.list, { projectId })
+  const cancel = useMutation(api.reminders.cancel)
+  const pause = useMutation(api.reminders.pause)
+  const resume = useMutation(api.reminders.resume)
   if (!reminders?.length) return null
   return (
     <section className="mt-4 flex flex-col gap-2">
@@ -336,9 +336,9 @@ function Reminders({ projectId }: { projectId: Id<'projects'> }) {
 
 /** Your flash cards and quizzes: open one to study it, delete it, or make a new one. */
 function Study({ projectId }: { projectId: Id<'projects'> }) {
-  const decks = useQuery(api.api.study.list, { projectId })
-  const make = useAction(api.api.study.make)
-  const remove = useMutation(api.api.study.remove)
+  const decks = useQuery(api.study.list, { projectId })
+  const make = useAction(api.study.make)
+  const remove = useMutation(api.study.remove)
   const [open, setOpen] = React.useState<string>()
   const [error, submit, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {

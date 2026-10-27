@@ -10,13 +10,13 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { AUDIO_VOICES, audioVoiceName } from '@convex/lib/audio'
 import { LANGUAGES, VOICES, VOICE_NAMES } from '@convex/lib/models'
 import { localTimeZone } from '@convex/lib/time'
 import type { Id } from '@convex/_generated/dataModel'
 import type { Portrait } from '@convex/lib/portraits'
 import type { Language } from '@convex/lib/models'
+import { api } from '~/lib/api'
 import { BotAvatar } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { errorMessage } from '~/lib/errors'
@@ -140,9 +140,9 @@ function useVoiceCall({
   const session = React.useRef<Session | null>(null)
   const convex = useConvex()
   const upload = useUpload()
-  const uploadUrl = useMutation(api.api.chat.voiceUploadUrl)
-  const startTurn = useMutation(api.api.calls.startTurn)
-  const end = useMutation(api.api.calls.end)
+  const uploadUrl = useMutation(api.chat.voiceUploadUrl)
+  const startTurn = useMutation(api.calls.startTurn)
+  const end = useMutation(api.calls.end)
 
   function nextUploadUrl() {
     const url = uploadUrl()
@@ -261,7 +261,7 @@ function useVoiceCall({
    * and the reply so far, and queues each spoken piece to play in order.
    */
   function follow(s: Session, key: string) {
-    const watch = convex.watchQuery(api.api.calls.live, { key })
+    const watch = convex.watchQuery(api.calls.live, { key })
     const reply: Reply = {
       pieces: [],
       next: 0,

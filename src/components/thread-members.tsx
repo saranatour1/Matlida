@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from 'convex/react'
 import { UserPlusIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import {
@@ -22,8 +22,8 @@ export function ThreadMembers({
   project: Doc<'projects'>
   bot?: Doc<'bots'>
 }) {
-  const bots = useQuery(api.api.bots.list, { projectId: project._id })
-  const setMembers = useMutation(api.api.threads.setMembers)
+  const bots = useQuery(api.bots.list, { projectId: project._id })
+  const setMembers = useMutation(api.threads.setMembers)
   if (!bots) return null
   const others = bots.filter((b) => b._id !== bot?._id)
   const memberIds = (bot ?? project).memberIds ?? []
