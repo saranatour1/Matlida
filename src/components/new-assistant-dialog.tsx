@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { BotTemplate } from '~/lib/bot-template'
+import { api } from '~/lib/api'
 import {
   PortraitPicker,
   portraitFromForm,
@@ -35,7 +35,7 @@ export function NewAssistantDialog({
   template?: BotTemplate
   onClose: () => void
 }) {
-  const save = useMutation(api.api.bots.save)
+  const save = useMutation(api.bots.save)
   const navigate = useNavigate()
   const [portrait] = React.useState(() =>
     template ? portraitOf(template) : randomPortrait(),

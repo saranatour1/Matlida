@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { AlarmClockIcon, PhoneIcon, PhoneOffIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { Button } from '~/components/ui/button'
 import { useCall } from '~/components/voice-call'
@@ -26,12 +26,12 @@ export function IncomingCall() {
   const { call, startCall } = useCall()
   // Nothing rings over a call, so there's nothing to ask about during one.
   const rings = useQuery(
-    api.api.reminders.ringing,
+    api.reminders.ringing,
     call.status === 'idle' ? {} : 'skip',
   )
-  const answer = useAction(api.api.calls.answer)
-  const decline = useMutation(api.api.reminders.decline)
-  const snooze = useMutation(api.api.reminders.snooze)
+  const answer = useAction(api.calls.answer)
+  const decline = useMutation(api.reminders.decline)
+  const snooze = useMutation(api.reminders.snooze)
   // One click at a time: the buttons wait while it runs.
   const [busy, startTransition] = React.useTransition()
   const navigate = useNavigate()

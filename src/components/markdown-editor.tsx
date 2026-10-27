@@ -20,10 +20,10 @@ import {
   ScaleIcon,
   TextQuoteIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -101,7 +101,7 @@ export function MarkdownEditor({
 }) {
   const input = React.useRef<HTMLInputElement>(null)
   const [raw, setRaw] = React.useState(false)
-  const notes = useQuery(api.api.comments.list, comments ?? 'skip')
+  const notes = useQuery(api.comments.list, comments ?? 'skip')
   const quotes = (notes ?? []).filter((n) => !n.resolved).map((n) => n.quote)
   const quotesKey = quotes.join('\u0000')
   const editor = useEditor(
@@ -339,7 +339,7 @@ function NoteButton({
   selected: string
   target: CommentTarget
 }) {
-  const add = useMutation(api.api.comments.add)
+  const add = useMutation(api.comments.add)
   const [quote, setQuote] = React.useState<string>()
   const [error, submit, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {
@@ -405,8 +405,8 @@ type Note = {
 
 /** The notes on this text. Open ones are highlighted in the editor. */
 function Notes({ notes }: { notes: Array<Note> }) {
-  const setResolved = useMutation(api.api.comments.setResolved)
-  const remove = useMutation(api.api.comments.remove)
+  const setResolved = useMutation(api.comments.setResolved)
+  const remove = useMutation(api.comments.remove)
   return (
     <ul className="flex flex-col gap-1.5 text-xs">
       {notes.map((note) => (

@@ -1,7 +1,7 @@
 import { useQuery } from 'convex/react'
 import { ClapperboardIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { CardSkeleton } from '~/components/card-skeleton'
 
@@ -26,7 +26,7 @@ export function VideoPart({ part }: { part: VideoToolPart }) {
 }
 
 function VideoCard({ id }: { id: string }) {
-  const video = useQuery(api.api.videos.get, { id })
+  const video = useQuery(api.videos.get, { id })
   if (video === undefined) return <CardSkeleton />
   if (video?.status === 'working') {
     return (

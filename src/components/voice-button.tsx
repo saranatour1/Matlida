@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useAction } from 'convex/react'
 import { MicIcon, SquareIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { InputGroupButton } from '~/components/ui/input-group'
 import { Spinner } from '~/components/ui/spinner'
 import { useUpload } from '~/hooks/use-upload'
@@ -23,7 +23,7 @@ export function VoiceButton({
   const [status, setStatus] = React.useState<Status>('idle')
   const recorder = React.useRef<MediaRecorder | null>(null)
   const upload = useUpload()
-  const transcribe = useAction(api.api.chat.transcribe)
+  const transcribe = useAction(api.chat.transcribe)
 
   async function start() {
     try {

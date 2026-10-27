@@ -3,8 +3,8 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PlusIcon } from 'lucide-react'
 import { z } from 'zod'
-import { api } from '@convex/_generated/api'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import {
   PortraitPicker,
   portraitFromForm,
@@ -37,10 +37,10 @@ type BotValues = Pick<
 function Bots() {
   const project = useProject()
   const bots = useQuery(
-    api.api.bots.list,
+    api.bots.list,
     project ? { projectId: project._id } : 'skip',
   )
-  const remove = useMutation(api.api.bots.remove)
+  const remove = useMutation(api.bots.remove)
   const { edit } = Route.useSearch()
   const editing = bots?.find((b) => b._id === edit)
 
@@ -131,8 +131,8 @@ function Templates({
   projectId: Id<'projects'>
   taken: Set<string>
 }) {
-  const save = useMutation(api.api.bots.save)
-  const yours = useQuery(api.api.bots.fromOtherProjects, { projectId })
+  const save = useMutation(api.bots.save)
+  const yours = useQuery(api.bots.fromOtherProjects, { projectId })
   const [error, add, isPending] = React.useActionState(
     async (
       _previous: string | undefined,
@@ -210,7 +210,7 @@ function BotForm({
   projectId: Id<'projects'>
   bot?: Doc<'bots'>
 }) {
-  const save = useMutation(api.api.bots.save)
+  const save = useMutation(api.bots.save)
   const navigate = useNavigate()
   const [state, submit, isPending] = React.useActionState(
     async (_previous: FormState, data: FormData): Promise<FormState> => {

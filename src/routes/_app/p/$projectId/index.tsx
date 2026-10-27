@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { z } from 'zod'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { Chat } from '~/components/chat'
 import { NewAssistantDialog } from '~/components/new-assistant-dialog'
 import { SidebarTrigger } from '~/components/ui/sidebar'
@@ -34,7 +34,7 @@ function ProjectPage() {
   const navigate = Route.useNavigate()
   const template = decodeTemplate(search.template)
   const bots = useQuery(
-    api.api.bots.list,
+    api.bots.list,
     project && botId ? { projectId: project._id } : 'skip',
   )
   const bot = bots?.find((b) => b._id === botId)

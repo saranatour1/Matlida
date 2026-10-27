@@ -7,9 +7,9 @@ import {
   ListChecksIcon,
   XIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { Spinner } from '~/components/ui/spinner'
 import { attempt } from '~/lib/attempt'
@@ -49,10 +49,10 @@ export function RunPlanPart({ part }: { part: RunPlanPart }) {
 }
 
 function TaskCard({ taskId }: { taskId: Id<'tasks'> }) {
-  const task = useQuery(api.api.tasks.get, { taskId })
-  const answer = useMutation(api.api.tasks.answer)
-  const cancel = useMutation(api.api.tasks.cancel)
-  const retry = useMutation(api.api.tasks.retry)
+  const task = useQuery(api.tasks.get, { taskId })
+  const answer = useMutation(api.tasks.answer)
+  const cancel = useMutation(api.tasks.cancel)
+  const retry = useMutation(api.tasks.retry)
   // One click at a time: the buttons wait while it runs.
   const [busy, startTransition] = React.useTransition()
   if (task === undefined) return <CardSkeleton />

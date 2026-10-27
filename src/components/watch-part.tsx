@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from 'convex/react'
 import { TrendingDownIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Button } from '~/components/ui/button'
 import { money } from '~/lib/money'
@@ -36,8 +36,8 @@ export function WatchPart({ part }: { part: WatchToolPart }) {
 }
 
 function Watch({ id }: { id: string }) {
-  const watch = useQuery(api.api.shopping.watch, { id })
-  const stop = useMutation(api.api.shopping.stopWatch)
+  const watch = useQuery(api.shopping.watch, { id })
+  const stop = useMutation(api.shopping.stopWatch)
   if (watch === undefined) return <CardSkeleton />
   if (watch === null) {
     return <CardGone>This price watch was removed.</CardGone>

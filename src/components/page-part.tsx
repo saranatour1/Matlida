@@ -1,8 +1,8 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { FileTextIcon, RefreshCwIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { ChatUIMessage } from '~/components/chat-message'
+import { api } from '~/lib/api'
 import { ToolStatus } from '~/components/tool-part'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -34,7 +34,7 @@ export function PagePart({ part }: { part: PageToolPart }) {
 
 function PageCard({ id }: { id: string }) {
   const { projectId } = useParams({ strict: false })
-  const page = useQuery(api.api.pages.get, { id })
+  const page = useQuery(api.pages.get, { id })
   if (page === undefined) return <CardSkeleton />
   if (page === null) {
     return (

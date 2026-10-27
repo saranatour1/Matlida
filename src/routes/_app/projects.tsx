@@ -1,7 +1,7 @@
 import { Link, Navigate, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { z } from 'zod'
-import { api } from '@convex/_generated/api'
+import { api } from '~/lib/api'
 import { ProjectForm } from '~/components/project-form'
 import { Button } from '~/components/ui/button'
 
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_app/projects')({
 })
 
 function Projects() {
-  const projects = useQuery(api.api.projects.list)
+  const projects = useQuery(api.projects.list)
   const { create, template } = Route.useSearch()
   const first = projects?.at(0)
   if (first && !create) {

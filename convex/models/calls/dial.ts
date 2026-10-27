@@ -8,10 +8,10 @@ import { transcribe } from 'ai'
 import { v } from 'convex/values'
 import { internal } from '../../_generated/api'
 import { env, internalAction } from '../../_generated/server'
-import { decisionModel, transcriptionModel } from '../../lib/ai'
+import { transcriptionModel } from '../../lib/ai'
 import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 import { metered } from '../../lib/budget'
-import { JEV_THRESHOLDS, callIsOver } from '../../lib/decide'
+import { GOODBYE_WORD, JEV_THRESHOLDS, saidGoodbye } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
 import {
   FRAME,
@@ -38,6 +38,7 @@ import {
   uriOf,
 } from '../../lib/sip'
 import { gatewayCost } from '../usage/functions'
+import { hangUpScore } from './functions'
 import type { AudioChatTurn } from '../../lib/audio'
 import type { SipMessage } from '../../lib/sip'
 import type { ActionCtx, Doc } from '../../lib/ctx'
@@ -172,7 +173,7 @@ const instructionsFor = ({
     `You opened with: "${say}"`,
     'Speak naturally, in one or two short sentences at a time, with no lists or formatting.',
     `Only say what you know from this. If they ask for anything else, say you'll pass it on to ${owner}. If they ask, you're an AI assistant.`,
-    'When the conversation is over, say a short goodbye that ends with the word "Goodbye."',
+    `When the conversation is over, say a short goodbye that ends with the word "${GOODBYE_WORD}."`,
   ].join('\n')
 
 /**
@@ -617,30 +618,14 @@ const placeCall = async (
     lastHeard = performance.now()
     busy = false
   }
-  const goodbye = (text: string) => /goodbye[.!]*\s*$/i.test(text)
-  /** Jev's read on whether the call has done its job. Keeps talking if Jev fails. */
-  const isOver = async () => {
-    try {
-      const done = await metered(
-        ctx,
-        { userId, model: MODELS.decide, estimate: 0.005 },
-        async () => {
-          const judged = await callIsOver(decisionModel, {
-            about,
-            conversation: history.map((h) => ({
-              role: h.role,
-              text: h.content,
-            })),
-          })
-          return { result: judged.over, cost: judged.cost }
-        },
-      )
-      return done >= JEV_THRESHOLDS.hangUp
-    } catch (error) {
-      console.error(error)
-      return false
-    }
-  }
+  const isOver = (them: string) =>
+    hangUpScore(ctx, userId, {
+      about,
+      conversation: [
+        ...history.map((h) => ({ role: h.role, text: h.content })),
+        { role: 'user' as const, text: them },
+      ],
+    })
 
   const talk = async () => {
     const opening = await speak({
@@ -660,6 +645,9 @@ const placeCall = async (
           if (!text) stop.abort()
           return text
         })
+        const ending = hearing
+          .then((text) => (text ? isOver(text) : 0))
+          .catch(() => 0)
         const answering = speak(
           { audio: Buffer.from(wav).toString('base64'), format: 'wav' },
           stop.signal,
@@ -680,16 +668,24 @@ const placeCall = async (
           history.push({ role: 'assistant', content: reply })
           await addLine('them', reply)
         }
-        if (reply && goodbye(reply)) {
+        const goodbye = !!reply && saidGoodbye(reply)
+        const score = await ending
+        const done = score >= JEV_THRESHOLDS.hangUp
+        await ctx.runMutation(internal.api.judgments.record, {
+          userId,
+          kind: 'hang_up',
+          model: MODELS.callDecide,
+          scores: { over: score },
+          outcome: goodbye ? 'said_goodbye' : done ? 'hung_up' : 'kept_talking',
+        })
+        if (goodbye) {
           await drained()
           resolveEnd({ status: 'ended' })
           return
         }
-        // Don't keep the line open once it's done: Jev decides, and she says goodbye.
-        if (await isOver()) {
-          await drained()
+        if (done) {
           const bye = await speak({
-            text: 'The call is done. Say a short, warm goodbye that ends with "Goodbye."',
+            text: `The call is done. Say a short, warm goodbye that ends with "${GOODBYE_WORD}."`,
           })
           history.push({ role: 'assistant', content: bye })
           await addLine('them', bye)
@@ -739,7 +735,7 @@ const placeCall = async (
       speak({
         text: asking
           ? 'Nobody has said anything for a while. Ask briefly if they are still there.'
-          : 'They have gone quiet. Say a short goodbye that ends with "Goodbye."',
+          : `They have gone quiet. Say a short goodbye that ends with "${GOODBYE_WORD}."`,
       })
         .then(async (said) => {
           history.push({ role: 'assistant', content: said })

@@ -57,8 +57,10 @@ export const JEV_THRESHOLDS = {
   checkInCall: 0.7,
   /** At least this for a study answer to count as right. */
   correctAnswer: 0.5,
-  /** At least this sure a phone call is over before hanging up. */
+  /** At least this sure a call is over before hanging up. */
   hangUp: 0.7,
+  /** At least this sure a call turn needs no tools before the quick model answers it. */
+  quickReply: 0.8,
 }
 
 /** One message in a chat, as Jev reads it. Tool calls and failures are in `text`. */
@@ -426,10 +428,20 @@ export const shouldCallNow = async (
   }
 }
 
+/** `about` for an in-app call, which has no purpose of its own. */
+export const OPEN_CALL =
+  'The user called their own assistant to talk. There is no set purpose: the call is over only when the user says they are done or says goodbye.'
+
+/** The word a call's instructions end it with, and the one `saidGoodbye` listens for. */
+export const GOODBYE_WORD = 'Goodbye'
+
+export const saidGoodbye = (text: string) =>
+  new RegExp(`${GOODBYE_WORD}[.!]*\\s*$`, 'i').test(text)
+
 /**
- * Whether a phone call the assistant placed has done its job and should end
- * now. In `conversation`, `user` is the person called. The call hangs up at
- * `JEV_THRESHOLDS.hangUp`.
+ * Whether a call should end once the assistant has answered the last thing
+ * said. In `conversation`, `user` is the person on the other end. The call
+ * hangs up at `JEV_THRESHOLDS.hangUp`.
  */
 export const callIsOver = async (
   model: Experimental_DecisionModel,
@@ -443,12 +455,39 @@ export const callIsOver = async (
       over: {
         type: 'boolean',
         instructions:
-          'The assistant phoned someone for `call_purpose`. Should it say goodbye and hang up now? Yes when the purpose is done (the message was delivered and acknowledged, or the question answered) and the person has nothing more to ask, or when they are wrapping up, saying bye or asking to end the call. No while they are still asking or telling something, or the purpose is not done yet.',
+          'The assistant is on a call for `call_purpose`, and is about to answer the last thing the user said. Should it say goodbye and hang up after that answer? Yes when the purpose is done (the message was delivered and acknowledged, or the question answered) and the user has nothing more to ask, or when they are wrapping up, saying bye or asking to end the call. No while they are still asking or telling something, or the purpose is not done yet.',
       },
     },
     abortSignal,
   })
   return { over: answers.over.probability, cost: gatewayCost(providerMetadata) }
+}
+
+/**
+ * Whether the assistant can answer the last thing said on a call right away,
+ * with no tools. A quick answer at `JEV_THRESHOLDS.quickReply`.
+ */
+export const needsNoTools = async (
+  model: Experimental_DecisionModel,
+  { conversation }: { conversation: Array<Turn> },
+  abortSignal?: AbortSignal,
+) => {
+  const { answers, providerMetadata } = await experimental_decide({
+    model,
+    state: { conversation },
+    questions: {
+      quick: {
+        type: 'boolean',
+        instructions:
+          'The user is talking to their assistant on a call. Can the assistant answer the last thing the user said right away, from general knowledge and the conversation alone? Yes for small talk, greetings, thanks, goodbyes, opinions, jokes, or questions about what was already said. No when answering needs a lookup (the web, news, email, texts, contacts, reminders, plans, pages, prices), an action (set a reminder, save, send, call, buy, make something), or facts about the user that are not in the conversation.',
+      },
+    },
+    abortSignal,
+  })
+  return {
+    quick: answers.quick.probability,
+    cost: gatewayCost(providerMetadata),
+  }
 }
 
 /** Whether a short answer to a study question is right, given the expected one. Right at `JEV_THRESHOLDS.correctAnswer`. */

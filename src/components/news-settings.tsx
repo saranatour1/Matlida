@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { useParams } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import { localTimeZone } from '@convex/lib/time'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
@@ -42,9 +42,9 @@ export function NewsSettings({
   onSaved?: () => void
 }) {
   const { projectId } = useParams({ strict: false })
-  const current = useQuery(api.api.news.settings)
-  const save = useMutation(api.api.news.saveSettings)
-  const send = useMutation(api.api.chat.sendMessage)
+  const current = useQuery(api.news.settings)
+  const save = useMutation(api.news.saveSettings)
+  const send = useMutation(api.chat.sendMessage)
   const [error, submit, isPending] = React.useActionState(
     async (_previous: string | undefined, data: FormData) => {
       if (!projectId) return undefined

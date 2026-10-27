@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '@convex/_generated/api'
 import type { Doc } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { errorMessage } from '~/lib/errors'
@@ -14,9 +14,9 @@ type Action = { type: 'claim'; handle: string } | { type: 'release' }
  * Email row on Connections once the deployment has a mail domain.
  */
 export function EmailAddress({ project }: { project: Doc<'projects'> }) {
-  const mine = useQuery(api.api.mailboxes.mine)
-  const claim = useMutation(api.api.mailboxes.claim)
-  const release = useMutation(api.api.mailboxes.release)
+  const mine = useQuery(api.mailboxes.mine)
+  const claim = useMutation(api.mailboxes.claim)
+  const release = useMutation(api.mailboxes.release)
   const [error, act, isPending] = React.useActionState(
     async (_previous: string | undefined, action: Action) => {
       try {

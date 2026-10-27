@@ -2,9 +2,9 @@ import * as React from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { MailIcon, PencilIcon, PhoneIcon, Trash2Icon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { maskNumber } from '@convex/lib/phone'
 import type { Doc, Id } from '@convex/_generated/dataModel'
+import { api } from '~/lib/api'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { SidebarTrigger } from '~/components/ui/sidebar'
@@ -23,10 +23,10 @@ export const Route = createFileRoute('/_app/p/$projectId/contacts')({
 function Contacts() {
   const project = useProject()
   const contacts = useQuery(
-    api.api.contacts.list,
+    api.contacts.list,
     project ? { projectId: project._id } : 'skip',
   )
-  const remove = useMutation(api.api.contacts.remove)
+  const remove = useMutation(api.contacts.remove)
   const [editing, setEditing] = React.useState<Id<'contacts'>>()
   if (!project) {
     return project === null ? (
@@ -167,7 +167,7 @@ function ContactForm({
   contact?: Doc<'contacts'>
   onDone?: () => void
 }) {
-  const put = useMutation(api.api.contacts.put)
+  const put = useMutation(api.contacts.put)
   const [error, save, saving] = React.useActionState(
     async (_previous: string | undefined, form: FormData) => {
       const field = (name: string) =>

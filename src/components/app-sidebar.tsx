@@ -8,9 +8,9 @@ import {
   PlusIcon,
   SettingsIcon,
 } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import type { Doc, Id } from '@convex/_generated/dataModel'
 import type { Portrait } from '@convex/lib/portraits'
+import { api } from '~/lib/api'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { CommandMenu } from '~/components/command-menu'
 import {
@@ -84,7 +84,7 @@ export function AppSidebar() {
 
 /** The lead, big, with the workspace switcher under its name. */
 function Hero({ project }: { project: Doc<'projects'> }) {
-  const projects = useQuery(api.api.projects.list)
+  const projects = useQuery(api.projects.list)
   const { setOpenMobile } = useSidebar()
   return (
     <div className="flex flex-col items-center gap-2 py-2">
@@ -137,7 +137,7 @@ function Hero({ project }: { project: Doc<'projects'> }) {
 
 /** The lead first, then the bots, as cards. Each one opens to its one chat. */
 function Assistants({ project }: { project: Doc<'projects'> }) {
-  const bots = useQuery(api.api.bots.list, { projectId: project._id })
+  const bots = useQuery(api.bots.list, { projectId: project._id })
   return (
     <SidebarGroup>
       <SidebarGroupContent>
@@ -217,7 +217,7 @@ function Assistant({
 
 /** You, at the bottom. Opens to your settings and sign out. */
 function Account() {
-  const user = useQuery(api.api.users.current)
+  const user = useQuery(api.users.current)
   const project = useProject()
   const { signOut } = useAuthActions()
   const name = user?.name ?? user?.email

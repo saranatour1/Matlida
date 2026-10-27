@@ -3,13 +3,13 @@ import { useUIMessages } from '@convex-dev/agent/react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { PanelRightIcon } from 'lucide-react'
-import { api } from '@convex/_generated/api'
 import { BUILT_IN_COMMANDS } from '@convex/lib/commands'
 import { localTimeZone } from '@convex/lib/time'
 import { MODELS } from '@convex/lib/models'
 import type { Doc } from '@convex/_generated/dataModel'
 import type { ChatUIMessage } from '~/components/chat-message'
 import type { Attachment } from '~/components/prompt-form'
+import { api } from '~/lib/api'
 import { AssistantPanel } from '~/components/assistant-panel'
 import { BotAvatar, portraitOf } from '~/components/bot-avatar'
 import { ChatMessage } from '~/components/chat-message'
@@ -59,12 +59,12 @@ export function Chat({
   /** A message to start the box with. It lives in the URL as `?draft=`. */
   draft?: string
 }) {
-  const sendMessage = useMutation(api.api.chat.sendMessage)
-  const redo = useMutation(api.api.chat.redo)
-  const stop = useMutation(api.api.chat.stop)
-  const commands = useQuery(api.api.commands.list, { projectId: project._id })
+  const sendMessage = useMutation(api.chat.sendMessage)
+  const redo = useMutation(api.chat.redo)
+  const stop = useMutation(api.chat.stop)
+  const commands = useQuery(api.commands.list, { projectId: project._id })
   const threadId =
-    useQuery(api.api.threads.main, {
+    useQuery(api.threads.main, {
       projectId: project._id,
       botId: bot?._id,
     }) ?? undefined
@@ -78,7 +78,7 @@ export function Chat({
     caller.target.botId === bot?._id &&
     (call.status !== 'idle' || call.error !== undefined)
   const { results } = useUIMessages(
-    api.api.chat.listMessages,
+    api.chat.listMessages,
     threadId ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
@@ -89,7 +89,7 @@ export function Chat({
     .filter((m) => m.role === 'assistant' && m.text.startsWith('📨'))
     .map((m) => m.id)
   const emails = useQuery(
-    api.api.emails.forMessages,
+    api.emails.forMessages,
     threadId && emailIds.length ? { threadId, messageIds: emailIds } : 'skip',
   )
   const last = messages.at(-1)
