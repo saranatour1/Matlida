@@ -8,7 +8,6 @@
 - [x] Logo v2: kite as a chat bubble with typing dots, designed in Paper ("Matilda — Logo")
 - [x] Head SEO: description, Open Graph and Twitter card tags, web manifest name
 - [x] README with Matilda's bio, stack, setup and env vars
-- [x] Swap React for TanStack Redact 0.1.5 (entry chunk −58% gzip)
 - [x] Frontend calls `api.<module>.<fn>` instead of `api.api.<module>.<fn>`
 
 ## Open
