@@ -1,5 +1,4 @@
 import { cloudflare } from '@cloudflare/vite-plugin'
-import { redact } from '@tanstack/redact/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
@@ -19,6 +18,5 @@ export default defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    redact(),
   ],
 })
