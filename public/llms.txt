@@ -16,6 +16,8 @@ Matilda answers in a chat on the web, over Telegram, iMessage and WhatsApp, and 
 
 - [Home](https://matilda-is-a-bot.app/): what Matilda is
 - [Sign in](https://matilda-is-a-bot.app/sign-in): sign in with GitHub
+- [auth.md](https://matilda-is-a-bot.app/auth.md): how access works for agents
+- [OpenAPI description](https://matilda-is-a-bot.app/openapi.json): the public pages agents can read
 
 ## Optional
 

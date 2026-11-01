@@ -916,3 +916,10 @@ From the Photon review (finding #5). In collapse mode a newer text replaces the 
 - Not needed, so the `snapshot` KV binding is gone from `wrangler.jsonc`, along with `/api/snapshot`, `~/lib/query-snapshots`, `~/lib/snapshots`, their test and the `jose` dependency. The sidebar, `/projects` and the project page use convex/react's `useQuery` again.
 - The KV namespace itself still exists in Cloudflare until it's deleted there.
 - Tested: `pnpm check` and all 1,874 tests.
+
+## 2026-11-02: Discovery for agents
+
+- `Accept: text/markdown` on `/`, `/sign-in` and `/sign-up` returns markdown, from the new Worker entry `src/server.ts`, which runs before the router's 406. Browsers still get HTML. Other paths still answer 406 to markdown-only requests.
+- New static files: `/.well-known/api-catalog` (RFC 9727), `/openapi.json` and `/auth.md`. The home page sends `Link` headers pointing at them. Matilda has no public API, so the catalog and OpenAPI file describe only the public read-only pages, and `auth.md` says agents can't register.
+- No OAuth metadata was published, because there's no OAuth server for third parties. The scanner's OAuth checks stay failing on purpose.
+- Tested: all 258 tests, typecheck, `vite build`, and curl against the built Worker in `vite preview`. `pnpm check` stops at 17 `@convex-dev/require-access-control` errors in `convex/components`, files this change doesn't touch. The isitagentready scan can't run until this is deployed.
