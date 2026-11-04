@@ -1,0 +1,79 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Matilda public pages",
+    "version": "1.0.0",
+    "description": "The read-only pages Matilda serves without signing in. Matilda has no public API for workspaces, chats or reminders."
+  },
+  "servers": [{ "url": "https://matilda-is-a-bot.app" }],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "What Matilda is",
+        "responses": {
+          "200": {
+            "description": "The front page. Send Accept: text/markdown for markdown.",
+            "content": {
+              "text/html": { "schema": { "type": "string" } },
+              "text/markdown": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/sign-in": {
+      "get": {
+        "summary": "How to sign in",
+        "responses": {
+          "200": {
+            "description": "The sign-in page. Send Accept: text/markdown for markdown.",
+            "content": {
+              "text/html": { "schema": { "type": "string" } },
+              "text/markdown": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/sign-up": {
+      "get": {
+        "summary": "How to sign up",
+        "responses": {
+          "200": {
+            "description": "The sign-up page. Send Accept: text/markdown for markdown.",
+            "content": {
+              "text/html": { "schema": { "type": "string" } },
+              "text/markdown": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/auth.md": {
+      "get": {
+        "summary": "How access works for agents",
+        "responses": {
+          "200": {
+            "description": "The auth.md document.",
+            "content": {
+              "text/markdown": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "summary": "A summary of Matilda for language models",
+        "responses": {
+          "200": {
+            "description": "The llms.txt document.",
+            "content": {
+              "text/plain": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://matilda-is-a-bot.app/",
+      "service-desc": [
+        {
+          "href": "https://matilda-is-a-bot.app/openapi.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://matilda-is-a-bot.app/llms.txt",
+          "type": "text/plain"
+        }
+      ]
+    }
+  ]
+}
