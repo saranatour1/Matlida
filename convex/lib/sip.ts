@@ -9,8 +9,8 @@ import { createHash, randomBytes } from 'node:crypto'
  * digest challenge, and offer and read SDP. Only the call action uses it.
  */
 
-/** Photon's SIP server, unless its Voice profile shows another under SIP connection. */
-export const SIP_HOST = 'sip.photon.codes'
+/** Spectrum Voice's SIP server (docs.photon.codes, Outbound calls). */
+export const SIP_HOST = 'sip.spectrum.photon.codes'
 
 export type SipMessage = {
   /** Set on a request, like INVITE. */
