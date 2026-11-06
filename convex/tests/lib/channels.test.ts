@@ -108,8 +108,8 @@ test('phone calls work once the Photon line is set up', () => {
       ...nothing,
       env: [
         'PHOTON_PHONE_NUMBER',
-        'PHOTON_SIP_USERNAME',
-        'PHOTON_SIP_PASSWORD',
+        'SPECTRUM_PROJECT_ID',
+        'SPECTRUM_PROJECT_SECRET',
       ],
     }),
   ).toMatchObject({ status: 'connected' })

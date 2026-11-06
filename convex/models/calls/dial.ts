@@ -13,6 +13,7 @@ import { audioChat, audioVoiceFor, pcmToWav } from '../../lib/audio'
 import { metered } from '../../lib/budget'
 import { GOODBYE_WORD, JEV_THRESHOLDS, saidGoodbye } from '../../lib/decide'
 import { MODELS } from '../../lib/models'
+import { askedToHold } from '../../lib/phone'
 import {
   FRAME,
   SILENCE,
@@ -52,6 +53,8 @@ const MAX_CALL_MS = 9 * 60_000
 const QUIET_MS = 12_000
 /** Then wait this long for an answer before saying goodbye and hanging up. */
 const GRACE_MS = 10_000
+/** How long a held call can go quiet: a queue can be silent for minutes. */
+const HOLD_MS = 5 * 60_000
 
 type Ending = {
   status: Infer<typeof phoneStatus>
@@ -206,15 +209,16 @@ const placeCall = async (
     recording: ReturnType<typeof recorder>
   },
 ): Promise<Ending> => {
-  // The outbound SIP credential from the line's Voice profile in Photon.
-  const username = env.PHOTON_SIP_USERNAME
-  const password = env.PHOTON_SIP_PASSWORD
+  // Spectrum Voice signs each call in with the project's ID and secret, and
+  // answers 403 unless the From number is an iMessage line of that project.
+  const username = env.SPECTRUM_PROJECT_ID
+  const password = env.SPECTRUM_PROJECT_SECRET
   const line = env.PHOTON_PHONE_NUMBER
   const host = env.PHOTON_SIP_HOST ?? SIP_HOST
   if (!username || !password || !line) {
     return {
       status: 'failed',
-      note: 'Phone calls need PHOTON_SIP_USERNAME, PHOTON_SIP_PASSWORD and PHOTON_PHONE_NUMBER on the deployment',
+      note: 'Phone calls need SPECTRUM_PROJECT_ID, SPECTRUM_PROJECT_SECRET and PHOTON_PHONE_NUMBER on the deployment',
     }
   }
   const to = call.phone.to
@@ -532,6 +536,8 @@ const placeCall = async (
   let busy = true
   /** Whether it already asked "are you still there?" since they last spoke. */
   let askedIfThere = false
+  /** Whether they put us on hold. It stays set: an operator picking up talks first. */
+  let onHold = false
   let lastHeard = performance.now()
   const ear = listener()
   let onSpeech = (_samples: Int16Array) => {}
@@ -664,6 +670,7 @@ const placeCall = async (
         }
         history.push({ role: 'user', content: them })
         await addLine('you', them)
+        onHold ||= askedToHold(them)
         if (reply) {
           history.push({ role: 'assistant', content: reply })
           await addLine('them', reply)
@@ -727,7 +734,8 @@ const placeCall = async (
     if (now - answeredAt > MAX_CALL_MS) {
       resolveEnd({ status: 'ended', note: 'calls last at most 9 minutes' })
     }
-    if (!busy && now - lastHeard > (askedIfThere ? GRACE_MS : QUIET_MS)) {
+    const quietFor = askedIfThere ? GRACE_MS : onHold ? HOLD_MS : QUIET_MS
+    if (!busy && now - lastHeard > quietFor) {
       busy = true
       const asking = !askedIfThere
       askedIfThere = true
