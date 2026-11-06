@@ -34,4 +34,15 @@
       "app_id": "3e920fef-5b9e-4d56-9884-561a4f797b3a",
     },
   ],
+  // Branch builds run `wrangler preview`, which needs this block from 4.158 on.
+  // It overrides the dashboard's Preview base config, which still lists the
+  // removed `snapshot` KV.
+  "previews": {
+    "flagship": [
+      {
+        "binding": "NO_PHONE_CALLS_YET",
+        "app_id": "3e920fef-5b9e-4d56-9884-561a4f797b3a",
+      },
+    ],
+  },
 }

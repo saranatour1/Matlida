@@ -12,6 +12,11 @@ export default defineConfig([
       '@convex-dev/require-access-control': 'error',
     },
   },
+  // Component functions are only callable by the app, which checks access first.
+  {
+    files: ['convex/components/**/*.ts'],
+    rules: { '@convex-dev/require-access-control': 'off' },
+  },
   // Arrow functions everywhere but React components, which stay declarations.
   {
     files: ['convex/**/*.ts', 'src/lib/**/*.ts', 'src/hooks/**/*.ts'],

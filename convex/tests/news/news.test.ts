@@ -76,12 +76,13 @@ test('you choose what you follow, in your own workspace only', async () => {
 })
 
 test('the daily briefing posts at your hour, schedules the next, and stops when you turn it off', async () => {
-  const { t, asAda, projectId } = await setup()
-  // 05:10 UTC is 9:10am in Dubai.
+  // 05:10 UTC is 9:10am in Dubai. Fake the clock before setup writes anything:
+  // convex-test never runs a transaction earlier than the last commit.
   vi.useFakeTimers({
     now: Date.parse('2026-10-21T05:10:00Z'),
     toFake: ['Date'],
   })
+  const { t, asAda, projectId } = await setup()
   const save = (dailyHour?: number) =>
     asAda.mutation(api.api.news.saveSettings, {
       projectId,
@@ -99,7 +100,9 @@ test('the daily briefing posts at your hour, schedules the next, and stops when 
   /** When the pending briefing goes out, or null when none is scheduled. */
   const scheduledFor = async () => {
     const { job } = await settings()
-    const found = job && (await t.run((ctx) => ctx.db.system.get('_scheduled_functions', job)))
+    const found =
+      job &&
+      (await t.run((ctx) => ctx.db.system.get('_scheduled_functions', job)))
     return found && found.state.kind === 'pending' ? found.scheduledTime : null
   }
   await save(9)
