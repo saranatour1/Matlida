@@ -101,6 +101,7 @@ test('an assistant writes a page, you edit it, and the assistant reads your edit
 
 test('a page kept up to date schedules its own refresh, and stops when turned off', async () => {
   const start = Date.now()
+  // Within half a second: convex-test moves a frozen clock 1ms on per commit.
   vi.useFakeTimers({ now: start, toFake: ['Date'] })
   const { t, projectId, threadId } = await setup()
   const pageId = await t.mutation(internal.api.pages.write, {
@@ -114,7 +115,8 @@ test('a page kept up to date schedules its own refresh, and stops when turned of
   const scheduledFor = () =>
     t.run(async (ctx) => {
       const page = await ctx.db.get('pages', id)
-      const job = page?.job && (await ctx.db.system.get("_scheduled_functions", page.job))
+      const job =
+        page?.job && (await ctx.db.system.get('_scheduled_functions', page.job))
       return job && job.state.kind === 'pending' ? job.scheduledTime : null
     })
   expect(await scheduledFor()).toBeNull()
@@ -124,12 +126,16 @@ test('a page kept up to date schedules its own refresh, and stops when turned of
     every: 'day',
     instructions: 'Refresh the numbers.',
   })
-  expect(await scheduledFor()).toBe(start + 24 * 60 * 60_000)
+  expect(await scheduledFor()).toEqual(
+    expect.closeTo(start + 24 * 60 * 60_000, -3),
+  )
 
   // When it runs, the next one is a day after that.
   vi.setSystemTime(start + 24 * 60 * 60_000)
   await t.action(internal.api.pages.refreshOne, { id })
-  expect(await scheduledFor()).toBe(start + 2 * 24 * 60 * 60_000)
+  expect(await scheduledFor()).toEqual(
+    expect.closeTo(start + 2 * 24 * 60 * 60_000, -3),
+  )
 
   await t.mutation(internal.api.pages.keepUpdated, {
     projectId,

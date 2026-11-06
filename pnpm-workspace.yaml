@@ -8,6 +8,8 @@ allowBuilds:
 # Agent component share the same LanguageModel type.
 # @ai-sdk/gateway 4.0.116 grows its model-id union until `new Agent(...)` fails
 # to typecheck ("union type that is too complex"). Unpin once that's fixed.
+# `ai` is pinned to 7.0.143 in package.json to match: later 7.0.x imports
+# helpers that provider-utils 5.0.62 doesn't export. Unpin it with these.
 overrides:
   # Dependabot #2: unbounded memory in W3C Baggage parsing, fixed in 2.8.0.
   # @photon-ai/otel (via @spectrum-ts/core) pins OTel exporters that pin 2.7.1.
