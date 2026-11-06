@@ -90,7 +90,11 @@ export const CHANNELS: ReadonlyArray<Channel> = [
     via: 'phone',
     description:
       'Ask an assistant to call a number you type. It rings from your Photon line and talks in its own voice.',
-    env: ['PHOTON_PHONE_NUMBER', 'PHOTON_SIP_USERNAME', 'PHOTON_SIP_PASSWORD'],
+    env: [
+      'PHOTON_PHONE_NUMBER',
+      'SPECTRUM_PROJECT_ID',
+      'SPECTRUM_PROJECT_SECRET',
+    ],
   },
   {
     id: 'web_search',
@@ -127,7 +131,10 @@ export const CHANNELS: ReadonlyArray<Channel> = [
 ]
 
 export type ChannelStatus =
-  'connected' | 'ready' | 'needs_setup' | 'coming_soon'
+  | 'connected'
+  | 'ready'
+  | 'needs_setup'
+  | 'coming_soon'
 
 export const STATUS_LABELS: Record<ChannelStatus, string> = {
   connected: 'Connected',

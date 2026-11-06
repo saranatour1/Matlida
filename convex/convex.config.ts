@@ -43,11 +43,9 @@ const app = defineApp({
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
-    /** Phone calls: the line they ring from, like +14155550123, and its Voice profile's outbound SIP credential (Voice → profile → Outbound calls in Photon). */
+    /** Phone calls: the iMessage line they ring from, like +14155550123. It must belong to the Spectrum project above, which signs the calls in. */
     PHOTON_PHONE_NUMBER: v.optional(v.string()),
-    PHOTON_SIP_USERNAME: v.optional(v.string()),
-    PHOTON_SIP_PASSWORD: v.optional(v.string()),
-    /** The server under SIP connection on that profile. sip.photon.codes when unset. */
+    /** Spectrum Voice's SIP server. sip.spectrum.photon.codes when unset. */
     PHOTON_SIP_HOST: v.optional(v.string()),
     /** Feature flags live in Cloudflare Flagship, read by the Worker's binding at /api/flags. This secret is shared with the Worker, so only Convex gets answers. Unset means every flag is off. */
     FLAGS_SECRET: v.optional(v.string()),
