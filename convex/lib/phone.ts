@@ -14,6 +14,12 @@ export const redactNumbers = (text: string) =>
       : typed
   })
 
+/** Whether they asked to hold or wait, like a queue or a transfer does. */
+export const askedToHold = (text: string) =>
+  /\b(hold|please wait|transferr?ing|connecting you|next available)\b/i.test(
+    text,
+  )
+
 /** A number in international format, like +14155550123. */
 export const PHONE_NUMBER = /^\+[1-9]\d{6,14}$/
 

@@ -1,5 +1,16 @@
 import { expect, test } from 'vitest'
-import { redactNumbers, typedBy } from '../../lib/phone'
+import { askedToHold, redactNumbers, typedBy } from '../../lib/phone'
+
+test('a queue or a transfer counts as being put on hold', () => {
+  expect(askedToHold('To speak to an operator, please hold.')).toBe(true)
+  expect(askedToHold('Please wait while I transfer you.')).toBe(true)
+  expect(askedToHold("I'm transferring you now")).toBe(true)
+  expect(
+    askedToHold('Your call will be answered by the next available agent'),
+  ).toBe(true)
+  expect(askedToHold('Processing takes about three weeks.')).toBe(false)
+  expect(askedToHold('Who is the household member?')).toBe(false)
+})
 
 test('only a number the user typed, however they wrote it', () => {
   expect(typedBy('call +1 (415) 555-0123 please', '+14155550123')).toBe(true)
