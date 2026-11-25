@@ -58,14 +58,16 @@ read, and drafts are capped at 5 at once, then 20 an hour.
 1. Connect your Telegram bot to the project in the Photon beta dashboard
    (create it with @BotFather and give Photon its token).
 2. Point the project's webhook at
-   `https://<deployment>.convex.site/photon/webhook`, and set its signing
-   secret (`whsec_…`) as `PHOTON_WEBHOOK_SECRET`. `PHOTON_PROJECT_ID` and
-   `PHOTON_API_KEY` are the same as for email.
+   `https://<deployment>.convex.site/photon/webhook` with API version
+   `2026-07-01` and the `message.received` event, and set its signing secret
+   (`whsec_…`) as `PHOTON_WEBHOOK_SECRET`. `PHOTON_PROJECT_ID` and
+   `PHOTON_API_KEY` are the same as for email. The `@photon-ai/convex`
+   component serves the route and answers any other API version with 400.
 3. In the app, get a code on Messaging and send `link <code>` to the bot.
    Then message it. Everything goes to Matilda.
 
 Each message arrives through the webhook; nothing polls. Replies go out
-through Photon's API. Commands work like in the app (`/tldr …`, `/news`, your
+through the component's outbox, which retries failed sends. Commands work like in the app (`/tldr …`, `/news`, your
 own Library commands). Voice notes are downloaded from Photon, transcribed and
 answered, charged to the chat's owner; an unlinked chat's are never
 transcribed.

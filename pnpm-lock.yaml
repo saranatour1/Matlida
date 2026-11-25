@@ -182,32 +182,32 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@convex-dev/agent':
-        specifier: ^0.7.9
-        version: 0.7.9(@ai-sdk/provider-utils@5.0.62(zod@4.6.7))(@ai-sdk/provider@4.0.29)(ai@7.0.143(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
+        specifier: ^0.7.11
+        version: 0.7.11(@ai-sdk/provider-utils@5.0.62(zod@4.6.7))(@ai-sdk/provider@4.0.29)(ai@7.0.143(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)
       '@convex-dev/ai-budget':
         specifier: 1.1.2
-        version: 1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+        version: 1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
       '@convex-dev/ai-sdk-provider':
         specifier: ^0.3.0
-        version: 0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1))
+        version: 0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1))
       '@convex-dev/auth':
         specifier: 2.0.0-beta.0
-        version: 2.0.0-beta.0(@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+        version: 2.0.0-beta.0(@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
       '@convex-dev/crons':
         specifier: 0.2.3
-        version: 0.2.3(convex@1.49.0(react@19.3.1))
+        version: 0.2.3(convex@1.51.0(react@19.3.1))
       '@convex-dev/rate-limiter':
         specifier: 0.4.3
-        version: 0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+        version: 0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
       '@convex-dev/react-query':
         specifier: ^0.1.0
-        version: 0.1.0(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.1))(convex@1.49.0(react@19.3.1))
+        version: 0.1.0(@tanstack/react-query@5.108.4(@types/react@19.3.0)(react@19.3.1))(convex@1.51.0(react@19.3.1))
       '@convex-dev/resend':
         specifier: ^0.2.10
-        version: 0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
+        version: 0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)
       '@convex-dev/workflow':
         specifier: 0.4.10
-        version: 0.4.10(@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))
+        version: 0.4.10(@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))
       '@databuddy/sdk':
         specifier: ^3.4.7
         version: 3.4.7(react@19.3.1)
@@ -217,12 +217,15 @@ importers:
       '@photon-ai/advanced-imessage':
         specifier: 2.4.0
         version: 2.4.0(@grpc/grpc-js@1.14.7)(nice-grpc-common@2.0.4)(nice-grpc@2.1.18)
+      '@photon-ai/convex':
+        specifier: 0.2.0
+        version: 0.2.0(convex@1.51.0(react@19.3.1))
       '@shadcn/react':
         specifier: ^0.3.1
         version: 0.3.1(@types/react@19.3.0)(react@19.3.1)
       '@spectrum-ts/convex':
         specifier: 0.1.1
-        version: 0.1.1(@spectrum-ts/imessage@12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(supports-color@7.2.0)
+        version: 0.1.1(@spectrum-ts/imessage@12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(supports-color@7.2.0)
       '@spectrum-ts/core':
         specifier: 12.14.0
         version: 12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
@@ -236,17 +239,17 @@ importers:
         specifier: 12.14.0
         version: 12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)
       '@tanstack/react-query':
-        specifier: ^5.106.1
-        version: 5.106.1(@types/react@19.3.0)(react@19.3.1)
+        specifier: ^5.108.4
+        version: 5.108.4(@types/react@19.3.0)(react@19.3.1)
       '@tanstack/react-router':
         specifier: ^1.170.46
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/react-router-ssr-query':
         specifier: ^1.167.3
-        version: 1.167.3(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.1))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/router-core@1.171.39)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 1.167.3(@tanstack/query-core@5.108.4)(@tanstack/react-query@5.108.4(@types/react@19.3.0)(react@19.3.1))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/router-core@1.171.39)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/react-start':
-        specifier: ^1.169.4
-        version: 1.169.4(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+        specifier: ^1.169.7
+        version: 1.169.7(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       '@tiptap/core':
         specifier: 3.32.3
         version: 3.32.3(@tiptap/pm@3.32.3)
@@ -275,11 +278,11 @@ importers:
         specifier: ^0.5.2
         version: 0.5.2
       convex:
-        specifier: ^1.49.0
-        version: 1.49.0(react@19.3.1)
+        specifier: ^1.51.0
+        version: 1.51.0(react@19.3.1)
       convex-helpers:
         specifier: ^0.1.134
-        version: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+        version: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
       lucide-react:
         specifier: ^1.69.0
         version: 1.69.0(@types/react@19.3.0)(react@19.3.1)
@@ -328,7 +331,7 @@ importers:
         version: 1.67.0(@types/node@24.19.2)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))(workerd@1.20261104.1)(wrangler@4.158.0(@types/node@24.19.2))
       '@convex-dev/eslint-plugin':
         specifier: ^5.0.1
-        version: 5.0.1(convex@1.49.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+        version: 5.0.1(convex@1.51.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
       '@edge-runtime/vm':
         specifier: ^5.0.0
         version: 5.0.0
@@ -337,7 +340,7 @@ importers:
         version: 4.3.4(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       '@tanstack/eslint-config':
         specifier: ^0.4.0
-        version: 0.4.0(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+        version: 0.4.0(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
       '@types/luxon':
         specifier: ^3.7.6
         version: 3.7.6
@@ -358,7 +361,7 @@ importers:
         version: 6.2.1(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       convex-test:
         specifier: ^0.0.67
-        version: 0.0.67(convex@1.49.0(react@19.3.1))
+        version: 0.0.67(convex@1.51.0(react@19.3.1))
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
@@ -599,8 +602,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@convex-dev/agent@0.7.9':
-    resolution: {integrity: sha512-/P7IU6CyzopR3olJmqQsLmy0sb9bTvubeuLTInsgqqQBgr7S7Z/N6L22AIer9dGcYTnW1sb7Lzacw61H2ptqbw==}
+  '@convex-dev/agent@0.7.11':
+    resolution: {integrity: sha512-dNLsPmBpyeRJcwbiO9zem6Xu3v47RGacp+LhGXyZ2iSsHnJzSd+6T3RjCOTH2lchiI0fSBmbzkNevyxmS67YBg==}
     engines: {node: '>=22'}
     peerDependencies:
       '@ai-sdk/provider': 4.0.29
@@ -1324,6 +1327,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@isaacs/nonrecursive-glob-match@1.1.0':
+    resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -1693,6 +1699,15 @@ packages:
         optional: true
       nice-grpc-common:
         optional: true
+
+  '@photon-ai/api@0.7.0':
+    resolution: {integrity: sha512-K7OhGmdtQV4t4f9aJUelMsMFoil5n/FLHEwLC1jHUST0XRQytoD6BHkva0czz3KOQAkDIbpM0BuczAn9gRdWSw==}
+    engines: {node: '>=22'}
+
+  '@photon-ai/convex@0.2.0':
+    resolution: {integrity: sha512-lOAJkD7wa+9TiXxcQFS52dVh5lLutpwHjNBlfuyiTTH3ELumlJvzEByQ/xz1mJkhQZeGlH1lUAeZPC3XIsd7Uw==}
+    peerDependencies:
+      convex: '>=1.31.0 <2.0.0'
 
   '@photon-ai/otel@3.8.1':
     resolution: {integrity: sha512-VDGj/iYk8ZXQhPLUYjNXtIAa7AA3kVGpjupn99ShiSotgbLeskXCOiAO4G0TlER2oUeoI9ovLU2fEyA87bMExw==}
@@ -2297,11 +2312,11 @@ packages:
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
 
-  '@tanstack/query-core@5.106.1':
-    resolution: {integrity: sha512-erYv/UACddcdgjOL2ixmFdK6tO/AVBeUcTCOtX2N51yZpDQ2U7KJ+xgB/bCNfsF3uoCDTqGHEEbDiFsIO9YUmQ==}
+  '@tanstack/query-core@5.108.4':
+    resolution: {integrity: sha512-2Ks5dlLWz4eXJrthOyG0qW3SLt3xx0RrQmAmN0rnmogiaaOYuWiAe6HAm9KE2b2v8nig+vraNz8fsfZ6fF6zFg==}
 
-  '@tanstack/react-query@5.106.1':
-    resolution: {integrity: sha512-ORDvJG/DSfmlFL9lQ8GDkE0VjtQbLeRDY7BL8xjKkQFGLfjFGfNWNuteWgPqA2gPJgLLuWfQ7IX0FlsHCJriyg==}
+  '@tanstack/react-query@5.108.4':
+    resolution: {integrity: sha512-GlTa94kfEKTVsbzXe58rFA3GZ0ZE7N1aFtbZAfOS3XxMv8YNn4C+8rsz40LorHLazdm5PsqCroWaYAR+ZkMXMQ==}
     peerDependencies:
       '@types/react': ^18 || ^19
       react: ^18 || ^19
@@ -2326,22 +2341,22 @@ packages:
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
 
-  '@tanstack/react-start-client@1.168.44':
-    resolution: {integrity: sha512-WvrYhQ0EgwYpxnP9mFCCo+jctqXV3qq8GfIyiSGLiZzz4GDyw+GuQ2lyA3BTN64wbNNNVeMll+9PV5OlGYi2/w==}
+  '@tanstack/react-start-client@1.168.45':
+    resolution: {integrity: sha512-DzTCJS+TVFIEs08w9RQGOEp7dtVCEIUU3y6Oay+mXOqoRk62T0olohHbNR9A4Z1my2b3hVdMjg9KG18WOckQYg==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
 
-  '@tanstack/react-start-rsc@0.1.65':
-    resolution: {integrity: sha512-5MmzmQoADjMA/d2XawkwKAkgBaQFrfifw/wn8qwCaLIntGYd2jkrCga/KdQW2xdjBu9IoP98WFhZilm7DfI/4g==}
+  '@tanstack/react-start-rsc@0.1.68':
+    resolution: {integrity: sha512-vwJ41g2HMlxeF1ctnzORXBcpiXBij/IqENHKl1zOv8hsS0mslvqfio5SdCFo/4GKAOjcZWmxqG5GJoJWmryDbg==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@rspack/core': '>=2.0.0-0'
-      '@vitejs/plugin-rsc': '>=0.5.30'
+      '@vitejs/plugin-rsc': '>=0.5.38'
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
-      react-server-dom-rspack: '>=0.0.2'
+      react-server-dom-rspack: '>=0.1.1'
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
@@ -2357,11 +2372,11 @@ packages:
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
 
-  '@tanstack/react-start@1.169.4':
-    resolution: {integrity: sha512-+DmlNPeQ1rsvo025I79GrlNgDm+zVCVAGg9gMIGmAevK2TJRMpKahgEKZZ1j4VSxDxjfTpkfLyuXiUxxjMJCaw==}
+  '@tanstack/react-start@1.169.7':
+    resolution: {integrity: sha512-8/Qg9iVC2oTtAqSdLdML2K+MZ8eBZe00pe6k54CkWYA4nRmrNyN/n2zbMW+rtjDbLAPeQck/1hgS6QBlblPGnw==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      '@rsbuild/core': ^2.0.0
+      '@rsbuild/core': ^2.0.5
       '@vitejs/plugin-rsc': '*'
       react: '>=18.0.0 || >=19.0.0'
       react-dom: '>=18.0.0 || >=19.0.0'
@@ -2384,17 +2399,17 @@ packages:
     resolution: {integrity: sha512-qUhoJ0meuSUqGYQbHbcJYdASr06YtK+bulbj6vtrhKYFkLgkSsZ6tXmMyym7sFxiSJSPYgasgozrL01LyyR/6A==}
     engines: {node: '>=20.19'}
 
-  '@tanstack/router-generator@1.167.46':
-    resolution: {integrity: sha512-JSailAThcqPvqBzE3+MhNh6zQyZM2IdmIsHOxZgAc061Lh++SZqamNm/Whe7QNXWK5sLP4E0J1F8AI0hP8wTSw==}
-    engines: {node: '>=20.19'}
+  '@tanstack/router-generator@1.168.0':
+    resolution: {integrity: sha512-Ty3y1g96Nq4yMojTH+OTgRFp0oa14LBKhiDW8+SrsdgW2mCpPRzZ8Ix7jjztxmkS8O+AKc2WaLkSskGUe3oEDQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
-  '@tanstack/router-plugin@1.168.48':
-    resolution: {integrity: sha512-oLDEZO/vhvF5JLrQ6qMNYcCjMMhlHA0Byx6ZXl9AHJ6qVLRxUeCU41vlZQ4buisONY2p0Zl9O09/qwLiVrIBCQ==}
-    engines: {node: '>=20.19'}
+  '@tanstack/router-plugin@1.169.0':
+    resolution: {integrity: sha512-aulFJmvW/rN5zQg/IM1Z5iUueX9dnYjBKxNpFWstpHxbatdlRlEwtSrc57VlBmfzRuckVxpZLi6wH3O40DMLgw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rsbuild/core': '>=1.0.2 || ^2.0.0'
       '@tanstack/react-router': ^1.170.46
-      vite: '>=5.0.0 || >=6.0.0 || >=7.0.0 || >=8.0.0'
+      vite: '>=6.0.0'
       vite-plugin-solid: ^2.11.10 || ^3.0.0-0
       webpack: '>=5.92.0'
     peerDependenciesMeta:
@@ -2416,9 +2431,9 @@ packages:
       '@tanstack/query-core': '>=5.102.0'
       '@tanstack/router-core': '>=1.171.28'
 
-  '@tanstack/router-utils@1.162.4':
-    resolution: {integrity: sha512-3TSH3rwAQTqQOtTBF8IXMFXmGNJWnjwIm+l87uguyC/of0pSRKcU9GJrozaf0fY9it8dLQvUZJA2MOlfqbW1sA==}
-    engines: {node: '>=20.19'}
+  '@tanstack/router-utils@1.163.0':
+    resolution: {integrity: sha512-OMeFv8aRwk9Xtf3JhRmQrjtMxCj7qqfnsueASuL8xUgItoblIL9eCIyt4Zv0hk3LBp/s7NqviZgQhiAfDhJb/A==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
   '@tanstack/start-client-core@1.170.39':
     resolution: {integrity: sha512-G0VJbZFf9/dYomQjZkWapaTjkjEI4vbk1jnxhhVtQ3nTRb3sIRc196j+S+qZcySfEV5W9TJHu4KatjSzjZZQwQ==}
@@ -2428,11 +2443,11 @@ packages:
     resolution: {integrity: sha512-QWfUZ3Yo923tdQn38LyKMU8rcTw69zc+T4dAvgTWV4O56SqFRsGfS0lSWIMhJRwXIx/bvdi7nTUBDdZtTHtpTQ==}
     engines: {node: '>=22.12.0'}
 
-  '@tanstack/start-plugin-core@1.171.55':
-    resolution: {integrity: sha512-8FjTuuxIE8MNJoveXahZPBCfEpm8p9tMFyWTvbllfqlysdhry34rw/nCwULfcVwTG39ezXEu/RYE83NSV+miog==}
+  '@tanstack/start-plugin-core@1.172.0':
+    resolution: {integrity: sha512-8VbVDauTOvlersYJcJe/wlIQ3LqPV1oQnWiGwMKilA2Z9r1sDhts+7SCIHBHqr9BjK0Z8w1+X0CKvCygNeD/5g==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      '@rsbuild/core': ^2.0.0
+      '@rsbuild/core': ^2.0.5
       vite: '>=8.0.0'
     peerDependenciesMeta:
       '@rsbuild/core':
@@ -2743,11 +2758,11 @@ packages:
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
 
-  '@typescript-eslint/eslint-plugin@8.71.1':
-    resolution: {integrity: sha512-nNlBf6HuotqMgZvSkWD5hNdemiBIxQ2NmrlgfcUIeZRs+BbakjscCQRq/Hb74EFVnFiSWWdL12JruqwBy3ERDw==}
+  '@typescript-eslint/eslint-plugin@8.74.0':
+    resolution: {integrity: sha512-z3KXk1+Vm+d82ZRplOoC89ho4Rf1da5ju6sx8//92GnN532U62DGPjECXkkVqtYzIv0zoJlpO39SX2Z9tk6LVw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
-      '@typescript-eslint/parser': ^8.71.1
+      '@typescript-eslint/parser': ^8.74.0
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
@@ -2758,8 +2773,8 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
-  '@typescript-eslint/parser@8.71.1':
-    resolution: {integrity: sha512-oM/5sAqz/l1v/zYK1qTOPrn2+JIrBGC1V6uNYucRO5gh6eT9vWJ/RhPbGE59byvZEUQ4VP6XkLBaS5Jti5jpvw==}
+  '@typescript-eslint/parser@8.74.0':
+    resolution: {integrity: sha512-ecr8AYdig7avVkxaHdQvxHnIJ/mOyliO4Gv/uWF8q69vBew/z3sexqBwHUZX5Vql+Ns0w4sH6gBLkICGbOvJkA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -2777,12 +2792,22 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/project-service@8.74.0':
+    resolution: {integrity: sha512-z/mymuE+JlEeSFIv3Mo70EvgG1Zz74Hl0IDfExfXutARAP834bt+MppTD7mVAwmZO0GdxdOAi0jbTam749eH6g==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/scope-manager@8.58.2':
     resolution: {integrity: sha512-SgmyvDPexWETQek+qzZnrG6844IaO02UVyOLhI4wpo82dpZJY9+6YZCKAMFzXb7qhx37mFK1QcPQ18tud+vo6Q==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/scope-manager@8.71.1':
     resolution: {integrity: sha512-1YUDZXdTnXLlob03SFHBipdyMBsDVm7zoSz0ytTJ39dk5J1TgsTK03VlR/dLXG/RLLUrPcYbD4rp23BmHxHP0w==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/scope-manager@8.74.0':
+    resolution: {integrity: sha512-kpOdpu4CpWN5U38ox3f727DwWRBtUAVhyUJtqTBYe5gf2wYoxac7PgKP14txrxN7ICVtcjlLdzjqfRgpSnDKvQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/tsconfig-utils@8.58.2':
@@ -2797,8 +2822,14 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
 
-  '@typescript-eslint/type-utils@8.71.1':
-    resolution: {integrity: sha512-kH3t3jZCYv2PZSBEWPKTariLrCaoF1CLoPitYFBJOhAGEwWnSRAtGEifrfrpBa4K9JlwWNZotgA5w3/wLSk/FQ==}
+  '@typescript-eslint/tsconfig-utils@8.74.0':
+    resolution: {integrity: sha512-p07wAuaS6BjCYgOSXKJi4YhvTnAf7fiG37e9THcpnYaQEt2QiTTYZWKwUFNgeRiywiMudazhzgddAirZ0GgHtQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/type-utils@8.74.0':
+    resolution: {integrity: sha512-CV3Y3la8l3F9ANfxcfpgSSiQgJTe4IeLEoZV4O/gcW86Ugp8X6SKiQ0vm+QegXaRIbbDMokZZSF3A1CgiU/kPw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -2812,6 +2843,10 @@ packages:
     resolution: {integrity: sha512-ybYnPTUwg3VQQOFEiBPLs8Jxl1ry2vXdn1kVKguomBbvxpetdu3MKTNDqFNUrlG8ylP9MpZosmXMFYlGQHk1oQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/types@8.74.0':
+    resolution: {integrity: sha512-MpnMrJCVNpP1iVL8NiHkQZgQqIMBH5ewDGUPBh1pqQXwFtMFjsl1M03QcYPXmv6stCKEiF0PN7CGbU1ZbXFzEA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/typescript-estree@8.58.2':
     resolution: {integrity: sha512-ELGuoofuhhoCvNbQjFFiobFcGgcDCEm0ThWdmO4Z0UzLqPXS3KFvnEZ+SHewwOYHjM09tkzOWXNTv9u6Gqtyuw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -2823,6 +2858,16 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/typescript-estree@8.74.0':
+    resolution: {integrity: sha512-wL348k6l92DNG+kPP5rVpKwNBoz7a3xRZy3TPKc1uymQttd7u7gcMv3eENmcuh4CjC4mO3FTM0DYstFXMyDLuw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      '@typescript/native': npm:typescript@>=7.1.0-dev.20261009.1 || >=7.1.0-beta <7.1.0-dev
+      typescript: '>=4.8.4 <6.1.0'
+    peerDependenciesMeta:
+      '@typescript/native':
+        optional: true
 
   '@typescript-eslint/utils@8.58.2':
     resolution: {integrity: sha512-QZfjHNEzPY8+l0+fIXMvuQ2sJlplB4zgDZvA+NmvZsZv3EQwOcc1DuIU1VJUTWZ/RKouBMhDyNaBMx4sWvrzRA==}
@@ -2838,12 +2883,23 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/utils@8.74.0':
+    resolution: {integrity: sha512-IpWXPxXXomzxyTcvjhZJexgdvtTR1TooLAPpuxzaGqQ8BHll1lf4Ysp/BTE/l0U5TJ+x1j7B4bEM8pLRrvY+XA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/visitor-keys@8.58.2':
     resolution: {integrity: sha512-f1WO2Lx8a9t8DARmcWAUPJbu0G20bJlj8L4z72K00TMeJAoyLr/tHhI/pzYBLrR4dXWkcxO1cWYZEOX8DKHTqA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/visitor-keys@8.71.1':
     resolution: {integrity: sha512-0GxiUGqMU0qXJt58cBsiG3DP8lUmBaFo2vChtUX+CT7PnR3v/VGLLrzVP4K9r1lNiZXjHYefMBbPunplr09v6w==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/visitor-keys@8.74.0':
+    resolution: {integrity: sha512-XSZmOtMUbWCBIM+2BK134FyMFxmll1mW2mPLk/PSwYQYzGIPMgJAqL929U4qXVizLv7Xq5b7r41/o7Ombuwk0g==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
@@ -3364,8 +3420,8 @@ packages:
     peerDependencies:
       convex: ^1.43.0
 
-  convex@1.49.0:
-    resolution: {integrity: sha512-mkr9oXF8/arkCI1kvYyGytWd62oVXNABh4uwLeI4UQVN6Zuudm4DlmSzNUJKF63djk6f/uUXC+6ffuVSkPLvzA==}
+  convex@1.51.0:
+    resolution: {integrity: sha512-Y5gS+JmT2JBq76S3CrQDrdL/Ijs4ZRKsvz3cu5EmHf/QxW18QrHunb5j9WC6lAbWbWc/gvmqpa5lvXzLXFQVJA==}
     engines: {node: '>=22.0.0', npm: '>=7.0.0'}
     hasBin: true
     peerDependencies:
@@ -4225,6 +4281,10 @@ packages:
     resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
     engines: {node: 18 || 20 || >=22}
 
+  minimatch@11.0.9:
+    resolution: {integrity: sha512-KCFkfyjqerNlSstjlhIGNXIKZGA/6O4V4RlhZ+Dsr621SPPw0mzlypE9D9ZOoPiVefHID+j7/XuMMlqfD/F60Q==}
+    engines: {node: 20 || >=22}
+
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
 
@@ -4784,8 +4844,8 @@ packages:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
 
-  typescript-eslint@8.71.1:
-    resolution: {integrity: sha512-oiNVPC3/NbV1FpaHU07l8O6ynqG9v4PAiW2WvTrAmZdR0f2HI/gE668ElMLCK7Xbsu5k2fK5C4fXNiq05j7/nQ==}
+  typescript-eslint@8.74.0:
+    resolution: {integrity: sha512-OsWQlsedt1ZpZXfZZMNK3m4SoQONFFcy4h/uRznsCeRfVuEic3gh4KGUs2pJJ5o0Jj0Jr7keUHQGN1Ns9aDw7Q==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -4843,8 +4903,8 @@ packages:
   unist-util-visit@5.1.0:
     resolution: {integrity: sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==}
 
-  unplugin@3.4.0:
-    resolution: {integrity: sha512-9skdIFlCsPdFV7wUfZxNsFInlW+7nJmGu2gkTu0OUhF56aXGsHab9x52/QhdJ4lC7ZDPWTxbiC4ANqVlsuaW3w==}
+  unplugin@3.7.0:
+    resolution: {integrity: sha512-GrM2uq3DQo3hvLU2FjeYhooJ8BY9N6j1Fbzgx7Pta3VVJevsD3VP4dPjZkZOS0mLvN8w9zzr9OlP+31bSMyuLw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@farmfe/core': '*'
@@ -5361,25 +5421,25 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261104.1':
     optional: true
 
-  '@convex-dev/agent@0.7.9(@ai-sdk/provider-utils@5.0.62(zod@4.6.7))(@ai-sdk/provider@4.0.29)(ai@7.0.143(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)':
+  '@convex-dev/agent@0.7.11(@ai-sdk/provider-utils@5.0.62(zod@4.6.7))(@ai-sdk/provider@4.0.29)(ai@7.0.143(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@ai-sdk/provider': 4.0.29
       '@ai-sdk/provider-utils': 5.0.62(zod@4.6.7)
       ai: 7.0.143(zod@4.6.7)
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
     optionalDependencies:
       '@ungap/structured-clone': 1.4.0
       react: 19.3.1
 
-  '@convex-dev/ai-budget@1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
+  '@convex-dev/ai-budget@1.1.2(@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1)))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/ai-sdk-provider': 0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1))
-      '@convex-dev/rate-limiter': 0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
-      '@convex-dev/sharded-counter': 0.2.3(convex@1.49.0(react@19.3.1))
+      '@convex-dev/ai-sdk-provider': 0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1))
+      '@convex-dev/rate-limiter': 0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      '@convex-dev/sharded-counter': 0.2.3(convex@1.51.0(react@19.3.1))
       ai: 7.0.143(zod@4.6.7)
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
     optionalDependencies:
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
     transitivePeerDependencies:
@@ -5390,31 +5450,31 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.49.0(react@19.3.1))':
+  '@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.143(zod@4.6.7))(convex@1.51.0(react@19.3.1))':
     dependencies:
       '@ai-sdk/anthropic': 4.0.40(zod@4.6.7)
       '@ai-sdk/openai': 4.0.45(zod@4.6.7)
       '@ai-sdk/openai-compatible': 3.0.14(zod@4.6.7)
       ai: 7.0.143(zod@4.6.7)
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
       zod: 4.6.7
 
-  '@convex-dev/auth@2.0.0-beta.0(@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
+  '@convex-dev/auth@2.0.0-beta.0(@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1))(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
     dependencies:
       '@babel/code-frame': 7.29.7
-      '@convex-dev/batch-worker': 0.3.6(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
-      '@convex-dev/rate-limiter': 0.3.2(convex@1.49.0(react@19.3.1))(react@19.3.1)
+      '@convex-dev/batch-worker': 0.3.6(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      '@convex-dev/rate-limiter': 0.3.2(convex@1.51.0(react@19.3.1))(react@19.3.1)
       '@simplewebauthn/browser': 14.0.0
       '@simplewebauthn/server': 14.0.3
       argon2id-wasm: 0.0.0-alpha.2
       chalk: 5.6.2
       commander: 14.0.3
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
       cookie: 1.1.1
       jose: 5.10.0
       ora: 9.4.1
     optionalDependencies:
-      '@convex-dev/resend': 0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
+      '@convex-dev/resend': 0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)
       react: 19.3.1
     transitivePeerDependencies:
       - '@standard-schema/spec'
@@ -5423,15 +5483,15 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/batch-worker@0.2.2(convex@1.49.0(react@19.3.1))(react@19.3.1)':
+  '@convex-dev/batch-worker@0.2.2(convex@1.51.0(react@19.3.1))(react@19.3.1)':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
       react: 19.3.1
 
-  '@convex-dev/batch-worker@0.3.5(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
+  '@convex-dev/batch-worker@0.3.5(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -5440,10 +5500,10 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/batch-worker@0.3.6(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
+  '@convex-dev/batch-worker@0.3.6(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
     transitivePeerDependencies:
       - '@standard-schema/spec'
       - hono
@@ -5452,32 +5512,32 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/crons@0.2.3(convex@1.49.0(react@19.3.1))':
+  '@convex-dev/crons@0.2.3(convex@1.51.0(react@19.3.1))':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
       cron-parser: 4.9.0
 
-  '@convex-dev/eslint-plugin@5.0.1(convex@1.49.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@convex-dev/eslint-plugin@5.0.1(convex@1.51.0(react@19.3.1))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
     dependencies:
       '@typescript-eslint/parser': 8.58.2(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
       '@typescript-eslint/types': 8.58.2
       '@typescript-eslint/utils': 8.58.2(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
       typescript: 5.9.3
     transitivePeerDependencies:
       - eslint
       - supports-color
 
-  '@convex-dev/rate-limiter@0.3.2(convex@1.49.0(react@19.3.1))(react@19.3.1)':
+  '@convex-dev/rate-limiter@0.3.2(convex@1.51.0(react@19.3.1))(react@19.3.1)':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
     optionalDependencies:
       react: 19.3.1
 
-  '@convex-dev/rate-limiter@0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
+  '@convex-dev/rate-limiter@0.4.3(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)':
     dependencies:
-      '@convex-dev/batch-worker': 0.3.5(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
-      convex: 1.49.0(react@19.3.1)
+      '@convex-dev/batch-worker': 0.3.5(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
     optionalDependencies:
       react: 19.3.1
     transitivePeerDependencies:
@@ -5487,17 +5547,17 @@ snapshots:
       - typescript
       - zod
 
-  '@convex-dev/react-query@0.1.0(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.1))(convex@1.49.0(react@19.3.1))':
+  '@convex-dev/react-query@0.1.0(@tanstack/react-query@5.108.4(@types/react@19.3.0)(react@19.3.1))(convex@1.51.0(react@19.3.1))':
     dependencies:
-      '@tanstack/react-query': 5.106.1(@types/react@19.3.0)(react@19.3.1)
-      convex: 1.49.0(react@19.3.1)
+      '@tanstack/react-query': 5.108.4(@types/react@19.3.0)(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
 
-  '@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)':
+  '@convex-dev/resend@0.2.10(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@convex-dev/rate-limiter': 0.3.2(convex@1.49.0(react@19.3.1))(react@19.3.1)
-      '@convex-dev/workpool': 0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      '@convex-dev/rate-limiter': 0.3.2(convex@1.51.0(react@19.3.1))(react@19.3.1)
+      '@convex-dev/workpool': 0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
       remeda: 2.52.0
       resend: 6.34.1
       svix: 1.99.1
@@ -5505,22 +5565,22 @@ snapshots:
       - '@react-email/render'
       - react
 
-  '@convex-dev/sharded-counter@0.2.3(convex@1.49.0(react@19.3.1))':
+  '@convex-dev/sharded-counter@0.2.3(convex@1.51.0(react@19.3.1))':
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
 
-  '@convex-dev/workflow@0.4.10(@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))':
+  '@convex-dev/workflow@0.4.10(@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))':
     dependencies:
-      '@convex-dev/workpool': 0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
+      '@convex-dev/workpool': 0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)
       async-channel: 0.2.0
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
 
-  '@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)':
+  '@convex-dev/workpool@0.4.14(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7))(convex@1.51.0(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@convex-dev/batch-worker': 0.2.2(convex@1.49.0(react@19.3.1))(react@19.3.1)
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
+      '@convex-dev/batch-worker': 0.2.2(convex@1.51.0(react@19.3.1))(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
+      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7)
     transitivePeerDependencies:
       - react
 
@@ -5918,6 +5978,8 @@ snapshots:
   '@img/sharp-win32-x64@0.35.5':
     optional: true
 
+  '@isaacs/nonrecursive-glob-match@1.1.0': {}
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
@@ -6295,6 +6357,17 @@ snapshots:
       nice-grpc: 2.1.18
       nice-grpc-common: 2.0.4
 
+  '@photon-ai/api@0.7.0':
+    dependencies:
+      standardwebhooks: 1.1.1
+      zod: 4.6.7
+
+  '@photon-ai/convex@0.2.0(convex@1.51.0(react@19.3.1))':
+    dependencies:
+      '@photon-ai/api': 0.7.0
+      convex: 1.51.0(react@19.3.1)
+      standardwebhooks: 1.1.1
+
   '@photon-ai/otel@3.8.1(@typescript/typescript6@6.0.2)(supports-color@7.2.0)':
     dependencies:
       '@opentelemetry/api': 1.9.1
@@ -6631,10 +6704,10 @@ snapshots:
 
   '@sindresorhus/is@7.2.0': {}
 
-  '@spectrum-ts/convex@0.1.1(@spectrum-ts/imessage@12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(supports-color@7.2.0)':
+  '@spectrum-ts/convex@0.1.1(@spectrum-ts/imessage@12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(supports-color@7.2.0)':
     dependencies:
       '@spectrum-ts/core': 12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
     optionalDependencies:
       '@spectrum-ts/imessage': 12.14.0(@spectrum-ts/core@12.14.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
     transitivePeerDependencies:
@@ -6699,7 +6772,7 @@ snapshots:
   '@stylistic/eslint-plugin@5.10.0(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))':
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
-      '@typescript-eslint/types': 8.71.1
+      '@typescript-eslint/types': 8.74.0
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
@@ -6774,7 +6847,7 @@ snapshots:
       tailwindcss: 4.3.4
       vite: 8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0)
 
-  '@tanstack/eslint-config@0.4.0(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@tanstack/eslint-config@0.4.0(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
       '@eslint/js': 10.0.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
       '@stylistic/eslint-plugin': 5.10.0(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
@@ -6782,31 +6855,32 @@ snapshots:
       eslint-plugin-import-x: 4.17.1(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
       eslint-plugin-n: 17.24.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
       globals: 17.13.0
-      typescript-eslint: 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      typescript-eslint: 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
       vue-eslint-parser: 10.4.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
     transitivePeerDependencies:
       - '@typescript-eslint/utils'
+      - '@typescript/native'
       - eslint-import-resolver-node
       - supports-color
       - typescript
 
   '@tanstack/history@1.162.5': {}
 
-  '@tanstack/query-core@5.106.1': {}
+  '@tanstack/query-core@5.108.4': {}
 
-  '@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.1)':
+  '@tanstack/react-query@5.108.4(@types/react@19.3.0)(react@19.3.1)':
     dependencies:
-      '@tanstack/query-core': 5.106.1
+      '@tanstack/query-core': 5.108.4
       react: 19.3.1
     optionalDependencies:
       '@types/react': 19.3.0
 
-  '@tanstack/react-router-ssr-query@1.167.3(@tanstack/query-core@5.106.1)(@tanstack/react-query@5.106.1(@types/react@19.3.0)(react@19.3.1))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/router-core@1.171.39)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@tanstack/react-router-ssr-query@1.167.3(@tanstack/query-core@5.108.4)(@tanstack/react-query@5.108.4(@types/react@19.3.0)(react@19.3.1))(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/router-core@1.171.39)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
-      '@tanstack/query-core': 5.106.1
-      '@tanstack/react-query': 5.106.1(@types/react@19.3.0)(react@19.3.1)
+      '@tanstack/query-core': 5.108.4
+      '@tanstack/react-query': 5.108.4(@types/react@19.3.0)(react@19.3.1)
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/router-ssr-query-core': 1.169.3(@tanstack/query-core@5.106.1)(@tanstack/router-core@1.171.39)
+      '@tanstack/router-ssr-query-core': 1.169.3(@tanstack/query-core@5.108.4)(@tanstack/router-core@1.171.39)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     transitivePeerDependencies:
@@ -6821,7 +6895,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-start-client@1.168.44(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+  '@tanstack/react-start-client@1.168.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/router-core': 1.171.39
@@ -6829,14 +6903,14 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-start-rsc@0.1.65(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
+  '@tanstack/react-start-rsc@0.1.68(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
     dependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tanstack/router-core': 1.171.39
-      '@tanstack/router-utils': 1.162.4(supports-color@7.2.0)
+      '@tanstack/router-utils': 1.163.0(supports-color@7.2.0)
       '@tanstack/start-client-core': 1.170.39
       '@tanstack/start-fn-stubs': 1.162.0
-      '@tanstack/start-plugin-core': 1.171.55(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+      '@tanstack/start-plugin-core': 1.172.0(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       '@tanstack/start-storage-context': 1.167.41
       pathe: 2.0.3
       react: 19.3.1
@@ -6862,15 +6936,15 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-start@1.169.4(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
+  '@tanstack/react-start@1.169.7(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
     dependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/react-start-client': 1.168.44(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/react-start-rsc': 0.1.65(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+      '@tanstack/react-start-client': 1.168.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-start-rsc': 0.1.68(esbuild@0.27.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       '@tanstack/react-start-server': 1.167.52(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/router-utils': 1.162.4(supports-color@7.2.0)
+      '@tanstack/router-utils': 1.163.0(supports-color@7.2.0)
       '@tanstack/start-client-core': 1.170.39
-      '@tanstack/start-plugin-core': 1.171.55(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+      '@tanstack/start-plugin-core': 1.172.0(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       '@tanstack/start-server-core': 1.169.45
       pathe: 2.0.3
       react: 19.3.1
@@ -6904,11 +6978,11 @@ snapshots:
       seroval: 1.6.9
       seroval-plugins: 1.6.9(seroval@1.6.9)
 
-  '@tanstack/router-generator@1.167.46(supports-color@7.2.0)':
+  '@tanstack/router-generator@1.168.0(supports-color@7.2.0)':
     dependencies:
       '@babel/types': 7.29.8
       '@tanstack/router-core': 1.171.39
-      '@tanstack/router-utils': 1.162.4(supports-color@7.2.0)
+      '@tanstack/router-utils': 1.163.0(supports-color@7.2.0)
       '@tanstack/virtual-file-routes': 1.162.0
       jiti: 2.7.0
       magic-string: 0.30.21
@@ -6917,16 +6991,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/router-plugin@1.168.48(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
+  '@tanstack/router-plugin@1.169.0(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@7.2.0)
       '@babel/template': 7.29.7
       '@babel/types': 7.29.8
       '@tanstack/router-core': 1.171.39
-      '@tanstack/router-generator': 1.167.46(supports-color@7.2.0)
-      '@tanstack/router-utils': 1.162.4(supports-color@7.2.0)
+      '@tanstack/router-generator': 1.168.0(supports-color@7.2.0)
+      '@tanstack/router-utils': 1.163.0(supports-color@7.2.0)
       chokidar: 5.0.0
-      unplugin: 3.4.0(esbuild@0.27.0)(rolldown@1.2.13)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+      unplugin: 3.7.0(esbuild@0.27.0)(rolldown@1.2.13)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
       zod: 4.6.7
     optionalDependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -6941,12 +7015,12 @@ snapshots:
       - supports-color
       - unloader
 
-  '@tanstack/router-ssr-query-core@1.169.3(@tanstack/query-core@5.106.1)(@tanstack/router-core@1.171.39)':
+  '@tanstack/router-ssr-query-core@1.169.3(@tanstack/query-core@5.108.4)(@tanstack/router-core@1.171.39)':
     dependencies:
-      '@tanstack/query-core': 5.106.1
+      '@tanstack/query-core': 5.108.4
       '@tanstack/router-core': 1.171.39
 
-  '@tanstack/router-utils@1.162.4(supports-color@7.2.0)':
+  '@tanstack/router-utils@1.163.0(supports-color@7.2.0)':
     dependencies:
       '@babel/generator': 7.29.8
       '@babel/parser': 7.29.9
@@ -6968,16 +7042,16 @@ snapshots:
 
   '@tanstack/start-fn-stubs@1.162.0': {}
 
-  '@tanstack/start-plugin-core@1.171.55(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
+  '@tanstack/start-plugin-core@1.172.0(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.7(supports-color@7.2.0)
       '@babel/types': 7.29.8
       '@jridgewell/remapping': 2.3.5
       '@tanstack/router-core': 1.171.39
-      '@tanstack/router-generator': 1.167.46(supports-color@7.2.0)
-      '@tanstack/router-plugin': 1.168.48(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
-      '@tanstack/router-utils': 1.162.4(supports-color@7.2.0)
+      '@tanstack/router-generator': 1.168.0(supports-color@7.2.0)
+      '@tanstack/router-plugin': 1.169.0(@tanstack/react-router@1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(esbuild@0.27.0)(rolldown@1.2.13)(supports-color@7.2.0)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0))
+      '@tanstack/router-utils': 1.163.0(supports-color@7.2.0)
       '@tanstack/start-server-core': 1.169.45
       exsolve: 1.1.3
       lightningcss: 1.33.0
@@ -7308,20 +7382,21 @@ snapshots:
 
   '@types/use-sync-external-store@0.0.6': {}
 
-  '@typescript-eslint/eslint-plugin@8.71.1(@typescript-eslint/parser@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@typescript-eslint/eslint-plugin@8.74.0(@typescript-eslint/parser@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
-      '@typescript-eslint/scope-manager': 8.71.1
-      '@typescript-eslint/type-utils': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
-      '@typescript-eslint/utils': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
-      '@typescript-eslint/visitor-keys': 8.71.1
+      '@typescript-eslint/parser': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/scope-manager': 8.74.0
+      '@typescript-eslint/type-utils': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/utils': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/visitor-keys': 8.74.0
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       ignore: 7.0.12
       natural-compare: 1.4.0
       ts-api-utils: 2.5.0(@typescript/typescript6@6.0.2)
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   '@typescript-eslint/parser@8.58.2(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)':
@@ -7336,16 +7411,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@typescript-eslint/parser@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)':
     dependencies:
-      '@typescript-eslint/scope-manager': 8.71.1
-      '@typescript-eslint/types': 8.71.1
-      '@typescript-eslint/typescript-estree': 8.71.1(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
-      '@typescript-eslint/visitor-keys': 8.71.1
+      '@typescript-eslint/scope-manager': 8.74.0
+      '@typescript-eslint/types': 8.74.0
+      '@typescript-eslint/typescript-estree': 8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/visitor-keys': 8.74.0
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   '@typescript-eslint/project-service@8.58.2(supports-color@7.2.0)(typescript@5.9.3)':
@@ -7359,8 +7435,18 @@ snapshots:
 
   '@typescript-eslint/project-service@8.71.1(@typescript/typescript6@6.0.2)(supports-color@7.2.0)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.71.1(@typescript/typescript6@6.0.2)
-      '@typescript-eslint/types': 8.71.1
+      '@typescript-eslint/tsconfig-utils': 8.74.0(@typescript/typescript6@6.0.2)
+      '@typescript-eslint/types': 8.74.0
+      debug: 4.4.3(supports-color@7.2.0)
+      typescript: '@typescript/typescript6@6.0.2'
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  '@typescript-eslint/project-service@8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)':
+    dependencies:
+      '@typescript-eslint/tsconfig-utils': 8.74.0(@typescript/typescript6@6.0.2)
+      '@typescript-eslint/types': 8.74.0
       debug: 4.4.3(supports-color@7.2.0)
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
@@ -7375,6 +7461,12 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.71.1
       '@typescript-eslint/visitor-keys': 8.71.1
+    optional: true
+
+  '@typescript-eslint/scope-manager@8.74.0':
+    dependencies:
+      '@typescript-eslint/types': 8.74.0
+      '@typescript-eslint/visitor-keys': 8.74.0
 
   '@typescript-eslint/tsconfig-utils@8.58.2(typescript@5.9.3)':
     dependencies:
@@ -7383,26 +7475,34 @@ snapshots:
   '@typescript-eslint/tsconfig-utils@8.71.1(@typescript/typescript6@6.0.2)':
     dependencies:
       typescript: '@typescript/typescript6@6.0.2'
+    optional: true
 
   '@typescript-eslint/tsconfig-utils@8.71.1(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
 
-  '@typescript-eslint/type-utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)':
+  '@typescript-eslint/tsconfig-utils@8.74.0(@typescript/typescript6@6.0.2)':
     dependencies:
-      '@typescript-eslint/types': 8.71.1
-      '@typescript-eslint/typescript-estree': 8.71.1(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
-      '@typescript-eslint/utils': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      typescript: '@typescript/typescript6@6.0.2'
+
+  '@typescript-eslint/type-utils@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)':
+    dependencies:
+      '@typescript-eslint/types': 8.74.0
+      '@typescript-eslint/typescript-estree': 8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/utils': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       ts-api-utils: 2.5.0(@typescript/typescript6@6.0.2)
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   '@typescript-eslint/types@8.58.2': {}
 
   '@typescript-eslint/types@8.71.1': {}
+
+  '@typescript-eslint/types@8.74.0': {}
 
   '@typescript-eslint/typescript-estree@8.58.2(supports-color@7.2.0)(typescript@5.9.3)':
     dependencies:
@@ -7433,6 +7533,24 @@ snapshots:
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
       - supports-color
+    optional: true
+
+  '@typescript-eslint/typescript-estree@8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)(typescript@7.0.2)':
+    dependencies:
+      '@typescript-eslint/project-service': 8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
+      '@typescript-eslint/tsconfig-utils': 8.74.0(@typescript/typescript6@6.0.2)
+      '@typescript-eslint/types': 8.74.0
+      '@typescript-eslint/visitor-keys': 8.74.0
+      debug: 4.4.3(supports-color@7.2.0)
+      minimatch: 11.0.9
+      semver: 7.8.5
+      tinyglobby: 0.2.17
+      ts-api-utils: 2.5.0(@typescript/typescript6@6.0.2)
+      typescript: '@typescript/typescript6@6.0.2'
+    optionalDependencies:
+      '@typescript/native': typescript@7.0.2
+    transitivePeerDependencies:
+      - supports-color
 
   '@typescript-eslint/utils@8.58.2(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)':
     dependencies:
@@ -7455,6 +7573,19 @@ snapshots:
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
       - supports-color
+    optional: true
+
+  '@typescript-eslint/utils@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)':
+    dependencies:
+      '@eslint-community/eslint-utils': 4.10.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
+      '@typescript-eslint/scope-manager': 8.74.0
+      '@typescript-eslint/types': 8.74.0
+      '@typescript-eslint/typescript-estree': 8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)(typescript@7.0.2)
+      eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
+      typescript: '@typescript/typescript6@6.0.2'
+    transitivePeerDependencies:
+      - '@typescript/native'
+      - supports-color
 
   '@typescript-eslint/visitor-keys@8.58.2':
     dependencies:
@@ -7464,6 +7595,12 @@ snapshots:
   '@typescript-eslint/visitor-keys@8.71.1':
     dependencies:
       '@typescript-eslint/types': 8.71.1
+      eslint-visitor-keys: 5.0.1
+    optional: true
+
+  '@typescript-eslint/visitor-keys@8.74.0':
+    dependencies:
+      '@typescript-eslint/types': 8.74.0
       eslint-visitor-keys: 5.0.1
 
   '@typescript/typescript-aix-ppc64@7.0.2':
@@ -7815,9 +7952,9 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.49.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7):
+  convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(@typescript/typescript6@6.0.2)(convex@1.51.0(react@19.3.1))(hono@4.13.13)(prettier@3.9.10)(react@19.3.1)(zod@4.6.7):
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
       hono: 4.13.13
@@ -7826,11 +7963,11 @@ snapshots:
       typescript: '@typescript/typescript6@6.0.2'
       zod: 4.6.7
 
-  convex-test@0.0.67(convex@1.49.0(react@19.3.1)):
+  convex-test@0.0.67(convex@1.51.0(react@19.3.1)):
     dependencies:
-      convex: 1.49.0(react@19.3.1)
+      convex: 1.51.0(react@19.3.1)
 
-  convex@1.49.0(react@19.3.1):
+  convex@1.51.0(react@19.3.1):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.10
@@ -8063,7 +8200,7 @@ snapshots:
 
   eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
-      '@typescript-eslint/types': 8.71.1
+      '@typescript-eslint/types': 8.74.0
       comment-parser: 1.4.9
       debug: 4.4.3(supports-color@7.2.0)
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
@@ -8882,6 +9019,11 @@ snapshots:
     dependencies:
       brace-expansion: 5.0.12
 
+  minimatch@11.0.9:
+    dependencies:
+      '@isaacs/nonrecursive-glob-match': 1.1.0
+      brace-expansion: 5.0.12
+
   minimatch@3.1.5:
     dependencies:
       brace-expansion: 1.1.21
@@ -9539,15 +9681,16 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
 
-  typescript-eslint@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0):
+  typescript-eslint@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.71.1(@typescript-eslint/parser@8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
-      '@typescript-eslint/parser': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
-      '@typescript-eslint/typescript-estree': 8.71.1(@typescript/typescript6@6.0.2)(supports-color@7.2.0)
-      '@typescript-eslint/utils': 8.71.1(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)
+      '@typescript-eslint/eslint-plugin': 8.74.0(@typescript-eslint/parser@8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2))(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/parser': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/typescript-estree': 8.74.0(@typescript/typescript6@6.0.2)(supports-color@7.2.0)(typescript@7.0.2)
+      '@typescript-eslint/utils': 8.74.0(@typescript/typescript6@6.0.2)(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@7.0.2)
       eslint: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   typescript@5.9.3: {}
@@ -9624,9 +9767,10 @@ snapshots:
       unist-util-is: 6.0.1
       unist-util-visit-parents: 6.0.2
 
-  unplugin@3.4.0(esbuild@0.27.0)(rolldown@1.2.13)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0)):
+  unplugin@3.7.0(esbuild@0.27.0)(rolldown@1.2.13)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.27.0)(jiti@2.7.0)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
+      '@rolldown/pluginutils': 1.0.1
       picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:

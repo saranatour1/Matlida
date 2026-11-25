@@ -1,9 +1,9 @@
 import agentTest from '@convex-dev/agent/test'
+import photonTest from '@photon-ai/convex/test'
 import rateLimiterTest from '@convex-dev/rate-limiter/test'
 import { convexTest } from 'convex-test'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { api, internal } from '../../_generated/api'
-import { signWebhook } from '../../lib/webhooks'
 import schema from '../../schema'
 import { modules } from '../../test.setup'
 import type * as Ai from 'ai'
@@ -31,13 +31,31 @@ vi.mock('ai', async (original) => ({
 
 const SECRET = `whsec_${btoa('photon-test-secret')}`
 
-/** Every text sent through Photon's API: chat, sender, text, idempotency key. */
-const sent: Array<{
-  spaceId: string
-  senderId: string
-  text: string
-  key: string
-}> = []
+/** Signs a body the way Photon does (Standard Webhooks: HMAC-SHA256 over `id.timestamp.body`). */
+const signWebhook = async (
+  body: Uint8Array<ArrayBuffer>,
+  id: string,
+  timestamp: number,
+  secret: string,
+) => {
+  const raw = Uint8Array.from(atob(secret.slice(6)), (c) => c.charCodeAt(0))
+  const key = await crypto.subtle.importKey(
+    'raw',
+    raw,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signed = new Uint8Array([
+    ...new TextEncoder().encode(`${id}.${timestamp}.`),
+    ...body,
+  ])
+  const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, signed))
+  return `v1,${btoa(String.fromCharCode(...mac))}`
+}
+
+/** Every text sent through Photon's API: chat, sender, text. */
+const sent: Array<{ spaceId: string; senderId: string; text: string }> = []
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -48,18 +66,19 @@ beforeEach(() => {
   vi.stubEnv('PHOTON_WEBHOOK_SECRET', SECRET)
   vi.stubGlobal(
     'fetch',
-    vi.fn((url: string, init?: RequestInit) => {
-      if (url.includes('/attachments/')) {
-        expect(url).toBe(
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const request = new Request(input, init)
+      if (request.url.includes('/attachments/')) {
+        expect(request.url).toBe(
           'https://api.photon.codes/v1/projects/pho_prj_test/attachments/att-1/content',
         )
-        return Promise.resolve(new Response(new Uint8Array([1, 2, 3])))
+        return new Response(new Uint8Array([1, 2, 3]))
       }
-      expect(init?.method).toBe('POST')
-      expect(url).toBe(
+      expect(request.method).toBe('POST')
+      expect(request.url).toBe(
         'https://api.photon.codes/v1/projects/pho_prj_test/messages',
       )
-      const body = JSON.parse(init?.body as string) as {
+      const body = (await request.json()) as {
         spaceId: string
         senderId: string
         content: { text: string }
@@ -68,9 +87,8 @@ beforeEach(() => {
         spaceId: body.spaceId,
         senderId: body.senderId,
         text: body.content.text,
-        key: (init?.headers as Record<string, string>)['idempotency-key'],
       })
-      return Promise.resolve(Response.json({ id: 'sent' }))
+      return Response.json({ id: 'sent' })
     }),
   )
 })
@@ -84,6 +102,7 @@ afterEach(() => {
 const setup = async () => {
   const t = convexTest(schema, modules)
   agentTest.register(t)
+  photonTest.register(t)
   rateLimiterTest.register(t)
   const ada = await t.run((ctx) => ctx.db.insert('users', {}))
   const asAda = t.withIdentity({ subject: ada })
@@ -101,7 +120,14 @@ const setup = async () => {
       secret = SECRET,
       at = Date.now(),
       content = { type: 'text', text },
-    }: { secret?: string; at?: number; content?: unknown } = {},
+      drain = true,
+    }: {
+      secret?: string
+      at?: number
+      content?: unknown
+      /** Run what it scheduled. Off for a burst, so the clock doesn't move between texts. */
+      drain?: boolean
+    } = {},
   ) => {
     const body = new TextEncoder().encode(
       JSON.stringify({
@@ -130,16 +156,16 @@ const setup = async () => {
       headers: {
         'webhook-id': `msg_${id}`,
         'webhook-timestamp': String(timestamp),
-        'webhook-signature': await signWebhook({
+        'webhook-signature': await signWebhook(
           body,
-          id: `msg_${id}`,
+          `msg_${id}`,
           timestamp,
           secret,
-        }),
+        ),
       },
       body,
     })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    if (drain) await t.finishAllScheduledFunctions(vi.runAllTimers)
     return response.status
   }
   return { t, asAda, projectId, deliver }
@@ -153,7 +179,6 @@ test('an unlinked Telegram chat is told how to link, through Photon', async () =
       spaceId: 'tg-chat-1',
       senderId: 'agent-bot',
       text: "This chat isn't linked yet. Open Messaging in Matilda and send me the code it shows.",
-      key: 'reply:m1',
     },
   ])
 })
@@ -176,11 +201,10 @@ test('linking from Telegram, then chatting, then a text reminder, all go through
     spaceId: 'tg-chat-1',
     senderId: 'agent-bot',
     text: 'Hi from Matilda.',
-    key: 'reply:m2',
   })
 
   const chat = await asAda.query(api.api.threads.main, { projectId })
-  const id = await t.mutation(internal.api.reminders.schedule, {
+  await t.mutation(internal.api.reminders.schedule, {
     projectId,
     threadId: chat ?? '',
     from: 'Matilda',
@@ -193,7 +217,6 @@ test('linking from Telegram, then chatting, then a text reminder, all go through
     spaceId: 'tg-chat-1',
     senderId: 'agent-bot',
     text: 'Reminder from Matilda: Call the bank',
-    key: `reminder:${id}`,
   })
 })
 
@@ -217,11 +240,8 @@ test('forged, stale or unsigned deliveries are refused and never answered', asyn
     method: 'POST',
     body: '{}',
   })
-  expect(unsigned.status).toBe(400)
+  expect(unsigned.status).toBe(401)
   expect(sent).toEqual([])
-  expect(await t.run((ctx) => ctx.db.query('photonMessages').take(10))).toEqual(
-    [],
-  )
 })
 
 test('a burst of texts is limited as it is recorded, so parallel replies never race on the limit', async () => {
@@ -230,7 +250,9 @@ test('a burst of texts is limited as it is recorded, so parallel replies never r
   await deliver('m0', `link ${code}`)
   sent.length = 0
   // 16 texts at once, answered side by side.
-  for (let i = 0; i < 16; i++) await deliver(`b${i}`, `hello ${i}`)
+  for (let i = 0; i < 16; i++) {
+    await deliver(`b${i}`, `hello ${i}`, { drain: false })
+  }
   await t.finishAllScheduledFunctions(vi.runAllTimers)
   const replies = sent.map((s) => s.text)
   expect(replies.filter((r) => r === 'Hi from Matilda.')).toHaveLength(15)
@@ -259,7 +281,6 @@ test("a linked chat's voice note is heard and answered; an unlinked chat's never
       spaceId: 'tg-chat-1',
       senderId: 'agent-bot',
       text: 'Hi from Matilda.',
-      key: 'reply:v1',
     },
   ])
 })

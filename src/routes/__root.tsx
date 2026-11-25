@@ -4,9 +4,9 @@ import {
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
-import * as React from 'react'
 import { Toaster } from 'sonner'
 import { Databuddy } from '@databuddy/sdk/react'
+import type * as React from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { NotFoundScreen } from '~/components/error-screen'
 import appCss from '~/styles/app.css?url'

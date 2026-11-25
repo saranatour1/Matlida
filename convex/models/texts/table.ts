@@ -45,8 +45,3 @@ export const receivedTextsTable = defineTable({
   searchField: 'text',
   filterFields: ['userId', 'platform'],
 })
-
-/** Messages that came in through `/photon/webhook`, by Photon's id, so each is answered once. */
-export const photonMessagesTable = defineTable({
-  messageId: v.string(),
-}).index('by_messageId', ['messageId'])

@@ -1,6 +1,6 @@
 import { httpRouter } from 'convex/server'
 import { spectrum } from './models/texts/spectrum'
-import { photonWebhook } from './models/texts/webhook'
+import { photon } from './models/texts/photon'
 
 const http = httpRouter()
 
@@ -8,6 +8,6 @@ const http = httpRouter()
 spectrum.registerRoutes(http)
 
 // POST /photon/webhook, for Photon's platform API: Telegram, and email arriving.
-http.route({ path: '/photon/webhook', method: 'POST', handler: photonWebhook })
+photon.registerRoutes(http)
 
 export default http

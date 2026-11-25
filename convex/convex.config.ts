@@ -11,6 +11,7 @@ import crons from '@convex-dev/crons/convex.config.js'
 import rateLimiter from '@convex-dev/rate-limiter/convex.config.js'
 import resend from '@convex-dev/resend/convex.config.js'
 import workflow from '@convex-dev/workflow/convex.config.js'
+import photon from '@photon-ai/convex/convex.config.js'
 import spectrum from '@spectrum-ts/convex/convex.config.js'
 import shopping from './components/shopping/convex.config'
 import study from './components/study/convex.config'
@@ -39,7 +40,7 @@ const app = defineApp({
     SPECTRUM_PROJECT_SECRET: v.optional(v.string()),
     /** The Telegram bot's token from @BotFather, for the Spectrum SDK's Telegram provider. */
     TELEGRAM_BOT_TOKEN: v.optional(v.string()),
-    /** Signs Photon's platform webhook at /photon/webhook (whsec_…): Telegram messages, and email arriving. */
+    /** Signs Photon's platform webhook at /photon/webhook (whsec_…), served by @photon-ai/convex: Telegram messages, and email arriving. The destination's API version must be 2026-07-01. */
     PHOTON_WEBHOOK_SECRET: v.optional(v.string()),
     /** The domain of the users' assistant addresses (handle@MAIL_DOMAIN), connected on Photon's Email page. Unset until email is set up. */
     MAIL_DOMAIN: v.optional(v.string()),
@@ -60,6 +61,7 @@ const app = defineApp({
 
 app.use(agent)
 app.use(spectrum)
+app.use(photon)
 app.use(resend)
 app.use(rateLimiter)
 app.use(aiBudget)
