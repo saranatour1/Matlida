@@ -9,7 +9,7 @@ export const {
   claim,
   forSpace,
   search,
-  received,
+  turn,
   replyOnPhoton,
   linkedOwner,
 } = textsApi

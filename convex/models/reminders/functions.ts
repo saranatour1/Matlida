@@ -22,12 +22,13 @@ import { authedMutation, authedQuery } from '../../lib/functions'
 import { addressOf } from '../../lib/handles'
 import { rateLimiter } from '../../lib/limits'
 import { MODELS } from '../../lib/models'
-import { photonKeys, sendEmail, sendText } from '../../lib/photon'
+import { photonKeys, sendEmail } from '../../lib/photon'
 import schema from '../../schema'
 import { getMailbox } from '../mailboxes/queries'
 import { getOwnedProject } from '../projects/queries'
 import { getLink } from '../texts/queries'
 import { assistantOf } from '../threads/queries'
+import { photon } from '../texts/photon'
 import { spectrum } from '../texts/spectrum'
 import { remindersTable } from './table'
 import type { AfterMissed, HowOften } from '../../lib/decide'
@@ -517,15 +518,11 @@ const textChat = async (
   ctx: ActionCtx,
   chat: { spaceId: string; agentId?: string },
   text: string,
-  key: string,
 ) => {
-  const keys = photonKeys(env)
-  if (chat.agentId && keys) {
-    await sendText(keys, {
+  if (chat.agentId) {
+    await photon.sendMessage(ctx, {
       spaceId: chat.spaceId,
-      senderId: chat.agentId,
-      text,
-      key,
+      content: { type: 'text', format: 'plain', text },
     })
     return true
   }
@@ -584,7 +581,6 @@ const miss = internalAction({
         ctx,
         chat,
         `Missed call from ${reminder.from}: ${reminder.message}`,
-        `missed:${id}`,
       ))
     await ctx.runMutation(internal.api.reminders.markSent, {
       id,
@@ -807,7 +803,6 @@ const fire = internalAction({
           ctx,
           chat,
           `Reminder from ${reminder.from}: ${reminder.message}`,
-          `reminder:${id}`,
         ))
       if (!texted) {
         note = "Texting isn't linked, so it's only here."

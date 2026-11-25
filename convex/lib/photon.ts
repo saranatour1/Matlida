@@ -136,30 +136,6 @@ const emailUser = async (keys: PhotonKeys, address: string) => {
   return zId.parse(user).id
 }
 
-/**
- * Sends a text into a Photon space (a Telegram chat, for one) as `senderId`,
- * the project's agent there. `key` makes a retry send once.
- */
-export const sendText = async (
-  keys: PhotonKeys,
-  {
-    spaceId,
-    senderId,
-    text,
-    key,
-  }: { spaceId: string; senderId: string; text: string; key: string },
-) => {
-  await call(keys, '/messages', {
-    method: 'POST',
-    headers: { 'idempotency-key': key },
-    body: JSON.stringify({
-      spaceId,
-      senderId,
-      content: { type: 'text', format: 'plain', text },
-    }),
-  })
-}
-
 /** The Photon keys from the deployment, or null until they're set. */
 export const photonKeys = (env: {
   PHOTON_PROJECT_ID?: string

@@ -1,4 +1,5 @@
 import { ConvexError, v } from 'convex/values'
+import { z } from 'zod'
 import { internal } from '../../_generated/api'
 import {
   env,
@@ -8,7 +9,7 @@ import {
 } from '../../_generated/server'
 import { authedMutation, authedQuery } from '../../lib/functions'
 import { rateLimiter } from '../../lib/limits'
-import { downloadAttachment, photonKeys, sendText } from '../../lib/photon'
+import { downloadAttachment, photonKeys } from '../../lib/photon'
 import schema from '../../schema'
 import { getOwnedProject } from '../projects/queries'
 import { budgetMessage } from '../../lib/budget'
@@ -17,6 +18,7 @@ import { getMembers } from '../threads/queries'
 import { createAgent } from '../threads/lead'
 import { transcribeBytes } from '../threads/chat'
 import { commandName, resolveCommand } from '../commands/queries'
+import { photon } from './photon'
 import { spectrum } from './spectrum'
 import { getLinks } from './queries'
 import type { PhotonKeys } from '../../lib/photon'
@@ -291,42 +293,60 @@ const answer = async (
   return reply.text
 }
 
+/** The parts of a Photon message this app reads. */
+const zPhotonMessage = z.object({
+  platform: z.string(),
+  content: z.object({
+    type: z.string(),
+    text: z.string().optional(),
+    attachmentId: z.string().optional(),
+  }),
+  receivedBy: z.object({ id: z.string() }).optional(),
+})
+
 /**
- * Records a message from `/photon/webhook` once, and schedules its answer.
- * False when it was already recorded: Photon retries a delivery it isn't
- * sure arrived.
+ * The Photon component's turn handler, one message per turn. An email starts
+ * the email check; a Telegram text or voice note is answered by
+ * `replyOnPhoton`, which closes the turn. Everything else closes it here.
  */
-const received = internalMutation({
+const turn = internalMutation({
   args: {
-    messageId: v.string(),
     spaceId: v.string(),
-    platform: v.string(),
-    agentId: v.string(),
-    text: v.string(),
-    /** A voice note's attachment, heard before answering. */
-    voiceId: v.optional(v.string()),
+    turnId: v.string(),
+    messages: v.array(v.any()),
+    carried: v.array(v.any()),
   },
-  returns: v.boolean(),
-  handler: async (ctx, { messageId, ...message }) => {
-    const seen = await ctx.db
-      .query('photonMessages')
-      .withIndex('by_messageId', (q) => q.eq('messageId', messageId))
-      .unique()
-    if (seen) return false
-    await ctx.db.insert('photonMessages', { messageId })
-    // The limit is taken here, one message at a time, not in the replies that
-    // run side by side, so two quick messages don't conflict on the same bucket.
-    const admitted = await admitText(
-      ctx,
-      message.spaceId,
-      linkCode(message.text) ? 'link' : 'message',
-    )
-    await ctx.scheduler.runAfter(0, internal.api.texts.replyOnPhoton, {
-      messageId,
-      admitted,
-      ...message,
-    })
-    return true
+  returns: v.null(),
+  handler: async (ctx, { spaceId, turnId, messages }) => {
+    const parsed = zPhotonMessage.safeParse(messages[0])
+    const message = parsed.success ? parsed.data : null
+    if (message?.platform === 'email') {
+      await ctx.runMutation(internal.api.emails.schedulePoll, {})
+    } else if (message?.platform === 'telegram' && message.receivedBy) {
+      const { type, text = '', attachmentId } = message.content
+      const voiceId = type === 'voice' ? attachmentId : undefined
+      if ((type === 'text' && text) || voiceId) {
+        // The limit is taken here, one message at a time, not in the replies that
+        // run side by side, so two quick messages don't conflict on the same bucket.
+        const admitted = await admitText(
+          ctx,
+          spaceId,
+          linkCode(text) ? 'link' : 'message',
+        )
+        await ctx.scheduler.runAfter(0, internal.api.texts.replyOnPhoton, {
+          spaceId,
+          turnId,
+          platform: message.platform,
+          agentId: message.receivedBy.id,
+          text,
+          voiceId,
+          admitted,
+        })
+        return null
+      }
+    }
+    await photon.completeTurn(ctx, { spaceId, turnId })
+    return null
   },
 })
 
@@ -348,11 +368,11 @@ const hear = async (
   return (await transcribeBytes(ctx, ownerId, audio)).text
 }
 
-/** Answers a message from Photon's platform API in its chat, as the project's agent there. */
+/** Answers a message from Photon's platform API in its chat, then closes the turn. */
 const replyOnPhoton = internalAction({
   args: {
-    messageId: v.string(),
     spaceId: v.string(),
+    turnId: v.string(),
     platform: v.string(),
     agentId: v.string(),
     text: v.string(),
@@ -360,39 +380,36 @@ const replyOnPhoton = internalAction({
     admitted: v.boolean(),
   },
   returns: v.null(),
-  handler: async (
-    ctx,
-    { messageId, spaceId, platform, agentId, text, voiceId, admitted },
-  ) => {
-    const keys = photonKeys(env)
-    if (!keys) return null
-    const reply = await (async () => {
-      const heard =
-        voiceId && admitted ? await hear(ctx, keys, spaceId, voiceId) : null
-      if (heard === '') {
-        return "I couldn't make out that voice message. Try again, or type it."
-      }
-      return await answer(ctx, {
-        spaceId,
-        platform,
-        text: heard ?? text,
-        agentId,
-        admitted,
+  handler: async (ctx, { turnId, voiceId, ...message }) => {
+    const ids = { spaceId: message.spaceId, turnId }
+    try {
+      const keys = photonKeys(env)
+      if (!keys) return null
+      const reply = await (async () => {
+        const heard =
+          voiceId && message.admitted
+            ? await hear(ctx, keys, message.spaceId, voiceId)
+            : null
+        if (heard === '') {
+          return "I couldn't make out that voice message. Try again, or type it."
+        }
+        return await answer(ctx, { ...message, text: heard ?? message.text })
+      })().catch((error: unknown) => {
+        console.error(error)
+        return (
+          budgetMessage(error) ??
+          'Sorry, something went wrong. Try again in a minute.'
+        )
       })
-    })().catch((error: unknown) => {
-      console.error(error)
-      return (
-        budgetMessage(error) ??
-        'Sorry, something went wrong. Try again in a minute.'
-      )
-    })
-    if (!reply) return null
-    await sendText(keys, {
-      spaceId,
-      senderId: agentId,
-      text: reply,
-      key: `reply:${messageId}`,
-    })
+      if (reply) {
+        await photon.sendMessage(ctx, {
+          ...ids,
+          content: { type: 'text', format: 'plain', text: reply },
+        })
+      }
+    } finally {
+      await photon.completeTurn(ctx, ids)
+    }
     return null
   },
 })
@@ -435,7 +452,7 @@ const textOf = (message: unknown) => {
 /**
  * The Spectrum SDK's batch handler: one turn per burst of texts from a chat
  * on iMessage, WhatsApp or Telegram. A mutation, so the chat's limit is
- * taken here as the burst arrives, like `received` does for Photon's API,
+ * taken here as the burst arrives, like `turn` does for Photon's API,
  * and the reply runs after.
  */
 const batch = internalMutation({
@@ -521,7 +538,7 @@ export const textsApi = {
   claim,
   forSpace,
   search,
-  received,
+  turn,
   replyOnPhoton,
   linkedOwner,
 }

@@ -118,10 +118,10 @@ Last PR: [#165](https://github.com/saranatour1/Matlida/pull/165) Run scheduled w
 
 Telegram through Photon's webhook (text, commands and voice notes). The Spectrum SDK path for iMessage and WhatsApp is still in the code.
 
-Paths: `convex/models/texts/` `convex/lib/photon.ts` `convex/lib/webhooks.ts` `convex/lib/limits.ts` `src/routes/_app/p/$projectId/messaging.tsx`
+Paths: `convex/models/texts/` `convex/lib/photon.ts` `convex/lib/limits.ts` `src/routes/_app/p/$projectId/messaging.tsx`
 Last PR: [#167](https://github.com/saranatour1/Matlida/pull/167) Hear Telegram voice notes through Photon's webhook · changed 2026-10-23 · merged 2026-10-23
 
-- Webhook: `POST /photon/webhook` in `convex/http.ts`, handled by `convex/models/texts/webhook.ts:photonWebhook`, recorded once by `convex/models/texts/functions.ts:received`.
+- Webhook: `POST /photon/webhook`, served by the `@photon-ai/convex` component (`convex/models/texts/photon.ts:photon`), which verifies and dedupes each delivery. Each message becomes a turn for `convex/models/texts/functions.ts:turn`.
 - Linking a chat with a one-time code: `startLink`, `claim`.
 - Answering: `replyOnPhoton`. Voice notes: `hear`.
 - Rate limits on anything from outside: `convex/lib/limits.ts:rateLimiter`.

@@ -19,7 +19,6 @@ import { remindersTable } from './models/reminders/table'
 import { tasksTable } from './models/tasks/table'
 import {
   phoneLinksTable,
-  photonMessagesTable,
   receivedTextsTable,
 } from './models/texts/table'
 import { usageTable } from './models/usage/table'
@@ -35,7 +34,6 @@ export default defineSchema({
   comments: commentsTable,
   contacts: contactsTable,
   phoneLinks: phoneLinksTable,
-  photonMessages: photonMessagesTable,
   receivedTexts: receivedTextsTable,
   mailboxes: mailboxesTable,
   emails: emailsTable,
